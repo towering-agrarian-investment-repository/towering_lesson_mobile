@@ -3,6 +3,7 @@
     "name": "golf-lesson-system-mobile",
     "slug": "golf-lesson-system-mobile",
     "version": "1.0.0",
+    "newArchEnabled": true,
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "golflessonsystemmobile",
@@ -17,7 +18,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.golflessonsystemmobile"
     },
     "web": {
       "output": "static",
@@ -25,6 +27,17 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildToolsVersion": "36.0.0",
+            "compileSdkVersion": 36,
+            "minSdkVersion": 24,
+            "targetSdkVersion": 36
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {
