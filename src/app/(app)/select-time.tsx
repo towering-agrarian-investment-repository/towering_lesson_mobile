@@ -5,12 +5,12 @@ import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { fmtTime } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from "react-native";
 
 const PRIMARY = "#38bdf8";
@@ -86,22 +86,24 @@ export default function TimeScreen() {
                     message="There are no available times for this date."
                 />
             ) : null}
-
             <View style={s.list}>
                 {slotGroups.map((group) => (
-                    <TouchableOpacity
+                    <Pressable
                         key={group.id}
-                        style={s.row}
+                        style={({ pressed }) => [
+                            s.row,
+                            pressed && { opacity: 0.7 },
+                        ]}
                         onPress={() => handleSelect(group)}
-                        activeOpacity={0.7}
                     >
                         <Text style={s.range}>
                             {formatRange(group.startDateTime, group.endDateTime)}
                         </Text>
+
                         <Text style={s.status}>
                             {getAvailableBayCount(group)} bays
                         </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 ))}
             </View>
         </ScrollView>
