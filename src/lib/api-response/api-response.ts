@@ -6,3 +6,9 @@ export type ApiResponse<T> = {
         timestamp: string;
     };
 };
+
+export type CursorPageResponse<T> = {
+    items: T[];
+    nextCursor: string | null;
+    hasMore: boolean;
+};

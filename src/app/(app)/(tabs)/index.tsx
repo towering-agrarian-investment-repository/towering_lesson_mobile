@@ -1,7 +1,8 @@
 import GolfHeader from "@/components/golf/GolfHeader";
 import MyTicket from "@/components/golf/MyTicket";
+import TodayReservation from "@/components/golf/TodayReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { globalStyles } from "@/styles/global";
+import { cn } from "@/utils/cn";
 import { Link } from "expo-router";
 import {
   ActivityIndicator,
@@ -25,79 +26,36 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <View
-        style={[
-          globalStyles.container,
-          {
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          },
-        ]}
-      >
+      <View className="flex-1 items-center justify-center p-6 bg-white">
         <ActivityIndicator size="large" />
-        <Text style={{ marginTop: 12, color: "#6B7280" }}>
-          Loading your profile...
-        </Text>
+        <Text className="mt-3 text-gray-500">Loading your profile...</Text>
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View
-        style={[
-          globalStyles.container,
-          {
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          },
-        ]}
-      >
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: "700",
-            color: "#111827",
-            marginBottom: 8,
-            textAlign: "center",
-          }}
-        >
+      <View className="flex-1 items-center justify-center p-6 bg-white">
+        <Text className="text-lg font-bold text-gray-900 mb-2 text-center">
           Could not load profile
         </Text>
-
-        <Text
-          style={{
-            color: "#6B7280",
-            textAlign: "center",
-            marginBottom: 16,
-          }}
-        >
+        <Text className="text-gray-500 text-center mb-4">
           {error instanceof Error
             ? error.message
             : "Please check your connection and try again."}
         </Text>
-
         <Pressable
           onPress={() => refetch()}
           disabled={isRefetching}
-          style={{
-            backgroundColor: "#16A34A",
-            paddingVertical: 12,
-            paddingHorizontal: 20,
-            borderRadius: 10,
-            opacity: isRefetching ? 0.6 : 1,
-          }}
+          className={cn(
+            "bg-green-600 py-3 px-5 rounded-xl",
+            isRefetching && "opacity-60"
+          )}
         >
           {isRefetching ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
-              Try Again
-            </Text>
+            <Text className="text-white font-bold">Try Again</Text>
           )}
         </Pressable>
       </View>
@@ -105,32 +63,28 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView
-      style={globalStyles.container}
-      contentContainerStyle={{ flexGrow: 1 }}
-    >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "space-between",
-        }}
-      >
+    <ScrollView className="bg-white p-4" contentContainerStyle={{ flexGrow: 1 }}>
+      <View className="flex-1 justify-between">
         <View>
           <GolfHeader />
-
           {member ? (
             <MyTicket member={member} />
           ) : (
-            <View style={{ padding: 24, alignItems: "center" }}>
-              <Text style={{ color: "#6B7280", textAlign: "center" }}>
+            <View className="p-6 items-center">
+              <Text className="text-gray-500 text-center">
                 No member profile found.
               </Text>
             </View>
           )}
+          <TodayReservation />
         </View>
 
-        <Link href="/reservation" style={globalStyles.link}>
-          VIEW MY RESERVATIONS
+        <Link href="/reservation" asChild>
+          <Pressable className="mt-4 rounded-2xl bg-green-600 py-4 active:bg-green-700">
+            <Text className="text-center text-base font-bold text-white">
+              VIEW MY RESERVATIONS
+            </Text>
+          </Pressable>
         </Link>
       </View>
     </ScrollView>

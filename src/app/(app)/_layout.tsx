@@ -72,6 +72,13 @@ export default function AppLayout() {
                         title: "Booking Confirmation",
                     }}
                 />
+
+                <Stack.Screen
+                    name="reservation/[id]"
+                    options={{
+                        title: "Reservation Detail",
+                    }}
+                />
             </Stack>
         </QueryClientProvider>
     );
