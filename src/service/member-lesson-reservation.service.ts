@@ -1,11 +1,34 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import { MemberLessonReservationResponse } from "@/types/member-lesson";
+import { LessonAvailabilityResponse, MemberCreateLessonReservationRequest, MemberLessonReservationResponse } from "@/types/member-lesson";
 
 export async function getLessonReservationById(
     id: number,
 ): Promise<ApiResponse<MemberLessonReservationResponse>> {
     return apiClient(`/member/lesson-reservations/${id}`, {
         method: "GET",
+    });
+}
+
+
+export async function getTicketLessonSlots(
+    ticketId: number,
+    year: number,
+    month: number,
+): Promise<ApiResponse<LessonAvailabilityResponse[]>> {
+    return apiClient(
+        `/member/tickets/${ticketId}/lesson-slots?year=${encodeURIComponent(String(year))}&month=${encodeURIComponent(String(month))}`,
+        {
+            method: "GET",
+        },
+    );
+}
+
+export async function createMemberLessonReservation(
+    data: MemberCreateLessonReservationRequest,
+): Promise<ApiResponse<MemberLessonReservationResponse>> {
+    return apiClient("/member/lesson-reservations", {
+        method: "POST",
+        body: JSON.stringify(data),
     });
 }

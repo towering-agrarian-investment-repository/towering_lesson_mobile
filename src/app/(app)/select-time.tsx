@@ -1,76 +1,105 @@
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
+import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
+import { fmtTime } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 const PRIMARY = "#38bdf8";
 
-const TIME_SLOTS = [
-    { start: "06:00", duration: 60, available: true },
-    { start: "07:00", duration: 30, available: true },
-    { start: "08:00", duration: 90, available: false },
-    { start: "09:00", duration: 60, available: true },
-    { start: "10:00", duration: 30, available: true },
-    { start: "11:00", duration: 120, available: true },
-    { start: "12:00", duration: 60, available: false },
-    { start: "13:00", duration: 30, available: true },
-    { start: "14:00", duration: 90, available: true },
-    { start: "15:00", duration: 60, available: false },
-    { start: "16:00", duration: 30, available: true },
-    { start: "17:00", duration: 60, available: true },
-    { start: "18:00", duration: 90, available: true },
-    { start: "19:00", duration: 30, available: false },
-    { start: "20:00", duration: 60, available: true },
-    { start: "21:00", duration: 30, available: true },
-];
+function formatRange(start: string, end: string) {
+    return `${fmtTime(start)} - ${fmtTime(end)}`;
+}
 
-function formatRange(start: string, duration: number): string {
-    const [h, m] = start.split(":").map(Number);
-    const totalMins = h * 60 + m + duration;
-    const endH = Math.floor(totalMins / 60) % 24;
-    const endM = totalMins % 60;
-
-    const fmt = (hour: number, min: number) => {
-        const period = hour < 12 ? "AM" : "PM";
-        const h12 = hour % 12 === 0 ? 12 : hour % 12;
-        const mm = min.toString().padStart(2, "0");
-        return `${h12}:${mm} ${period}`;
-    };
-
-    return `${fmt(h, m)} – ${fmt(endH, endM)}`;
+function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
+    return group.baySlots.filter((slot) => slot.slotStatus === "AVAILABLE").length;
 }
 
 export default function TimeScreen() {
-    const { date, bay } = useLocalSearchParams<{ date: string; bay: string }>();
+    const { date, ticketId } = useLocalSearchParams<{
+        date: string;
+        ticketId?: string;
+    }>();
     const router = useRouter();
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberBaySlotGroups(
+        date,
+        date,
+        Boolean(date),
+    );
 
-    const handleSelect = (slot: typeof TIME_SLOTS[0]) => {
+    const slotGroups = (data?.data ?? []).filter(
+        (group) => getAvailableBayCount(group) > 0,
+    );
+
+    const handleSelect = (group: BaySlotGroupScheduleResponse) => {
         router.push({
-            pathname: "/booking-confirm",
+            pathname: "/select-bay",
             params: {
                 date,
-                bay,
-                time: slot.start,
-                duration: slot.duration,
+                ticketId,
+                slotGroupId: String(group.id),
             },
         });
     };
 
     return (
-        <ScrollView style={s.container} contentContainerStyle={s.content}>
-            <Text style={s.subLabel}>Bay {bay} · {date}</Text>
+        <ScrollView
+            style={s.container}
+            contentContainerStyle={s.content}
+            refreshControl={
+                <RefreshControl
+                    refreshing={isRefetching}
+                    onRefresh={() => {
+                        void refetch();
+                    }}
+                />
+            }
+        >
+            <Text style={s.subLabel}>{date}</Text>
+
+            {isLoading ? (
+                <View style={s.state}>
+                    {Array.from({ length: 4 }, (_, index) => (
+                        <Skeleton key={index} className="h-14 w-full rounded-xl" />
+                    ))}
+                </View>
+            ) : null}
+
+            {isError ? (
+                <ErrorState
+                    title="Failed to load available times"
+                    message="Pull to refresh and try again."
+                />
+            ) : null}
+
+            {!isLoading && !isError && slotGroups.length === 0 ? (
+                <EmptyState
+                    title="No available times"
+                    message="There are no available times for this date."
+                />
+            ) : null}
+
             <View style={s.list}>
-                {TIME_SLOTS.map((slot) => (
+                {slotGroups.map((group) => (
                     <TouchableOpacity
-                        key={slot.start}
-                        style={[s.row, !slot.available && s.rowUnavailable]}
-                        onPress={() => slot.available && handleSelect(slot)}
-                        activeOpacity={slot.available ? 0.7 : 1}
-                        disabled={!slot.available}
+                        key={group.id}
+                        style={s.row}
+                        onPress={() => handleSelect(group)}
+                        activeOpacity={0.7}
                     >
-                        <Text style={[s.range, !slot.available && s.textUnavailable]}>
-                            {formatRange(slot.start, slot.duration)}
+                        <Text style={s.range}>
+                            {formatRange(group.startDateTime, group.endDateTime)}
                         </Text>
-                        <Text style={[s.status, !slot.available && s.statusUnavailable]}>
-                            {slot.available ? "Available" : "Full"}
+                        <Text style={s.status}>
+                            {getAvailableBayCount(group)} bays
                         </Text>
                     </TouchableOpacity>
                 ))}
@@ -84,6 +113,16 @@ const s = StyleSheet.create({
     content: { padding: 16, paddingBottom: 40 },
     subLabel: { fontSize: 13, color: "#94a3b8", marginBottom: 16 },
     list: { gap: 8 },
+    state: {
+        paddingVertical: 24,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+    },
+    stateText: {
+        fontSize: 14,
+        color: "#64748b",
+    },
     row: {
         flexDirection: "row",
         alignItems: "center",
@@ -95,25 +134,14 @@ const s = StyleSheet.create({
         borderColor: "#e2e8f0",
         backgroundColor: "#f8fafc",
     },
-    rowUnavailable: {
-        backgroundColor: "#f1f5f9",
-        borderColor: "#f1f5f9",
-        opacity: 0.5,
-    },
     range: {
         fontSize: 15,
         fontWeight: "600",
         color: "#0f172a",
     },
-    textUnavailable: {
-        color: "#94a3b8",
-    },
     status: {
         fontSize: 12,
         fontWeight: "500",
         color: PRIMARY,
-    },
-    statusUnavailable: {
-        color: "#cbd5e1",
     },
 });

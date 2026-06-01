@@ -1,8 +1,11 @@
+import { CircleLoader } from "@/components/ui/CircleLoader";
 import { authClient } from "@/lib/auth-client";
+import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
+import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient();
 
@@ -17,9 +20,7 @@ export default function AppLayout() {
     if (isPending) {
         return (
             <QueryClientProvider client={queryClient}>
-                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <ActivityIndicator />
-                </View>
+                <CircleLoader fullScreen />
             </QueryClientProvider>
         );
     }
@@ -30,56 +31,87 @@ export default function AppLayout() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Stack>
-                <Stack.Screen
-                    name="(tabs)"
-                    options={{
-                        headerShown: false,
-                    }}
-                />
+            <ToastProvider>
+                <ToastBridge />
+                <Stack>
+                    <Stack.Screen
+                        name="(tabs)"
+                        options={{
+                            headerShown: false,
+                        }}
+                    />
 
-                <Stack.Screen
-                    name="reservation"
-                    options={{
-                        title: "My Reservations",
-                    }}
-                />
+                    <Stack.Screen
+                        name="reservation"
+                        options={{
+                            title: "My Reservations",
+                        }}
+                    />
 
-                <Stack.Screen
-                    name="select-date"
-                    options={{
-                        title: "Select Date",
-                    }}
-                />
+                    <Stack.Screen
+                        name="select-date"
+                        options={{
+                            title: "Select Date",
+                        }}
+                    />
 
-                <Stack.Screen
-                    name="select-bay"
-                    options={{
-                        title: "Select Bay",
-                    }}
-                />
+                    <Stack.Screen
+                        name="select-bay"
+                        options={{
+                            title: "Select Bay",
+                        }}
+                    />
 
-                <Stack.Screen
-                    name="select-time"
-                    options={{
-                        title: "Select Time",
-                    }}
-                />
+                    <Stack.Screen
+                        name="select-time"
+                        options={{
+                            title: "Select Time",
+                        }}
+                    />
 
-                <Stack.Screen
-                    name="booking-confirm"
-                    options={{
-                        title: "Booking Confirmation",
-                    }}
-                />
+                    <Stack.Screen
+                        name="select-lesson-slot"
+                        options={{
+                            title: "Select Slot",
+                        }}
+                    />
 
-                <Stack.Screen
-                    name="reservation/[id]"
-                    options={{
-                        title: "Reservation Detail",
-                    }}
-                />
-            </Stack>
+                    <Stack.Screen
+                        name="booking-confirm"
+                        options={{
+                            title: "Booking Confirmation",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="lesson-booking-confirm"
+                        options={{
+                            title: "Booking Confirmation",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="reservation/[id]"
+                        options={{
+                            title: "Reservation Detail",
+                        }}
+                    />
+                </Stack>
+            </ToastProvider>
         </QueryClientProvider>
     );
+}
+
+function ToastBridge() {
+    const { showToast } = useToast();
+
+    useEffect(() => {
+        registerToastHandler(showToast);
+
+        return () => {
+            registerToastHandler(null);
+        };
+    }, [showToast]);
+
+    return null;
 }

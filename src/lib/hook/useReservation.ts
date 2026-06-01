@@ -1,11 +1,11 @@
-import { getBayReservationById } from "@/service/member-bay-reservation.service";
-import { getLessonReservationById } from "@/service/member-lesson-reservation.service";
+import { createMemberBayReservation, getBayReservationById, getMemberBaySlotGroups } from "@/service/member-bay-reservation.service";
+import { createMemberLessonReservation, getLessonReservationById, getTicketLessonSlots } from "@/service/member-lesson-reservation.service";
 import { getMemberReservations, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
-import { MemberBayReservationResponse } from "@/types/member-bay";
-import { MemberLessonReservationResponse } from "@/types/member-lesson";
+import { BaySlotGroupScheduleResponse, MemberBayReservationRequest, MemberBayReservationResponse } from "@/types/member-bay";
+import { LessonAvailabilityResponse, MemberCreateLessonReservationRequest, MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ApiResponse, CursorPageResponse } from "../api-response/api-response";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "../api-response/api-response";
 
 
 export type MemberReservationDetailResponse =
@@ -84,5 +84,70 @@ export function useMemberReservationById(id: number, domain?: MemberReservationD
             throw lessonResult.reason ?? bayResult.reason ?? new Error("Failed to load reservation");
         },
         enabled: Number.isFinite(id) && id > 0,
+    });
+}
+
+
+
+export function useMemberBaySlotGroups(startDate: string, endDate: string, enabled = true) {
+    return useQuery<ApiResponse<BaySlotGroupScheduleResponse[]>>({
+        queryKey: ["member", "bay-slot-groups", startDate, endDate],
+        queryFn: () => getMemberBaySlotGroups(startDate, endDate),
+        enabled: enabled && Boolean(startDate) && Boolean(endDate),
+    });
+}
+
+export function useCreateMemberBayReservation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        ApiResponse<MemberBayReservationResponse>,
+        unknown,
+        MemberBayReservationRequest
+    >({
+        mutationFn: createMemberBayReservation,
+        onSuccess: (res) => {
+            // responseStatus({ res });
+            queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
+        },
+        onError: (error) => {
+            // responseError({ error });
+        },
+    });
+}
+
+
+export function useCreateMemberLessonReservation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        ApiResponse<MemberLessonReservationResponse>,
+        unknown,
+        MemberCreateLessonReservationRequest
+    >({
+        mutationFn: createMemberLessonReservation,
+        onSuccess: (res) => {
+            responseStatus({ res });
+            queryClient.invalidateQueries({ queryKey: ["member", "ticket-lesson-slots"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
+        },
+        onError: (error) => {
+            responseError({ error });
+        },
+    });
+}
+
+
+export function useMemberTicketLessonSlots(
+    ticketId: number | null | undefined,
+    year: number,
+    month: number,
+    enabled = true,
+) {
+    return useQuery<ApiResponse<LessonAvailabilityResponse[]>>({
+        queryKey: ["member", "ticket-lesson-slots", ticketId, year, month],
+        queryFn: () => getTicketLessonSlots(ticketId as number, year, month),
+        enabled: enabled && Boolean(ticketId) && Boolean(year) && Boolean(month),
     });
 }

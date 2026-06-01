@@ -1,3 +1,5 @@
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
@@ -12,13 +14,21 @@ function TodayReservation() {
             <TitleSectionWithBadge label="Today's Reservation" length={todayReservations.length} />
 
             {todayReservationsLoading ? (
-                <View>
-                    <Text>Loading....</Text>
+                <View style={style.listContent}>
+                    {Array.from({ length: 2 }, (_, index) => (
+                        <Skeleton key={index} className="h-28 w-72 rounded-2xl" />
+                    ))}
                 </View>
             ) : todayReservationError ? (
-                <View>
-                    <Text>Failed to load tickets</Text>
-                </View>
+                <ErrorState
+                    title="Failed to load reservations"
+                    message="Please pull to refresh and try again."
+                />
+            ) : todayReservations.length === 0 ? (
+                <EmptyState
+                    title="No reservations today"
+                    message="Today's reservations will appear here."
+                />
             ) : (
                 <FlatList
                     data={todayReservations}

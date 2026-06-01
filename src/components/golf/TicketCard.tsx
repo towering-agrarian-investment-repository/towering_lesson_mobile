@@ -86,34 +86,52 @@ function getTicketStyle(type?: string | null, inactive?: boolean) {
 function TicketCard({ item }: Props) {
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketStyle = getTicketStyle(item.type, isInactive);
+    const isLessonProgramTicket = item.type === "LESSON_PROGRAM";
+    const isBookingDisabled = isInactive || isLessonProgramTicket;
 
     const badgeLabel = normalizeLabel(item.type);
     const usageNote = getUsageNote(item);
 
-    return (
-        <Link href="/select-date" asChild>
-            <Pressable>
-                <View style={[style.card, ticketStyle.card]}>
-                    <Text style={[style.badge, ticketStyle.badge]}>{badgeLabel}</Text>
+    const card = (
+        <Pressable disabled={isBookingDisabled}>
+            <View style={[style.card, ticketStyle.card]}>
+                <Text style={[style.badge, ticketStyle.badge]}>{badgeLabel}</Text>
 
-                    <Text style={style.title} numberOfLines={2} ellipsizeMode="tail">
-                        {item.name}
-                    </Text>
+                <Text style={style.title} numberOfLines={2} ellipsizeMode="tail">
+                    {item.name}
+                </Text>
 
-                    <Text style={style.dateTitle}>
-                        {formatTicketDate(item.startDate)} ~ {formatTicketDate(item.endDate)}
-                    </Text>
+                <Text style={style.dateTitle}>
+                    {formatTicketDate(item.startDate)} ~ {formatTicketDate(item.endDate)}
+                </Text>
 
-                    <View style={style.footer}>
-                        <Text style={style.meta}>{usageNote}</Text>
+                <View style={style.footer}>
+                    <Text style={style.meta}>{usageNote}</Text>
 
-                        {!item.isUnlimited && item.onlyOnePerDay ? (
-                            <Text style={style.onceText}>Use once per day</Text>
-                        ) : null}
-                    </View>
+                    {!item.isUnlimited && item.onlyOnePerDay ? (
+                        <Text style={style.onceText}>Use once per day</Text>
+                    ) : null}
                 </View>
-            </Pressable>
+            </View>
+        </Pressable>
+    );
 
+    if (isBookingDisabled) {
+        return card;
+    }
+
+    return (
+        <Link
+            href={{
+                pathname: "/select-date",
+                params: {
+                    ticketId: String(item.id),
+                    ticketType: item.type,
+                },
+            }}
+            asChild
+        >
+            {card}
         </Link>
 
     );

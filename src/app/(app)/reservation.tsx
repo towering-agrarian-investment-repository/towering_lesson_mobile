@@ -1,13 +1,16 @@
 import { memo, useCallback, useState } from "react";
 import {
-    ActivityIndicator,
     FlatList,
     Pressable,
+    RefreshControl,
     Text,
     View,
 } from "react-native";
 
 import ReservationCard from "@/components/golf/ReservationCard";
+import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/StateCard";
 import { useMemberReservations } from "@/lib/hook/useReservation";
 import { MemberReservationType } from "@/service/reservation.service";
 import type {
@@ -44,6 +47,8 @@ export default function ReservationScreen() {
         data,
         isLoading,
         isFetching,
+        refetch,
+        isRefetching,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
@@ -101,27 +106,33 @@ export default function ReservationScreen() {
 
             <View className="flex-1">
                 {isLoading ? (
-                    <FullStateBox>
-                        <ActivityIndicator size="large" color="#16a34a" />
-                        <Text className="mt-3 text-base text-gray-500">
-                            Loading reservations...
-                        </Text>
-                    </FullStateBox>
-                ) : reservations.length === 0 ? (
-                    <FullStateBox>
-                        <Text className="text-lg font-semibold text-gray-950 text-center leading-7">
-                            No reservations found
-                        </Text>
+                    <View className="px-6 pt-5 pb-10">
+                        <ReservationListHeaderSkeleton />
 
-                        <Text className="mt-2 text-base text-gray-500 text-center leading-6">
-                            Your reservations will appear here.
-                        </Text>
-                    </FullStateBox>
+                        <View className="gap-5">
+                            {Array.from({ length: 3 }, (_, index) => (
+                                <ReservationCardSkeleton key={index} />
+                            ))}
+                        </View>
+                    </View>
+                ) : reservations.length === 0 ? (
+                    <EmptyState
+                        title="No reservations found"
+                        message="Your reservations will appear here."
+                    />
                 ) : (
                     <FlatList
                         data={reservations}
                         keyExtractor={keyExtractor}
                         renderItem={renderReservationItem}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isRefetching}
+                                onRefresh={() => {
+                                    void refetch();
+                                }}
+                            />
+                        }
                         contentContainerClassName="px-6 pt-5 pb-10"
                         ItemSeparatorComponent={ReservationItemSeparator}
                         showsVerticalScrollIndicator={false}
@@ -148,25 +159,46 @@ export default function ReservationScreen() {
     );
 }
 
-function FullStateBox({ children }: { children: React.ReactNode }) {
+function ReservationItemSeparator() {
+    return <View className="h-5" />;
+}
+
+function ReservationListHeaderSkeleton() {
     return (
-        <View style={{ flex: 1 }} className="px-6 py-5">
-            <View
-                style={{
-                    flex: 1,
-                    alignSelf: "stretch",
-                    borderStyle: "dashed",
-                }}
-                className="items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 px-6"
-            >
-                {children}
-            </View>
+        <View className="mb-4 flex-row items-center justify-between">
+            <Skeleton className="h-4 w-24 rounded-full" />
+            <Skeleton className="h-4 w-20 rounded-full" />
         </View>
     );
 }
 
-function ReservationItemSeparator() {
-    return <View className="h-5" />;
+function ReservationCardSkeleton() {
+    return (
+        <View className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-md">
+            <View className="gap-4">
+                <View className="flex-row items-center gap-2">
+                    <Skeleton className="h-2.5 w-2.5 rounded-full" />
+                    <Skeleton className="h-6 flex-1 rounded-full" />
+                </View>
+
+                <Skeleton className="h-px w-full rounded-none" />
+
+                <View className="flex-row items-center gap-3">
+                    <View className="h-[82px] w-[72px] rounded-2xl bg-gray-100 px-3 py-3">
+                        <Skeleton className="h-4 w-10 rounded-full" />
+                        <Skeleton className="mt-3 h-8 w-12 rounded-full" />
+                    </View>
+
+                    <View className="flex-1">
+                        <Skeleton className="h-4 w-32 rounded-full" />
+                        <Skeleton className="mt-2 h-7 w-36 rounded-full" />
+                    </View>
+
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                </View>
+            </View>
+        </View>
+    );
 }
 
 function ReservationListHeader({
@@ -194,7 +226,7 @@ function ReservationListHeader({
 function ReservationListFooter() {
     return (
         <View className="py-5">
-            <ActivityIndicator size="small" color="#16a34a" />
+            <CircleLoader />
         </View>
     );
 }

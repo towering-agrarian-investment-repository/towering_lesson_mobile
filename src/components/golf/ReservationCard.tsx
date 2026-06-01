@@ -89,7 +89,7 @@ export default function ReservationCard({ reservation }: Props) {
     const isTodayReservation = isToday(startDate);
 
     const detailHref = {
-        pathname: "/(app)/member/reservation/[id]",
+        pathname: "/reservation/[id]",
         params: {
             id: String(reservation.id),
             type: reservationKind,

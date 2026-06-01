@@ -1,3 +1,5 @@
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState, EmptyState } from "@/components/ui/StateCard";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { MemberResponse } from "@/types/member.type";
 import { FlatList, StyleSheet, Text, View } from "react-native";
@@ -17,13 +19,21 @@ function MyTicket({ member }: Props) {
             <TitleSectionWithBadge label="My Tickets" length={tickets.length} />
 
             {isLoading ? (
-                <View>
-                    <Text>Loading....</Text>
+                <View style={style.listContent}>
+                    {Array.from({ length: 3 }, (_, index) => (
+                        <Skeleton key={index} className="h-40 w-60 rounded-2xl" />
+                    ))}
                 </View>
             ) : isError ? (
-                <View>
-                    <Text>Failed to load tickets</Text>
-                </View>
+                <ErrorState
+                    title="Failed to load tickets"
+                    message="Please pull to refresh and try again."
+                />
+            ) : tickets.length === 0 ? (
+                <EmptyState
+                    title="No tickets found"
+                    message="Your active tickets will appear here."
+                />
             ) : (
                 <FlatList
                     data={tickets}

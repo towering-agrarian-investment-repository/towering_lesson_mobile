@@ -1,18 +1,24 @@
 import GolfHeader from "@/components/golf/GolfHeader";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
+import { CircleLoader } from "@/components/ui/CircleLoader";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/utils/cn";
 import { Link } from "expo-router";
+import { useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
 } from "react-native";
 
 export default function HomeScreen() {
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const {
     data: memberResponse,
     isLoading,
@@ -24,57 +30,64 @@ export default function HomeScreen() {
 
   const member = memberResponse?.data;
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ["member", "tickets"] }),
+        queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center p-6 bg-white">
-        <ActivityIndicator size="large" />
-        <Text className="mt-3 text-gray-500">Loading your profile...</Text>
-      </View>
-    );
+    return <CircleLoader fullScreen label="Loading your profile..." />;
   }
 
   if (isError) {
     return (
-      <View className="flex-1 items-center justify-center p-6 bg-white">
-        <Text className="text-lg font-bold text-gray-900 mb-2 text-center">
-          Could not load profile
-        </Text>
-        <Text className="text-gray-500 text-center mb-4">
-          {error instanceof Error
+      <ErrorState
+        title="Could not load profile"
+        message={
+          error instanceof Error
             ? error.message
-            : "Please check your connection and try again."}
-        </Text>
-        <Pressable
-          onPress={() => refetch()}
-          disabled={isRefetching}
-          className={cn(
-            "bg-green-600 py-3 px-5 rounded-xl",
-            isRefetching && "opacity-60"
-          )}
-        >
-          {isRefetching ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text className="text-white font-bold">Try Again</Text>
-          )}
-        </Pressable>
-      </View>
+            : "Please check your connection and try again."
+        }
+        actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+        onAction={() => {
+          void refetch();
+        }}
+      />
     );
   }
 
   return (
-    <ScrollView className="bg-white p-4" contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView
+      className="bg-white p-4"
+      contentContainerStyle={{ flexGrow: 1 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            void handleRefresh();
+          }}
+        />
+      }
+    >
       <View className="flex-1 justify-between">
         <View>
           <GolfHeader />
           {member ? (
             <MyTicket member={member} />
           ) : (
-            <View className="p-6 items-center">
-              <Text className="text-gray-500 text-center">
-                No member profile found.
-              </Text>
-            </View>
+            <EmptyState
+              title="No member profile found"
+              message="This account does not have a member profile yet."
+            />
           )}
           <TodayReservation />
         </View>

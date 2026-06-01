@@ -1,9 +1,9 @@
-import { TicketType } from "./member.type";
+import type { LessonReservationStatus } from "./member-lesson";
+import type { TicketType } from "./member.type";
 
-export type MemberReservationResponse = {
+type MemberReservationResponseBase = {
     id: number;
     reservationNumber: string;
-    reservationType: MemberReservationDomain;
     ticketId: number;
     ticketType: TicketType;
     lessonProgramEnrollmentId: number | null;
@@ -18,17 +18,30 @@ export type MemberReservationResponse = {
     endTime: string;
     reservationDate: string;
     durationMinutes: number;
-    reservationStatus: string;
     notes: string | null;
 };
 
+export type MemberLessonReservationListResponse =
+    MemberReservationResponseBase & {
+        reservationType: "lesson";
+        reservationStatus: LessonReservationStatus;
+    };
+
+export type MemberBayReservationListResponse = MemberReservationResponseBase & {
+    reservationType: "bay";
+    reservationStatus: string;
+};
+
+export type MemberReservationResponse =
+    | MemberLessonReservationListResponse
+    | MemberBayReservationListResponse;
+
 export type MemberReservationDomain = "lesson" | "bay";
 
-export type MemberReservationSummaryResponse = Pick<
-    MemberReservationResponse,
+type MemberReservationSummaryBase = Pick<
+    MemberReservationResponseBase,
     | "id"
     | "reservationNumber"
-    | "reservationType"
     | "ticketType"
     | "lessonProgramName"
     | "lessonProgramGroupName"
@@ -37,8 +50,23 @@ export type MemberReservationSummaryResponse = Pick<
     | "startTime"
     | "endTime"
     | "reservationDate"
-    | "reservationStatus"
 >;
+
+export type MemberLessonReservationSummaryResponse =
+    MemberReservationSummaryBase & {
+        reservationType: "lesson";
+        reservationStatus: LessonReservationStatus;
+    };
+
+export type MemberBayReservationSummaryResponse =
+    MemberReservationSummaryBase & {
+        reservationType: "bay";
+        reservationStatus: string;
+    };
+
+export type MemberReservationSummaryResponse =
+    | MemberLessonReservationSummaryResponse
+    | MemberBayReservationSummaryResponse;
 
 export type MemberReservationCalendarResponse = {
     reservationDate: string;

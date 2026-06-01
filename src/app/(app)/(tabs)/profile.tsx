@@ -1,7 +1,8 @@
+import { CircleLoader } from "@/components/ui/CircleLoader";
+import { ErrorState } from "@/components/ui/StateCard";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { router } from "expo-router";
 import {
-    ActivityIndicator,
     Image,
     Pressable,
     ScrollView,
@@ -20,26 +21,15 @@ export default function ProfileScreen() {
     const member = memberResponse?.data;
 
     if (isLoading) {
-        return (
-            <View className="flex-1 items-center justify-center bg-white">
-                <ActivityIndicator size="large" color="#32bbfa" />
-                <Text className="mt-3 text-base text-gray-500">
-                    Loading your profile...
-                </Text>
-            </View>
-        );
+        return <CircleLoader fullScreen label="Loading your profile..." />;
     }
 
     if (isError) {
         return (
-            <View className="flex-1 items-center justify-center bg-white px-6">
-                <Text className="text-xl font-bold text-gray-900 mb-2 text-center">
-                    Could not load profile
-                </Text>
-                <Text className="text-base leading-6 text-gray-500 text-center">
-                    {error instanceof Error ? error.message : "Please try again."}
-                </Text>
-            </View>
+            <ErrorState
+                title="Could not load profile"
+                message={error instanceof Error ? error.message : "Please try again."}
+            />
         );
     }
 

@@ -54,3 +54,36 @@ export type MemberLessonReservationResponse = {
     cancelledAt: string | null;
     notes: string | null;
 };
+
+export type LessonAvailabilityReservationResponse = {
+    id: number;
+    memberId?: number | null;
+    reservationStatus?: LessonReservationStatus | null;
+};
+
+
+export type LessonAvailabilityResponse = {
+    id: number;
+    lessonId?: number | null;
+    lessonProgramGroupId?: number | null;
+    lessonProgramName?: string | null;
+    title?: string | null;
+    name?: string | null;
+    coachName?: string | null;
+    lessonType: LessonType;
+    startTime: string;
+    endTime: string;
+    capacity: number;
+    bookedCount: number;
+    reservations?: LessonAvailabilityReservationResponse[];
+    lessonProgram?: {
+        name?: string | null;
+    } | null;
+};
+
+export type MemberCreateLessonReservationRequest = {
+    ticketId: number;
+    lessonAvailabilityId: number;
+    baySlotId?: number | null;
+    notes?: string | null;
+};

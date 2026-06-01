@@ -1,20 +1,31 @@
-import { Link, Stack, useLocalSearchParams } from "expo-router";
+import { Href, Link, Stack, useLocalSearchParams } from "expo-router";
 import {
-    ActivityIndicator,
     Image,
     Pressable,
+    RefreshControl,
     ScrollView,
     Text,
     View,
 } from "react-native";
 
 import {
+    ReservationDetailField,
+    ReservationFieldLabel,
+    ReservationFieldValue,
+    ReservationPoliciesSection,
+} from "@/components/golf/reservation/ReservationSections";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import {
     MemberReservationDetailResponse,
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
 import { MemberBayReservationResponse } from "@/types/member-bay";
-import { MemberReservationDomain } from "@/types/member-reservation";
-import { fmtTime } from "@/utils/time-helper";
+import {
+    MemberReservationDomain,
+} from "@/types/member-reservation";
+import { formatType } from "@/utils/format-enum";
+import { fmtTime, formatDateForDisplay } from "@/utils/time-helper";
 
 type ReservationParams = {
     id: string;
@@ -71,30 +82,40 @@ function getReservationTitle(reservation: MemberReservationDetailResponse) {
     );
 }
 
-function formatDateValue(value?: string | Date | null) {
-    if (!value) return "-";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "-";
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}. ${month}. ${day}`;
-}
-
-function formatLessonType(value?: string | null) {
-    if (!value) return "-";
-
-    return value
-        .split("_")
-        .map(
-            (word) =>
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-        )
-        .join(" ");
+function getReservationStatusTone(value?: string | null) {
+    switch (value) {
+        case "RESERVED":
+            return {
+                backgroundColor: "#eef1ff",
+                textColor: "#3B4EC5",
+            };
+        case "CHECKED_IN":
+            return {
+                backgroundColor: "#edfdf7",
+                textColor: "#52d8ac",
+            };
+        case "COMPLETED":
+            return {
+                backgroundColor: "#e8faf4",
+                textColor: "#00bc7d",
+            };
+        case "CANCELLED":
+        case "CANCELED":
+            return {
+                backgroundColor: "#fdecec",
+                textColor: "#dc2626",
+            };
+        case "NO_SHOW":
+            return {
+                backgroundColor: "#ffd8d1",
+                textColor: "#d94841",
+            };
+        default:
+            return {
+                backgroundColor: "#f3f4f6",
+                textColor: "#4b5563",
+            };
+    }
 }
 
 export default function ReservationDetailScreen() {
@@ -103,7 +124,7 @@ export default function ReservationDetailScreen() {
     const reservationId = Number(id);
     const reservationType = isReservationDomain(type) ? type : undefined;
 
-    const { data, isLoading, isError } = useMemberReservationById(
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberReservationById(
         reservationId,
         reservationType,
     );
@@ -119,11 +140,17 @@ export default function ReservationDetailScreen() {
                     }}
                 />
 
-                <View className="flex-1 items-center justify-center bg-white">
-                    <ActivityIndicator size="large" color="#16a34a" />
-                    <Text className="mt-3 text-base leading-6 text-gray-500">
-                        Loading reservation...
-                    </Text>
+                <View className="flex-1 bg-white px-6 pt-6">
+                    <View className="gap-4">
+                        <Skeleton className="h-8 w-2/3 rounded-xl" />
+                        <Skeleton className="h-6 w-1/3 rounded-full" />
+                    </View>
+
+                    <View className="mt-8 gap-4">
+                        {Array.from({ length: 4 }, (_, index) => (
+                            <Skeleton key={index} className="h-20 w-full rounded-2xl" />
+                        ))}
+                    </View>
                 </View>
             </>
         );
@@ -138,11 +165,10 @@ export default function ReservationDetailScreen() {
                     }}
                 />
 
-                <View className="flex-1 items-center justify-center bg-white px-6">
-                    <Text className="text-lg font-semibold leading-7 text-red-600 text-center">
-                        Failed to load reservation details.
-                    </Text>
-                </View>
+                <ErrorState
+                    title="Failed to load reservation details"
+                    message="Please pull to refresh or try again later."
+                />
             </>
         );
     }
@@ -156,17 +182,10 @@ export default function ReservationDetailScreen() {
                     }}
                 />
 
-                <View className="flex-1 bg-white px-6 py-8">
-                    <View className="flex-1 items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12">
-                        <Text className="text-lg font-semibold leading-7 text-gray-950 text-center">
-                            Reservation not available
-                        </Text>
-
-                        <Text className="mt-3 text-base leading-6 text-gray-500 text-center">
-                            The requested reservation could not be found.
-                        </Text>
-                    </View>
-                </View>
+                <EmptyState
+                    title="Reservation not available"
+                    message="The requested reservation could not be found."
+                />
             </>
         );
     }
@@ -174,7 +193,7 @@ export default function ReservationDetailScreen() {
     const isBayReservation = isBayReservationDetail(reservation);
     const title = getReservationTitle(reservation);
 
-    const dateValue = formatDateValue(reservation.startTime);
+    const dateValue = formatDateForDisplay(reservation.startTime) || "-";
 
     const timeValue =
         reservation.startTime && reservation.endTime
@@ -240,35 +259,41 @@ export default function ReservationDetailScreen() {
                 className="flex-1 bg-white"
                 contentContainerStyle={{ paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefetching}
+                        onRefresh={() => {
+                            void refetch();
+                        }}
+                    />
+                }
             >
                 <View className="px-6 pt-6">
                     <HeaderSection
                         title={title}
-                        reservationNumber={reservation.reservationNumber}
+                        reservationStatus={reservation.reservationStatus}
                         ticketType={
-                            !isBayReservation
-                                ? reservation.ticket?.type
-                                : undefined
+                            reservation.ticket?.type 
                         }
                     />
 
                     <View className="mt-8 gap-4">
-                        <DetailField label="Date" value={dateValue} />
+                        <ReservationDetailField label="Date" value={dateValue} />
                         <Separator />
 
-                        <DetailField label="Time" value={timeValue} />
+                        <ReservationDetailField label="Time" value={timeValue} />
 
                         {isBayReservation ? (
                             <>
                                 <Separator />
-                                <DetailField label="Bay" value={lessonValue} />
+                                <ReservationDetailField label="Bay" value={lessonValue} />
                             </>
                         ) : null}
 
                         {programValue !== "-" ? (
                             <>
                                 <Separator />
-                                <DetailField
+                                <ReservationDetailField
                                     label="Program"
                                     value={programValue}
                                 />
@@ -278,7 +303,7 @@ export default function ReservationDetailScreen() {
                         {isBayReservation ? (
                             <>
                                 <Separator />
-                                <DetailField
+                                <ReservationDetailField
                                     label="Players"
                                     value={playerCountValue}
                                 />
@@ -286,7 +311,7 @@ export default function ReservationDetailScreen() {
                         ) : (
                             <>
                                 <Separator />
-                                <DetailField
+                                <ReservationDetailField
                                     label="Coach"
                                     value={coachName}
                                     leftElement={
@@ -304,7 +329,7 @@ export default function ReservationDetailScreen() {
                         {noteValue ? (
                             <>
                                 <Separator />
-                                <DetailField label="Notes" value={noteValue} />
+                                <ReservationDetailField label="Notes" value={noteValue} />
                             </>
                         ) : null}
 
@@ -321,7 +346,7 @@ export default function ReservationDetailScreen() {
                         ) : lessonNameValue ? (
                             <>
                                 <Separator />
-                                <DetailField
+                                <ReservationDetailField
                                     label="Lesson Name"
                                     value={lessonNameValue}
                                 />
@@ -332,25 +357,7 @@ export default function ReservationDetailScreen() {
                     <View className="mt-6 gap-4">
                         <Separator />
 
-                        <View>
-                            <Text className="text-xs font-bold uppercase tracking-widest text-gray-400 leading-4">
-                                Policies
-                            </Text>
-
-                            <View className="mt-4 gap-4">
-                                {policies.map((policy) => (
-                                    <View key={policy.title}>
-                                        <Text className="text-base font-semibold text-gray-950 leading-6">
-                                            {policy.title}
-                                        </Text>
-
-                                        <Text className="mt-1 text-base text-gray-500 leading-6">
-                                            {policy.description}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
+                        <ReservationPoliciesSection policies={policies} />
                     </View>
                 </View>
             </ScrollView>
@@ -360,13 +367,16 @@ export default function ReservationDetailScreen() {
 
 function HeaderSection({
     title,
-    reservationNumber,
+    reservationStatus,
     ticketType,
 }: {
     title: string;
-    reservationNumber?: string | number | null;
+    reservationStatus?: string | null;
     ticketType?: string | null;
 }) {
+    const statusLabel = formatType(reservationStatus);
+    const statusTone = getReservationStatusTone(reservationStatus);
+
     return (
         <View>
             <Text className="text-2xl font-bold text-gray-950 leading-8">
@@ -377,54 +387,24 @@ function HeaderSection({
                 {ticketType ? (
                     <View className="rounded-full bg-green-50 px-3 py-1.5">
                         <Text className="text-sm font-semibold text-green-700 leading-5">
-                            {formatLessonType(ticketType)}
+                            {formatType(ticketType)}
                         </Text>
                     </View>
                 ) : null}
 
-                {reservationNumber ? (
-                    <View className="rounded-full bg-gray-100 px-3 py-1.5">
-                        <Text className="text-sm font-semibold text-gray-600 leading-5">
-                            #{reservationNumber}
+                {statusLabel !== "-" ? (
+                    <View
+                        className="rounded-full px-3 py-1.5"
+                        style={{ backgroundColor: statusTone.backgroundColor }}
+                    >
+                        <Text
+                            className="text-sm font-semibold leading-5"
+                            style={{ color: statusTone.textColor }}
+                        >
+                            {statusLabel}
                         </Text>
                     </View>
                 ) : null}
-            </View>
-        </View>
-    );
-}
-
-function DetailField({
-    label,
-    value,
-    description,
-    leftElement,
-}: {
-    label: string;
-    value: string;
-    description?: string;
-    leftElement?: React.ReactNode;
-}) {
-    return (
-        <View>
-            <Text className="text-xs font-bold uppercase tracking-widest text-gray-400 leading-4">
-                {label}
-            </Text>
-
-            <View className="mt-2 flex-row items-center gap-3">
-                {leftElement ? leftElement : null}
-
-                <View className="flex-1">
-                    <Text className="text-lg font-semibold text-gray-950 leading-7">
-                        {value}
-                    </Text>
-
-                    {description ? (
-                        <Text className="mt-2 text-base text-gray-500 leading-6">
-                            {description}
-                        </Text>
-                    ) : null}
-                </View>
             </View>
         </View>
     );
@@ -446,15 +426,13 @@ function LinkedDetailField({
 }) {
     return (
         <View>
-            <Text className="text-xs font-bold uppercase tracking-widest text-gray-400 leading-4">
-                {label}
-            </Text>
+            <ReservationFieldLabel>{label}</ReservationFieldLabel>
 
-            <Text className="mt-2 text-lg font-semibold text-gray-950 leading-7">
-                {value}
-            </Text>
+            <View className="mt-2">
+                <ReservationFieldValue>{value}</ReservationFieldValue>
+            </View>
 
-            <Link href={href} asChild>
+            <Link href={href as Href} asChild>
                 <Pressable className="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 active:bg-gray-50">
                     <View className="flex-row items-center justify-between gap-4">
                         <Text

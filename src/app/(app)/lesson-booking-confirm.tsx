@@ -3,14 +3,14 @@ import {
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
 import { CircleLoader } from "@/components/ui/CircleLoader";
-import { useCreateMemberBayReservation } from "@/lib/hook/useReservation";
+import { useCreateMemberLessonReservation } from "@/lib/hook/useReservation";
 import { fmtTime, formatDateValue } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    Pressable,
     ScrollView,
     Text,
-    View
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const POLICIES = [
@@ -25,30 +25,38 @@ const POLICIES = [
     },
 ] as const;
 
-export default function ConfirmScreen() {
-    const { date, ticketId, baySlotId, bayName, startTime, endTime } =
-        useLocalSearchParams<{
-            date: string;
-            ticketId?: string;
-            baySlotId?: string;
-            bayName?: string;
-            startTime?: string;
-            endTime?: string;
-        }>();
+export default function LessonBookingConfirmScreen() {
+    const {
+        date,
+        ticketId,
+        lessonAvailabilityId,
+        lessonName,
+        coachName,
+        startTime,
+        endTime,
+    } = useLocalSearchParams<{
+        date: string;
+        ticketId?: string;
+        lessonAvailabilityId?: string;
+        lessonName?: string;
+        coachName?: string;
+        startTime?: string;
+        endTime?: string;
+    }>();
     const router = useRouter();
     const {
         mutateAsync: createReservation,
         isPending: isSubmitting,
-    } = useCreateMemberBayReservation();
+    } = useCreateMemberLessonReservation();
 
     const handleConfirm = async () => {
-        if (!ticketId || !baySlotId) {
+        if (!ticketId || !lessonAvailabilityId) {
             return;
         }
 
         const response = await createReservation({
             ticketId: Number(ticketId),
-            baySlotId: Number(baySlotId),
+            lessonAvailabilityId: Number(lessonAvailabilityId),
         });
 
         const reservation = response.data;
@@ -67,13 +75,13 @@ export default function ConfirmScreen() {
         router.replace("/reservation");
     };
 
-    const reservationName = bayName ?? "Bay Session";
+    const reservationName = lessonName ?? "Private Lesson";
     const dateValue = formatDateValue(date, "yyyy. MM. dd");
     const timeValue =
         startTime && endTime
             ? `${fmtTime(startTime)} ~ ${fmtTime(endTime)}`
             : "-";
-    const isDisabled = isSubmitting || !ticketId || !baySlotId;
+
     return (
         <View className="flex-1 bg-white">
             <ScrollView
@@ -93,40 +101,48 @@ export default function ConfirmScreen() {
                         <Separator />
 
                         <ReservationDetailField label="Time" value={timeValue} />
+
+                        {coachName ? (
+                            <>
+                                <Separator />
+                                <ReservationDetailField label="Coach" value={coachName} />
+                            </>
+                        ) : null}
                     </View>
 
                     <View className="mt-6 gap-4">
                         <Separator />
-
                         <ReservationPoliciesSection policies={POLICIES} />
                     </View>
                 </View>
             </ScrollView>
 
             <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                <Pressable
-                    className={`items-center justify-center rounded-2xl px-4 py-4 ${isDisabled ? "bg-sky-200" : "bg-sky-400"
-                        }`}
-                    style={({ pressed }) => ({
-                        opacity: pressed && !isDisabled ? 0.85 : 1,
-                    })}
+                <TouchableOpacity
+                    className={`items-center justify-center rounded-2xl px-4 py-4 ${
+                        !isSubmitting ? "bg-sky-400" : "bg-sky-200"
+                    }`}
                     onPress={handleConfirm}
-                    disabled={isDisabled}
-                    accessibilityRole="button"
+                    activeOpacity={0.85}
+                    disabled={
+                        isSubmitting ||
+                        !ticketId ||
+                        !lessonAvailabilityId
+                    }
                 >
                     {isSubmitting ? (
                         <CircleLoader />
                     ) : (
                         <Text
-                            className="w-full text-center text-base font-bold text-white"
+                            className="w-full text-base font-bold text-center text-white"
                             numberOfLines={1}
                             adjustsFontSizeToFit
                             minimumFontScale={0.75}
                         >
-                            Agree and Book
+                            Agress and Book
                         </Text>
                     )}
-                </Pressable>
+                </TouchableOpacity>
             </View>
         </View>
     );

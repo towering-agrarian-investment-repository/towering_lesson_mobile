@@ -1,8 +1,8 @@
+import { CircleLoader } from "@/components/ui/CircleLoader";
 import { authClient } from "@/lib/auth-client";
 import { Href, router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -58,11 +58,7 @@ export default function LoginScreen() {
     }
 
     if (isPending) {
-        return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" />
-            </View>
-        );
+        return <CircleLoader fullScreen />;
     }
 
     return (
@@ -115,7 +111,7 @@ export default function LoginScreen() {
                         disabled={!isFormValid || isLoggingIn}
                     >
                         {isLoggingIn ? (
-                            <ActivityIndicator color="#fff" />
+                            <CircleLoader />
                         ) : (
                             <Text style={styles.loginButtonText}>Login</Text>
                         )}
@@ -132,11 +128,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#F5F7FA",
         justifyContent: "center",
         padding: 24,
-    },
-    center: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
     },
     card: {
         backgroundColor: "#FFFFFF",
