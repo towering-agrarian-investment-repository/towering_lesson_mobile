@@ -4,13 +4,13 @@ import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { useEffect } from "react";
-import { View } from "react-native";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient();
 
 export default function AppLayout() {
     const { data: session, isPending } = authClient.useSession();
+
     useEffect(() => {
         if (!isPending && !session) {
             router.replace("/login");
@@ -20,7 +20,7 @@ export default function AppLayout() {
     if (isPending) {
         return (
             <QueryClientProvider client={queryClient}>
-                <CircleLoader fullScreen />
+                <CircleLoader fullScreen logoOnly />
             </QueryClientProvider>
         );
     }
@@ -96,6 +96,20 @@ export default function AppLayout() {
                             title: "Reservation Detail",
                         }}
                     />
+
+                    <Stack.Screen
+                        name="profile/change-password"
+                        options={{
+                            title: "Reset Password",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="profile/edit"
+                        options={{
+                            title: "Edit Personal Information",
+                        }}
+                    />
                 </Stack>
             </ToastProvider>
         </QueryClientProvider>
@@ -106,7 +120,14 @@ function ToastBridge() {
     const { showToast } = useToast();
 
     useEffect(() => {
-        registerToastHandler(showToast);
+        registerToastHandler((options) => {
+            showToast({
+                message: options.message,
+                type: options.type ?? "info",
+                duration: options.duration ?? 3000,
+                position: options.position ?? "bottom",
+            });
+        });
 
         return () => {
             registerToastHandler(null);

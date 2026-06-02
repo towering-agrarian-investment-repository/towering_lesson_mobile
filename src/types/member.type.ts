@@ -95,6 +95,16 @@ export interface MemberUpdateRequest {
     address?: string;
     memo?: string;
 }
+
+export interface MemberMobileProfileUpdateRequest {
+    name: string;
+    phoneNumber?: string | null;
+    username: string;
+    gender?: "MALE" | "FEMALE" | "OTHER" | null;
+    dateOfBirth?: string | null;
+    address?: string | null;
+    memo?: string | null;
+}
 export interface UpdatePasswordRequest {
     currentPassword: string; // @NotBlank → required
     newPassword: string; // @NotBlank + @Size(min=8) → required

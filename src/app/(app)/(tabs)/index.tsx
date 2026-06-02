@@ -2,16 +2,15 @@ import GolfHeader from "@/components/golf/GolfHeader";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
 import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/utils/cn";
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -66,9 +65,9 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView
-      className="bg-white p-4"
-      contentContainerStyle={{ flexGrow: 1 }}
+    <Screen
+      headerShown={false}
+      contentClassName="flex-grow"
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -79,7 +78,7 @@ export default function HomeScreen() {
       }
     >
       <View className="flex-1 justify-between">
-        <View>
+        <View className="flex-1">
           <GolfHeader />
           {member ? (
             <MyTicket member={member} />
@@ -89,7 +88,10 @@ export default function HomeScreen() {
               message="This account does not have a member profile yet."
             />
           )}
-          <TodayReservation />
+
+          <View className="flex-1">
+            <TodayReservation />
+          </View>
         </View>
 
         <Link href="/reservation" asChild>
@@ -100,6 +102,6 @@ export default function HomeScreen() {
           </Pressable>
         </Link>
       </View>
-    </ScrollView>
+    </Screen>
   );
 }

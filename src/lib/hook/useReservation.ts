@@ -1,5 +1,5 @@
-import { createMemberBayReservation, getBayReservationById, getMemberBaySlotGroups } from "@/service/member-bay-reservation.service";
-import { createMemberLessonReservation, getLessonReservationById, getTicketLessonSlots } from "@/service/member-lesson-reservation.service";
+import { cancelBayReservationById, createMemberBayReservation, getBayReservationById, getMemberBaySlotGroups } from "@/service/member-bay-reservation.service";
+import { cancelLessonReservationById, createMemberLessonReservation, getLessonReservationById, getTicketLessonSlots } from "@/service/member-lesson-reservation.service";
 import { getMemberReservations, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
 import { BaySlotGroupScheduleResponse, MemberBayReservationRequest, MemberBayReservationResponse } from "@/types/member-bay";
 import { LessonAvailabilityResponse, MemberCreateLessonReservationRequest, MemberLessonReservationResponse } from "@/types/member-lesson";
@@ -149,5 +149,49 @@ export function useMemberTicketLessonSlots(
         queryKey: ["member", "ticket-lesson-slots", ticketId, year, month],
         queryFn: () => getTicketLessonSlots(ticketId as number, year, month),
         enabled: enabled && Boolean(ticketId) && Boolean(year) && Boolean(month),
+    });
+}
+
+export function useCancelMemberLessonReservation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<ApiResponse<void>, unknown, number>({
+        mutationFn: cancelLessonReservationById,
+        onSuccess: (res, reservationId) => {
+            responseStatus({ res });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "reservations", "detail", "lesson", reservationId],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "reservations", "detail", "unknown", reservationId],
+            });
+        },
+        onError: (error) => {
+            responseError({ error });
+        },
+    });
+}
+
+export function useCancelMemberBayReservation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<ApiResponse<void>, unknown, number>({
+        mutationFn: cancelBayReservationById,
+        onSuccess: (res, reservationId) => {
+            responseStatus({ res });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "reservations", "detail", "bay", reservationId],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "reservations", "detail", "unknown", reservationId],
+            });
+        },
+        onError: (error) => {
+            responseError({ error });
+        },
     });
 }

@@ -32,3 +32,12 @@ export async function createMemberLessonReservation(
         body: JSON.stringify(data),
     });
 }
+
+
+export async function cancelLessonReservationById(
+    id: number,
+): Promise<ApiResponse<void>> {
+    return apiClient(`/member/lesson-reservations/${id}/cancel`, {
+        method: "PUT",
+    });
+}

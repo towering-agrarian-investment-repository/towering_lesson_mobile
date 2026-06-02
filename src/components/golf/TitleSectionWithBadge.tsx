@@ -1,4 +1,3 @@
-import { globalStyles } from '@/styles/global';
 import { StyleSheet, Text, View } from 'react-native';
 
 type Props = {
@@ -9,7 +8,7 @@ type Props = {
 function TitleSectionWithBadge({ label, length }: Props) {
     return (
         <View style={style.titleRow}>
-            <Text style={globalStyles.sectionTitle}>{label}</Text>
+            <Text style={style.sectionTitle}>{label}</Text>
 
             <View style={style.lengthBadge}>
                 <Text style={style.lengthBadgeText}>{length}</Text>
@@ -22,6 +21,13 @@ const style = StyleSheet.create({
         flexDirection: "row",
         alignItems: "baseline",
         gap: 8,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#363641",
+        marginTop: 30,
+        marginBottom: 16,
     },
     lengthBadge: {
         width: 22,

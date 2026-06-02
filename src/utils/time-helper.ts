@@ -61,6 +61,11 @@ export const fmtTime = (value?: string | Date | null) => {
     return formatAppDate(value, "h:mm a") ?? NO_VALUE;
 };
 
+export const formatTimeRange = (
+    start?: string | Date | null,
+    end?: string | Date | null,
+) => `${fmtTime(start)} - ${fmtTime(end)}`;
+
 export const fmtDateTime = (value?: string | Date | null) =>
     value ? formatAppDate(value, "MMM d, yyyy • h:mm a") ?? NO_VALUE : NO_VALUE;
 

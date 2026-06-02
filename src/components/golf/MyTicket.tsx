@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateCard";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { MemberResponse } from "@/types/member.type";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import TicketCard from "./TicketCard";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 
@@ -19,11 +19,15 @@ function MyTicket({ member }: Props) {
             <TitleSectionWithBadge label="My Tickets" length={tickets.length} />
 
             {isLoading ? (
-                <View style={style.listContent}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={style.listContent}
+                >
                     {Array.from({ length: 3 }, (_, index) => (
                         <Skeleton key={index} className="h-40 w-60 rounded-2xl" />
                     ))}
-                </View>
+                </ScrollView>
             ) : isError ? (
                 <ErrorState
                     title="Failed to load tickets"

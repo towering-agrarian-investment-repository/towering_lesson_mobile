@@ -9,6 +9,7 @@ import {
 
 import ReservationCard from "@/components/golf/ReservationCard";
 import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/StateCard";
 import { useMemberReservations } from "@/lib/hook/useReservation";
@@ -74,8 +75,8 @@ export default function ReservationScreen() {
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     return (
-        <View className="flex-1 bg-white">
-            <View className="px-6 pt-6">
+        <Screen scroll={false}>
+            <View>
                 <View className="flex-row border-b border-gray-200">
                     {RESERVATION_TABS.map((tab) => {
                         const isActive = activeTab === tab;
@@ -106,7 +107,7 @@ export default function ReservationScreen() {
 
             <View className="flex-1">
                 {isLoading ? (
-                    <View className="px-6 pt-5 pb-10">
+                    <View className="pt-5 pb-10">
                         <ReservationListHeaderSkeleton />
 
                         <View className="gap-5">
@@ -133,7 +134,7 @@ export default function ReservationScreen() {
                                 }}
                             />
                         }
-                        contentContainerClassName="px-6 pt-5 pb-10"
+                        contentContainerClassName="pt-5 pb-10"
                         ItemSeparatorComponent={ReservationItemSeparator}
                         showsVerticalScrollIndicator={false}
                         initialNumToRender={8}
@@ -155,7 +156,7 @@ export default function ReservationScreen() {
                     />
                 )}
             </View>
-        </View>
+        </Screen>
     );
 }
 

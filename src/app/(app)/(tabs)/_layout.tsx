@@ -1,4 +1,3 @@
-import { colors } from '@/styles/global';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
@@ -10,11 +9,11 @@ function TabLayout({ }: Props) {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: colors.background,
-                    borderTopColor: colors.surface
+                    backgroundColor: "#ffffff",
+                    borderTopColor: "#c7c7d4"
                 },
-                tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: colors.textSecondary,
+                tabBarActiveTintColor: "#32bbfa",
+                tabBarInactiveTintColor: "#363641",
             }}
         >
             <Tabs.Screen

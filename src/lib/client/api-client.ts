@@ -19,6 +19,21 @@ async function getJwtToken(): Promise<string | null> {
     return result.data?.token ?? null;
 }
 
+
+export async function getSession(): Promise<string | null> {
+    const result = await authClient.$fetch<JwtResponse>("/get-session", {
+        method: "GET",
+    });
+
+    if (result.error) {
+        console.log("Failed to get Session:", result.error);
+        return null;
+    }
+
+    return result.data?.token ?? null;
+}
+
+
 export async function apiClient<T = unknown>(
     endpoint: string,
     options: RequestInit = {}

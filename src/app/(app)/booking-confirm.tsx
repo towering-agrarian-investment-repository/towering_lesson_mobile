@@ -3,12 +3,12 @@ import {
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
 import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Screen } from "@/components/ui/Screen";
 import { useCreateMemberBayReservation } from "@/lib/hook/useReservation";
-import { fmtTime, formatDateValue } from "@/utils/time-helper";
+import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
     Pressable,
-    ScrollView,
     Text,
     View
 } from "react-native";
@@ -69,66 +69,60 @@ export default function ConfirmScreen() {
 
     const reservationName = bayName ?? "Bay Session";
     const dateValue = formatDateValue(date, "yyyy. MM. dd");
-    const timeValue =
-        startTime && endTime
-            ? `${fmtTime(startTime)} ~ ${fmtTime(endTime)}`
-            : "-";
+    const timeValue = formatTimeRange(startTime, endTime);
     const isDisabled = isSubmitting || !ticketId || !baySlotId;
     return (
-        <View className="flex-1 bg-white">
-            <ScrollView
-                className="flex-1 bg-white"
-                contentContainerStyle={{ paddingBottom: 180 }}
-                showsVerticalScrollIndicator={false}
-            >
-                <View className="px-6">
-                    <View className="mt-8 gap-4">
-                        <ReservationDetailField
-                            label="Reservation Name"
-                            value={reservationName}
-                        />
-                        <Separator />
-
-                        <ReservationDetailField label="Date" value={dateValue} />
-                        <Separator />
-
-                        <ReservationDetailField label="Time" value={timeValue} />
-                    </View>
-
-                    <View className="mt-6 gap-4">
-                        <Separator />
-
-                        <ReservationPoliciesSection policies={POLICIES} />
-                    </View>
+        <Screen
+            contentClassName="grow"
+            footer={
+                <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
+                    <Pressable
+                        className={`items-center justify-center rounded-2xl px-4 py-4 ${isDisabled ? "bg-sky-200" : "bg-sky-400"
+                            }`}
+                        style={({ pressed }) => ({
+                            opacity: pressed && !isDisabled ? 0.85 : 1,
+                        })}
+                        onPress={handleConfirm}
+                        disabled={isDisabled}
+                        accessibilityRole="button"
+                    >
+                        {isSubmitting ? (
+                            <CircleLoader />
+                        ) : (
+                            <Text
+                                className="w-full text-center text-base font-bold text-white"
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.75}
+                            >
+                                Agree and Book
+                            </Text>
+                        )}
+                    </Pressable>
                 </View>
-            </ScrollView>
+            }
+        >
+            <View className="grow">
+                <View className="mt-8 gap-4">
+                    <ReservationDetailField
+                        label="Reservation Name"
+                        value={reservationName}
+                    />
+                    <Separator />
 
-            <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                <Pressable
-                    className={`items-center justify-center rounded-2xl px-4 py-4 ${isDisabled ? "bg-sky-200" : "bg-sky-400"
-                        }`}
-                    style={({ pressed }) => ({
-                        opacity: pressed && !isDisabled ? 0.85 : 1,
-                    })}
-                    onPress={handleConfirm}
-                    disabled={isDisabled}
-                    accessibilityRole="button"
-                >
-                    {isSubmitting ? (
-                        <CircleLoader />
-                    ) : (
-                        <Text
-                            className="w-full text-center text-base font-bold text-white"
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.75}
-                        >
-                            Agree and Book
-                        </Text>
-                    )}
-                </Pressable>
+                    <ReservationDetailField label="Date" value={dateValue} />
+                    <Separator />
+
+                    <ReservationDetailField label="Time" value={timeValue} />
+                </View>
+
+                <View className="mt-6 gap-4">
+                    <Separator />
+
+                    <ReservationPoliciesSection policies={POLICIES} />
+                </View>
             </View>
-        </View>
+        </Screen>
     );
 }
 

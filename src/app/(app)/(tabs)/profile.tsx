@@ -1,24 +1,67 @@
 import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Screen } from "@/components/ui/Screen";
 import { ErrorState } from "@/components/ui/StateCard";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { showAppToast } from "@/lib/toast/toast";
+import { signOut } from "@/service/auth";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useState } from "react";
 import {
     Image,
     Pressable,
-    ScrollView,
+    RefreshControl,
     Text,
     View,
 } from "react-native";
 
 export default function ProfileScreen() {
+    const queryClient = useQueryClient();
+    const [refreshing, setRefreshing] = useState(false);
+    const [isSigningOut, setIsSigningOut] = useState(false);
     const {
         data: memberResponse,
         isLoading,
         isError,
         error,
+        refetch,
+        isRefetching,
     } = useGetMemberProfile();
 
     const member = memberResponse?.data;
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+
+        try {
+            await refetch();
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    const handleSignOut = async () => {
+        if (isSigningOut) {
+            return;
+        }
+
+        setIsSigningOut(true);
+
+        try {
+            await signOut();
+            queryClient.clear();
+        } catch (error) {
+            showAppToast({
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Could not sign out. Please try again.",
+                type: "error",
+            });
+        } finally {
+            setIsSigningOut(false);
+        }
+    };
 
     if (isLoading) {
         return <CircleLoader fullScreen label="Loading your profile..." />;
@@ -29,18 +72,27 @@ export default function ProfileScreen() {
             <ErrorState
                 title="Could not load profile"
                 message={error instanceof Error ? error.message : "Please try again."}
+                actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                onAction={() => {
+                    void refetch();
+                }}
             />
         );
     }
 
     return (
-        <ScrollView
-            className="flex-1 bg-white"
-            contentContainerStyle={{ paddingBottom: 40 }}
-            showsVerticalScrollIndicator={false}
+        <Screen
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={() => {
+                        void handleRefresh();
+                    }}
+                />
+            }
         >
             {/* ── Avatar + Name ── */}
-            <View className="mx-6 pt-10 pb-8 bg-white flex-row items-center gap-5">
+            <View className="flex-row items-center gap-5">
                 {member?.profileImage ? (
                     <Image
                         source={{ uri: member.profileImage }}
@@ -63,14 +115,14 @@ export default function ProfileScreen() {
                     </Text>
 
                     <Text
-                        className="mt-1 text-base text-gray-500 leading-6"
+                        className="text-base text-gray-500 leading-6"
                         numberOfLines={1}
                     >
                         @{member?.username}
                     </Text>
 
                     <View
-                        className={`self-start mt-3 px-3.5 py-1 rounded-full ${member?.isActive ? "bg-green-100" : "bg-red-100"
+                        className={`self-start rounded-full px-3.5 py-1 ${member?.isActive ? "bg-green-100" : "bg-red-100"
                             }`}
                     >
                         <Text
@@ -83,11 +135,9 @@ export default function ProfileScreen() {
                 </View>
             </View>
 
-            {/* ── Personal Record ── */}
             <SectionTitle title="Personal Record" />
             <LinkRow label="Lesson Log" onPress={() => router.push("/lesson-log")} />
 
-            {/* ── General Info ── */}
             <SectionTitle title="General Info" />
             <InfoRow label="Check-in No." value={member?.checkinNumber} />
             <InfoRow label="Phone" value={member?.phoneNumber} />
@@ -96,7 +146,6 @@ export default function ProfileScreen() {
             <InfoRow label="Address" value={member?.address} />
             {member?.memo && <InfoRow label="Memo" value={member.memo} />}
 
-            {/* ── Grade ── */}
             {member?.grade && (
                 <>
                     <SectionTitle title="School Info" />
@@ -106,7 +155,6 @@ export default function ProfileScreen() {
                 </>
             )}
 
-            {/* ── Parents ── */}
             {member?.parents && member.parents.length > 0 && (
                 <>
                     <SectionTitle title="Parents / Guardians" />
@@ -114,9 +162,9 @@ export default function ProfileScreen() {
                     {member.parents.map((parent, index) => (
                         <View
                             key={parent.id}
-                            className={`flex-row items-center mx-6 py-4 ${index < member.parents.length - 1
-                                    ? "border-b border-gray-100"
-                                    : ""
+                            className={`flex-row items-center py-4 ${index < member.parents.length - 1
+                                ? "border-b border-gray-100"
+                                : ""
                                 }`}
                         >
                             {parent.profileImage ? (
@@ -143,14 +191,14 @@ export default function ProfileScreen() {
 
                                     <View
                                         className={`px-2.5 py-0.5 rounded-full ${parent.isActive
-                                                ? "bg-green-100"
-                                                : "bg-red-100"
+                                            ? "bg-green-100"
+                                            : "bg-red-100"
                                             }`}
                                     >
                                         <Text
                                             className={`text-xs font-semibold ${parent.isActive
-                                                    ? "text-green-700"
-                                                    : "text-red-600"
+                                                ? "text-green-700"
+                                                : "text-red-600"
                                                 }`}
                                         >
                                             {parent.isActive ? "Active" : "Inactive"}
@@ -190,15 +238,20 @@ export default function ProfileScreen() {
             {/* Logout */}
             <Pressable
                 onPress={() => {
-                    /* handle logout */
+                    void handleSignOut();
                 }}
-                className="mx-6 mt-4 px-4 py-4 rounded-2xl bg-red-50 border border-red-100 active:bg-red-100"
+                disabled={isSigningOut}
+                className={`mt-4 rounded-2xl border px-4 py-4 ${
+                    isSigningOut
+                        ? "border-red-100 bg-red-100"
+                        : "border-red-100 bg-red-50 active:bg-red-100"
+                }`}
             >
                 <Text className="text-base font-semibold text-red-600 leading-6">
-                    Log Out
+                    {isSigningOut ? "Logging Out..." : "Log Out"}
                 </Text>
             </Pressable>
-        </ScrollView>
+        </Screen>
     );
 }
 
@@ -206,7 +259,7 @@ export default function ProfileScreen() {
 
 function SectionTitle({ title }: { title: string }) {
     return (
-        <Text className="text-xs font-bold text-gray-400 tracking-widest uppercase mx-6 mt-8 mb-2 leading-4">
+        <Text className="text-xs font-bold text-gray-400 tracking-widest uppercase mt-8 mb-2 leading-4">
             {title}
         </Text>
     );
@@ -222,7 +275,7 @@ function InfoRow({
     if (!value) return null;
 
     return (
-        <View className="flex-row justify-between items-start mx-6 py-4 border-b border-gray-100">
+        <View className="flex-row justify-between items-start py-4 border-b border-gray-100">
             <Text className="text-base text-gray-500 leading-6">{label}</Text>
 
             <Text className="text-base font-medium text-gray-950 leading-6 flex-1 text-right ml-4">
@@ -236,7 +289,7 @@ function LinkRow({ label, onPress }: { label: string; onPress: () => void }) {
     return (
         <Pressable
             onPress={onPress}
-            className="mx-6 mt-3 px-4 py-4 rounded-2xl bg-gray-50 border border-gray-100 flex-row items-center justify-between active:bg-gray-100"
+            className="mt-3 px-4 py-4 rounded-2xl bg-gray-50 border border-gray-100 flex-row items-center justify-between active:bg-gray-100"
         >
             <Text className="text-base font-semibold text-gray-900 leading-6">
                 {label}

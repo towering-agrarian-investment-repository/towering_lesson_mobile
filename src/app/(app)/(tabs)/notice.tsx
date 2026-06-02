@@ -1,15 +1,13 @@
-import { globalStyles } from '@/styles/global'
-import { ScrollView, Text } from 'react-native'
+import { Screen } from '@/components/ui/Screen'
+import { Text } from 'react-native'
 
-type Props = {}
-
-function NoticeScreen({ }: Props) {
+function NoticeScreen() {
     return (
-        <ScrollView style={globalStyles.container}>
+        <Screen>
             <Text>
                 Heyyyy
             </Text>
-        </ScrollView>
+        </Screen>
     )
 }
 

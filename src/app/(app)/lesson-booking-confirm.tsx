@@ -3,14 +3,14 @@ import {
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
 import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Screen } from "@/components/ui/Screen";
 import { useCreateMemberLessonReservation } from "@/lib/hook/useReservation";
-import { fmtTime, formatDateValue } from "@/utils/time-helper";
+import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    ScrollView,
+    Pressable,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from "react-native";
 
 const POLICIES = [
@@ -77,74 +77,64 @@ export default function LessonBookingConfirmScreen() {
 
     const reservationName = lessonName ?? "Private Lesson";
     const dateValue = formatDateValue(date, "yyyy. MM. dd");
-    const timeValue =
-        startTime && endTime
-            ? `${fmtTime(startTime)} ~ ${fmtTime(endTime)}`
-            : "-";
+    const timeValue = formatTimeRange(startTime, endTime);
 
     return (
-        <View className="flex-1 bg-white">
-            <ScrollView
-                className="flex-1 bg-white"
-                contentContainerStyle={{ paddingBottom: 180 }}
-                showsVerticalScrollIndicator={false}
-            >
-                <View className="px-6">
-                    <View className="mt-8 gap-4">
-                        <ReservationDetailField
-                            label="Reservation Name"
-                            value={reservationName}
-                        />
-                        <Separator />
-
-                        <ReservationDetailField label="Date" value={dateValue} />
-                        <Separator />
-
-                        <ReservationDetailField label="Time" value={timeValue} />
-
-                        {coachName ? (
-                            <>
-                                <Separator />
-                                <ReservationDetailField label="Coach" value={coachName} />
-                            </>
-                        ) : null}
-                    </View>
-
-                    <View className="mt-6 gap-4">
-                        <Separator />
-                        <ReservationPoliciesSection policies={POLICIES} />
-                    </View>
+        <Screen
+            contentClassName="grow"
+            footer={
+                <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
+                    <Pressable
+                        className={`items-center justify-center rounded-2xl px-4 py-4 active:opacity-85 ${isSubmitting || !ticketId || !lessonAvailabilityId
+                                ? "bg-sky-200"
+                                : "bg-sky-400"
+                            }`}
+                        onPress={handleConfirm}
+                        disabled={isSubmitting || !ticketId || !lessonAvailabilityId}
+                    >
+                        {isSubmitting ? (
+                            <CircleLoader />
+                        ) : (
+                            <Text
+                                className="w-full text-base font-bold text-center text-white"
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.75}
+                            >
+                                Agree and Book
+                            </Text>
+                        )}
+                    </Pressable>
                 </View>
-            </ScrollView>
+            }
+        >
+            <View className="grow">
+                <View className="mt-8 gap-4">
+                    <ReservationDetailField
+                        label="Reservation Name"
+                        value={reservationName}
+                    />
+                    <Separator />
 
-            <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                <TouchableOpacity
-                    className={`items-center justify-center rounded-2xl px-4 py-4 ${
-                        !isSubmitting ? "bg-sky-400" : "bg-sky-200"
-                    }`}
-                    onPress={handleConfirm}
-                    activeOpacity={0.85}
-                    disabled={
-                        isSubmitting ||
-                        !ticketId ||
-                        !lessonAvailabilityId
-                    }
-                >
-                    {isSubmitting ? (
-                        <CircleLoader />
-                    ) : (
-                        <Text
-                            className="w-full text-base font-bold text-center text-white"
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.75}
-                        >
-                            Agress and Book
-                        </Text>
-                    )}
-                </TouchableOpacity>
+                    <ReservationDetailField label="Date" value={dateValue} />
+                    <Separator />
+
+                    <ReservationDetailField label="Time" value={timeValue} />
+
+                    {coachName ? (
+                        <>
+                            <Separator />
+                            <ReservationDetailField label="Coach" value={coachName} />
+                        </>
+                    ) : null}
+                </View>
+
+                <View className="mt-6 gap-4">
+                    <Separator />
+                    <ReservationPoliciesSection policies={POLICIES} />
+                </View>
             </View>
-        </View>
+        </Screen>
     );
 }
 

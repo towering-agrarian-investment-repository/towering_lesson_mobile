@@ -30,3 +30,9 @@ export async function getMemberBaySlotGroups(
         },
     );
 }
+
+export async function cancelBayReservationById(id: number): Promise<ApiResponse<void>> {
+    return apiClient(`/member/bay-reservations/${id}/cancel`, {
+        method: "PUT",
+    });
+}

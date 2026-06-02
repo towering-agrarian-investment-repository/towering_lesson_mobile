@@ -1,4 +1,3 @@
-import { colors } from "@/styles/global";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -224,7 +223,7 @@ const style = StyleSheet.create({
 
     defaultCard: {
         borderColor: "#e2e8f0",
-        backgroundColor: colors.backgroundSecondary,
+        backgroundColor: "#f0f0f5",
     },
     defaultBadge: {
         backgroundColor: "#334155",

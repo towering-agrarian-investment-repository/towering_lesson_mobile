@@ -1,4 +1,3 @@
-import { colors } from "@/styles/global";
 import { cancelMealReminders, requestPermission, scheduleMealReminders } from "@/utils/notification";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
@@ -34,7 +33,7 @@ export default function ReminderToggle() {
             <Switch
                 value={enabled}
                 onValueChange={toggle}
-                trackColor={{ false: colors.surface, true: colors.primary }}
+                trackColor={{ false: "#c7c7d4", true: "#32bbfa" }}
             />
         </View>
     )
@@ -47,7 +46,7 @@ const styles = StyleSheet.create({
         marginTop: 30,
     },
     label: {
-        color: colors.text,
+        color: "#000000",
         fontSize: 16,
     },
 });

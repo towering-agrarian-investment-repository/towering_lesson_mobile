@@ -1,12 +1,12 @@
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { LessonAvailabilityResponse } from "@/types/member-lesson";
-import { fmtTime } from "@/utils/time-helper";
+import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
     RefreshControl,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -20,7 +20,7 @@ function isSlotFull(slot: LessonAvailabilityResponse) {
 }
 
 function formatSlotTime(slot: LessonAvailabilityResponse) {
-    return `${fmtTime(slot.startTime)} - ${fmtTime(slot.endTime)}`;
+    return formatTimeRange(slot.startTime, slot.endTime);
 }
 
 export default function SelectLessonSlotScreen() {
@@ -68,9 +68,7 @@ export default function SelectLessonSlotScreen() {
     };
 
     return (
-        <ScrollView
-            style={s.container}
-            contentContainerStyle={s.content}
+        <Screen
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -141,13 +139,11 @@ export default function SelectLessonSlotScreen() {
                     );
                 })}
             </View>
-        </ScrollView>
+        </Screen>
     );
 }
 
 const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
-    content: { padding: 16, paddingBottom: 40 },
     subLabel: { fontSize: 13, color: "#94a3b8", marginBottom: 16 },
     list: { gap: 8 },
     state: {

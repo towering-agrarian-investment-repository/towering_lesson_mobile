@@ -1,3 +1,4 @@
+import { Screen } from "@/components/ui/Screen";
 import { useMemberBaySlotGroups, useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
@@ -7,10 +8,8 @@ import { useMemo, useState } from "react";
 import {
     Pressable,
     RefreshControl,
-    ScrollView,
     StyleSheet,
     Text,
-    View,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 
@@ -127,9 +126,8 @@ export default function DateScreen() {
     };
 
     return (
-        <ScrollView
-            style={s.container}
-            contentContainerStyle={s.content}
+        <Screen
+            horizontalPadding={false}
             refreshControl={
                 <RefreshControl
                     refreshing={isRefreshing}
@@ -199,18 +197,16 @@ export default function DateScreen() {
                             marginTop: 18,
                             marginBottom: 18,
                             flexDirection: "row",
-                            justifyContent: "space-around",
+                            justifyContent: "space-between",
                         },
                     },
                 }}
             />
-        </ScrollView>
+        </Screen>
     );
 }
 
 const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
-    content: { paddingBottom: 24 },
     calendar: { height: 520, backgroundColor: "#fff" },
     dayButton: {
         width: 32,

@@ -1,11 +1,11 @@
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotScheduleResponse } from "@/types/member-bay";
-import { fmtTime } from "@/utils/time-helper";
+import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -13,10 +13,6 @@ import {
 } from "react-native";
 
 const PRIMARY = "#38bdf8";
-
-function formatRange(start: string, end: string) {
-    return `${fmtTime(start)} - ${fmtTime(end)}`;
-}
 
 export default function BayScreen() {
     const { date, ticketId, slotGroupId } = useLocalSearchParams<{
@@ -52,10 +48,10 @@ export default function BayScreen() {
     };
 
     return (
-        <ScrollView style={s.container} contentContainerStyle={s.content}>
+        <Screen>
             <Text style={s.subLabel}>
                 {slotGroup
-                    ? formatRange(slotGroup.startDateTime, slotGroup.endDateTime)
+                    ? formatTimeRange(slotGroup.startDateTime, slotGroup.endDateTime)
                     : date}
             </Text>
 
@@ -113,13 +109,11 @@ export default function BayScreen() {
                     );
                 })}
             </View>
-        </ScrollView>
+        </Screen>
     );
 }
 
 const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
-    content: { padding: 16, paddingBottom: 40 },
     subLabel: { fontSize: 13, color: "#94a3b8", marginBottom: 16 },
     state: {
         paddingVertical: 24,

@@ -5,18 +5,16 @@
     "version": "1.0.0",
     "newArchEnabled": true,
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/golf/mipmap-xxxhdpi/ic_launcher.png",
     "scheme": "golflessonsystemmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/golf/mipmap-xxxhdpi/ic_launcher.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/golf/mipmap-xxxhdpi/ic_launcher_foreground.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.golflessonsystemmobile"

@@ -1,9 +1,9 @@
 import { Href, Link, Stack, useLocalSearchParams } from "expo-router";
 import {
+    Alert,
     Image,
     Pressable,
     RefreshControl,
-    ScrollView,
     Text,
     View,
 } from "react-native";
@@ -14,18 +14,23 @@ import {
     ReservationFieldValue,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
+import { CircleLoader } from "@/components/ui/CircleLoader";
+import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import {
     MemberReservationDetailResponse,
+    useCancelMemberBayReservation,
+    useCancelMemberLessonReservation,
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
 import { MemberBayReservationResponse } from "@/types/member-bay";
+import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import {
     MemberReservationDomain,
 } from "@/types/member-reservation";
 import { formatType } from "@/utils/format-enum";
-import { fmtTime, formatDateForDisplay } from "@/utils/time-helper";
+import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 
 type ReservationParams = {
     id: string;
@@ -37,11 +42,11 @@ const RESERVATION_POLICIES = {
         {
             title: "Cancellation Policy",
             description:
-                "Bay reservations can only be cancelled up to 3 hours before the reservation time.",
+                "Lesson reservations can only be cancelled up to 3 hours before the reservation time.",
         },
         {
             title: "No-show Policy",
-            description: "A no-show will result in one bays ticket deduction.",
+            description: "A no-show will result in one lesson ticket deduction.",
         },
     ],
     bay: [
@@ -69,9 +74,15 @@ function isBayReservationDetail(
     return reservation.reservationType === "bay";
 }
 
+function isLessonReservationDetail(
+    reservation: MemberReservationDetailResponse,
+): reservation is MemberLessonReservationResponse {
+    return reservation.reservationType === "lesson";
+}
+
 function getReservationTitle(reservation: MemberReservationDetailResponse) {
     if (isBayReservationDetail(reservation)) {
-        return reservation.bayName ?? `Bay Reservation #${reservation.id}`;
+        return reservation.bayName || `Bay Reservation #${reservation.id}`;
     }
 
     return (
@@ -130,6 +141,11 @@ export default function ReservationDetailScreen() {
     );
 
     const reservation = data?.data;
+
+    const { mutate: cancelLessonReservation, isPending: isCancellingLesson } =
+        useCancelMemberLessonReservation();
+    const { mutate: cancelBayReservation, isPending: isCancellingBay } =
+        useCancelMemberBayReservation();
 
     if (isLoading) {
         return (
@@ -191,37 +207,64 @@ export default function ReservationDetailScreen() {
     }
 
     const isBayReservation = isBayReservationDetail(reservation);
+    const lessonReservation = isLessonReservationDetail(reservation)
+        ? reservation
+        : null;
+    const canCancelReservation = reservation.reservationStatus === "RESERVED";
+    const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
+
+    const handleCancelReservation = () => {
+        if (!canCancelReservation || isCancelling) {
+            return;
+        }
+
+        Alert.alert(
+            "Cancel Reservation",
+            "Are you sure you want to cancel this reservation?",
+            [
+                {
+                    text: "Keep Reservation",
+                    style: "cancel",
+                },
+                {
+                    text: "Cancel Reservation",
+                    style: "destructive",
+                    onPress: () => {
+                        if (isBayReservation) {
+                            cancelBayReservation(reservation.id);
+                            return;
+                        }
+
+                        cancelLessonReservation(reservation.id);
+                    },
+                },
+            ],
+        );
+    };
+
     const title = getReservationTitle(reservation);
-
     const dateValue = formatDateForDisplay(reservation.startTime) || "-";
-
-    const timeValue =
-        reservation.startTime && reservation.endTime
-            ? `${fmtTime(new Date(reservation.startTime))} ~ ${fmtTime(
-                new Date(reservation.endTime),
-            )}`
-            : "-";
-
-    const lessonValue = isBayReservation
-        ? reservation.bayName ?? `Bay #${reservation.baySlotId}`
-        : reservation.lessonAvailability?.name ??
-        reservation.lessonProgramGroupName ??
-        reservation.lessonProgramName ??
+    const timeValue = formatTimeRange(reservation.startTime, reservation.endTime);
+    const reservationLocationValue = isBayReservation
+        ? reservation.bayName || `Bay #${reservation.baySlot.bayId}`
+        : lessonReservation?.lessonAvailability?.name ??
+        lessonReservation?.lessonProgramGroupName ??
+        lessonReservation?.lessonProgramName ??
         "-";
 
     const lessonNameValue = isBayReservation
         ? null
-        : reservation.lessonName?.trim() || "-";
+        : lessonReservation?.lessonName?.trim() || "-";
 
     const programValue = isBayReservation
         ? "-"
-        : [reservation.lessonProgramName, reservation.lessonProgramGroupName]
+        : [lessonReservation?.lessonProgramName, lessonReservation?.lessonProgramGroupName]
             .filter(Boolean)
             .join(" / ") || "-";
 
     const coachName = isBayReservation
         ? "-"
-        : reservation.coach?.name?.trim() || "-";
+        : lessonReservation?.coach?.name?.trim() || "-";
 
     const noteValue = reservation.notes?.trim();
 
@@ -236,29 +279,22 @@ export default function ReservationDetailScreen() {
 
     const lessonDetailsHref =
         !isBayReservation &&
-            reservation.lessonId != null &&
-            reservation.lessonProgramGroupId != null
+            lessonReservation?.lessonId != null &&
+            lessonReservation?.lessonProgramGroupId != null
             ? {
                 pathname: "/groups/[groupId]/lessons/[lessonId]",
                 params: {
-                    groupId: String(reservation.lessonProgramGroupId),
-                    lessonId: String(reservation.lessonId),
+                    groupId: String(lessonReservation.lessonProgramGroupId),
+                    lessonId: String(lessonReservation.lessonId),
                 },
             }
             : null;
 
     return (
         <>
-            <Stack.Screen
-                options={{
-                    title: "Reservation Detail",
-                }}
-            />
 
-            <ScrollView
-                className="flex-1 bg-white"
-                contentContainerStyle={{ paddingBottom: 40 }}
-                showsVerticalScrollIndicator={false}
+            <Screen
+                contentClassName="grow"
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefetching}
@@ -267,100 +303,121 @@ export default function ReservationDetailScreen() {
                         }}
                     />
                 }
+                footer={
+                    canCancelReservation ? (
+                        <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
+                            <Pressable
+                                className={`items-center justify-center rounded-2xl px-4 py-4 active:opacity-85 ${isCancelling ? "bg-red-300" : "bg-red-500"
+                                    }`}
+                                onPress={handleCancelReservation}
+                                disabled={isCancelling}
+                            >
+                                {isCancelling ? (
+                                    <CircleLoader />
+                                ) : (
+                                    <Text
+                                        className="w-full text-center text-base font-bold text-white"
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.75}
+                                    >
+                                        Cancel Reservation
+                                    </Text>
+                                )}
+                            </Pressable>
+                        </View>
+                    ) : null
+                }
             >
-                <View className="px-6 pt-6">
+                <View className="grow">
                     <HeaderSection
                         title={title}
                         reservationStatus={reservation.reservationStatus}
-                        ticketType={
-                            reservation.ticket?.type 
-                        }
+                        ticketType={reservation.ticket?.type ?? null}
                     />
 
-                    <View className="mt-8 gap-4">
-                        <ReservationDetailField label="Date" value={dateValue} />
-                        <Separator />
+                        <View className="mt-8 gap-4">
+                            <ReservationDetailField label="Date" value={dateValue} />
+                            <Separator />
 
-                        <ReservationDetailField label="Time" value={timeValue} />
+                            <ReservationDetailField label="Time" value={timeValue} />
 
-                        {isBayReservation ? (
-                            <>
-                                <Separator />
-                                <ReservationDetailField label="Bay" value={lessonValue} />
-                            </>
-                        ) : null}
+                            {isBayReservation ? (
+                                <>
+                                    <Separator />
+                                    <ReservationDetailField label="Bay" value={reservationLocationValue} />
+                                </>
+                            ) : null}
 
-                        {programValue !== "-" ? (
-                            <>
-                                <Separator />
-                                <ReservationDetailField
-                                    label="Program"
-                                    value={programValue}
-                                />
-                            </>
-                        ) : null}
+                            {programValue !== "-" ? (
+                                <>
+                                    <Separator />
+                                    <ReservationDetailField
+                                        label="Program"
+                                        value={programValue}
+                                    />
+                                </>
+                            ) : null}
 
-                        {isBayReservation ? (
-                            <>
-                                <Separator />
-                                <ReservationDetailField
-                                    label="Players"
-                                    value={playerCountValue}
-                                />
-                            </>
-                        ) : (
-                            <>
-                                <Separator />
-                                <ReservationDetailField
-                                    label="Coach"
-                                    value={coachName}
-                                    leftElement={
-                                        <Avatar
-                                            name={coachName}
-                                            imageUrl={
-                                                reservation.coach?.profileImage
-                                            }
-                                        />
-                                    }
-                                />
-                            </>
-                        )}
+                            {isBayReservation ? (
+                                <>
+                                    <Separator />
+                                    <ReservationDetailField
+                                        label="Players"
+                                        value={playerCountValue}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <Separator />
+                                    <ReservationDetailField
+                                        label="Coach"
+                                        value={coachName}
+                                        leftElement={
+                                            <Avatar
+                                                name={coachName}
+                                                imageUrl={lessonReservation?.coach?.profileImage}
+                                            />
+                                        }
+                                    />
+                                </>
+                            )}
 
-                        {noteValue ? (
-                            <>
-                                <Separator />
-                                <ReservationDetailField label="Notes" value={noteValue} />
-                            </>
-                        ) : null}
+                            {noteValue ? (
+                                <>
+                                    <Separator />
+                                    <ReservationDetailField label="Notes" value={noteValue} />
+                                </>
+                            ) : null}
 
-                        {lessonNameValue && lessonDetailsHref ? (
-                            <>
-                                <Separator />
-                                <LinkedDetailField
-                                    label="Lesson Name"
-                                    value={lessonNameValue}
-                                    href={lessonDetailsHref}
-                                    linkLabel="View Lesson Details"
-                                />
-                            </>
-                        ) : lessonNameValue ? (
-                            <>
-                                <Separator />
-                                <ReservationDetailField
-                                    label="Lesson Name"
-                                    value={lessonNameValue}
-                                />
-                            </>
-                        ) : null}
-                    </View>
+                            {lessonNameValue && lessonDetailsHref ? (
+                                <>
+                                    <Separator />
+                                    <LinkedDetailField
+                                        label="Lesson Name"
+                                        value={lessonNameValue}
+                                        href={lessonDetailsHref}
+                                        linkLabel="View Lesson Details"
+                                    />
+                                </>
+                            ) : lessonNameValue ? (
+                                <>
+                                    <Separator />
+                                    <ReservationDetailField
+                                        label="Lesson Name"
+                                        value={lessonNameValue}
+                                    />
+                                </>
+                            ) : null}
+                        </View>
 
-                    <View className="mt-6 gap-4">
-                        <Separator />
+                        <View className="mt-6 gap-4">
+                            <Separator />
 
-                        <ReservationPoliciesSection policies={policies} />
-                    </View>
+                            <ReservationPoliciesSection policies={policies} />
+                        </View>
                 </View>
-            </ScrollView>
+            </Screen>
         </>
     );
 }

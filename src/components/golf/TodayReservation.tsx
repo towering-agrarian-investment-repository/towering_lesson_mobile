@@ -10,25 +10,29 @@ function TodayReservation() {
     const { data: todayReservations = [], isLoading: todayReservationsLoading, isError: todayReservationError } = useTodayMemberReservations();
 
     return (
-        <View>
+        <View className="flex-1">
             <TitleSectionWithBadge label="Today's Reservation" length={todayReservations.length} />
 
             {todayReservationsLoading ? (
-                <View style={style.listContent}>
+                <View className="flex-1 justify-center" style={style.listContent}>
                     {Array.from({ length: 2 }, (_, index) => (
                         <Skeleton key={index} className="h-28 w-72 rounded-2xl" />
                     ))}
                 </View>
             ) : todayReservationError ? (
-                <ErrorState
-                    title="Failed to load reservations"
-                    message="Please pull to refresh and try again."
-                />
+                <View className="flex-1 justify-center">
+                    <ErrorState
+                        title="Failed to load reservations"
+                        message="Please pull to refresh and try again."
+                    />
+                </View>
             ) : todayReservations.length === 0 ? (
-                <EmptyState
-                    title="No reservations today"
-                    message="Today's reservations will appear here."
-                />
+                <View className="flex-1 justify-center">
+                    <EmptyState
+                        title="No reservations today"
+                        message="Today's reservations will appear here."
+                    />
+                </View>
             ) : (
                 <FlatList
                     data={todayReservations}

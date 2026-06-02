@@ -1,15 +1,13 @@
 import { Image, StyleSheet, View } from 'react-native'
 
-type Props = {}
-
-function GolfHeader({ }: Props) {
+function GolfHeader() {
     return (
         <View style={style.container}>
             <Image
-                source={require('../../../assets/images/happy-logo.jpg')}
+                source={require('../../../assets/golf/drawable-xxxhdpi/happygolf_toolbar_logo.png')}
                 style={{
-                    width: 400,
-                    height: 80,
+                    width: 260,
+                    height: 52,
                     resizeMode: "contain",
                 }}
             />
