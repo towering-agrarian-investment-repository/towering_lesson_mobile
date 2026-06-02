@@ -4,11 +4,9 @@ import {
     FormPasswordInput,
     FormTextInput,
 } from "@/components/ui/form";
-import { authClient } from "@/lib/auth-client";
 import { signIn } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Href, router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
     Image,
@@ -26,7 +24,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
-    const { data: session, isPending } = authClient.useSession();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
 
     const form = useForm<LoginFormValues>({
@@ -37,12 +34,6 @@ export default function LoginScreen() {
         resolver: zodResolver(loginSchema),
         mode: "onSubmit",
     });
-
-    useEffect(() => {
-        if (!isPending && session) {
-            router.replace("/(app)/(tabs)" as Href);
-        }
-    }, [isPending, session]);
 
     async function handleLogin(values: LoginFormValues) {
         form.clearErrors();
@@ -55,9 +46,9 @@ export default function LoginScreen() {
                 password: values.password,
             });
 
-            await authClient.getSession();
+            // await authClient.getSession();
 
-            router.replace("/(app)/(tabs)" as Href);
+            // router.replace("/(app)/(tabs)" as Href);
 
         } catch (error) {
             form.setError("password", {
@@ -72,10 +63,6 @@ export default function LoginScreen() {
         }
     }
 
-    if (isPending) {
-        return <CircleLoader fullScreen logoOnly />;
-    }
-
     return (
         <Screen
             headerShown={false}
@@ -85,8 +72,11 @@ export default function LoginScreen() {
             <View className="gap-8">
                 <Image
                     source={require("../../assets/golf/drawable-xxxhdpi/happygolf_toolbar_logo.png")}
-                    className="h-14 w-64"
-                    resizeMode="contain"
+                    style={{
+                        width: 200,
+                        height: 50,
+                        resizeMode: "contain",
+                    }}
                 />
 
                 <Text className="text-3xl font-bold tracking-tight text-gray-900">

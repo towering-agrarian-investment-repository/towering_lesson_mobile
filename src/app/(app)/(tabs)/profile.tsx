@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+    Alert,
     Image,
     Pressable,
     RefreshControl,
@@ -38,6 +39,30 @@ export default function ProfileScreen() {
         } finally {
             setRefreshing(false);
         }
+    };
+
+    const confirmSignOut = () => {
+        if (isSigningOut) {
+            return;
+        }
+
+        Alert.alert(
+            "Log Out",
+            "Are you sure you want to log out?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Log Out",
+                    style: "destructive",
+                    onPress: () => {
+                        void handleSignOut();
+                    },
+                },
+            ],
+        );
     };
 
     const handleSignOut = async () => {
@@ -237,9 +262,7 @@ export default function ProfileScreen() {
 
             {/* Logout */}
             <Pressable
-                onPress={() => {
-                    void handleSignOut();
-                }}
+                onPress={confirmSignOut}
                 disabled={isSigningOut}
                 className={`mt-4 rounded-2xl border px-4 py-4 ${
                     isSigningOut

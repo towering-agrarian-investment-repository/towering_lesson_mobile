@@ -6,8 +6,8 @@ function GolfHeader() {
             <Image
                 source={require('../../../assets/golf/drawable-xxxhdpi/happygolf_toolbar_logo.png')}
                 style={{
-                    width: 260,
-                    height: 52,
+                    width: 200,
+                    height: 50,
                     resizeMode: "contain",
                 }}
             />

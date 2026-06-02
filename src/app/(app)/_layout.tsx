@@ -1,34 +1,12 @@
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { authClient } from "@/lib/auth-client";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient();
 
 export default function AppLayout() {
-    const { data: session, isPending } = authClient.useSession();
-
-    useEffect(() => {
-        if (!isPending && !session) {
-            router.replace("/login");
-        }
-    }, [isPending, session]);
-
-    if (isPending) {
-        return (
-            <QueryClientProvider client={queryClient}>
-                <CircleLoader fullScreen logoOnly />
-            </QueryClientProvider>
-        );
-    }
-
-    if (!session) {
-        return null;
-    }
-
     return (
         <QueryClientProvider client={queryClient}>
             <ToastProvider>
