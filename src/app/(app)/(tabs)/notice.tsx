@@ -1,12 +1,13 @@
-import { Screen } from '@/components/ui/Screen'
-import { Text } from 'react-native'
+import { EmptyState } from "@/components/ui/StateCard";
+import { Screen } from "@/components/ui/Screen";
 
 function NoticeScreen() {
     return (
-        <Screen>
-            <Text>
-                Heyyyy
-            </Text>
+        <Screen headerShown={false}>
+            <EmptyState
+                title="No notifications yet"
+                message="Updates and alerts will appear here."
+            />
         </Screen>
     )
 }

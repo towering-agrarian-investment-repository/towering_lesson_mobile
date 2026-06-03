@@ -1,4 +1,6 @@
 import { Screen } from "@/components/ui/Screen";
+import { AppText } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { useMemberBaySlotGroups, useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
@@ -9,11 +11,9 @@ import {
     Pressable,
     RefreshControl,
     StyleSheet,
-    Text,
+    View,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
-
-const PRIMARY = "#38bdf8";
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
 
 function getMonthRange(value: Date) {
@@ -36,6 +36,7 @@ function isSameMonth(dateString: string, monthDate: Date) {
 }
 
 export default function DateScreen() {
+    const colors = useThemeColors();
     const { ticketId, ticketType } = useLocalSearchParams<{
         ticketId?: string;
         ticketType?: string;
@@ -127,6 +128,7 @@ export default function DateScreen() {
 
     return (
         <Screen
+            contentClassName="gap-6"
             horizontalPadding={false}
             refreshControl={
                 <RefreshControl
@@ -135,8 +137,17 @@ export default function DateScreen() {
                 />
             }
         >
+            <View className="px-6">
+                <View className="gap-1">
+                    <AppText variant="value">Choose a date</AppText>
+                    <AppText variant="meta" className="text-foreground/75">
+                        Select an available day to continue your booking.
+                    </AppText>
+                </View>
+            </View>
+
             <Calendar
-                style={s.calendar}
+                style={[s.calendar, { backgroundColor: colors.card }]}
                 minDate={today}
                 onMonthChange={(month) => {
                     setVisibleMonth(new Date(month.year, month.month - 1, 1));
@@ -145,7 +156,7 @@ export default function DateScreen() {
                     <Ionicons
                         name={dir === "left" ? "chevron-back" : "chevron-forward"}
                         size={20}
-                        color={PRIMARY}
+                        color={colors.primary}
                     />
                 )}
                 dayComponent={({ date, state }) => {
@@ -160,6 +171,7 @@ export default function DateScreen() {
                         state === "disabled" ||
                         isPast ||
                         (isCurrentMonth && !hasAvailableTime);
+                    const isAvailable = isCurrentMonth && !isPast && hasAvailableTime;
 
                     return (
                         <Pressable
@@ -172,25 +184,35 @@ export default function DateScreen() {
                                         : undefined
                             }
                         >
-                            <Text
+                            <AppText
+                                variant="body"
                                 style={[
                                     s.dayText,
-                                    !isCurrentMonth && s.dayTextOutsideMonth,
-                                    isUnavailable && s.dayTextUnavailable,
-                                    date.dateString === today && !isUnavailable && s.dayTextToday,
+                                    { color: colors.foreground },
+                                    !isCurrentMonth && { color: colors.border },
+                                    isUnavailable && { color: colors.border },
+                                    isAvailable && {
+                                        color: colors.primary,
+                                        fontWeight: "700",
+                                    },
+                                    date.dateString === today &&
+                                        !isUnavailable && [
+                                            s.dayTextToday,
+                                            { color: colors.primary },
+                                        ],
                                 ]}
                             >
                                 {date.day}
-                            </Text>
+                            </AppText>
                         </Pressable>
                     );
                 }}
                 theme={{
-                    calendarBackground: "#fff",
-                    selectedDayBackgroundColor: PRIMARY,
-                    selectedDayTextColor: "#fff",
-                    todayTextColor: PRIMARY,
-                    textDisabledColor: "#cbd5e1",
+                    calendarBackground: colors.card,
+                    selectedDayBackgroundColor: colors.primary,
+                    selectedDayTextColor: colors.primaryForeground,
+                    todayTextColor: colors.primary,
+                    textDisabledColor: colors.border,
                     // @ts-ignore
                     "stylesheet.calendar.main": {
                         week: {
@@ -207,7 +229,7 @@ export default function DateScreen() {
 }
 
 const s = StyleSheet.create({
-    calendar: { height: 520, backgroundColor: "#fff" },
+    calendar: { height: 520 },
     dayButton: {
         width: 32,
         height: 32,
@@ -216,17 +238,9 @@ const s = StyleSheet.create({
         borderRadius: 16,
     },
     dayText: {
-        fontSize: 16,
-        color: "#0f172a",
+        textAlign: "center",
     },
     dayTextToday: {
-        color: PRIMARY,
         fontWeight: "700",
-    },
-    dayTextUnavailable: {
-        color: "#cbd5e1",
-    },
-    dayTextOutsideMonth: {
-        color: "#e2e8f0",
     },
 });

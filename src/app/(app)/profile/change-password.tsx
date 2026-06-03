@@ -1,3 +1,4 @@
+import { AppText as Text, Button } from "@/design-system";
 import { FormPasswordInput } from "@/components/ui/form";
 import { Screen } from "@/components/ui/Screen";
 import { responseError } from "@/lib/api-response/api-response";
@@ -7,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from 'react';
 import { useForm } from "react-hook-form";
-import { Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { z } from "zod";
 
 
@@ -91,32 +92,23 @@ function ChangePasswordScreen() {
             keyboardAware
             contentClassName="flex-grow"
             footer={
-                <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                    <Pressable
-                        className={`items-center justify-center rounded-2xl px-4 py-4 ${form.formState.isSubmitting ? "bg-green-300" : "bg-green-500"
-                            }`}
+                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                    <Button
+                        title={form.formState.isSubmitting ? "Saving..." : "Confirm"}
+                        loading={form.formState.isSubmitting}
+                        className="rounded-2xl"
                         onPress={form.handleSubmit(onSubmit)}
-                        disabled={form.formState.isSubmitting}
-                    >
-                        <Text
-                            className="w-full text-center text-base font-bold text-white"
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.75}
-                        >
-                            {form.formState.isSubmitting ? "Saving..." : "Confirm"}
-                        </Text>
-                    </Pressable>
+                    />
                 </View>
             }
         >
             <View className="flex-1 flex-col gap-6">
-                <Text className="text-base">
+                <Text selectable className="text-base">
                     If you lose your password, ask the store manager to reset it.
                 </Text>
 
                 <View className="flex-col gap-8">
-                    <Text className="text-lg">
+                    <Text selectable className="text-lg">
                         Please enter your old password
                     </Text>
 
@@ -129,7 +121,7 @@ function ChangePasswordScreen() {
                 </View>
 
                 <View className="flex-col gap-8">
-                    <Text className="text-lg">
+                    <Text selectable className="text-lg">
                         Please enter a new password
                     </Text>
 

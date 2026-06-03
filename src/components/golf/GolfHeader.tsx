@@ -1,15 +1,16 @@
-import { Image, StyleSheet, View } from 'react-native'
+import { Image } from "expo-image";
+import { StyleSheet, View } from "react-native";
 
 function GolfHeader() {
     return (
         <View style={style.container}>
             <Image
-                source={require('../../../assets/golf/drawable-xxxhdpi/happygolf_toolbar_logo.png')}
+                source={require('../../../assets/images/happygolf_toolbar_logo.png')}
                 style={{
                     width: 200,
                     height: 50,
-                    resizeMode: "contain",
                 }}
+                contentFit="contain"
             />
         </View>
     )

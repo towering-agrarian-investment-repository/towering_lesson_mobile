@@ -4,6 +4,7 @@ import TodayReservation from "@/components/golf/TodayReservation";
 import { CircleLoader } from "@/components/ui/CircleLoader";
 import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { AppText as Text } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
@@ -11,7 +12,6 @@ import { useState } from "react";
 import {
   Pressable,
   RefreshControl,
-  Text,
   View,
 } from "react-native";
 
@@ -95,8 +95,8 @@ export default function HomeScreen() {
         </View>
 
         <Link href="/reservation" asChild>
-          <Pressable className="mt-4 rounded-2xl bg-green-600 py-4 active:bg-green-700">
-            <Text className="text-center text-base font-bold text-white">
+          <Pressable className="mt-4 rounded-2xl bg-primary py-4 active:opacity-80">
+            <Text className="text-center text-base font-bold text-primary-foreground">
               VIEW MY RESERVATIONS
             </Text>
           </Pressable>

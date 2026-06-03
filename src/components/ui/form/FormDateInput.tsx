@@ -1,8 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import DateTimePicker from "@expo/ui/community/datetime-picker";
+import ExpoDateTimePicker from "@expo/ui/community/datetime-picker";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
-import { Platform, Pressable, Text, View } from "react-native";
+import { AppText as Text } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
+import { Platform, Pressable, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
 
@@ -56,6 +58,7 @@ export function FormDateInput<TFieldValues extends FieldValues>({
     maximumDate,
 }: FormDateInputProps<TFieldValues>) {
     const [isOpen, setIsOpen] = useState(false);
+    const colors = useThemeColors();
 
     return (
         <Controller
@@ -84,12 +87,12 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                                 }}
                                 disabled={!editable}
                                 className={`flex-row items-center rounded-2xl border px-4 py-3 ${fieldState.error
-                                    ? "border-red-500"
-                                    : "border-gray-300"
-                                    } ${!editable ? "opacity-60" : "bg-white"}`}
+                                    ? "border-danger"
+                                    : "border-border"
+                                    } ${!editable ? "opacity-60" : "bg-card"}`}
                             >
                                 <Text
-                                    className={`flex-1 ${displayValue ? "text-gray-950" : "text-gray-400"
+                                    className={`flex-1 text-base ${displayValue ? "text-foreground" : "text-muted-foreground"
                                         }`}
                                 >
                                     {displayValue || placeholder}
@@ -104,17 +107,21 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                                             }
                                         }}
                                         disabled={!editable}
-                                        className="ml-3 rounded-full p-1 active:bg-gray-100"
+                                        className="ml-3 rounded-full p-1 active:bg-muted"
                                         accessibilityRole="button"
                                         accessibilityLabel={clearLabel}
                                     >
-                                        <MaterialIcons name="cancel" size={18} color="#6b7280" />
+                                        <MaterialIcons
+                                            name="cancel"
+                                            size={18}
+                                            color={colors.mutedForeground}
+                                        />
                                     </Pressable>
                                 ) : null}
                             </Pressable>
 
                             {isOpen ? (
-                                <DateTimePicker
+                                <ExpoDateTimePicker
                                     value={pickerValue}
                                     mode="date"
                                     display={Platform.OS === "ios" ? "inline" : "default"}

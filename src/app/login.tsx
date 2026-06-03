@@ -1,19 +1,16 @@
 import { CircleLoader } from "@/components/ui/CircleLoader";
 import { Screen } from "@/components/ui/Screen";
+import { AppText, Button } from "@/design-system";
 import {
     FormPasswordInput,
     FormTextInput,
 } from "@/components/ui/form";
+import { Image } from "expo-image";
 import { signIn } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-    Image,
-    Pressable,
-    Text,
-    View,
-} from "react-native";
+import { View } from "react-native";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -67,23 +64,36 @@ export default function LoginScreen() {
         <Screen
             headerShown={false}
             keyboardAware
-            contentClassName="justify-start"
+            contentClassName="justify-center"
         >
-            <View className="gap-8">
-                <Image
-                    source={require("../../assets/golf/drawable-xxxhdpi/happygolf_toolbar_logo.png")}
-                    style={{
-                        width: 200,
-                        height: 50,
-                        resizeMode: "contain",
-                    }}
-                />
+            <View className="gap-10">
+                <View className="items-start gap-6">
+                    <Image
+                        source={require("../../assets/images/happygolf_toolbar_logo.png")}
+                        style={{
+                            width: 200,
+                            height: 50,
+                        }}
+                        contentFit="contain"
+                    />
 
-                <Text className="text-3xl font-bold tracking-tight text-gray-900">
-                    Start HappyGolf
-                </Text>
+                    <View className="gap-2">
+                        <AppText selectable variant="h1">
+                            Start HappyGolf
+                        </AppText>
+
+                        <AppText
+                            selectable
+                            variant="subtext"
+                            className="text-foreground/80"
+                        >
+                            Sign in to view your reservations, tickets, and lesson details.
+                        </AppText>
+                    </View>
+                </View>
+
                 <View className="gap-6">
-                    <View className="gap-4">
+                    <View className="gap-5">
                         <FormTextInput
                             control={form.control}
                             name="username"
@@ -102,20 +112,13 @@ export default function LoginScreen() {
                         />
                     </View>
 
-                    <Pressable
-                        className={`h-14 items-center justify-center rounded-2xl ${isLoggingIn ? "bg-green-200" : "bg-green-600"
-                            }`}
+                    <Button
+                        title={isLoggingIn ? "Logging In..." : "Log In"}
+                        size="lg"
+                        loading={isLoggingIn}
+                        className="rounded-2xl"
                         onPress={form.handleSubmit(handleLogin)}
-                        disabled={isLoggingIn}
-                    >
-                        {isLoggingIn ? (
-                            <CircleLoader />
-                        ) : (
-                            <Text className="text-base font-bold text-white">
-                                Log In
-                            </Text>
-                        )}
-                    </Pressable>
+                    />
                 </View>
             </View>
         </Screen>

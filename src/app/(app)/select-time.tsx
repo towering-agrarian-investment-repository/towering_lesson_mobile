@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { AppText } from "@/design-system";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { formatTimeRange } from "@/utils/time-helper";
@@ -8,7 +9,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
     Pressable,
     RefreshControl,
-    Text,
     View
 } from "react-native";
 
@@ -45,6 +45,7 @@ export default function TimeScreen() {
 
     return (
         <Screen
+            contentClassName="gap-6"
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -54,10 +55,15 @@ export default function TimeScreen() {
                 />
             }
         >
-            <Text className="mb-4 text-[13px] text-slate-400">{date}</Text>
+            <View className="gap-1">
+                <AppText variant="value">Choose a time</AppText>
+                <AppText variant="meta" className="text-foreground/75">
+                    {date}
+                </AppText>
+            </View>
 
             {isLoading ? (
-                <View className="items-center justify-center gap-2 py-6">
+                <View className="items-center justify-center gap-3 py-2">
                     {Array.from({ length: 4 }, (_, index) => (
                         <Skeleton key={index} className="h-14 w-full rounded-xl" />
                     ))}
@@ -77,20 +83,21 @@ export default function TimeScreen() {
                     message="There are no available times for this date."
                 />
             ) : null}
-            <View className="gap-2">
+
+            <View className="gap-3">
                 {slotGroups.map((group) => (
                     <Pressable
                         key={group.id}
-                        className="flex-row items-center justify-between rounded-xl border-[1.5px] border-slate-200 bg-slate-50 px-4 py-3.5 active:opacity-70"
+                        className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4 active:bg-surface"
                         onPress={() => handleSelect(group)}
                     >
-                        <Text className="text-[15px] font-semibold text-slate-900">
+                        <AppText variant="body" className="font-medium text-foreground">
                             {formatTimeRange(group.startDateTime, group.endDateTime)}
-                        </Text>
+                        </AppText>
 
-                        <Text className="text-xs font-medium text-sky-400">
+                        <AppText variant="label" className="text-primary">
                             {getAvailableBayCount(group)} bays
-                        </Text>
+                        </AppText>
                     </Pressable>
                 ))}
             </View>

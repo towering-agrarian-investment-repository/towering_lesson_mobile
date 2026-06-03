@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
-import { Text, View } from "react-native";
+import type { ComponentProps, ReactNode } from "react";
+import { AppText } from "@/design-system";
+import { cn } from "@/design-system";
+import { View } from "react-native";
 
 export type ReservationPolicy = {
     title: string;
@@ -18,19 +20,19 @@ export function ReservationDetailField({
     leftElement?: ReactNode;
 }) {
     return (
-        <View>
+        <View className="flex-col gap-2">
             <ReservationFieldLabel>{label}</ReservationFieldLabel>
 
-            <View className="mt-2 flex-row items-center gap-3">
+            <View className="flex-row items-center gap-3">
                 {leftElement ? leftElement : null}
 
-                <View className="flex-1">
+                <View className="flex-1 flex-col gap-2">
                     <ReservationFieldValue>{value}</ReservationFieldValue>
 
                     {description ? (
-                        <Text className="mt-2 text-base leading-7 text-gray-500">
+                        <AppText variant="subtext" className="text-foreground/75">
                             {description}
-                        </Text>
+                        </AppText>
                     ) : null}
                 </View>
             </View>
@@ -46,21 +48,21 @@ export function ReservationPoliciesSection({
     policies: readonly ReservationPolicy[];
 }) {
     return (
-        <View>
-            <Text className="text-base font-bold leading-4 text-gray-950">
+        <View className="flex-col gap-4">
+            <AppText variant="value" className="text-foreground">
                 {title}
-            </Text>
+            </AppText>
 
-            <View className="mt-4 gap-4">
+            <View className="gap-4">
                 {policies.map((policy) => (
-                    <View key={policy.title}>
-                        <Text className="text-base leading-4 text-gray-950">
+                    <View key={policy.title} className="flex-col gap-2">
+                        <AppText variant="body" className="text-foreground">
                             - {policy.title}
-                        </Text>
+                        </AppText>
 
-                        <Text className="mt-2 text-base leading-7 text-gray-950">
+                        <AppText variant="subtext" className="text-foreground/80">
                             {policy.description}
-                        </Text>
+                        </AppText>
                     </View>
                 ))}
             </View>
@@ -70,24 +72,36 @@ export function ReservationPoliciesSection({
 
 export function ReservationFieldLabel({
     children,
+    className,
+    ...props
 }: {
     children: ReactNode;
-}) {
+} & ComponentProps<typeof AppText>) {
     return (
-        <Text className="text-lg font-bold leading-4 text-gray-950">
+        <AppText
+            variant="value"
+            className={cn("text-foreground", className)}
+            {...props}
+        >
             {children}
-        </Text>
+        </AppText>
     );
 }
 
 export function ReservationFieldValue({
     children,
+    className,
+    ...props
 }: {
     children: ReactNode;
-}) {
+} & ComponentProps<typeof AppText>) {
     return (
-        <Text className="text-xl font-semibold leading-7 text-gray-950">
+        <AppText
+            variant="h3"
+            className={cn("text-foreground", className)}
+            {...props}
+        >
             {children}
-        </Text>
+        </AppText>
     );
 }

@@ -43,6 +43,7 @@ function MyTicket({ member }: Props) {
                     data={tickets}
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    contentInsetAdjustmentBehavior="automatic"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
                     renderItem={({ item }) => <TicketCard item={item} />}

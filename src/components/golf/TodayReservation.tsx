@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 import TodayReservationCard from "./TodayReservationCard";
 
@@ -14,9 +14,15 @@ function TodayReservation() {
             <TitleSectionWithBadge label="Today's Reservation" length={todayReservations.length} />
 
             {todayReservationsLoading ? (
-                <View className="flex-1 justify-center" style={style.listContent}>
-                    {Array.from({ length: 2 }, (_, index) => (
-                        <Skeleton key={index} className="h-28 w-72 rounded-2xl" />
+                <View
+                    className="flex-1 flex-row items-start justify-start"
+                    style={style.listContent}
+                >
+                    {["w-48", "w-56", "w-44"].map((widthClassName, index) => (
+                        <Skeleton
+                            key={index}
+                            className={`h-[54px] ${widthClassName} rounded-full`}
+                        />
                     ))}
                 </View>
             ) : todayReservationError ? (
@@ -38,6 +44,7 @@ function TodayReservation() {
                     data={todayReservations}
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    contentInsetAdjustmentBehavior="automatic"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
                     renderItem={({ item }) => (
@@ -52,6 +59,7 @@ const style = StyleSheet.create({
     listContent: {
         gap: 12,
         paddingVertical: 10,
+        alignItems: "flex-start",
     },
 });
 

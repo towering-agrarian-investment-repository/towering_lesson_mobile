@@ -2,14 +2,12 @@ import {
     ReservationDetailField,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { CircleLoader } from "@/components/ui/CircleLoader";
 import { Screen } from "@/components/ui/Screen";
+import { Button, Divider } from "@/design-system";
 import { useCreateMemberBayReservation } from "@/lib/hook/useReservation";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    Pressable,
-    Text,
     View
 } from "react-native";
 
@@ -21,7 +19,7 @@ const POLICIES = [
     },
     {
         title: "No-show Policy",
-        description: "A no-show will result in one bays ticket deduction.",
+        description: "A no-show will result in one bay ticket deduction.",
     },
 ] as const;
 
@@ -75,57 +73,36 @@ export default function ConfirmScreen() {
         <Screen
             contentClassName="grow"
             footer={
-                <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                    <Pressable
-                        className={`items-center justify-center rounded-2xl px-4 py-4 ${isDisabled ? "bg-sky-200" : "bg-sky-400"
-                            }`}
-                        style={({ pressed }) => ({
-                            opacity: pressed && !isDisabled ? 0.85 : 1,
-                        })}
-                        onPress={handleConfirm}
+                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                    <Button
+                        title="Agree & Book"
+                        loading={isSubmitting}
                         disabled={isDisabled}
-                        accessibilityRole="button"
-                    >
-                        {isSubmitting ? (
-                            <CircleLoader />
-                        ) : (
-                            <Text
-                                className="w-full text-center text-base font-bold text-white"
-                                numberOfLines={1}
-                                adjustsFontSizeToFit
-                                minimumFontScale={0.75}
-                            >
-                                Agree and Book
-                            </Text>
-                        )}
-                    </Pressable>
+                        onPress={handleConfirm}
+                    />
                 </View>
             }
         >
             <View className="grow">
-                <View className="mt-8 gap-4">
+                <View className="gap-4">
                     <ReservationDetailField
                         label="Reservation Name"
                         value={reservationName}
                     />
-                    <Separator />
+                    <Divider className="bg-border" />
 
                     <ReservationDetailField label="Date" value={dateValue} />
-                    <Separator />
+                    <Divider className="bg-border" />
 
                     <ReservationDetailField label="Time" value={timeValue} />
                 </View>
 
                 <View className="mt-6 gap-4">
-                    <Separator />
+                    <Divider className="bg-border" />
 
                     <ReservationPoliciesSection policies={POLICIES} />
                 </View>
             </View>
         </Screen>
     );
-}
-
-function Separator() {
-    return <View className="h-px bg-gray-100" />;
 }

@@ -1,91 +1,26 @@
+import { AppText, Card, Divider } from "@/design-system";
+import {
+    getTicketTypeTone,
+} from "@/design-system/utils/ticket-type";
 import type {
     MemberReservationResponse,
     MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
-import { TicketType } from "@/types/member.type";
 import { fmtTime } from "@/utils/time-helper";
 import { format, isToday } from "date-fns";
 import { Link } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { memo } from "react";
+import { Pressable, View } from "react-native";
 
 type Props = {
     reservation: MemberReservationResponse | MemberReservationSummaryResponse;
-    tab?: "all" | "bay" | "private" | "group" | "program";
 };
 
-function getReservationTone(ticketType?: TicketType | string | null) {
-    switch (ticketType) {
-        case "BAY_USAGE":
-            return {
-                bg: "bg-emerald-50",
-                text: "text-emerald-700",
-                dot: "bg-emerald-500",
-                arrow: "text-emerald-600",
-                border: "border-emerald-200",
-                todayBorder: "border-emerald-500",
-            };
-
-        case "PRIVATE_LESSON":
-            return {
-                bg: "bg-sky-50",
-                text: "text-sky-700",
-                dot: "bg-sky-500",
-                arrow: "text-sky-600",
-                border: "border-sky-200",
-                todayBorder: "border-sky-500",
-            };
-
-        case "GROUP_LESSON":
-            return {
-                bg: "bg-amber-50",
-                text: "text-amber-700",
-                dot: "bg-amber-500",
-                arrow: "text-amber-600",
-                border: "border-amber-200",
-                todayBorder: "border-amber-500",
-            };
-
-        case "LESSON_PROGRAM":
-            return {
-                bg: "bg-cyan-50",
-                text: "text-cyan-700",
-                dot: "bg-cyan-600",
-                arrow: "text-cyan-600",
-                border: "border-cyan-200",
-                todayBorder: "border-cyan-600",
-            };
-
-        case "LOCKER_SERVICE":
-        case "LOCATION":
-        case "OTHER":
-        default:
-            return {
-                bg: "bg-slate-50",
-                text: "text-slate-700",
-                dot: "bg-slate-700",
-                arrow: "text-slate-600",
-                border: "border-slate-200",
-                todayBorder: "border-slate-500",
-            };
-    }
-}
-
-function formatReservationType(type?: string | null) {
-    if (!type) return "Reservation";
-
-    return type
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(" ");
-}
-
-export default function ReservationCard({ reservation }: Props) {
+function ReservationCard({ reservation }: Props) {
     const reservationKind = reservation.reservationType;
-
     const startDate = new Date(reservation.startTime);
     const endDate = new Date(reservation.endTime);
-
-    const tone = getReservationTone(reservation.ticketType);
+    const tone = getTicketTypeTone(reservation.ticketType);
     const isTodayReservation = isToday(startDate);
 
     const detailHref = {
@@ -94,7 +29,7 @@ export default function ReservationCard({ reservation }: Props) {
             id: String(reservation.id),
             type: reservationKind,
         },
-    } as any;
+    } as const;
 
     const title =
         reservation.bayName ??
@@ -102,68 +37,118 @@ export default function ReservationCard({ reservation }: Props) {
         reservation.lessonProgramGroupName ??
         reservation.lessonProgramName ??
         `Reservation #${reservation.id}`;
+    const reservationDateLabel = format(startDate, "EEE, MMM d");
 
     return (
         <Link href={detailHref} asChild>
-            <Pressable
-                className={`overflow-hidden rounded-2xl border bg-white p-4 shadow-md active:bg-gray-50 ${isTodayReservation ? tone.todayBorder : tone.border
+            <Pressable className="active:bg-muted">
+                <Card
+                    className={`flex-col gap-4 overflow-hidden p-4 ${
+                        isTodayReservation
+                            ? tone.emphasisBorderClassName
+                            : tone.borderClassName
                     }`}
-            >
-                <View className="gap-4">
+                >
                     <View className="flex-row items-center gap-2">
-                        <View className={`h-2.5 w-2.5 rounded-full ${tone.dot}`} />
+                        <View className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`} />
 
-                        <Text
-                            className="flex-1 text-base font-bold text-gray-950 leading-6"
+                        <AppText
+                            variant="body"
+                            className="min-w-0 flex-1 font-medium"
                             numberOfLines={1}
                         >
-                            <Text className={tone.text}>
-                                {formatReservationType(reservation.ticketType)}
-                            </Text>
+                            {title}
+                        </AppText>
 
-                            <Text className="text-gray-400"> | </Text>
-
-                            <Text className="text-gray-950">{title}</Text>
-                        </Text>
                     </View>
 
-                    <View className="h-px bg-gray-100" />
+                    <Divider className="bg-border" />
 
                     <View className="flex-row items-center gap-3">
-                        <View
-                            className={`h-[82px] w-[72px] items-center justify-center rounded-2xl ${tone.bg}`}
-                        >
-                            <Text
-                                className={`text-sm font-semibold uppercase tracking-wide ${tone.text}`}
+                        <ReservationDateBadge date={startDate} tone={tone} />
+
+                        <View className="min-w-0 flex-1 flex-col gap-1.5">
+                            <AppText variant="label" className="text-foreground/75">
+                                Time
+                            </AppText>
+
+                            <AppText
+                                variant="value"
+                                className="text-foreground"
+                                numberOfLines={1}
                             >
-                                {format(startDate, "MMM")}
-                            </Text>
+                                {fmtTime(startDate)} - {fmtTime(endDate)}
+                            </AppText>
 
-                            <Text
-                                className={`mt-1 text-3xl font-semibold leading-none ${tone.text}`}
+                            <AppText
+                                variant="meta"
+                                className="text-foreground/75"
+                                numberOfLines={1}
                             >
-                                {format(startDate, "dd")}
-                            </Text>
+                                {reservationDateLabel}
+                            </AppText>
                         </View>
 
-                        <View className="flex-1">
-                            <Text className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                                Start Time ~ End Time
-                            </Text>
-
-                            <Text className="mt-2 text-lg font-semibold text-gray-950 leading-7">
-                                {fmtTime(startDate)} ~ {fmtTime(endDate)}
-                            </Text>
-                        </View>
-
-                        <View className="h-9 w-9 items-center justify-center rounded-full bg-gray-50">
-                            <Text className={`text-3xl leading-8 ${tone.arrow}`}>
-                                ›
-                            </Text>
-                        </View>
+                        <AppText className={`text-lg ${tone.iconClassName}`}>
+                            {">"}
+                        </AppText>
                     </View>
-                </View>
+                </Card>
             </Pressable>
         </Link>
     );
 }
+
+function areReservationCardsEqual(prev: Props, next: Props) {
+    const previousReservation = prev.reservation;
+    const nextReservation = next.reservation;
+
+    return (
+        previousReservation.id === nextReservation.id &&
+        previousReservation.reservationType === nextReservation.reservationType &&
+        previousReservation.ticketType === nextReservation.ticketType &&
+        previousReservation.startTime === nextReservation.startTime &&
+        previousReservation.endTime === nextReservation.endTime &&
+        previousReservation.bayName === nextReservation.bayName &&
+        previousReservation.lessonAvailabilityName ===
+            nextReservation.lessonAvailabilityName &&
+        previousReservation.lessonProgramGroupName ===
+            nextReservation.lessonProgramGroupName &&
+        previousReservation.lessonProgramName === nextReservation.lessonProgramName
+    );
+}
+
+function ReservationDateBadge({
+    date,
+    tone,
+}: {
+    date: Date;
+    tone: ReturnType<typeof getTicketTypeTone>;
+}) {
+    return (
+        <View
+            className={`h-[82px] w-[72px] shrink-0 overflow-hidden rounded-2xl border ${tone.borderClassName} ${tone.surfaceClassName}`}
+        >
+            <View className="flex-1 items-center justify-center px-2">
+                <AppText
+                    variant="meta"
+                    className={tone.badgeTextClassName}
+                    numberOfLines={1}
+                >
+                    {format(date, "MMM").toUpperCase()}
+                </AppText>
+
+                <AppText
+                    variant="h2"
+                    className={tone.badgeTextClassName}
+                    numberOfLines={1}
+                    style={{ fontVariant: ["tabular-nums"] }}
+                >
+                    {format(date, "dd")}
+                </AppText>
+            </View>
+        </View>
+    );
+}
+
+export default memo(ReservationCard, areReservationCardsEqual);

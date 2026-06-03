@@ -1,19 +1,16 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { AppText } from "@/design-system";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { LessonAvailabilityResponse } from "@/types/member-lesson";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+    Pressable,
     RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
     View,
 } from "react-native";
-
-const PRIMARY = "#38bdf8";
 
 function isSlotFull(slot: LessonAvailabilityResponse) {
     return slot.bookedCount >= slot.capacity;
@@ -69,6 +66,7 @@ export default function SelectLessonSlotScreen() {
 
     return (
         <Screen
+            contentClassName="gap-6"
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -78,10 +76,15 @@ export default function SelectLessonSlotScreen() {
                 />
             }
         >
-            <Text style={s.subLabel}>{date}</Text>
+            <View className="gap-1">
+                <AppText variant="value">Choose a time</AppText>
+                <AppText variant="meta" className="text-foreground/75">
+                    {date}
+                </AppText>
+            </View>
 
             {isLoading ? (
-                <View style={s.state}>
+                <View className="items-center justify-center gap-3 py-2">
                     {Array.from({ length: 4 }, (_, index) => (
                         <Skeleton key={index} className="h-24 w-full rounded-xl" />
                     ))}
@@ -102,99 +105,62 @@ export default function SelectLessonSlotScreen() {
                 />
             ) : null}
 
-            <View style={s.list}>
+            <View className="gap-3">
                 {slots.map((slot) => {
                     const disabled = isSlotFull(slot);
+                    const lessonTitle =
+                        slot.name ??
+                        slot.title ??
+                        slot.lessonProgramName ??
+                        slot.lessonProgram?.name ??
+                        "Private Lesson";
 
                     return (
-                        <TouchableOpacity
+                        <Pressable
                             key={slot.id}
-                            style={[s.row, disabled && s.rowUnavailable]}
+                            className={`flex-row items-center justify-between gap-3 rounded-2xl border px-4 py-4 ${
+                                disabled
+                                    ? "border-muted bg-muted opacity-55"
+                                    : "border-border bg-card active:bg-surface"
+                            }`}
                             onPress={() => !disabled && handleSelect(slot)}
-                            activeOpacity={disabled ? 1 : 0.7}
                             disabled={disabled}
                         >
-                            <View style={s.rowContent}>
-                                <Text style={[s.name, disabled && s.textUnavailable]}>
-                                    {slot.name ??
-                                        slot.title ??
-                                        slot.lessonProgramName ??
-                                        slot.lessonProgram?.name ??
-                                        "Private Lesson"}
-                                </Text>
-                                <Text style={[s.meta, disabled && s.textUnavailable]}>
+                            <View className="min-w-0 flex-1 gap-1.5">
+                                <AppText
+                                    variant="value"
+                                    className={`font-medium ${
+                                        disabled ? "text-muted-foreground" : "text-foreground"
+                                    }`}
+                                >
                                     {formatSlotTime(slot)}
-                                </Text>
+                                </AppText>
+                                <AppText
+                                    variant="meta"
+                                    className={disabled ? "text-muted-foreground" : "text-foreground/75"}
+                                >
+                                    {lessonTitle}
+                                </AppText>
                                 {slot.coachName ? (
-                                    <Text style={[s.meta, disabled && s.textUnavailable]}>
+                                    <AppText
+                                        variant="meta"
+                                        className={disabled ? "text-muted-foreground" : "text-foreground/75"}
+                                    >
                                         Coach: {slot.coachName}
-                                    </Text>
+                                    </AppText>
                                 ) : null}
                             </View>
 
-                            <Text style={[s.status, disabled && s.statusUnavailable]}>
+                            <AppText
+                                variant="label"
+                                className={disabled ? "text-muted-foreground" : "text-primary"}
+                            >
                                 {disabled ? "Full" : "Available"}
-                            </Text>
-                        </TouchableOpacity>
+                            </AppText>
+                        </Pressable>
                     );
                 })}
             </View>
         </Screen>
     );
 }
-
-const s = StyleSheet.create({
-    subLabel: { fontSize: 13, color: "#94a3b8", marginBottom: 16 },
-    list: { gap: 8 },
-    state: {
-        paddingVertical: 24,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-    },
-    stateText: {
-        fontSize: 14,
-        color: "#64748b",
-    },
-    row: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: "#e2e8f0",
-        backgroundColor: "#f8fafc",
-        gap: 12,
-    },
-    rowUnavailable: {
-        backgroundColor: "#f1f5f9",
-        borderColor: "#f1f5f9",
-        opacity: 0.55,
-    },
-    rowContent: {
-        flex: 1,
-        gap: 4,
-    },
-    name: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#0f172a",
-    },
-    meta: {
-        fontSize: 13,
-        color: "#64748b",
-    },
-    textUnavailable: {
-        color: "#94a3b8",
-    },
-    status: {
-        fontSize: 12,
-        fontWeight: "500",
-        color: PRIMARY,
-    },
-    statusUnavailable: {
-        color: "#cbd5e1",
-    },
-});

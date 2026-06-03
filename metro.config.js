@@ -1,6 +1,10 @@
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+const { withReactNativeCSS } = require("react-native-css/metro");
 
+/** @type {import("expo/metro-config").MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+module.exports = withReactNativeCSS(config, {
+  inlineVariables: false,
+  globalClassNamePolyfill: true,
+});

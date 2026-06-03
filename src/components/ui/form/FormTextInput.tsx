@@ -1,4 +1,5 @@
 import { Controller, FieldValues } from "react-hook-form";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { TextInput } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -15,6 +16,8 @@ export function FormTextInput<TFieldValues extends FieldValues>({
     numberOfLines,
     editable = true,
 }: FormInputBaseProps<TFieldValues>) {
+    const colors = useThemeColors();
+
     return (
         <Controller
             control={control}
@@ -30,6 +33,7 @@ export function FormTextInput<TFieldValues extends FieldValues>({
                         onChangeText={onChange}
                         onBlur={onBlur}
                         placeholder={placeholder}
+                        placeholderTextColor={colors.mutedForeground}
                         autoCapitalize={autoCapitalize}
                         keyboardType={keyboardType}
                         multiline={multiline}
@@ -37,9 +41,9 @@ export function FormTextInput<TFieldValues extends FieldValues>({
                         editable={editable}
                         textAlignVertical={multiline ? "top" : "center"}
                         className={`mt-2 border-b px-0 pb-3 pt-2 ${fieldState.error
-                            ? "border-red-500"
-                            : "border-gray-400"
-                            }`}
+                            ? "border-danger"
+                            : "border-border"
+                            } text-base text-foreground`}
                     />
                 </FormFieldShell>
             )}

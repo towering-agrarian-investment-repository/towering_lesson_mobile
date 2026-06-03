@@ -1,5 +1,6 @@
+import { AppText as Text } from "@/design-system";
 import { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 export function FormFieldShell({
     label,
@@ -13,13 +14,13 @@ export function FormFieldShell({
     return (
         <View>
             {label ? (
-                <Text className="text-gray-600">{label}</Text>
+                <Text variant="label" className="text-foreground/75">{label}</Text>
             ) : null}
 
             {children}
 
             {errorMessage ? (
-                <Text className="mt-1 text-sm text-red-500">
+                <Text variant="meta" className="mt-1 text-danger">
                     {errorMessage}
                 </Text>
             ) : null}

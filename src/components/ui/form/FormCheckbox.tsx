@@ -1,5 +1,7 @@
 import { Controller, FieldValues } from "react-hook-form";
-import { Switch, Text, View } from "react-native";
+import { AppText as Text } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
+import { Switch, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
 
@@ -18,6 +20,8 @@ export function FormCheckbox<TFieldValues extends FieldValues>({
     editable = true,
     description,
 }: FormCheckboxProps<TFieldValues>) {
+    const colors = useThemeColors();
+
     return (
         <Controller
             control={control}
@@ -36,12 +40,12 @@ export function FormCheckbox<TFieldValues extends FieldValues>({
                                 }`}
                         >
                             <View className="flex-1">
-                                <Text className="font-medium text-gray-900">
+                                <Text className="font-medium text-foreground">
                                     {label}
                                 </Text>
 
                                 {description ? (
-                                    <Text className="mt-1 text-sm leading-5 text-gray-500">
+                                    <Text className="mt-1 text-sm leading-5 text-muted-foreground">
                                         {description}
                                     </Text>
                                 ) : null}
@@ -58,11 +62,11 @@ export function FormCheckbox<TFieldValues extends FieldValues>({
                                 }}
                                 disabled={!editable}
                                 trackColor={{
-                                    false: "#d1d5db",
-                                    true: "#86efac",
+                                    false: colors.border,
+                                    true: `${colors.success}66`,
                                 }}
-                                thumbColor={checked ? "#16a34a" : "#f9fafb"}
-                                ios_backgroundColor="#d1d5db"
+                                thumbColor={checked ? colors.success : colors.card}
+                                ios_backgroundColor={colors.border}
                             />
                         </View>
                     </FormFieldShell>

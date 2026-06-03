@@ -1,0 +1,73 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+@import "nativewind/theme";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-ticket-bay: var(--ticket-bay);
+  --color-ticket-private: var(--ticket-private);
+  --color-ticket-group: var(--ticket-group);
+  --color-ticket-program: var(--ticket-program);
+  --color-ticket-default: var(--ticket-default);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #111827;
+  --surface: #f9fafb;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --ticket-bay: #10b981;
+  --ticket-private: #2563eb;
+  --ticket-group: #f59e0b;
+  --ticket-program: #8b5cf6;
+  --ticket-default: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1120;
+    --foreground: #f9fafb;
+    --surface: #111827;
+    --card: #111827;
+    --border: #1f2937;
+    --muted: #1f2937;
+    --muted-foreground: #9ca3af;
+    --primary: #60a5fa;
+    --primary-foreground: #0b1120;
+    --secondary: #1f2937;
+    --secondary-foreground: #f9fafb;
+    --danger: #f87171;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --ticket-bay: #34d399;
+    --ticket-private: #60a5fa;
+    --ticket-group: #fbbf24;
+    --ticket-program: #a78bfa;
+    --ticket-default: #94a3b8;
+  }
+}

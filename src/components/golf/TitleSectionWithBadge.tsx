@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { AppText as Text } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
+import { StyleSheet, View } from 'react-native';
 
 type Props = {
     label: string;
@@ -6,12 +8,18 @@ type Props = {
 }
 
 function TitleSectionWithBadge({ label, length }: Props) {
+    const colors = useThemeColors();
+
     return (
         <View style={style.titleRow}>
-            <Text style={style.sectionTitle}>{label}</Text>
+            <Text style={[style.sectionTitle, { color: colors.secondaryForeground }]}>
+                {label}
+            </Text>
 
-            <View style={style.lengthBadge}>
-                <Text style={style.lengthBadgeText}>{length}</Text>
+            <View style={[style.lengthBadge, { backgroundColor: colors.primary }]}>
+                <Text style={[style.lengthBadgeText, { color: colors.primaryForeground }]}>
+                    {length}
+                </Text>
             </View>
         </View>)
 }
@@ -25,21 +33,18 @@ const style = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: "600",
-        color: "#363641",
         marginTop: 30,
         marginBottom: 16,
     },
     lengthBadge: {
         width: 22,
         height: 22,
-        backgroundColor: "red",
         borderRadius: 11,
         justifyContent: "center",
         alignItems: "center",
         transform: [{ translateY: -2 }],
     },
     lengthBadgeText: {
-        color: "white",
         fontSize: 12,
         fontWeight: "700",
     }

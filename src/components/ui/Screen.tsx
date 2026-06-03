@@ -7,7 +7,7 @@ import {
     ScrollView,
     View,
 } from "react-native";
-import { Edge, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ScreenProps = {
     children: ReactNode;
@@ -23,7 +23,6 @@ type ScreenProps = {
     bounces?: boolean;
     showsVerticalScrollIndicator?: boolean;
     keyboardShouldPersistTaps?: "always" | "handled" | "never";
-    edges?: Edge[];
 };
 
 export function Screen({
@@ -40,45 +39,69 @@ export function Screen({
     bounces = false,
     showsVerticalScrollIndicator = false,
     keyboardShouldPersistTaps = "handled",
-    edges = headerShown ? ["left", "right"] : ["top", "left", "right"],
 }: ScreenProps) {
-    const horizontalPaddingClassName = horizontalPadding ? "px-6" : "";
-    const baseContentClassName = cn(
-        "flex-grow pt-4 pb-6",
-        horizontalPaddingClassName,
-    );
+    const insets = useSafeAreaInsets();
+
+    const paddingTop = headerShown ? 16 : insets.top + 16;
+    const paddingHorizontal = horizontalPadding ? 24 : 0;
+
+    const scrollContentContainerStyle = {
+        flexGrow: 1,
+        paddingTop,
+        paddingBottom: footer ? 24 : 24,
+        paddingHorizontal,
+    } as const;
+
+    const fixedContentStyle = {
+        flex: 1,
+        paddingTop,
+        paddingBottom: 24,
+        paddingHorizontal,
+    } as const;
 
     return (
-        <SafeAreaView className={cn("flex-1 bg-white", className)} edges={edges}>
+        <View className={cn("flex-1 bg-background", className)}>
             <KeyboardAvoidingView
                 className="flex-1"
                 behavior={
-                    keyboardAware && Platform.OS === "ios" ? "padding" : undefined
+                    keyboardAware && Platform.OS === "ios"
+                        ? "padding"
+                        : undefined
                 }
             >
                 {scroll ? (
                     <ScrollView
-                        className={cn("flex-1 bg-white", scrollClassName)}
-                        contentContainerClassName={cn(
-                            baseContentClassName,
-                            contentClassName,
-                        )}
+                        className={cn("flex-1 bg-background", scrollClassName)}
+                        contentContainerStyle={scrollContentContainerStyle}
                         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                         bounces={bounces}
                         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
                         refreshControl={refreshControl}
+                        contentInsetAdjustmentBehavior="automatic"
                     >
-                        {children}
+                        <View className={cn("flex-1", contentClassName)}>
+                            {children}
+                        </View>
                     </ScrollView>
                 ) : (
                     <View
-                        className={cn("flex-1 bg-white", baseContentClassName, contentClassName)}
+                        className={cn("flex-1", contentClassName)}
+                        style={fixedContentStyle}
                     >
                         {children}
                     </View>
                 )}
-                {footer}
+
+                {footer ? (
+                    <View
+                        style={{
+                            paddingBottom: insets.bottom,
+                        }}
+                    >
+                        {footer}
+                    </View>
+                ) : null}
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 }

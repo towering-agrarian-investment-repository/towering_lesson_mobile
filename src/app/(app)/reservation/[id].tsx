@@ -1,23 +1,17 @@
-import { Href, Link, Stack, useLocalSearchParams } from "expo-router";
+import { Screen } from "@/components/ui/Screen";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import {
-    Alert,
-    Image,
-    Pressable,
-    RefreshControl,
-    Text,
-    View,
-} from "react-native";
-
+    formatTicketTypeLabel,
+    getTicketTypeTone,
+} from "@/design-system/utils/ticket-type";
+import { useThemeColors } from "@/design-system/utils/theme";
 import {
-    ReservationDetailField,
     ReservationFieldLabel,
     ReservationFieldValue,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { Screen } from "@/components/ui/Screen";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { AppText, Badge, Button, Divider } from "@/design-system";
 import {
     MemberReservationDetailResponse,
     useCancelMemberBayReservation,
@@ -26,11 +20,19 @@ import {
 } from "@/lib/hook/useReservation";
 import { MemberBayReservationResponse } from "@/types/member-bay";
 import { MemberLessonReservationResponse } from "@/types/member-lesson";
-import {
-    MemberReservationDomain,
-} from "@/types/member-reservation";
+import { MemberReservationDomain } from "@/types/member-reservation";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
+import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
+import { Href, Link, Stack, useLocalSearchParams } from "expo-router";
+import type { ReactNode } from "react";
+import {
+    Alert,
+    Pressable,
+    RefreshControl,
+    View,
+} from "react-native";
 
 type ReservationParams = {
     id: string;
@@ -61,6 +63,11 @@ const RESERVATION_POLICIES = {
         },
     ],
 } as const;
+
+const BANNER_STYLE = {
+    borderCurve: "continuous" as const,
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+};
 
 function isReservationDomain(
     value?: string | string[],
@@ -93,57 +100,95 @@ function getReservationTitle(reservation: MemberReservationDetailResponse) {
     );
 }
 
-function getReservationStatusTone(value?: string | null) {
+function getReservationStatusTone(
+    colors: ReturnType<typeof useThemeColors>,
+    value?: string | null,
+) {
     switch (value) {
         case "RESERVED":
             return {
-                backgroundColor: "#eef1ff",
-                textColor: "#3B4EC5",
+                backgroundClassName: "bg-primary/10",
+                textClassName: "text-primary",
+                mutedClassName: "text-primary",
+                color: colors.primary,
             };
         case "CHECKED_IN":
             return {
-                backgroundColor: "#edfdf7",
-                textColor: "#52d8ac",
+                backgroundClassName: "bg-success/10",
+                textClassName: "text-success",
+                mutedClassName: "text-success",
+                color: colors.success,
             };
         case "COMPLETED":
             return {
-                backgroundColor: "#e8faf4",
-                textColor: "#00bc7d",
+                backgroundClassName: "bg-success/10",
+                textClassName: "text-success",
+                mutedClassName: "text-success",
+                color: colors.success,
             };
         case "CANCELLED":
         case "CANCELED":
             return {
-                backgroundColor: "#fdecec",
-                textColor: "#dc2626",
+                backgroundClassName: "bg-danger/10",
+                textClassName: "text-danger",
+                mutedClassName: "text-danger",
+                color: colors.danger,
             };
         case "NO_SHOW":
             return {
-                backgroundColor: "#ffd8d1",
-                textColor: "#d94841",
+                backgroundClassName: "bg-warning/10",
+                textClassName: "text-warning",
+                mutedClassName: "text-warning",
+                color: colors.warning,
             };
         default:
             return {
-                backgroundColor: "#f3f4f6",
-                textColor: "#4b5563",
+                backgroundClassName: "bg-muted",
+                textClassName: "text-foreground",
+                mutedClassName: "text-muted-foreground",
+                color: colors.foreground,
             };
     }
 }
 
+function getReservationStatusDescription(value?: string | null) {
+    switch (value) {
+        case "RESERVED":
+            return "Awaiting check-in";
+        case "CHECKED_IN":
+            return "Checked in and active";
+        case "COMPLETED":
+            return "Session completed";
+        case "CANCELLED":
+        case "CANCELED":
+            return "Reservation cancelled";
+        case "NO_SHOW":
+            return "Marked absent";
+        default:
+            return "Status unavailable";
+    }
+}
+
 export default function ReservationDetailScreen() {
+    const colors = useThemeColors();
     const { id, type } = useLocalSearchParams<ReservationParams>();
 
     const reservationId = Number(id);
     const reservationType = isReservationDomain(type) ? type : undefined;
 
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberReservationById(
-        reservationId,
-        reservationType,
-    );
+    const {
+        data,
+        isLoading,
+        isError,
+        refetch,
+        isRefetching,
+    } = useMemberReservationById(reservationId, reservationType);
 
     const reservation = data?.data;
 
     const { mutate: cancelLessonReservation, isPending: isCancellingLesson } =
         useCancelMemberLessonReservation();
+
     const { mutate: cancelBayReservation, isPending: isCancellingBay } =
         useCancelMemberBayReservation();
 
@@ -156,15 +201,19 @@ export default function ReservationDetailScreen() {
                     }}
                 />
 
-                <View className="flex-1 bg-white px-6 pt-6">
-                    <View className="gap-4">
+                <View className="flex-1 flex-col gap-8 bg-background px-6 pt-6">
+                    <View className="flex-col gap-4">
                         <Skeleton className="h-8 w-2/3 rounded-xl" />
                         <Skeleton className="h-6 w-1/3 rounded-full" />
+                        <Skeleton className="h-16 w-full rounded-2xl" />
                     </View>
 
-                    <View className="mt-8 gap-4">
+                    <View className="flex-col gap-4">
                         {Array.from({ length: 4 }, (_, index) => (
-                            <Skeleton key={index} className="h-20 w-full rounded-2xl" />
+                            <Skeleton
+                                key={index}
+                                className="h-16 w-full rounded-2xl"
+                            />
                         ))}
                     </View>
                 </View>
@@ -210,37 +259,9 @@ export default function ReservationDetailScreen() {
     const lessonReservation = isLessonReservationDetail(reservation)
         ? reservation
         : null;
+
     const canCancelReservation = reservation.reservationStatus === "RESERVED";
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
-
-    const handleCancelReservation = () => {
-        if (!canCancelReservation || isCancelling) {
-            return;
-        }
-
-        Alert.alert(
-            "Cancel Reservation",
-            "Are you sure you want to cancel this reservation?",
-            [
-                {
-                    text: "Keep Reservation",
-                    style: "cancel",
-                },
-                {
-                    text: "Cancel Reservation",
-                    style: "destructive",
-                    onPress: () => {
-                        if (isBayReservation) {
-                            cancelBayReservation(reservation.id);
-                            return;
-                        }
-
-                        cancelLessonReservation(reservation.id);
-                    },
-                },
-            ],
-        );
-    };
 
     const title = getReservationTitle(reservation);
     const dateValue = formatDateForDisplay(reservation.startTime) || "-";
@@ -290,135 +311,150 @@ export default function ReservationDetailScreen() {
             }
             : null;
 
+    const handleCancelReservation = () => {
+        if (!canCancelReservation || isCancelling) {
+            return;
+        }
+
+        if (process.env.EXPO_OS === "ios") {
+            void Haptics.selectionAsync();
+        }
+
+        Alert.alert(
+            "Cancel Reservation",
+            "Are you sure you want to cancel this reservation?",
+            [
+                {
+                    text: "Keep Reservation",
+                    style: "cancel",
+                },
+                {
+                    text: "Cancel Reservation",
+                    style: "destructive",
+                    onPress: () => {
+                        if (isBayReservation) {
+                            cancelBayReservation(reservation.id);
+                            return;
+                        }
+
+                        cancelLessonReservation(reservation.id);
+                    },
+                },
+            ],
+        );
+    };
+
     return (
-        <>
+        <Screen
+            contentClassName="grow"
+            refreshControl={
+                <RefreshControl
+                    refreshing={isRefetching}
+                    onRefresh={() => {
+                        void refetch();
+                    }}
+                />
+            }
+            footer={
+                canCancelReservation ? (
+                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                        <Button
+                            title="Cancel Reservation"
+                            variant="danger"
+                            loading={isCancelling}
+                            className={`rounded-2xl ${isCancelling ? "border border-danger bg-danger/10" : ""
+                                }`}
+                            onPress={handleCancelReservation}
+                            disabled={isCancelling}
+                        />
+                    </View>
+                ) : null
+            }
+        >
+            <View className="flex-1 flex-col gap-6 bg-background">
+                <HeaderSection
+                    title={title}
+                    reservationStatus={reservation.reservationStatus}
+                    ticketType={reservation.ticket?.type ?? null}
+                />
 
-            <Screen
-                contentClassName="grow"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
-                    />
-                }
-                footer={
-                    canCancelReservation ? (
-                        <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                            <Pressable
-                                className={`items-center justify-center rounded-2xl px-4 py-4 active:opacity-85 ${isCancelling ? "bg-red-300" : "bg-red-500"
-                                    }`}
-                                onPress={handleCancelReservation}
-                                disabled={isCancelling}
-                            >
-                                {isCancelling ? (
-                                    <CircleLoader />
-                                ) : (
-                                    <Text
-                                        className="w-full text-center text-base font-bold text-white"
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                        minimumFontScale={0.75}
-                                    >
-                                        Cancel Reservation
-                                    </Text>
-                                )}
-                            </Pressable>
-                        </View>
-                    ) : null
-                }
-            >
-                <View className="grow">
-                    <HeaderSection
-                        title={title}
-                        reservationStatus={reservation.reservationStatus}
-                        ticketType={reservation.ticket?.type ?? null}
-                    />
+                <View className="flex-col gap-2">
+                    {/* <SectionEyebrow>Info</SectionEyebrow> */}
 
-                        <View className="mt-8 gap-4">
-                            <ReservationDetailField label="Date" value={dateValue} />
-                            <Separator />
+                    <View className="flex-col">
 
-                            <ReservationDetailField label="Time" value={timeValue} />
+                        <DetailRow label="Date" value={dateValue} />
 
-                            {isBayReservation ? (
-                                <>
-                                    <Separator />
-                                    <ReservationDetailField label="Bay" value={reservationLocationValue} />
-                                </>
-                            ) : null}
+                        <Divider className="bg-border" />
 
-                            {programValue !== "-" ? (
-                                <>
-                                    <Separator />
-                                    <ReservationDetailField
-                                        label="Program"
-                                        value={programValue}
-                                    />
-                                </>
-                            ) : null}
+                        <DetailRow label="Time" value={timeValue} />
 
-                            {isBayReservation ? (
-                                <>
-                                    <Separator />
-                                    <ReservationDetailField
-                                        label="Players"
-                                        value={playerCountValue}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <Separator />
-                                    <ReservationDetailField
-                                        label="Coach"
-                                        value={coachName}
-                                        leftElement={
-                                            <Avatar
-                                                name={coachName}
-                                                imageUrl={lessonReservation?.coach?.profileImage}
-                                            />
-                                        }
-                                    />
-                                </>
-                            )}
+                        {isBayReservation ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow
+                                    label="Bay"
+                                    value={reservationLocationValue}
+                                />
+                            </>
+                        ) : null}
 
-                            {noteValue ? (
-                                <>
-                                    <Separator />
-                                    <ReservationDetailField label="Notes" value={noteValue} />
-                                </>
-                            ) : null}
+                        {programValue !== "-" ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow label="Program" value={programValue} />
+                            </>
+                        ) : null}
 
-                            {lessonNameValue && lessonDetailsHref ? (
-                                <>
-                                    <Separator />
-                                    <LinkedDetailField
-                                        label="Lesson Name"
-                                        value={lessonNameValue}
-                                        href={lessonDetailsHref}
-                                        linkLabel="View Lesson Details"
-                                    />
-                                </>
-                            ) : lessonNameValue ? (
-                                <>
-                                    <Separator />
-                                    <ReservationDetailField
-                                        label="Lesson Name"
-                                        value={lessonNameValue}
-                                    />
-                                </>
-                            ) : null}
-                        </View>
+                        {isBayReservation ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow
+                                    label="Players"
+                                    value={playerCountValue}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <Divider className="bg-border" />
+                                <CoachDetailRow
+                                    label="Coach"
+                                    value={coachName}
+                                    imageUrl={
+                                        lessonReservation?.coach?.profileImage
+                                    }
+                                />
+                            </>
+                        )}
 
-                        <View className="mt-6 gap-4">
-                            <Separator />
+                        {lessonNameValue ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow
+                                    label="Lesson"
+                                    value={lessonNameValue}
+                                    href={lessonDetailsHref}
+                                />
+                            </>
+                        ) : null}
 
-                            <ReservationPoliciesSection policies={policies} />
-                        </View>
+                        {noteValue ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow
+                                    label="Notes"
+                                    value={noteValue}
+                                />
+                            </>
+                        ) : null}
+                    </View>
                 </View>
-            </Screen>
-        </>
+
+                <View className="flex-col gap-2">
+                    <ReservationPoliciesSection policies={policies} />
+                </View>
+            </View>
+        </Screen>
     );
 }
 
@@ -431,80 +467,165 @@ function HeaderSection({
     reservationStatus?: string | null;
     ticketType?: string | null;
 }) {
-    const statusLabel = formatType(reservationStatus);
-    const statusTone = getReservationStatusTone(reservationStatus);
+    const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
 
     return (
-        <View>
-            <Text className="text-2xl font-bold text-gray-950 leading-8">
+        <View className="flex-col gap-3">
+            <AppText
+                variant="h3"
+                selectable
+                className="text-foreground"
+            >
                 {title}
-            </Text>
+            </AppText>
 
-            <View className="mt-4 flex-row flex-wrap items-center gap-2">
-                {ticketType ? (
-                    <View className="rounded-full bg-green-50 px-3 py-1.5">
-                        <Text className="text-sm font-semibold text-green-700 leading-5">
-                            {formatType(ticketType)}
-                        </Text>
-                    </View>
-                ) : null}
+            {ticketType && ticketTone ? (
+                <View className="flex-row flex-wrap">
+                    <Badge
+                        label={formatTicketTypeLabel(ticketType)}
+                        className={`${ticketTone.badgeClassName} px-3 py-1.5`}
+                        textClassName={`${ticketTone.badgeTextClassName} text-sm font-semibold leading-5`}
+                    />
+                </View>
+            ) : null}
 
-                {statusLabel !== "-" ? (
-                    <View
-                        className="rounded-full px-3 py-1.5"
-                        style={{ backgroundColor: statusTone.backgroundColor }}
-                    >
-                        <Text
-                            className="text-sm font-semibold leading-5"
-                            style={{ color: statusTone.textColor }}
-                        >
-                            {statusLabel}
-                        </Text>
-                    </View>
-                ) : null}
+            <ReservationStatusBanner reservationStatus={reservationStatus} />
+        </View>
+    );
+}
+
+function ReservationStatusBanner({
+    reservationStatus,
+}: {
+    reservationStatus?: string | null;
+}) {
+    const colors = useThemeColors();
+    const statusLabel = formatType(reservationStatus);
+    const statusTone = getReservationStatusTone(colors, reservationStatus);
+
+    if (statusLabel === "-") {
+        return null;
+    }
+
+    return (
+        <View
+            className={`flex-row items-center gap-3 rounded-2xl px-4 py-3.5 ${statusTone.backgroundClassName}`}
+            style={BANNER_STYLE}
+        >
+            <View
+                className="h-9 w-9 items-center justify-center rounded-full"
+                style={{ backgroundColor: `${statusTone.color}18` }}
+            >
+                <AppText
+                    className={`text-lg font-bold ${statusTone.textClassName}`}
+                >
+                    !
+                </AppText>
+            </View>
+
+            <View className="min-w-0 flex-1 flex-col gap-0.5">
+                <AppText
+                    variant="label"
+                    className={`font-bold ${statusTone.textClassName}`}
+                >
+                    {statusLabel}
+                </AppText>
+
+                <AppText
+                    variant="label"
+                    className={`font-medium ${statusTone.mutedClassName}`}
+                >
+                    {getReservationStatusDescription(reservationStatus)}
+                </AppText>
             </View>
         </View>
     );
 }
 
-function LinkedDetailField({
+function DetailRow({
     label,
     value,
     href,
-    linkLabel,
 }: {
     label: string;
     value: string;
-    href: {
+    href?: {
         pathname: string;
         params: Record<string, string>;
-    };
-    linkLabel: string;
+    } | null;
+}) {
+    const content = (
+        <View className="flex-col gap-2 py-3">
+            <ReservationFieldLabel>
+                {label}
+            </ReservationFieldLabel>
+
+            <View className="min-w-0 flex-row items-center justify-between gap-3">
+                <ReservationFieldValue
+                    selectable
+                    className="min-w-0 flex-1"
+                >
+                    {value}
+                </ReservationFieldValue>
+
+                {href ? (
+                    <AppText className="shrink-0 text-muted-foreground">
+                        ›
+                    </AppText>
+                ) : null}
+            </View>
+        </View>
+    );
+
+    if (!href) {
+        return content;
+    }
+
+    return (
+        <Link href={href as Href} asChild>
+            <Pressable
+                className="active:opacity-80"
+                onPressIn={() => {
+                    if (process.env.EXPO_OS === "ios") {
+                        void Haptics.selectionAsync();
+                    }
+                }}
+            >
+                {content}
+            </Pressable>
+        </Link>
+    );
+}
+
+function CoachDetailRow({
+    label,
+    value,
+    imageUrl,
+}: {
+    label: string;
+    value: string;
+    imageUrl?: string | null;
 }) {
     return (
-        <View>
-            <ReservationFieldLabel>{label}</ReservationFieldLabel>
+        <View className="flex-col gap-2 py-3">
+            <ReservationFieldLabel>
+                {label}
+            </ReservationFieldLabel>
 
-            <View className="mt-2">
-                <ReservationFieldValue>{value}</ReservationFieldValue>
-            </View>
-
-            <Link href={href as Href} asChild>
-                <Pressable className="mt-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 active:bg-gray-50">
-                    <View className="flex-row items-center justify-between gap-4">
-                        <Text
-                            className="text-base font-semibold text-gray-900 leading-6"
-                            numberOfLines={1}
-                        >
-                            {linkLabel}
-                        </Text>
-
-                        <Text className="text-2xl text-gray-400 leading-6">
-                            ›
-                        </Text>
+            <View className="min-w-0 flex-row items-center justify-between gap-3">
+                <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                    <View className="shrink-0">
+                        <Avatar name={value} imageUrl={imageUrl} />
                     </View>
-                </Pressable>
-            </Link>
+
+                    <ReservationFieldValue
+                        selectable
+                        className="min-w-0 flex-1"
+                    >
+                        {value}
+                    </ReservationFieldValue>
+                </View>
+            </View>
         </View>
     );
 }
@@ -520,20 +641,22 @@ function Avatar({
         return (
             <Image
                 source={{ uri: imageUrl }}
-                className="h-11 w-11 rounded-full"
+                style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 999,
+                }}
+                contentFit="cover"
+                transition={150}
             />
         );
     }
 
     return (
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-gray-900">
-            <Text className="text-base font-bold text-white">
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-secondary">
+            <AppText className="text-xs font-bold text-secondary-foreground">
                 {name?.charAt(0).toUpperCase() || "?"}
-            </Text>
+            </AppText>
         </View>
     );
-}
-
-function Separator() {
-    return <View className="h-px bg-gray-100" />;
 }

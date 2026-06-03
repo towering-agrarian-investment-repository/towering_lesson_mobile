@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { Pressable, TextInput, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -14,6 +15,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     editable = true,
 }: FormInputBaseProps<TFieldValues>) {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const colors = useThemeColors();
 
     return (
         <Controller
@@ -27,8 +29,8 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                 >
                     <View
                         className={`mt-2 flex-row items-center border-b pb-3 pt-2 ${fieldState.error
-                            ? "border-red-500"
-                            : "border-gray-400"
+                            ? "border-danger"
+                            : "border-border"
                             }`}
                     >
                         <TextInput
@@ -36,10 +38,11 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                             onChangeText={onChange}
                             onBlur={onBlur}
                             placeholder={placeholder}
+                            placeholderTextColor={colors.mutedForeground}
                             autoCapitalize="none"
                             secureTextEntry={!isPasswordVisible}
                             editable={editable}
-                            className="flex-1 px-0"
+                            className="flex-1 px-0 text-base text-foreground"
                         />
 
                         <Pressable
@@ -53,7 +56,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                             <Ionicons
                                 name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
                                 size={20}
-                                color={editable ? "#6b7280" : "#9ca3af"}
+                                color={editable ? colors.mutedForeground : colors.border}
                             />
                         </Pressable>
                     </View>

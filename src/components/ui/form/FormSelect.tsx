@@ -1,7 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { AppText as Text } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
 
@@ -33,6 +35,7 @@ export function FormSelect<
     editable = true,
 }: FormSelectProps<TFieldValues, TValue>) {
     const [isOpen, setIsOpen] = useState(false);
+    const colors = useThemeColors();
 
     return (
         <Controller
@@ -56,14 +59,14 @@ export function FormSelect<
                                 onPress={() => editable && setIsOpen(true)}
                                 disabled={!editable}
                                 className={`flex-row items-center border-b px-0 pb-3 pt-2 ${
-                                    fieldState.error ? "border-red-500" : "border-gray-400"
+                                    fieldState.error ? "border-danger" : "border-border"
                                 } ${editable ? "" : "opacity-60"}`}
                                 accessibilityRole="button"
                                 accessibilityLabel={label ?? "Select an option"}
                             >
                                 <Text
                                     className={`flex-1 text-base ${
-                                        selectedValue ? "text-gray-950" : "text-gray-400"
+                                        selectedValue ? "text-foreground" : "text-muted-foreground"
                                     }`}
                                 >
                                     {selectedLabel}
@@ -81,7 +84,7 @@ export function FormSelect<
                                         <MaterialIcons
                                             name="cancel"
                                             size={18}
-                                            color="#6b7280"
+                                            color={colors.mutedForeground}
                                         />
                                     </Pressable>
                                 ) : null}
@@ -89,7 +92,7 @@ export function FormSelect<
                                 <MaterialIcons
                                     name="keyboard-arrow-down"
                                     size={20}
-                                    color="#6b7280"
+                                    color={colors.mutedForeground}
                                 />
                             </Pressable>
 
@@ -100,15 +103,15 @@ export function FormSelect<
                                 onRequestClose={() => setIsOpen(false)}
                             >
                                 <Pressable
-                                    className="flex-1 justify-end bg-black/35"
+                                    className="flex-1 justify-end bg-foreground/35"
                                     onPress={() => setIsOpen(false)}
                                 >
                                     <Pressable
-                                        className="rounded-t-3xl bg-white px-6 pb-8 pt-5"
+                                        className="rounded-t-3xl bg-card px-6 pb-8 pt-5"
                                         onPress={() => undefined}
                                     >
                                         <View className="mb-4 flex-row items-center justify-between">
-                                            <Text className="text-lg font-semibold text-gray-950">
+                                            <Text className="text-lg font-semibold text-foreground">
                                                 {label ?? "Select an option"}
                                             </Text>
 
@@ -121,7 +124,7 @@ export function FormSelect<
                                                 <MaterialIcons
                                                     name="close"
                                                     size={22}
-                                                    color="#111827"
+                                                    color={colors.foreground}
                                                 />
                                             </Pressable>
                                         </View>
@@ -137,15 +140,15 @@ export function FormSelect<
                                                 }}
                                                 className={`mb-2 rounded-2xl border px-4 py-4 ${
                                                     !selectedValue
-                                                        ? "border-green-500 bg-green-50"
-                                                        : "border-gray-200 bg-white"
+                                                        ? "border-success bg-success/10"
+                                                        : "border-border bg-card"
                                                 }`}
                                             >
                                                 <Text
                                                     className={`text-base ${
                                                         !selectedValue
-                                                            ? "font-semibold text-green-700"
-                                                            : "text-gray-700"
+                                                            ? "font-semibold text-success"
+                                                            : "text-foreground"
                                                     }`}
                                                 >
                                                     Select an option
@@ -165,15 +168,15 @@ export function FormSelect<
                                                         }}
                                                         className={`mb-2 flex-row items-center rounded-2xl border px-4 py-4 ${
                                                             isSelected
-                                                                ? "border-green-500 bg-green-50"
-                                                                : "border-gray-200 bg-white"
+                                                                ? "border-success bg-success/10"
+                                                                : "border-border bg-card"
                                                         }`}
                                                     >
                                                         <Text
                                                             className={`flex-1 text-base ${
                                                                 isSelected
-                                                                    ? "font-semibold text-green-700"
-                                                                    : "text-gray-900"
+                                                                    ? "font-semibold text-success"
+                                                                    : "text-foreground"
                                                             }`}
                                                         >
                                                             {option.label}
@@ -183,7 +186,7 @@ export function FormSelect<
                                                             <MaterialIcons
                                                                 name="check"
                                                                 size={18}
-                                                                color="#15803d"
+                                                                color={colors.success}
                                                             />
                                                         ) : null}
                                                     </Pressable>

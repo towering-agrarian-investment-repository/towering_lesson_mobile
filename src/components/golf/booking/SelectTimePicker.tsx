@@ -1,4 +1,5 @@
-import { Text, View } from "react-native"
+import { AppText as Text } from "@/design-system"
+import { View } from "react-native"
 
 type Props = {}
 

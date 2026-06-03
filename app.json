@@ -1,20 +1,19 @@
 {
   "expo": {
-    "name": "golf-lesson-system-mobile",
+    "name": "Golf Lesson System",
     "slug": "golf-lesson-system-mobile",
     "version": "1.0.0",
-    "newArchEnabled": true,
     "orientation": "portrait",
-    "icon": "./assets/golf/mipmap-xxxhdpi/ic_launcher.png",
+    "icon": "./assets/images/ic_launcher.png",
     "scheme": "golflessonsystemmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/golf/mipmap-xxxhdpi/ic_launcher.png"
+      "icon": "./assets/images/ic_launcher.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/golf/mipmap-xxxhdpi/ic_launcher_foreground.png"
+        "backgroundColor": "#2563EB",
+        "foregroundImage": "./assets/images/ic_launcher.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.golflessonsystemmobile"
@@ -39,17 +38,22 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
+          "backgroundColor": "#2563EB",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76,
+          "resizeMode": "contain"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "94f7525e-6d26-48a5-a634-cc46ae8f1505"
+      }
     }
   }
 }

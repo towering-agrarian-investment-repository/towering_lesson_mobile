@@ -1,18 +1,15 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { AppText } from "@/design-system";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotScheduleResponse } from "@/types/member-bay";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
+    Pressable,
     View,
 } from "react-native";
-
-const PRIMARY = "#38bdf8";
 
 export default function BayScreen() {
     const { date, ticketId, slotGroupId } = useLocalSearchParams<{
@@ -48,17 +45,20 @@ export default function BayScreen() {
     };
 
     return (
-        <Screen>
-            <Text style={s.subLabel}>
-                {slotGroup
-                    ? formatTimeRange(slotGroup.startDateTime, slotGroup.endDateTime)
-                    : date}
-            </Text>
+        <Screen contentClassName="gap-6">
+            <View className="gap-1">
+                <AppText variant="value">Choose a bay</AppText>
+                <AppText variant="meta" className="text-foreground/75">
+                    {slotGroup
+                        ? formatTimeRange(slotGroup.startDateTime, slotGroup.endDateTime)
+                        : date}
+                </AppText>
+            </View>
 
             {isLoading ? (
-                <View style={s.grid}>
+                <View className="flex-row flex-wrap gap-3">
                     {Array.from({ length: 6 }, (_, index) => (
-                        <Skeleton key={index} className="h-24 w-[30%] rounded-xl" />
+                        <Skeleton key={index} className="h-24 w-[31%] rounded-2xl" />
                     ))}
                 </View>
             ) : null}
@@ -77,89 +77,41 @@ export default function BayScreen() {
                 />
             ) : null}
 
-            <View style={s.grid}>
+            <View className="flex-row flex-wrap gap-3">
                 {slotGroup?.baySlots.map((bay) => {
                     const available = bay.slotStatus === "AVAILABLE";
 
                     return (
-                        <TouchableOpacity
+                        <Pressable
                             key={bay.id}
-                            style={[s.chip, !available && s.chipUnavailable]}
+                            className={`w-[31%] items-center gap-1.5 rounded-2xl border px-3 py-4 ${
+                                available
+                                    ? "border-border bg-card active:bg-surface"
+                                    : "border-muted bg-muted opacity-55"
+                            }`}
                             onPress={() => available && handleSelect(bay)}
-                            activeOpacity={available ? 0.7 : 1}
                             disabled={!available}
                         >
-                            <Text
-                                style={[
-                                    s.chipLabel,
-                                    !available && s.chipLabelUnavailable,
-                                ]}
+                            <AppText
+                                variant="body"
+                                className={`text-center font-medium ${
+                                    available ? "text-foreground" : "text-muted-foreground"
+                                }`}
                             >
                                 {bay.bayName}
-                            </Text>
-                            <Text
-                                style={[
-                                    s.chipStatus,
-                                    !available && s.chipStatusUnavailable,
-                                ]}
+                            </AppText>
+                            <AppText
+                                variant="label"
+                                className={`text-center ${
+                                    available ? "text-primary" : "text-muted-foreground"
+                                }`}
                             >
                                 {available ? "Available" : bay.slotStatus}
-                            </Text>
-                        </TouchableOpacity>
+                            </AppText>
+                        </Pressable>
                     );
                 })}
             </View>
         </Screen>
     );
 }
-
-const s = StyleSheet.create({
-    subLabel: { fontSize: 13, color: "#94a3b8", marginBottom: 16 },
-    state: {
-        paddingVertical: 24,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-    },
-    stateText: {
-        fontSize: 14,
-        color: "#64748b",
-    },
-    grid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 10,
-    },
-    chip: {
-        width: "30%",
-        paddingVertical: 16,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: "#e2e8f0",
-        backgroundColor: "#f8fafc",
-        alignItems: "center",
-        gap: 4,
-    },
-    chipUnavailable: {
-        backgroundColor: "#f1f5f9",
-        borderColor: "#f1f5f9",
-        opacity: 0.5,
-    },
-    chipLabel: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: "#0f172a",
-        textAlign: "center",
-    },
-    chipLabelUnavailable: {
-        color: "#94a3b8",
-    },
-    chipStatus: {
-        fontSize: 11,
-        color: PRIMARY,
-        fontWeight: "500",
-    },
-    chipStatusUnavailable: {
-        color: "#cbd5e1",
-    },
-});

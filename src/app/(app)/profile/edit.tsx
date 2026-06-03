@@ -1,11 +1,12 @@
 import { CircleLoader } from "@/components/ui/CircleLoader";
 import { Screen } from "@/components/ui/Screen";
+import { AppText as Text, Button } from "@/design-system";
 import {
     FormDateInput,
     FormNumberInput,
-    FormSelect,
     FormTextInput,
 } from "@/components/ui/form";
+import { FormFieldShell } from "@/components/ui/form/FormFieldShell";
 import { ErrorState } from "@/components/ui/StateCard";
 import {
     useGetMemberProfile,
@@ -13,12 +14,11 @@ import {
 } from "@/lib/hook/useUser";
 import { GenderEnum } from "@/types/member.type";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
     Pressable,
-    Text,
     View,
 } from "react-native";
 import { z } from "zod";
@@ -41,6 +41,10 @@ const editProfileSchema = z.object({
 
 type EditProfileFormValues = z.infer<typeof editProfileSchema>;
 
+type EditProfileParams = {
+    selectedGender?: GenderEnum | "";
+};
+
 const GENDER_OPTIONS: {
     label: string;
     value: GenderEnum;
@@ -57,6 +61,7 @@ function normalizeOptionalText(value: string) {
 
 export default function EditProfileScreen() {
     const router = useRouter();
+    const { selectedGender } = useLocalSearchParams<EditProfileParams>();
     const {
         data: memberResponse,
         isLoading,
@@ -100,6 +105,22 @@ export default function EditProfileScreen() {
         });
     }, [form, member]);
 
+    useEffect(() => {
+        if (
+            selectedGender === "" ||
+            selectedGender === "MALE" ||
+            selectedGender === "FEMALE" ||
+            selectedGender === "OTHER"
+        ) {
+            form.setValue("gender", selectedGender, {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: true,
+            });
+            router.setParams({ selectedGender: undefined });
+        }
+    }, [form, router, selectedGender]);
+
     const onSubmit = async (values: EditProfileFormValues) => {
         await updateProfile({
             name: values.name.trim(),
@@ -135,28 +156,19 @@ export default function EditProfileScreen() {
         <Screen
             keyboardAware
             footer={
-                <View className="border-t border-gray-100 bg-white px-6 pb-8 pt-4">
-                    <Pressable
-                        className={`items-center justify-center rounded-2xl px-4 py-4 ${isSubmitting ? "bg-green-300" : "bg-green-500"
-                            }`}
+                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                    <Button
+                        title={isSubmitting ? "Saving..." : "Save Changes"}
+                        loading={isSubmitting}
+                        className="rounded-2xl"
                         onPress={form.handleSubmit(onSubmit)}
-                        disabled={isSubmitting}
-                    >
-                        <Text
-                            className="w-full text-center text-base font-bold text-white"
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.75}
-                        >
-                            {isSubmitting ? "Saving..." : "Save Changes"}
-                        </Text>
-                    </Pressable>
+                    />
                 </View>
             }
         >
             <View className="gap-8">
                 <View className="gap-6">
-                    <Text className="text-lg font-semibold text-gray-950">
+                    <Text className="text-lg font-semibold text-foreground">
                         Basic Information
                     </Text>
 
@@ -185,15 +197,61 @@ export default function EditProfileScreen() {
                 </View>
 
                 <View className="gap-6">
-                    <Text className="text-lg font-semibold text-gray-950">
+                    <Text className="text-lg font-semibold text-foreground">
                         Personal Details
                     </Text>
 
-                    <FormSelect
+                    <Controller
                         control={form.control}
                         name="gender"
-                        label="Gender"
-                        options={GENDER_OPTIONS}
+                        render={({ field: { value }, fieldState }) => {
+                            const selectedValue =
+                                typeof value === "string" && value.length > 0 ? value : "";
+                            const selectedLabel =
+                                GENDER_OPTIONS.find((option) => option.value === selectedValue)
+                                    ?.label ?? "Select an option";
+
+                            return (
+                                <FormFieldShell
+                                    label="Gender"
+                                    errorMessage={fieldState.error?.message}
+                                >
+                                    <View className="mt-2">
+                                        <Link
+                                            href={{
+                                                pathname: "/profile/gender-modal",
+                                                params: { currentGender: selectedValue },
+                                            }}
+                                            asChild
+                                        >
+                                            <Pressable
+                                                className={`flex-row items-center border-b px-0 pb-3 pt-2 ${
+                                                    fieldState.error
+                                                        ? "border-danger"
+                                                        : "border-border"
+                                                }`}
+                                                accessibilityRole="button"
+                                                accessibilityLabel="Select gender"
+                                            >
+                                                <Text
+                                                    className={`flex-1 text-base ${
+                                                        selectedValue
+                                                            ? "text-foreground"
+                                                            : "text-muted-foreground"
+                                                    }`}
+                                                >
+                                                    {selectedLabel}
+                                                </Text>
+
+                                                <Text className="text-2xl leading-5 text-muted-foreground">
+                                                    ›
+                                                </Text>
+                                            </Pressable>
+                                        </Link>
+                                    </View>
+                                </FormFieldShell>
+                            );
+                        }}
                     />
 
                     <FormDateInput

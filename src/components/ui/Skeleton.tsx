@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, View } from "react-native";
 
 type SkeletonProps = {
@@ -6,7 +6,7 @@ type SkeletonProps = {
 };
 
 export function Skeleton({ className = "" }: SkeletonProps) {
-    const opacity = useRef(new Animated.Value(0.45)).current;
+    const [opacity] = useState(() => new Animated.Value(0.45));
 
     useEffect(() => {
         const animation = Animated.loop(
@@ -34,7 +34,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
     return (
         <Animated.View
             style={{ opacity }}
-            className={`overflow-hidden rounded-2xl bg-gray-200 ${className}`}
+            className={`overflow-hidden rounded-2xl bg-muted ${className}`}
         />
     );
 }

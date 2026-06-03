@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/design-system/utils/theme";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -5,13 +6,27 @@ import { useEffect } from "react";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient();
-
 export default function AppLayout() {
+    const colors = useThemeColors();
+
     return (
         <QueryClientProvider client={queryClient}>
             <ToastProvider>
                 <ToastBridge />
-                <Stack>
+                <Stack
+                    screenOptions={{
+                        headerBackButtonDisplayMode: "minimal",
+                        contentStyle: { backgroundColor: colors.background },
+                        headerStyle: {
+                            backgroundColor: colors.card,
+                        },
+                        headerTintColor: colors.foreground,
+                        headerTitleStyle: {
+                            color: colors.foreground,
+                        },
+                        headerShadowVisible: false,
+                    }}
+                >
                     <Stack.Screen
                         name="(tabs)"
                         options={{
@@ -76,6 +91,13 @@ export default function AppLayout() {
                     />
 
                     <Stack.Screen
+                        name="lesson-log"
+                        options={{
+                            title: "Lesson Log",
+                        }}
+                    />
+
+                    <Stack.Screen
                         name="profile/change-password"
                         options={{
                             title: "Reset Password",
@@ -88,6 +110,21 @@ export default function AppLayout() {
                             title: "Edit Personal Information",
                         }}
                     />
+
+                    <Stack.Screen
+                        name="profile/gender-modal"
+                        options={{
+                            title: "Gender",
+                            presentation: "modal",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="design-system-demo"
+                        options={{
+                            title: "Design System",
+                        }}
+                    />
                 </Stack>
             </ToastProvider>
         </QueryClientProvider>
@@ -96,21 +133,46 @@ export default function AppLayout() {
 
 function ToastBridge() {
     const { showToast } = useToast();
+    const colors = useThemeColors();
 
     useEffect(() => {
         registerToastHandler((options) => {
+            const isError = options.type === "error";
+            const isSuccess = options.type === "success";
+            const isWarning = options.type === "warning";
+
+            const backgroundColor = isError
+                ? colors.danger
+                : isSuccess
+                  ? colors.success
+                  : isWarning
+                    ? colors.warning
+                    : colors.foreground;
+            const textColor = isWarning ? colors.foreground : colors.primaryForeground;
+
             showToast({
                 message: options.message,
                 type: options.type ?? "info",
                 duration: options.duration ?? 3000,
                 position: options.position ?? "bottom",
+                containerStyle: {
+                    backgroundColor,
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                },
+                textStyle: {
+                    color: textColor,
+                    fontSize: 15,
+                    fontWeight: "600",
+                },
             });
         });
 
         return () => {
             registerToastHandler(null);
         };
-    }, [showToast]);
+    }, [colors.danger, colors.foreground, colors.primaryForeground, colors.success, colors.warning, showToast]);
 
     return null;
 }
