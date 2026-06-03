@@ -7,6 +7,7 @@ import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import {
     Pressable,
     RefreshControl,
@@ -137,93 +138,98 @@ export default function DateScreen() {
                 />
             }
         >
-            <View className="px-6">
+            <Animated.View
+                entering={FadeInDown.duration(220)}
+                className="px-6"
+            >
                 <View className="gap-1">
                     <AppText variant="value">Choose a date</AppText>
                     <AppText variant="meta" className="text-foreground/75">
                         Select an available day to continue your booking.
                     </AppText>
                 </View>
-            </View>
+            </Animated.View>
 
-            <Calendar
-                style={[s.calendar, { backgroundColor: colors.card }]}
-                minDate={today}
-                onMonthChange={(month) => {
-                    setVisibleMonth(new Date(month.year, month.month - 1, 1));
-                }}
-                renderArrow={(dir) => (
-                    <Ionicons
-                        name={dir === "left" ? "chevron-back" : "chevron-forward"}
-                        size={20}
-                        color={colors.primary}
-                    />
-                )}
-                dayComponent={({ date, state }) => {
-                    if (!date) return null;
+            <Animated.View entering={FadeInDown.delay(80).duration(240)}>
+                <Calendar
+                    style={[s.calendar, { backgroundColor: colors.card }]}
+                    minDate={today}
+                    onMonthChange={(month) => {
+                        setVisibleMonth(new Date(month.year, month.month - 1, 1));
+                    }}
+                    renderArrow={(dir) => (
+                        <Ionicons
+                            name={dir === "left" ? "chevron-back" : "chevron-forward"}
+                            size={20}
+                            color={colors.primary}
+                        />
+                    )}
+                    dayComponent={({ date, state }) => {
+                        if (!date) return null;
 
-                    const isPast = date.dateString < today;
-                    const isCurrentMonth = isSameMonth(date.dateString, visibleMonth);
-                    const hasAvailableTime = availableDates.has(date.dateString);
-                    const shouldShowUnavailableAlert =
-                        isCurrentMonth && !isPast && !hasAvailableTime;
-                    const isUnavailable =
-                        state === "disabled" ||
-                        isPast ||
-                        (isCurrentMonth && !hasAvailableTime);
-                    const isAvailable = isCurrentMonth && !isPast && hasAvailableTime;
+                        const isPast = date.dateString < today;
+                        const isCurrentMonth = isSameMonth(date.dateString, visibleMonth);
+                        const hasAvailableTime = availableDates.has(date.dateString);
+                        const shouldShowUnavailableAlert =
+                            isCurrentMonth && !isPast && !hasAvailableTime;
+                        const isUnavailable =
+                            state === "disabled" ||
+                            isPast ||
+                            (isCurrentMonth && !hasAvailableTime);
+                        const isAvailable = isCurrentMonth && !isPast && hasAvailableTime;
 
-                    return (
-                        <Pressable
-                            style={s.dayButton}
-                            onPress={() =>
-                                shouldShowUnavailableAlert
-                                    ? handleUnavailableDatePress(date.dateString)
-                                    : !isUnavailable
-                                        ? handleAvailableDatePress(date)
-                                        : undefined
-                            }
-                        >
-                            <AppText
-                                variant="body"
-                                style={[
-                                    s.dayText,
-                                    { color: colors.foreground },
-                                    !isCurrentMonth && { color: colors.border },
-                                    isUnavailable && { color: colors.border },
-                                    isAvailable && {
-                                        color: colors.primary,
-                                        fontWeight: "700",
-                                    },
-                                    date.dateString === today &&
-                                        !isUnavailable && [
-                                            s.dayTextToday,
-                                            { color: colors.primary },
-                                        ],
-                                ]}
+                        return (
+                            <Pressable
+                                style={s.dayButton}
+                                onPress={() =>
+                                    shouldShowUnavailableAlert
+                                        ? handleUnavailableDatePress(date.dateString)
+                                        : !isUnavailable
+                                            ? handleAvailableDatePress(date)
+                                            : undefined
+                                }
                             >
-                                {date.day}
-                            </AppText>
-                        </Pressable>
-                    );
-                }}
-                theme={{
-                    calendarBackground: colors.card,
-                    selectedDayBackgroundColor: colors.primary,
-                    selectedDayTextColor: colors.primaryForeground,
-                    todayTextColor: colors.primary,
-                    textDisabledColor: colors.border,
-                    // @ts-ignore
-                    "stylesheet.calendar.main": {
-                        week: {
-                            marginTop: 18,
-                            marginBottom: 18,
-                            flexDirection: "row",
-                            justifyContent: "space-between",
+                                <AppText
+                                    variant="body"
+                                    style={[
+                                        s.dayText,
+                                        { color: colors.foreground },
+                                        !isCurrentMonth && { color: colors.border },
+                                        isUnavailable && { color: colors.border },
+                                        isAvailable && {
+                                            color: colors.primary,
+                                            fontWeight: "700",
+                                        },
+                                        date.dateString === today &&
+                                            !isUnavailable && [
+                                                s.dayTextToday,
+                                                { color: colors.primary },
+                                            ],
+                                    ]}
+                                >
+                                    {date.day}
+                                </AppText>
+                            </Pressable>
+                        );
+                    }}
+                    theme={{
+                        calendarBackground: colors.card,
+                        selectedDayBackgroundColor: colors.primary,
+                        selectedDayTextColor: colors.primaryForeground,
+                        todayTextColor: colors.primary,
+                        textDisabledColor: colors.border,
+                        // @ts-ignore
+                        "stylesheet.calendar.main": {
+                            week: {
+                                marginTop: 18,
+                                marginBottom: 18,
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                            },
                         },
-                    },
-                }}
-            />
+                    }}
+                />
+            </Animated.View>
         </Screen>
     );
 }

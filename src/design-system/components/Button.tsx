@@ -37,7 +37,7 @@ export function Button({
             accessibilityRole="button"
             disabled={isDisabled}
             className={cn(
-                "items-center justify-center rounded-xl active:opacity-80",
+                "w-full items-center justify-center rounded-xl active:opacity-80",
                 isDisabled && "opacity-50",
                 size === "sm" && "h-10 px-3",
                 size === "md" && "h-12 px-4",
@@ -63,13 +63,14 @@ export function Button({
             ) : (
                 <AppText
                     className={cn(
-                        "text-base font-semibold",
+                        "text-center text-base font-semibold",
                         variant === "primary" && "text-primary-foreground",
                         variant === "secondary" && "text-foreground",
                         variant === "ghost" && "text-foreground",
                         variant === "danger" && "text-primary-foreground",
                         textClassName,
                     )}
+                    numberOfLines={1}
                 >
                     {title}
                 </AppText>

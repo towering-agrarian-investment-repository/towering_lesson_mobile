@@ -6,6 +6,13 @@ import { useEffect } from "react";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient();
+const bookingFlowScreenOptions = {
+    animation: "slide_from_right" as const,
+    animationDuration: 220,
+    fullScreenGestureEnabled: true,
+    gestureEnabled: true,
+};
+
 export default function AppLayout() {
     const colors = useThemeColors();
 
@@ -45,6 +52,7 @@ export default function AppLayout() {
                         name="select-date"
                         options={{
                             title: "Select Date",
+                            ...bookingFlowScreenOptions,
                         }}
                     />
 
@@ -52,6 +60,7 @@ export default function AppLayout() {
                         name="select-bay"
                         options={{
                             title: "Select Bay",
+                            ...bookingFlowScreenOptions,
                         }}
                     />
 
@@ -59,6 +68,7 @@ export default function AppLayout() {
                         name="select-time"
                         options={{
                             title: "Select Time",
+                            ...bookingFlowScreenOptions,
                         }}
                     />
 
@@ -66,6 +76,7 @@ export default function AppLayout() {
                         name="select-lesson-slot"
                         options={{
                             title: "Select Slot",
+                            ...bookingFlowScreenOptions,
                         }}
                     />
 
@@ -73,6 +84,7 @@ export default function AppLayout() {
                         name="booking-confirm"
                         options={{
                             title: "Booking Confirmation",
+                            ...bookingFlowScreenOptions,
                         }}
                     />
 
@@ -80,6 +92,7 @@ export default function AppLayout() {
                         name="lesson-booking-confirm"
                         options={{
                             title: "Booking Confirmation",
+                            ...bookingFlowScreenOptions,
                         }}
                     />
 
@@ -87,6 +100,8 @@ export default function AppLayout() {
                         name="reservation/[id]"
                         options={{
                             title: "Reservation Detail",
+                            animation: "slide_from_right",
+                            animationTypeForReplace: "push",
                         }}
                     />
 

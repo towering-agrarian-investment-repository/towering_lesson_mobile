@@ -7,6 +7,7 @@ import { Button, Divider } from "@/design-system";
 import { useCreateMemberBayReservation } from "@/lib/hook/useReservation";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import {
     View
 } from "react-native";
@@ -73,17 +74,20 @@ export default function ConfirmScreen() {
         <Screen
             contentClassName="grow"
             footer={
-                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                <Animated.View
+                    entering={FadeInDown.delay(120).duration(220)}
+                    className="border-t border-border bg-background px-6 pb-8 pt-4"
+                >
                     <Button
                         title="Agree & Book"
                         loading={isSubmitting}
                         disabled={isDisabled}
                         onPress={handleConfirm}
                     />
-                </View>
+                </Animated.View>
             }
         >
-            <View className="grow">
+            <Animated.View entering={FadeInDown.duration(220)} className="grow">
                 <View className="gap-4">
                     <ReservationDetailField
                         label="Reservation Name"
@@ -102,7 +106,7 @@ export default function ConfirmScreen() {
 
                     <ReservationPoliciesSection policies={POLICIES} />
                 </View>
-            </View>
+            </Animated.View>
         </Screen>
     );
 }

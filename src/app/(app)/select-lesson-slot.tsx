@@ -6,6 +6,7 @@ import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { LessonAvailabilityResponse } from "@/types/member-lesson";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import {
     Pressable,
     RefreshControl,
@@ -76,12 +77,12 @@ export default function SelectLessonSlotScreen() {
                 />
             }
         >
-            <View className="gap-1">
+            <Animated.View entering={FadeInDown.duration(220)} className="gap-1">
                 <AppText variant="value">Choose a time</AppText>
                 <AppText variant="meta" className="text-foreground/75">
                     {date}
                 </AppText>
-            </View>
+            </Animated.View>
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -106,7 +107,7 @@ export default function SelectLessonSlotScreen() {
             ) : null}
 
             <View className="gap-3">
-                {slots.map((slot) => {
+                {slots.map((slot, index) => {
                     const disabled = isSlotFull(slot);
                     const lessonTitle =
                         slot.name ??
@@ -116,48 +117,52 @@ export default function SelectLessonSlotScreen() {
                         "Private Lesson";
 
                     return (
-                        <Pressable
+                        <Animated.View
                             key={slot.id}
-                            className={`flex-row items-center justify-between gap-3 rounded-2xl border px-4 py-4 ${
-                                disabled
-                                    ? "border-muted bg-muted opacity-55"
-                                    : "border-border bg-card active:bg-surface"
-                            }`}
-                            onPress={() => !disabled && handleSelect(slot)}
-                            disabled={disabled}
+                            entering={FadeInDown.delay(60 + index * 35).duration(220)}
                         >
-                            <View className="min-w-0 flex-1 gap-1.5">
-                                <AppText
-                                    variant="value"
-                                    className={`font-medium ${
-                                        disabled ? "text-muted-foreground" : "text-foreground"
-                                    }`}
-                                >
-                                    {formatSlotTime(slot)}
-                                </AppText>
-                                <AppText
-                                    variant="meta"
-                                    className={disabled ? "text-muted-foreground" : "text-foreground/75"}
-                                >
-                                    {lessonTitle}
-                                </AppText>
-                                {slot.coachName ? (
+                            <Pressable
+                                className={`flex-row items-center justify-between gap-3 rounded-2xl border px-4 py-4 ${
+                                    disabled
+                                        ? "border-muted bg-muted opacity-55"
+                                        : "border-border bg-card active:bg-surface"
+                                }`}
+                                onPress={() => !disabled && handleSelect(slot)}
+                                disabled={disabled}
+                            >
+                                <View className="min-w-0 flex-1 gap-1.5">
+                                    <AppText
+                                        variant="value"
+                                        className={`font-medium ${
+                                            disabled ? "text-muted-foreground" : "text-foreground"
+                                        }`}
+                                    >
+                                        {formatSlotTime(slot)}
+                                    </AppText>
                                     <AppText
                                         variant="meta"
                                         className={disabled ? "text-muted-foreground" : "text-foreground/75"}
                                     >
-                                        Coach: {slot.coachName}
+                                        {lessonTitle}
                                     </AppText>
-                                ) : null}
-                            </View>
+                                    {slot.coachName ? (
+                                        <AppText
+                                            variant="meta"
+                                            className={disabled ? "text-muted-foreground" : "text-foreground/75"}
+                                        >
+                                            Coach: {slot.coachName}
+                                        </AppText>
+                                    ) : null}
+                                </View>
 
-                            <AppText
-                                variant="label"
-                                className={disabled ? "text-muted-foreground" : "text-primary"}
-                            >
-                                {disabled ? "Full" : "Available"}
-                            </AppText>
-                        </Pressable>
+                                <AppText
+                                    variant="label"
+                                    className={disabled ? "text-muted-foreground" : "text-primary"}
+                                >
+                                    {disabled ? "Full" : "Available"}
+                                </AppText>
+                            </Pressable>
+                        </Animated.View>
                     );
                 })}
             </View>

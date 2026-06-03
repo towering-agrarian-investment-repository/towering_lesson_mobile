@@ -7,6 +7,7 @@ import { Button, Divider } from "@/design-system";
 import { useCreateMemberLessonReservation } from "@/lib/hook/useReservation";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import {
     View
 } from "react-native";
@@ -81,17 +82,20 @@ export default function LessonBookingConfirmScreen() {
         <Screen
             contentClassName="flex-1"
             footer={
-                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                <Animated.View
+                    entering={FadeInDown.delay(120).duration(220)}
+                    className="border-t border-border bg-background px-6 pb-8 pt-4"
+                >
                     <Button
                         title="Agree & Book"
                         loading={isSubmitting}
                         disabled={isSubmitting || !ticketId || !lessonAvailabilityId}
                         onPress={handleConfirm}
                     />
-                </View>
+                </Animated.View>
             }
         >
-            <View className="grow">
+            <Animated.View entering={FadeInDown.duration(220)} className="grow">
                 <View className="gap-4">
                     <ReservationDetailField
                         label="Reservation Name"
@@ -116,7 +120,7 @@ export default function LessonBookingConfirmScreen() {
                     <Divider className="bg-border" />
                     <ReservationPoliciesSection policies={POLICIES} />
                 </View>
-            </View>
+            </Animated.View>
         </Screen>
     );
 }

@@ -7,6 +7,7 @@ import {
     ScrollView,
     View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ScreenProps = {
@@ -61,15 +62,24 @@ export function Screen({
 
     return (
         <View className={cn("flex-1 bg-background", className)}>
-            <KeyboardAvoidingView
-                className="flex-1"
-                behavior={
-                    keyboardAware && Platform.OS === "ios"
-                        ? "padding"
-                        : undefined
-                }
-            >
-                {scroll ? (
+            {scroll ? (
+                keyboardAware ? (
+                    <KeyboardAwareScrollView
+                        className={cn("flex-1 bg-background", scrollClassName)}
+                        contentContainerStyle={scrollContentContainerStyle}
+                        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+                        bounces={bounces}
+                        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+                        refreshControl={refreshControl}
+                        contentInsetAdjustmentBehavior="automatic"
+                        enableOnAndroid
+                        extraScrollHeight={20}
+                    >
+                        <View className={cn("flex-1", contentClassName)}>
+                            {children}
+                        </View>
+                    </KeyboardAwareScrollView>
+                ) : (
                     <ScrollView
                         className={cn("flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
@@ -83,25 +93,34 @@ export function Screen({
                             {children}
                         </View>
                     </ScrollView>
-                ) : (
+                )
+            ) : (
+                <KeyboardAvoidingView
+                    className="flex-1"
+                    behavior={
+                        keyboardAware && Platform.OS === "ios"
+                            ? "padding"
+                            : undefined
+                    }
+                >
                     <View
                         className={cn("flex-1", contentClassName)}
                         style={fixedContentStyle}
                     >
                         {children}
                     </View>
-                )}
+                </KeyboardAvoidingView>
+            )}
 
-                {footer ? (
-                    <View
-                        style={{
-                            paddingBottom: insets.bottom,
-                        }}
-                    >
-                        {footer}
-                    </View>
-                ) : null}
-            </KeyboardAvoidingView>
+            {footer ? (
+                <View
+                    style={{
+                        paddingBottom: insets.bottom,
+                    }}
+                >
+                    {footer}
+                </View>
+            ) : null}
         </View>
     );
 }
