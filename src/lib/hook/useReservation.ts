@@ -107,7 +107,7 @@ export function useCreateMemberBayReservation() {
     >({
         mutationFn: createMemberBayReservation,
         onSuccess: (res) => {
-            // responseStatus({ res });
+            responseStatus({ res });
             queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
             queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
         },

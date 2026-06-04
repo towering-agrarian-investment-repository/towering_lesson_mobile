@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
     FlatList,
     Pressable,
@@ -11,9 +11,8 @@ import ReservationCard from "@/components/golf/ReservationCard";
 import { CircleLoader } from "@/components/ui/CircleLoader";
 import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/ui/StateCard";
-import { AppText } from "@/design-system";
-import { cn } from "@/design-system";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { AppText, cn } from "@/design-system";
 import { useMemberReservations } from "@/lib/hook/useReservation";
 import { MemberReservationType } from "@/service/reservation.service";
 import type {
@@ -44,9 +43,12 @@ type ReservationItem =
 export default function ReservationScreen() {
     const [activeTab, setActiveTab] = useState<MemberReservationType>("all");
 
+    const listRef = useRef<FlatList<ReservationItem>>(null);
+
     const {
         data,
         isLoading,
+        isError,
         isFetching,
         refetch,
         isRefetching,
@@ -68,6 +70,17 @@ export default function ReservationScreen() {
         [],
     );
 
+    const handleTabChange = useCallback((tab: MemberReservationType) => {
+        setActiveTab(tab);
+
+        requestAnimationFrame(() => {
+            listRef.current?.scrollToOffset({
+                offset: 0,
+                animated: false,
+            });
+        });
+    }, []);
+
     const handleEndReached = useCallback(() => {
         if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
@@ -79,12 +92,17 @@ export default function ReservationScreen() {
             <View className="flex-1 flex-col">
                 <ReservationTabs
                     activeTab={activeTab}
-                    onTabChange={setActiveTab}
+                    onTabChange={handleTabChange}
                 />
 
                 <View className="flex-1">
                     {isLoading ? (
                         <ReservationLoadingState />
+                    ) : isError ? (
+                        <ErrorState
+                            title="Failed to load reservations"
+                            message="Pull to refresh and try again."
+                        />
                     ) : reservations.length === 0 ? (
                         <EmptyState
                             title="No reservations found"
@@ -92,6 +110,7 @@ export default function ReservationScreen() {
                         />
                     ) : (
                         <FlatList
+                            ref={listRef}
                             data={reservations}
                             keyExtractor={keyExtractor}
                             renderItem={renderReservationItem}
@@ -146,39 +165,41 @@ function ReservationTabs({
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 0,
+                }}
             >
                 <View className="flex-row items-end gap-2">
-                {RESERVATION_TABS.map((tab) => {
-                    const isActive = activeTab === tab;
+                    {RESERVATION_TABS.map((tab) => {
+                        const isActive = activeTab === tab;
 
-                    return (
-                        <Pressable
-                            key={tab}
-                            onPress={() => onTabChange(tab)}
-                            className="items-center gap-2 px-3 pb-2 pt-3"
-                        >
-                            <AppText
-                                variant="label"
-                                className={cn(
-                                    "text-base font-semibold",
-                                    isActive && "text-primary",
-                                    !isActive && "text-foreground/65",
-                                )}
+                        return (
+                            <Pressable
+                                key={tab}
+                                onPress={() => onTabChange(tab)}
+                                className="min-h-11 items-center justify-end gap-2 pr-4 pt-3"
                             >
-                                {TAB_LABELS[tab]}
-                            </AppText>
+                                <AppText
+                                    variant="label"
+                                    className={cn(
+                                        "text-base font-semibold",
+                                        isActive && "text-primary",
+                                        !isActive && "text-foreground/65",
+                                    )}
+                                >
+                                    {TAB_LABELS[tab]}
+                                </AppText>
 
-                            <View
-                                className={cn(
-                                    "h-0.5 w-8 rounded-full",
-                                    isActive && "bg-primary",
-                                    !isActive && "bg-transparent",
-                                )}
-                            />
-                        </Pressable>
-                    );
-                })}
+                                <View
+                                    className={cn(
+                                        "h-0.5 w-8 rounded-full",
+                                        isActive && "bg-primary",
+                                        !isActive && "bg-transparent",
+                                    )}
+                                />
+                            </Pressable>
+                        );
+                    })}
                 </View>
             </ScrollView>
         </View>

@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/Skeleton";
 import { Screen } from "@/components/ui/Screen";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
@@ -27,18 +27,21 @@ export default function SelectLessonSlotScreen() {
         ticketId?: string;
         ticketType?: string;
     }>();
+
     const router = useRouter();
+
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
     const ticketIdNumber = ticketId ? Number(ticketId) : null;
 
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
-        ticketIdNumber,
-        year,
-        month,
-        Boolean(ticketIdNumber),
-    );
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberTicketLessonSlots(
+            ticketIdNumber,
+            year,
+            month,
+            Boolean(ticketIdNumber),
+        );
 
     const slots = (data?.data ?? []).filter(
         (slot) => slot.startTime.split("T")[0] === date,
@@ -84,6 +87,7 @@ export default function SelectLessonSlotScreen() {
                 className="gap-1"
             >
                 <AppText variant="h3">Choose a time</AppText>
+
                 <AppText variant="meta" className="text-foreground/75">
                     {date}
                 </AppText>
@@ -92,7 +96,10 @@ export default function SelectLessonSlotScreen() {
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
                     {Array.from({ length: 4 }, (_, index) => (
-                        <Skeleton key={index} className="h-24 w-full rounded-xl" />
+                        <Skeleton
+                            key={index}
+                            className="h-24 w-full rounded-xl"
+                        />
                     ))}
                 </View>
             ) : null}
@@ -111,72 +118,89 @@ export default function SelectLessonSlotScreen() {
                 />
             ) : null}
 
-            <View className="gap-3">
-                {slots.map((slot, index) => {
-                    const disabled = isSlotFull(slot);
-                    const lessonTitle =
-                        slot.name ??
-                        slot.title ??
-                        slot.lessonProgramName ??
-                        slot.lessonProgram?.name ??
-                        "Private Lesson";
+            {!isLoading && !isError && slots.length > 0 ? (
+                <View className="gap-3">
+                    {slots.map((slot, index) => {
+                        const disabled = isSlotFull(slot);
 
-                    return (
-                        <MotiView
-                            key={slot.id}
-                            from={{ opacity: 0, translateY: 12 }}
-                            animate={{ opacity: 1, translateY: 0 }}
-                            transition={{
-                                type: "timing",
-                                duration: 180,
-                                delay: 40 + index * 24,
-                            }}
-                        >
-                            <Pressable
-                                className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${
-                                    disabled
+                        const lessonTitle =
+                            slot.name ??
+                            slot.title ??
+                            slot.lessonProgramName ??
+                            slot.lessonProgram?.name ??
+                            "Private Lesson";
+
+                        return (
+                            <MotiView
+                                key={slot.id}
+                                from={{ opacity: 0, translateY: 12 }}
+                                animate={{ opacity: 1, translateY: 0 }}
+                                transition={{
+                                    type: "timing",
+                                    duration: 180,
+                                    delay: 40 + index * 24,
+                                }}
+                            >
+                                <Pressable
+                                    className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${disabled
                                         ? "border-muted bg-muted opacity-55"
                                         : "border-border bg-card active:bg-surface"
-                                }`}
-                                onPress={() => !disabled && handleSelect(slot)}
-                                disabled={disabled}
-                            >
-                                <View className="min-w-0 flex-1 gap-1.5">
-                                    <AppText
-                                        variant="h3"
-                                        className={`font-medium ${
-                                            disabled ? "text-muted-foreground" : "text-foreground"
                                         }`}
-                                    >
-                                        {formatSlotTime(slot)}
-                                    </AppText>
-                                    <AppText
-                                        variant="meta"
-                                        className={disabled ? "text-muted-foreground" : "text-foreground/75"}
-                                    >
-                                        {lessonTitle}
-                                    </AppText>
-                                    {slot.coachName ? (
+                                    onPress={() => !disabled && handleSelect(slot)}
+                                    disabled={disabled}
+                                >
+                                    <View className="min-w-0 flex-1 gap-1.5">
+                                        <AppText
+                                            variant="h3"
+                                            className={`font-medium ${disabled
+                                                ? "text-muted-foreground"
+                                                : "text-foreground"
+                                                }`}
+                                        >
+                                            {formatSlotTime(slot)}
+                                        </AppText>
+
                                         <AppText
                                             variant="meta"
-                                            className={disabled ? "text-muted-foreground" : "text-foreground/75"}
+                                            className={
+                                                disabled
+                                                    ? "text-muted-foreground"
+                                                    : "text-foreground/75"
+                                            }
                                         >
-                                            Coach: {slot.coachName}
+                                            {lessonTitle}
                                         </AppText>
-                                    ) : null}
-                                </View>
 
-                                <AppText
-                                    variant="badge"
-                                    className={disabled ? "text-muted-foreground" : "text-primary"}
-                                >
-                                    {disabled ? "Full" : "Available"}
-                                </AppText>
-                            </Pressable>
-                        </MotiView>
-                    );
-                })}
-            </View>
+                                        {slot.coachName ? (
+                                            <AppText
+                                                variant="meta"
+                                                className={
+                                                    disabled
+                                                        ? "text-muted-foreground"
+                                                        : "text-foreground/75"
+                                                }
+                                            >
+                                                Coach: {slot.coachName}
+                                            </AppText>
+                                        ) : null}
+                                    </View>
+
+                                    <AppText
+                                        variant="badge"
+                                        className={
+                                            disabled
+                                                ? "text-muted-foreground"
+                                                : "text-primary"
+                                        }
+                                    >
+                                        {disabled ? "Full" : "Available"}
+                                    </AppText>
+                                </Pressable>
+                            </MotiView>
+                        );
+                    })}
+                </View>
+            ) : null}
         </Screen>
     );
 }

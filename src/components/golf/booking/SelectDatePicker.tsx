@@ -1,7 +1,10 @@
 import { Screen } from "@/components/ui/Screen";
 import { AppText } from "@/design-system";
 import { useThemeColors } from "@/design-system/utils/theme";
-import { useMemberBaySlotGroups, useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
+import {
+    useMemberBaySlotGroups,
+    useMemberTicketLessonSlots,
+} from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +16,8 @@ import {
     View,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
+
+import { ErrorState } from "@/components/ui/StateCard";
 
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
 const CALENDAR_WEEKDAY_PLACEHOLDERS = Array.from({ length: 7 }, (_, index) => index);
@@ -91,17 +96,25 @@ function CalendarLoadingSkeleton() {
 
 export default function DateScreen() {
     const colors = useThemeColors();
+
     const { ticketId, ticketType } = useLocalSearchParams<{
         ticketId?: string;
         ticketType?: string;
     }>();
+
     const router = useRouter();
+
     const [visibleMonth, setVisibleMonth] = useState(() => {
         const today = new Date();
+
         return new Date(today.getFullYear(), today.getMonth(), 1);
     });
+
     const ticketIdNumber = ticketId ? Number(ticketId) : null;
-    const isLessonTicket = LESSON_TICKET_TYPES.includes(String(ticketType ?? "").toUpperCase());
+
+    const isLessonTicket = LESSON_TICKET_TYPES.includes(
+        String(ticketType ?? "").toUpperCase(),
+    );
 
     const { startDate, endDate } = useMemo(
         () => getMonthRange(visibleMonth),
@@ -113,16 +126,19 @@ export default function DateScreen() {
         refetch: refetchBaySlotGroups,
         isPending: isPendingBaySlotGroups,
         isRefetching: isRefetchingBaySlotGroups,
+        isError: isErrorBaySlotGroups,
     } = useMemberBaySlotGroups(
         startDate,
         endDate,
         !isLessonTicket,
     );
+
     const {
         data: lessonSlotData,
         refetch: refetchLessonSlots,
         isPending: isPendingLessonSlots,
         isRefetching: isRefetchingLessonSlots,
+        isError: isErrorLessonSlots,
     } = useMemberTicketLessonSlots(
         ticketIdNumber,
         visibleMonth.getFullYear(),
@@ -131,6 +147,7 @@ export default function DateScreen() {
     );
 
     const today = formatDateForAPI(new Date());
+
     const availableDates = useMemo(() => {
         const dates = new Set<string>();
 
@@ -152,6 +169,7 @@ export default function DateScreen() {
 
         return dates;
     }, [baySlotGroupData, isLessonTicket, lessonSlotData]);
+
     const markedDates = useMemo(() => {
         const monthDates = getDatesForMonth(visibleMonth);
 
@@ -177,12 +195,22 @@ export default function DateScreen() {
 
             return acc;
         }, {});
-    }, [availableDates, colors.mutedForeground, colors.primary, today, visibleMonth]);
+    }, [
+        availableDates,
+        colors.mutedForeground,
+        colors.primary,
+        today,
+        visibleMonth,
+    ]);
 
     const handleAvailableDatePress = (day: DateData) => {
         router.push({
             pathname: isLessonTicket ? "../select-lesson-slot" : "../select-time",
-            params: { date: day.dateString, ticketId, ticketType },
+            params: {
+                date: day.dateString,
+                ticketId,
+                ticketType,
+            },
         });
     };
 
@@ -194,6 +222,7 @@ export default function DateScreen() {
             position: "bottom",
         });
     };
+
     const handleDayPress = (day: DateData) => {
         const isPast = day.dateString < today;
         const isCurrentMonth = isSameMonth(day.dateString, visibleMonth);
@@ -214,9 +243,14 @@ export default function DateScreen() {
     const isRefreshing = isLessonTicket
         ? isRefetchingLessonSlots
         : isRefetchingBaySlotGroups;
+
     const isInitialLoading = isLessonTicket
         ? !lessonSlotData && isPendingLessonSlots
         : !baySlotGroupData && isPendingBaySlotGroups;
+
+    const isError = isLessonTicket
+        ? isErrorLessonSlots
+        : isErrorBaySlotGroups;
 
     const handleRefresh = () => {
         if (isLessonTicket) {
@@ -241,6 +275,7 @@ export default function DateScreen() {
             <View className="px-6">
                 <View className="gap-3">
                     <AppText variant="h3">Choose a date</AppText>
+
                     <AppText variant="meta" className="text-foreground/75">
                         Select an available day to continue your booking.
                     </AppText>
@@ -250,6 +285,13 @@ export default function DateScreen() {
             <View>
                 {isInitialLoading ? (
                     <CalendarLoadingSkeleton />
+                ) : isError ? (
+                    <View className="px-6">
+                        <ErrorState
+                            title="Failed to load available dates"
+                            message="Pull to refresh and try again."
+                        />
+                    </View>
                 ) : (
                     <Calendar
                         style={[s.calendar, { backgroundColor: colors.card }]}
@@ -259,11 +301,17 @@ export default function DateScreen() {
                         disableAllTouchEventsForInactiveDays
                         onDayPress={handleDayPress}
                         onMonthChange={(month) => {
-                            setVisibleMonth(new Date(month.year, month.month - 1, 1));
+                            setVisibleMonth(
+                                new Date(month.year, month.month - 1, 1),
+                            );
                         }}
                         renderArrow={(dir) => (
                             <Ionicons
-                                name={dir === "left" ? "chevron-back" : "chevron-forward"}
+                                name={
+                                    dir === "left"
+                                        ? "chevron-back"
+                                        : "chevron-forward"
+                                }
                                 size={20}
                                 color={colors.primary}
                             />
@@ -292,5 +340,7 @@ export default function DateScreen() {
 }
 
 const s = StyleSheet.create({
-    calendar: { height: 520 },
+    calendar: {
+        height: 520,
+    },
 });

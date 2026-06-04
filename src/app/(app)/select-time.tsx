@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/Skeleton";
 import { Screen } from "@/components/ui/Screen";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
@@ -11,11 +11,13 @@ import { MotiView } from "moti";
 import {
     Pressable,
     RefreshControl,
-    View
+    View,
 } from "react-native";
 
 function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
-    return group.baySlots.filter((slot) => !getBaySlotAvailability(slot).isDisabled).length;
+    return group.baySlots.filter(
+        (slot) => !getBaySlotAvailability(slot).isDisabled,
+    ).length;
 }
 
 export default function TimeScreen() {
@@ -23,12 +25,15 @@ export default function TimeScreen() {
         date: string;
         ticketId?: string;
     }>();
+
     const router = useRouter();
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberBaySlotGroups(
-        date,
-        date,
-        Boolean(date),
-    );
+
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberBaySlotGroups(
+            date,
+            date,
+            Boolean(date),
+        );
 
     const slotGroups = (data?.data ?? []).filter(
         (group) => getAvailableBayCount(group) > 0,
@@ -64,6 +69,7 @@ export default function TimeScreen() {
                 className="gap-1"
             >
                 <AppText variant="h3">Choose a time</AppText>
+
                 <AppText variant="meta" className="text-foreground/75">
                     {date}
                 </AppText>
@@ -72,7 +78,10 @@ export default function TimeScreen() {
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
                     {Array.from({ length: 4 }, (_, index) => (
-                        <Skeleton key={index} className="h-14 w-full rounded-xl" />
+                        <Skeleton
+                            key={index}
+                            className="h-14 w-full rounded-xl"
+                        />
                     ))}
                 </View>
             ) : null}
@@ -91,33 +100,41 @@ export default function TimeScreen() {
                 />
             ) : null}
 
-            <View className="gap-3">
-                {slotGroups.map((group, index) => (
-                    <MotiView
-                        key={group.id}
-                        from={{ opacity: 0, translateY: 12 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{
-                            type: "timing",
-                            duration: 180,
-                            delay: 40 + index * 24,
-                        }}
-                    >
-                        <Pressable
-                            className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
-                            onPress={() => handleSelect(group)}
+            {!isLoading && !isError && slotGroups.length > 0 ? (
+                <View className="gap-3">
+                    {slotGroups.map((group, index) => (
+                        <MotiView
+                            key={group.id}
+                            from={{ opacity: 0, translateY: 12 }}
+                            animate={{ opacity: 1, translateY: 0 }}
+                            transition={{
+                                type: "timing",
+                                duration: 180,
+                                delay: 40 + index * 24,
+                            }}
                         >
-                            <AppText variant="body" className="font-medium text-foreground">
-                                {formatTimeRange(group.startDateTime, group.endDateTime)}
-                            </AppText>
+                            <Pressable
+                                className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
+                                onPress={() => handleSelect(group)}
+                            >
+                                <AppText
+                                    variant="body"
+                                    className="font-medium text-foreground"
+                                >
+                                    {formatTimeRange(
+                                        group.startDateTime,
+                                        group.endDateTime,
+                                    )}
+                                </AppText>
 
-                            <AppText variant="count" className="text-primary">
-                                {getAvailableBayCount(group)} bays
-                            </AppText>
-                        </Pressable>
-                    </MotiView>
-                ))}
-            </View>
+                                <AppText variant="count" className="text-primary">
+                                    {getAvailableBayCount(group)} bays
+                                </AppText>
+                            </Pressable>
+                        </MotiView>
+                    ))}
+                </View>
+            ) : null}
         </Screen>
     );
 }

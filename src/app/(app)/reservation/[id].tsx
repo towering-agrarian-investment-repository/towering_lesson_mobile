@@ -1,17 +1,17 @@
-import { Screen } from "@/components/ui/Screen";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
-import {
-    formatTicketTypeLabel,
-    getTicketTypeTone,
-} from "@/design-system/utils/ticket-type";
-import { useThemeColors } from "@/design-system/utils/theme";
 import {
     ReservationFieldLabel,
     ReservationFieldValue,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
+import { Screen } from "@/components/ui/Screen";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText, Badge, Button, Divider } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
+import {
+    formatTicketTypeLabel,
+    getTicketTypeTone,
+} from "@/design-system/utils/ticket-type";
 import {
     MemberReservationDetailResponse,
     useCancelMemberBayReservation,
@@ -25,9 +25,8 @@ import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { Href, Link, Stack, useLocalSearchParams } from "expo-router";
+import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import type { ReactNode } from "react";
 import {
     Alert,
     Pressable,
@@ -171,8 +170,9 @@ function getReservationStatusDescription(value?: string | null) {
 }
 
 export default function ReservationDetailScreen() {
-    const colors = useThemeColors();
     const { id, type } = useLocalSearchParams<ReservationParams>();
+
+    const router = useRouter()
 
     const reservationId = Number(id);
     const reservationType = isReservationDomain(type) ? type : undefined;
@@ -329,11 +329,21 @@ export default function ReservationDetailScreen() {
                     style: "destructive",
                     onPress: () => {
                         if (isBayReservation) {
-                            cancelBayReservation(reservation.id);
+                            cancelBayReservation(reservation.id, {
+                                onSuccess: () => {
+                                    router.replace("/reservation");
+                                }
+                            });
                             return;
                         }
 
-                        cancelLessonReservation(reservation.id);
+                        cancelLessonReservation(reservation.id, {
+                            onSuccess: () => {
+                                router.replace("/reservation");
+                            }
+                        });
+
+
                     },
                 },
             ],

@@ -30,7 +30,9 @@ export default function BayScreen() {
         ticketId?: string;
         slotGroupId?: string;
     }>();
+
     const router = useRouter();
+
     const {
         data,
         isLoading,
@@ -46,7 +48,12 @@ export default function BayScreen() {
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
     );
-    const loadingRows = chunkItems(Array.from({ length: 6 }, (_, index) => index), 3);
+
+    const loadingRows = chunkItems(
+        Array.from({ length: 6 }, (_, index) => index),
+        3,
+    );
+
     const bayRows = chunkItems(slotGroup?.baySlots ?? [], 3);
 
     const handleSelect = (baySlot: BaySlotScheduleResponse) => {
@@ -85,9 +92,13 @@ export default function BayScreen() {
                 className="gap-1"
             >
                 <AppText variant="h3">Choose a bay</AppText>
+
                 <AppText variant="meta" className="text-foreground/75">
                     {slotGroup
-                        ? formatTimeRange(slotGroup.startDateTime, slotGroup.endDateTime)
+                        ? formatTimeRange(
+                            slotGroup.startDateTime,
+                            slotGroup.endDateTime,
+                        )
                         : date}
                 </AppText>
             </MotiView>
@@ -107,9 +118,16 @@ export default function BayScreen() {
                                     </View>
                                 </View>
                             ))}
-                            {Array.from({ length: 3 - row.length }, (_, fillerIndex) => (
-                                <View key={`loading-filler-${rowIndex}-${fillerIndex}`} className="flex-1" />
-                            ))}
+
+                            {Array.from(
+                                { length: 3 - row.length },
+                                (_, fillerIndex) => (
+                                    <View
+                                        key={`loading-filler-${rowIndex}-${fillerIndex}`}
+                                        className="flex-1"
+                                    />
+                                ),
+                            )}
                         </View>
                     ))}
                 </View>
@@ -129,64 +147,86 @@ export default function BayScreen() {
                 />
             ) : null}
 
-            <View className="gap-3">
-                {bayRows.map((row, rowIndex) => (
-                    <View key={rowIndex} className="flex-row gap-3">
-                        {row.map((bay, index) => {
-                            const { isBlocked, isReserved, isDisabled } = getBaySlotAvailability(bay);
-                            const animationIndex = rowIndex * 3 + index;
-                            const statusLabel = isBlocked
-                                ? "Blocked"
-                                : isReserved
-                                    ? "Booked"
-                                    : isDisabled
-                                        ? "Unavailable"
-                                        : "Available";
+            {!isLoading && !isError && slotGroup ? (
+                <View className="gap-3">
+                    {bayRows.map((row, rowIndex) => (
+                        <View key={rowIndex} className="flex-row gap-3">
+                            {row.map((bay, index) => {
+                                const {
+                                    isBlocked,
+                                    isReserved,
+                                    isDisabled,
+                                } = getBaySlotAvailability(bay);
 
-                            return (
-                                <MotiView
-                                    key={bay.id}
-                                    className="flex-1"
-                                    from={{ opacity: 0, translateY: 12 }}
-                                    animate={{ opacity: 1, translateY: 0 }}
-                                    transition={{
-                                        type: "timing",
-                                        duration: 180,
-                                        delay: 40 + animationIndex * 22,
-                                    }}
-                                >
-                                    <Pressable
-                                        className={`items-center gap-1.5 rounded-xl border px-3 py-4 ${!isDisabled
-                                                ? "border-border bg-card active:bg-surface"
-                                                : "border-muted bg-muted opacity-55"
-                                            }`}
-                                        onPress={() => !isDisabled && handleSelect(bay)}
-                                        disabled={isDisabled}
+                                const animationIndex = rowIndex * 3 + index;
+
+                                const statusLabel = isBlocked
+                                    ? "Blocked"
+                                    : isReserved
+                                        ? "Booked"
+                                        : isDisabled
+                                            ? "Unavailable"
+                                            : "Available";
+
+                                return (
+                                    <MotiView
+                                        key={bay.id}
+                                        className="flex-1"
+                                        from={{ opacity: 0, translateY: 12 }}
+                                        animate={{ opacity: 1, translateY: 0 }}
+                                        transition={{
+                                            type: "timing",
+                                            duration: 180,
+                                            delay: 40 + animationIndex * 22,
+                                        }}
                                     >
-                                        <AppText
-                                            variant="body"
-                                            className={`text-center font-medium ${!isDisabled ? "text-foreground" : "text-muted-foreground"
+                                        <Pressable
+                                            className={`items-center gap-1.5 rounded-xl border px-3 py-4 ${!isDisabled
+                                                    ? "border-border bg-card active:bg-surface"
+                                                    : "border-muted bg-muted opacity-55"
                                                 }`}
+                                            onPress={() =>
+                                                !isDisabled && handleSelect(bay)
+                                            }
+                                            disabled={isDisabled}
                                         >
-                                            {bay.bayName}
-                                        </AppText>
-                                        <AppText
-                                            variant="badge"
-                                            className={`text-center ${!isDisabled ? "text-primary" : "text-muted-foreground"
-                                                }`}
-                                        >
-                                            {statusLabel}
-                                        </AppText>
-                                    </Pressable>
-                                </MotiView>
-                            );
-                        })}
-                        {Array.from({ length: 3 - row.length }, (_, fillerIndex) => (
-                            <View key={`bay-filler-${rowIndex}-${fillerIndex}`} className="flex-1" />
-                        ))}
-                    </View>
-                ))}
-            </View>
+                                            <AppText
+                                                variant="body"
+                                                className={`text-center font-medium ${!isDisabled
+                                                        ? "text-foreground"
+                                                        : "text-muted-foreground"
+                                                    }`}
+                                            >
+                                                {bay.bayName}
+                                            </AppText>
+
+                                            <AppText
+                                                variant="badge"
+                                                className={`text-center ${!isDisabled
+                                                        ? "text-primary"
+                                                        : "text-muted-foreground"
+                                                    }`}
+                                            >
+                                                {statusLabel}
+                                            </AppText>
+                                        </Pressable>
+                                    </MotiView>
+                                );
+                            })}
+
+                            {Array.from(
+                                { length: 3 - row.length },
+                                (_, fillerIndex) => (
+                                    <View
+                                        key={`bay-filler-${rowIndex}-${fillerIndex}`}
+                                        className="flex-1"
+                                    />
+                                ),
+                            )}
+                        </View>
+                    ))}
+                </View>
+            ) : null}
         </Screen>
     );
 }
