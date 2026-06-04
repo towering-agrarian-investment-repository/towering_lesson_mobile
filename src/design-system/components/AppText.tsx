@@ -12,7 +12,9 @@ type AppTextVariant =
     | "caption"
     | "meta"
     | "eyebrow"
-    | "label";
+    | "label"
+    | "badge"
+    | "count";
 
 type AppTextProps = TextProps & {
     variant?: AppTextVariant;
@@ -32,14 +34,16 @@ export function AppText({
                 variant === "h2" && "text-2xl font-bold",
                 variant === "h3" && "text-xl font-semibold",
                 variant === "body" && "text-base",
-                variant === "value" && "text-lg font-semibold",
-                variant === "subtext" && "text-base text-muted-foreground",
+                variant === "value" && "text-2xl font-bold tabular-nums",
+                variant === "subtext" && "text-sm text-muted-foreground",
                 variant === "muted" && "text-base text-muted-foreground",
                 variant === "caption" && "text-xs text-muted-foreground",
                 variant === "meta" && "text-sm text-muted-foreground",
                 variant === "eyebrow" &&
-                    "text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground",
-                variant === "label" && "text-sm font-medium",
+                "text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground",
+                variant === "label" && "text-base font-medium",
+                variant === "badge" && "text-xs font-semibold tracking-wide",
+                variant === "count" && "text-sm font-medium tabular-nums text-muted-foreground",
                 className,
             )}
             {...props}

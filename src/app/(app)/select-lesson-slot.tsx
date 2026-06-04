@@ -6,7 +6,7 @@ import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { LessonAvailabilityResponse } from "@/types/member-lesson";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { MotiView } from "moti";
 import {
     Pressable,
     RefreshControl,
@@ -77,12 +77,17 @@ export default function SelectLessonSlotScreen() {
                 />
             }
         >
-            <Animated.View entering={FadeInDown.duration(220)} className="gap-1">
-                <AppText variant="value">Choose a time</AppText>
+            <MotiView
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 180 }}
+                className="gap-1"
+            >
+                <AppText variant="h3">Choose a time</AppText>
                 <AppText variant="meta" className="text-foreground/75">
                     {date}
                 </AppText>
-            </Animated.View>
+            </MotiView>
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -117,12 +122,18 @@ export default function SelectLessonSlotScreen() {
                         "Private Lesson";
 
                     return (
-                        <Animated.View
+                        <MotiView
                             key={slot.id}
-                            entering={FadeInDown.delay(60 + index * 35).duration(220)}
+                            from={{ opacity: 0, translateY: 12 }}
+                            animate={{ opacity: 1, translateY: 0 }}
+                            transition={{
+                                type: "timing",
+                                duration: 180,
+                                delay: 40 + index * 24,
+                            }}
                         >
                             <Pressable
-                                className={`flex-row items-center justify-between gap-3 rounded-2xl border px-4 py-4 ${
+                                className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${
                                     disabled
                                         ? "border-muted bg-muted opacity-55"
                                         : "border-border bg-card active:bg-surface"
@@ -132,7 +143,7 @@ export default function SelectLessonSlotScreen() {
                             >
                                 <View className="min-w-0 flex-1 gap-1.5">
                                     <AppText
-                                        variant="value"
+                                        variant="h3"
                                         className={`font-medium ${
                                             disabled ? "text-muted-foreground" : "text-foreground"
                                         }`}
@@ -156,13 +167,13 @@ export default function SelectLessonSlotScreen() {
                                 </View>
 
                                 <AppText
-                                    variant="label"
+                                    variant="badge"
                                     className={disabled ? "text-muted-foreground" : "text-primary"}
                                 >
                                     {disabled ? "Full" : "Available"}
                                 </AppText>
                             </Pressable>
-                        </Animated.View>
+                        </MotiView>
                     );
                 })}
             </View>

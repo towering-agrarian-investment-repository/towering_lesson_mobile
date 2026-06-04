@@ -8,7 +8,7 @@ type CardProps = ViewProps & {
 export function Card({ className, ...props }: CardProps) {
     return (
         <View
-            className={cn("rounded-2xl border border-border bg-card p-4", className)}
+            className={cn("rounded-xl border border-border bg-card p-5", className)}
             {...props}
         />
     );

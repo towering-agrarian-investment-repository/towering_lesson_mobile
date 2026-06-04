@@ -24,50 +24,44 @@
   --color-ticket-group: var(--ticket-group);
   --color-ticket-program: var(--ticket-program);
   --color-ticket-default: var(--ticket-default);
+  --color-notification: var(--notification);
+  --color-bg-btn-main-start: var(--bg-btn-main-start);
+  --color-bg-btn-main-end: var(--bg-btn-main-end);
+  --color-bg-btn-main-pressed-start: var(--bg-btn-main-pressed-start);
+  --color-bg-btn-main-pressed-end: var(--bg-btn-main-pressed-end);
 }
 
 :root {
   --background: #ffffff;
-  --foreground: #111827;
-  --surface: #f9fafb;
+  --foreground: #000000;
+  --surface: #f3f3f3;
   --card: #ffffff;
-  --border: #e5e7eb;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #111827;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --ticket-bay: #10b981;
-  --ticket-private: #2563eb;
-  --ticket-group: #f59e0b;
-  --ticket-program: #8b5cf6;
-  --ticket-default: #64748b;
-}
+  --border: #eeeeee;
+  --muted: #f3f3f3;
+  --muted-foreground: #888888;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1120;
-    --foreground: #f9fafb;
-    --surface: #111827;
-    --card: #111827;
-    --border: #1f2937;
-    --muted: #1f2937;
-    --muted-foreground: #9ca3af;
-    --primary: #60a5fa;
-    --primary-foreground: #0b1120;
-    --secondary: #1f2937;
-    --secondary-foreground: #f9fafb;
-    --danger: #f87171;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --ticket-bay: #34d399;
-    --ticket-private: #60a5fa;
-    --ticket-group: #fbbf24;
-    --ticket-program: #a78bfa;
-    --ticket-default: #94a3b8;
-  }
+  --primary: #26a9e0;
+  --primary-foreground: #ffffff;
+
+  --secondary: #eefaff;
+  --secondary-foreground: #000000;
+
+  --danger: #ff6565;
+  --success: #40c057;
+  --warning: #ff9f3f;
+
+  --ticket-bay: #26a9e0;
+  --ticket-private: #faad3d;
+  --ticket-group: #b4f08c;
+  --ticket-program: #845ef7;
+  --ticket-default: #7a8186;
+  --notification: #ff6565;
+
+  --bg-btn-main-start: #40c057;
+  --bg-btn-main-end: #49bbc4;
+  --bg-btn-main-pressed-start: #37a54b;
+  --bg-btn-main-pressed-end: #3a9da5;
+
+  --logo-blue: #00aeef;
+  --logo-orange: #f7941d;
 }

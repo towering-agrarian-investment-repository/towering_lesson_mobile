@@ -42,7 +42,7 @@ export default function GenderModalScreen() {
 
                 <Pressable
                     onPress={() => handleSelect("")}
-                    className={`rounded-2xl border px-4 py-4 ${
+                    className={`rounded-xl border px-4 py-4 ${
                         selectedGender === ""
                             ? "border-success bg-success/10"
                             : "border-border bg-card"
@@ -66,7 +66,7 @@ export default function GenderModalScreen() {
                         <Pressable
                             key={option.value}
                             onPress={() => handleSelect(option.value)}
-                            className={`flex-row items-center rounded-2xl border px-4 py-4 ${
+                            className={`flex-row items-center rounded-xl border px-4 py-4 ${
                                 isSelected
                                     ? "border-success bg-success/10"
                                     : "border-border bg-card"

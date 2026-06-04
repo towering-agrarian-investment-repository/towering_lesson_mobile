@@ -25,7 +25,7 @@ export function ErrorState({
                 <CircleAlertIcon size={28} color={colors.danger} strokeWidth={2.4} />
             </View>
 
-            <AppText variant="value" className="text-center text-danger">
+            <AppText variant="h3" className="text-center text-danger">
                 {title}
             </AppText>
 
@@ -55,7 +55,7 @@ export function EmptyState({
                 <InboxIcon size={28} color={colors.mutedForeground} strokeWidth={2.2} />
             </View>
 
-            <AppText variant="value" className="text-center text-foreground">
+            <AppText variant="h3" className="text-center text-foreground">
                 {title}
             </AppText>
 

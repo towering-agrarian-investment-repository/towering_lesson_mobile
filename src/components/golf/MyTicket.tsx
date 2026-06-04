@@ -15,7 +15,7 @@ function MyTicket({ member }: Props) {
     const { data, isLoading, isError } = useMemberTickets(member.id);
     const tickets = data?.data ?? [];
     return (
-        <View>
+        <View className="gap-4">
             <TitleSectionWithBadge label="My Tickets" length={tickets.length} />
 
             {isLoading ? (
@@ -25,7 +25,7 @@ function MyTicket({ member }: Props) {
                     contentContainerStyle={style.listContent}
                 >
                     {Array.from({ length: 3 }, (_, index) => (
-                        <Skeleton key={index} className="h-40 w-60 rounded-2xl" />
+                        <Skeleton key={index} className="h-40 w-60 rounded-xl" />
                     ))}
                 </ScrollView>
             ) : isError ? (
@@ -56,7 +56,7 @@ function MyTicket({ member }: Props) {
 const style = StyleSheet.create({
     listContent: {
         gap: 12,
-        paddingVertical: 10,
+        paddingVertical: 12,
     },
 });
 

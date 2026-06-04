@@ -3,11 +3,13 @@ import {
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
 import { Screen } from "@/components/ui/Screen";
+import { showAppToast } from "@/lib/toast/toast";
 import { Button, Divider } from "@/design-system";
-import { useCreateMemberBayReservation } from "@/lib/hook/useReservation";
+import { useCreateMemberBayReservation, useMemberBaySlotGroups } from "@/lib/hook/useReservation";
+import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { MotiView } from "moti";
 import {
     View
 } from "react-native";
@@ -25,10 +27,11 @@ const POLICIES = [
 ] as const;
 
 export default function ConfirmScreen() {
-    const { date, ticketId, baySlotId, bayName, startTime, endTime } =
+    const { date, ticketId, slotGroupId, baySlotId, bayName, startTime, endTime } =
         useLocalSearchParams<{
             date: string;
             ticketId?: string;
+            slotGroupId?: string;
             baySlotId?: string;
             bayName?: string;
             startTime?: string;
@@ -36,34 +39,66 @@ export default function ConfirmScreen() {
         }>();
     const router = useRouter();
     const {
-        mutateAsync: createReservation,
+        mutate: createReservation,
         isPending: isSubmitting,
     } = useCreateMemberBayReservation();
+    const { data } = useMemberBaySlotGroups(date, date, Boolean(date));
 
-    const handleConfirm = async () => {
+    const slotGroup = (data?.data ?? []).find(
+        (group) => String(group.id) === slotGroupId,
+    );
+    const selectedBaySlot = slotGroup?.baySlots.find(
+        (slot) => String(slot.id) === baySlotId,
+    );
+    const { isDisabled: isBaySlotDisabled } = getBaySlotAvailability(selectedBaySlot);
+
+    const handleConfirm = () => {
         if (!ticketId || !baySlotId) {
             return;
         }
 
-        const response = await createReservation({
-            ticketId: Number(ticketId),
-            baySlotId: Number(baySlotId),
-        });
+        if (isBaySlotDisabled) {
+            showAppToast({
+                message: "Selected bay is no longer available.",
+                type: "warning",
+            });
 
-        const reservation = response.data;
-
-        if (reservation) {
             router.replace({
-                pathname: "/reservation/[id]",
+                pathname: "/select-bay",
                 params: {
-                    id: String(reservation.id),
-                    type: reservation.reservationType,
+                    date,
+                    ticketId,
+                    slotGroupId,
                 },
             });
+
             return;
         }
 
-        router.replace("/reservation");
+        createReservation(
+            {
+                ticketId: Number(ticketId),
+                baySlotId: Number(baySlotId),
+            },
+            {
+                onSuccess: (response) => {
+                    const reservation = response.data;
+
+                    if (reservation) {
+                        router.replace({
+                            pathname: "/reservation/[id]",
+                            params: {
+                                id: String(reservation.id),
+                                type: reservation.reservationType,
+                            },
+                        });
+                        return;
+                    }
+
+                    router.replace("/reservation");
+                },
+            },
+        );
     };
 
     const reservationName = bayName ?? "Bay Session";
@@ -74,8 +109,10 @@ export default function ConfirmScreen() {
         <Screen
             contentClassName="grow"
             footer={
-                <Animated.View
-                    entering={FadeInDown.delay(120).duration(220)}
+                <MotiView
+                    from={{ opacity: 0, translateY: 12 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{ type: "timing", duration: 180, delay: 80 }}
                     className="border-t border-border bg-background px-6 pb-8 pt-4"
                 >
                     <Button
@@ -84,10 +121,15 @@ export default function ConfirmScreen() {
                         disabled={isDisabled}
                         onPress={handleConfirm}
                     />
-                </Animated.View>
+                </MotiView>
             }
         >
-            <Animated.View entering={FadeInDown.duration(220)} className="grow">
+            <MotiView
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 180 }}
+                className="grow"
+            >
                 <View className="gap-4">
                     <ReservationDetailField
                         label="Reservation Name"
@@ -106,7 +148,7 @@ export default function ConfirmScreen() {
 
                     <ReservationPoliciesSection policies={POLICIES} />
                 </View>
-            </Animated.View>
+            </MotiView>
         </Screen>
     );
 }

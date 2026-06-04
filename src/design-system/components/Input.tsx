@@ -20,13 +20,13 @@ export function Input({
     const colors = useThemeColors();
 
     return (
-        <View className={cn("gap-2", containerClassName)}>
+        <View className={cn("gap-3", containerClassName)}>
             {label ? <AppText variant="label" className="text-foreground/75">{label}</AppText> : null}
 
             <TextInput
                 placeholderTextColor={colors.mutedForeground}
                 className={cn(
-                    "h-12 rounded-xl border border-border bg-surface px-4 text-base text-foreground",
+                    "h-12 rounded-xl border border-border bg-surface px-5 text-base text-foreground",
                     error && "border-danger",
                     className,
                 )}

@@ -7,7 +7,7 @@ function GolfHeader() {
             <Image
                 source={require('../../../assets/images/happygolf_toolbar_logo.png')}
                 style={{
-                    width: 200,
+                    width: 150,
                     height: 50,
                 }}
                 contentFit="contain"
@@ -18,7 +18,9 @@ function GolfHeader() {
 
 const style = StyleSheet.create({
     container: {
-        paddingTop: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        display: "flex"
     }
 })
 

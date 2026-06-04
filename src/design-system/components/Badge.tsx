@@ -20,7 +20,7 @@ export function Badge({
     return (
         <View
             className={cn(
-                "self-start rounded-full px-2.5 py-1",
+                "self-start rounded-md px-2.5 py-1",
                 variant === "default" && "bg-muted",
                 variant === "success" && "bg-success/10",
                 variant === "warning" && "bg-warning/10",
@@ -29,9 +29,8 @@ export function Badge({
             )}
         >
             <AppText
-                variant="caption"
+                variant="badge"
                 className={cn(
-                    "font-medium",
                     variant === "default" && "text-muted-foreground",
                     variant === "success" && "text-success",
                     variant === "warning" && "text-warning",

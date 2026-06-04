@@ -1,16 +1,22 @@
-import { TicketListItemResponse } from "@/types/member-ticket";
-import { Link } from "expo-router";
 import { AppText as Text } from "@/design-system";
+import { cn } from "@/design-system/utils/cn";
 import {
-    formatTicketTypeLabel,
-    getTicketTypeStyles,
+    getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
-import { useThemeColors } from "@/design-system/utils/theme";
-import { Pressable, StyleSheet, View } from "react-native";
+import { getMemberBaySlotGroups } from "@/service/member-bay-reservation.service";
+import { getTicketLessonSlots } from "@/service/member-lesson-reservation.service";
+import { TicketListItemResponse } from "@/types/member-ticket";
+import { formatType } from "@/utils/format-enum";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { Pressable, View } from "react-native";
 
 type Props = {
     item: TicketListItemResponse;
 };
+
+const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
 
 function formatTicketDate(date?: string | null) {
     if (!date) return "-";
@@ -36,60 +42,138 @@ function getUsageNote(item: TicketListItemResponse) {
     return "Flexible Usage";
 }
 
+function getMonthRange(value: Date) {
+    const start = new Date(value.getFullYear(), value.getMonth(), 1);
+    const end = new Date(value.getFullYear(), value.getMonth() + 1, 0);
+
+    const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    };
+
+    return {
+        startDate: formatDate(start),
+        endDate: formatDate(end),
+    };
+}
+
 function TicketCard({ item }: Props) {
-    const colors = useThemeColors();
+    const router = useRouter();
+    const queryClient = useQueryClient();
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
-    const ticketStyle = getTicketTypeStyles(colors, item.type);
+    const ticketTone = getTicketTypeTone(item.type);
     const isLessonProgramTicket = item.type === "LESSON_PROGRAM";
     const isBookingDisabled = isInactive || isLessonProgramTicket;
+    const isLessonTicket = LESSON_TICKET_TYPES.includes(item.type);
 
-    const badgeLabel = formatTicketTypeLabel(item.type);
+    const badgeLabel = formatType(item.type);
     const usageNote = getUsageNote(item);
 
-    const card = (
-        <Pressable disabled={isBookingDisabled}>
+    useEffect(() => {
+        if (isBookingDisabled) {
+            return;
+        }
+
+        router.prefetch("/select-date");
+    }, [isBookingDisabled, router]);
+
+    const prefetchBookingData = () => {
+        if (isBookingDisabled) {
+            return;
+        }
+
+        const today = new Date();
+
+        if (isLessonTicket) {
+            void queryClient.prefetchQuery({
+                queryKey: [
+                    "member",
+                    "ticket-lesson-slots",
+                    item.id,
+                    today.getFullYear(),
+                    today.getMonth() + 1,
+                ],
+                queryFn: () => getTicketLessonSlots(item.id, today.getFullYear(), today.getMonth() + 1),
+                staleTime: 30_000,
+            });
+
+            return;
+        }
+
+        const { startDate, endDate } = getMonthRange(today);
+
+        void queryClient.prefetchQuery({
+            queryKey: ["member", "bay-slot-groups", startDate, endDate],
+            queryFn: () => getMemberBaySlotGroups(startDate, endDate),
+            staleTime: 30_000,
+        });
+    };
+
+    const handlePress = () => {
+        if (isBookingDisabled) {
+            return;
+        }
+
+        router.push({
+            pathname: "/select-date",
+            params: {
+                ticketId: String(item.id),
+                ticketType: item.type,
+            },
+        });
+    };
+
+    return (
+        <Pressable
+            disabled={isBookingDisabled}
+            onPressIn={prefetchBookingData}
+            onPress={handlePress}
+        >
             <View
-                style={[
-                    style.card,
-                    ticketStyle.cardStyle,
-                    isInactive && {
-                        borderColor: colors.border,
-                        backgroundColor: colors.muted,
-                    },
-                ]}
+                className={cn(
+                    "w-[220px] min-h-[114px]  flex-col gap-4 rounded-xl border p-5",
+                    !isInactive && ticketTone.borderClassName,
+                    !isInactive && ticketTone.surfaceClassName,
+                    isInactive && "border-border bg-muted",
+                )}
             >
-                <Text
-                    style={[
-                        style.badge,
-                        ticketStyle.badgeStyle,
-                        isInactive && {
-                            backgroundColor: colors.border,
-                            color: colors.mutedForeground,
-                        },
-                    ]}
-                >
-                    {badgeLabel}
-                </Text>
+                <View className="flex-1 flex-col gap-3">
+                    <Text
+                        variant="badge"
+                        className={cn(
+                            "self-start rounded-md px-2 py-1",
+                            !isInactive && ticketTone.badgeSolidClassName,
+                            !isInactive && ticketTone.badgeSolidTextClassName,
+                            isInactive && "bg-border text-muted-foreground",
+                        )}
+                    >
+                        {badgeLabel}
+                    </Text>
 
-                <Text
-                    style={[style.title, { color: colors.foreground }]}
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                >
-                    {item.name}
-                </Text>
+                    <Text
+                        variant="body"
+                        className="text-foreground"
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                    >
+                        {item.name}
+                    </Text>
 
-                <Text style={[style.dateTitle, { color: colors.foreground }]}>
-                    {formatTicketDate(item.startDate)} ~ {formatTicketDate(item.endDate)}
-                </Text>
+                    <Text variant="count" className="text-lg font-extrabold text-foreground">
+                        {formatTicketDate(item.startDate)} ~ {formatTicketDate(item.endDate)}
+                    </Text>
+                </View>
 
-                <View style={style.footer}>
-                    <Text style={[style.meta, { color: colors.mutedForeground }]}>
+                <View className="flex-row justify-between gap-3 items-center">
+                    <Text variant="caption" className="text-foreground">
                         {usageNote}
                     </Text>
 
                     {!item.isUnlimited && item.onlyOnePerDay ? (
-                        <Text style={[style.onceText, { color: colors.mutedForeground }]}>
+                        <Text variant="caption" className="text-foreground">
                             Use once per day
                         </Text>
                     ) : null}
@@ -97,74 +181,6 @@ function TicketCard({ item }: Props) {
             </View>
         </Pressable>
     );
-
-    if (isBookingDisabled) {
-        return card;
-    }
-
-    return (
-        <Link
-            href={{
-                pathname: "/select-date",
-                params: {
-                    ticketId: String(item.id),
-                    ticketType: item.type,
-                },
-            }}
-            asChild
-        >
-            {card}
-        </Link>
-    );
 }
-
-const style = StyleSheet.create({
-    card: {
-        width: 240,
-        minHeight: 160,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-    },
-
-    badge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        alignSelf: "flex-start",
-        marginBottom: 12,
-        fontSize: 12,
-        fontWeight: "700",
-    },
-
-    title: {
-        height: 40,
-        fontSize: 14,
-        lineHeight: 20,
-        fontWeight: "700",
-    },
-
-    dateTitle: {
-        marginTop: 16,
-        fontWeight: "800",
-        fontSize: 16,
-    },
-
-    footer: {
-        marginTop: 16,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        gap: 8,
-    },
-
-    meta: {
-        fontSize: 12,
-    },
-
-    onceText: {
-        fontSize: 11,
-        fontWeight: "600",
-    },
-});
 
 export default TicketCard;

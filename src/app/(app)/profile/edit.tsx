@@ -12,9 +12,11 @@ import {
     useGetMemberProfile,
     useUpdateMemberProfile,
 } from "@/lib/hook/useUser";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { GenderEnum } from "@/types/member.type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -60,6 +62,7 @@ function normalizeOptionalText(value: string) {
 }
 
 export default function EditProfileScreen() {
+    const colors = useThemeColors();
     const router = useRouter();
     const { selectedGender } = useLocalSearchParams<EditProfileParams>();
     const {
@@ -69,7 +72,7 @@ export default function EditProfileScreen() {
         error,
     } = useGetMemberProfile();
     const {
-        mutateAsync: updateProfile,
+        mutate: updateProfile,
         isPending: isSubmitting,
     } = useUpdateMemberProfile();
 
@@ -121,18 +124,23 @@ export default function EditProfileScreen() {
         }
     }, [form, router, selectedGender]);
 
-    const onSubmit = async (values: EditProfileFormValues) => {
-        await updateProfile({
-            name: values.name.trim(),
-            phoneNumber: normalizeOptionalText(values.phoneNumber),
-            username: values.username.trim(),
-            gender: values.gender || null,
-            dateOfBirth: normalizeOptionalText(values.dateOfBirth),
-            address: normalizeOptionalText(values.address),
-            memo: normalizeOptionalText(values.memo),
-        });
-
-        router.back();
+    const onSubmit = (values: EditProfileFormValues) => {
+        updateProfile(
+            {
+                name: values.name.trim(),
+                phoneNumber: normalizeOptionalText(values.phoneNumber),
+                username: values.username.trim(),
+                gender: values.gender || null,
+                dateOfBirth: normalizeOptionalText(values.dateOfBirth),
+                address: normalizeOptionalText(values.address),
+                memo: normalizeOptionalText(values.memo),
+            },
+            {
+                onSuccess: () => {
+                    router.back();
+                },
+            },
+        );
     };
 
     if (isLoading) {
@@ -160,7 +168,7 @@ export default function EditProfileScreen() {
                     <Button
                         title={isSubmitting ? "Saving..." : "Save Changes"}
                         loading={isSubmitting}
-                        className="rounded-2xl"
+                        className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit)}
                     />
                 </View>
@@ -243,9 +251,11 @@ export default function EditProfileScreen() {
                                                     {selectedLabel}
                                                 </Text>
 
-                                                <Text className="text-2xl leading-5 text-muted-foreground">
-                                                    ›
-                                                </Text>
+                                                <ChevronRight
+                                                    size={20}
+                                                    color={colors.mutedForeground}
+                                                    strokeWidth={2.25}
+                                                />
                                             </Pressable>
                                         </Link>
                                     </View>
@@ -281,3 +291,4 @@ export default function EditProfileScreen() {
         </Screen>
     );
 }
+

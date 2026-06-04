@@ -7,15 +7,16 @@ import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import {
-    Pressable,
     RefreshControl,
     StyleSheet,
     View,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
+
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
+const CALENDAR_WEEKDAY_PLACEHOLDERS = Array.from({ length: 7 }, (_, index) => index);
+const CALENDAR_WEEK_PLACEHOLDERS = Array.from({ length: 6 }, (_, index) => index);
 
 function getMonthRange(value: Date) {
     const start = new Date(value.getFullYear(), value.getMonth(), 1);
@@ -33,6 +34,58 @@ function isSameMonth(dateString: string, monthDate: Date) {
     return (
         year === monthDate.getFullYear() &&
         month === monthDate.getMonth() + 1
+    );
+}
+
+function getDatesForMonth(value: Date) {
+    const year = value.getFullYear();
+    const month = value.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+        const day = String(index + 1).padStart(2, "0");
+        const monthValue = String(month + 1).padStart(2, "0");
+
+        return `${year}-${monthValue}-${day}`;
+    });
+}
+
+function CalendarLoadingSkeleton() {
+    return (
+        <View className="mx-6 rounded-xl border border-border bg-card px-4 py-5">
+            <View className="mb-5 flex-row items-center justify-between">
+                <View className="h-5 w-24 rounded-md bg-muted" />
+                <View className="flex-row items-center gap-3">
+                    <View className="h-8 w-8 rounded-full bg-muted" />
+                    <View className="h-8 w-8 rounded-full bg-muted" />
+                </View>
+            </View>
+
+            <View className="mb-4 flex-row justify-between">
+                {CALENDAR_WEEKDAY_PLACEHOLDERS.map((index) => (
+                    <View
+                        key={`weekday-${index}`}
+                        className="h-3 w-7 rounded-sm bg-muted"
+                    />
+                ))}
+            </View>
+
+            <View className="gap-4">
+                {CALENDAR_WEEK_PLACEHOLDERS.map((weekIndex) => (
+                    <View
+                        key={`week-${weekIndex}`}
+                        className="flex-row justify-between"
+                    >
+                        {CALENDAR_WEEKDAY_PLACEHOLDERS.map((dayIndex) => (
+                            <View
+                                key={`day-${weekIndex}-${dayIndex}`}
+                                className="h-9 w-9 rounded-full bg-muted"
+                            />
+                        ))}
+                    </View>
+                ))}
+            </View>
+        </View>
     );
 }
 
@@ -58,6 +111,7 @@ export default function DateScreen() {
     const {
         data: baySlotGroupData,
         refetch: refetchBaySlotGroups,
+        isPending: isPendingBaySlotGroups,
         isRefetching: isRefetchingBaySlotGroups,
     } = useMemberBaySlotGroups(
         startDate,
@@ -67,6 +121,7 @@ export default function DateScreen() {
     const {
         data: lessonSlotData,
         refetch: refetchLessonSlots,
+        isPending: isPendingLessonSlots,
         isRefetching: isRefetchingLessonSlots,
     } = useMemberTicketLessonSlots(
         ticketIdNumber,
@@ -97,6 +152,32 @@ export default function DateScreen() {
 
         return dates;
     }, [baySlotGroupData, isLessonTicket, lessonSlotData]);
+    const markedDates = useMemo(() => {
+        const monthDates = getDatesForMonth(visibleMonth);
+
+        return monthDates.reduce<Record<string, object>>((acc, dateString) => {
+            const isPast = dateString < today;
+            const isAvailable = availableDates.has(dateString);
+            const isToday = dateString === today;
+
+            acc[dateString] = {
+                disableTouchEvent: isPast,
+                customStyles: {
+                    container: {
+                        borderRadius: 999,
+                    },
+                    text: {
+                        color: isAvailable
+                            ? colors.primary
+                            : colors.mutedForeground,
+                        fontWeight: isAvailable || isToday ? "700" : "400",
+                    },
+                },
+            };
+
+            return acc;
+        }, {});
+    }, [availableDates, colors.mutedForeground, colors.primary, today, visibleMonth]);
 
     const handleAvailableDatePress = (day: DateData) => {
         router.push({
@@ -113,10 +194,29 @@ export default function DateScreen() {
             position: "bottom",
         });
     };
+    const handleDayPress = (day: DateData) => {
+        const isPast = day.dateString < today;
+        const isCurrentMonth = isSameMonth(day.dateString, visibleMonth);
+        const isAvailable = availableDates.has(day.dateString);
+
+        if (!isCurrentMonth || isPast) {
+            return;
+        }
+
+        if (isAvailable) {
+            handleAvailableDatePress(day);
+            return;
+        }
+
+        handleUnavailableDatePress(day.dateString);
+    };
 
     const isRefreshing = isLessonTicket
         ? isRefetchingLessonSlots
         : isRefetchingBaySlotGroups;
+    const isInitialLoading = isLessonTicket
+        ? !lessonSlotData && isPendingLessonSlots
+        : !baySlotGroupData && isPendingBaySlotGroups;
 
     const handleRefresh = () => {
         if (isLessonTicket) {
@@ -138,115 +238,59 @@ export default function DateScreen() {
                 />
             }
         >
-            <Animated.View
-                entering={FadeInDown.duration(220)}
-                className="px-6"
-            >
-                <View className="gap-1">
-                    <AppText variant="value">Choose a date</AppText>
+            <View className="px-6">
+                <View className="gap-3">
+                    <AppText variant="h3">Choose a date</AppText>
                     <AppText variant="meta" className="text-foreground/75">
                         Select an available day to continue your booking.
                     </AppText>
                 </View>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInDown.delay(80).duration(240)}>
-                <Calendar
-                    style={[s.calendar, { backgroundColor: colors.card }]}
-                    minDate={today}
-                    onMonthChange={(month) => {
-                        setVisibleMonth(new Date(month.year, month.month - 1, 1));
-                    }}
-                    renderArrow={(dir) => (
-                        <Ionicons
-                            name={dir === "left" ? "chevron-back" : "chevron-forward"}
-                            size={20}
-                            color={colors.primary}
-                        />
-                    )}
-                    dayComponent={({ date, state }) => {
-                        if (!date) return null;
-
-                        const isPast = date.dateString < today;
-                        const isCurrentMonth = isSameMonth(date.dateString, visibleMonth);
-                        const hasAvailableTime = availableDates.has(date.dateString);
-                        const shouldShowUnavailableAlert =
-                            isCurrentMonth && !isPast && !hasAvailableTime;
-                        const isUnavailable =
-                            state === "disabled" ||
-                            isPast ||
-                            (isCurrentMonth && !hasAvailableTime);
-                        const isAvailable = isCurrentMonth && !isPast && hasAvailableTime;
-
-                        return (
-                            <Pressable
-                                style={s.dayButton}
-                                onPress={() =>
-                                    shouldShowUnavailableAlert
-                                        ? handleUnavailableDatePress(date.dateString)
-                                        : !isUnavailable
-                                            ? handleAvailableDatePress(date)
-                                            : undefined
-                                }
-                            >
-                                <AppText
-                                    variant="body"
-                                    style={[
-                                        s.dayText,
-                                        { color: colors.foreground },
-                                        !isCurrentMonth && { color: colors.border },
-                                        isUnavailable && { color: colors.border },
-                                        isAvailable && {
-                                            color: colors.primary,
-                                            fontWeight: "700",
-                                        },
-                                        date.dateString === today &&
-                                            !isUnavailable && [
-                                                s.dayTextToday,
-                                                { color: colors.primary },
-                                            ],
-                                    ]}
-                                >
-                                    {date.day}
-                                </AppText>
-                            </Pressable>
-                        );
-                    }}
-                    theme={{
-                        calendarBackground: colors.card,
-                        selectedDayBackgroundColor: colors.primary,
-                        selectedDayTextColor: colors.primaryForeground,
-                        todayTextColor: colors.primary,
-                        textDisabledColor: colors.border,
-                        // @ts-ignore
-                        "stylesheet.calendar.main": {
-                            week: {
-                                marginTop: 18,
-                                marginBottom: 18,
-                                flexDirection: "row",
-                                justifyContent: "space-between",
+            <View>
+                {isInitialLoading ? (
+                    <CalendarLoadingSkeleton />
+                ) : (
+                    <Calendar
+                        style={[s.calendar, { backgroundColor: colors.card }]}
+                        minDate={today}
+                        markedDates={markedDates}
+                        markingType="custom"
+                        disableAllTouchEventsForInactiveDays
+                        onDayPress={handleDayPress}
+                        onMonthChange={(month) => {
+                            setVisibleMonth(new Date(month.year, month.month - 1, 1));
+                        }}
+                        renderArrow={(dir) => (
+                            <Ionicons
+                                name={dir === "left" ? "chevron-back" : "chevron-forward"}
+                                size={20}
+                                color={colors.primary}
+                            />
+                        )}
+                        theme={{
+                            calendarBackground: colors.card,
+                            selectedDayBackgroundColor: colors.primary,
+                            selectedDayTextColor: colors.primaryForeground,
+                            todayTextColor: colors.primary,
+                            textDisabledColor: colors.border,
+                            // @ts-ignore
+                            "stylesheet.calendar.main": {
+                                week: {
+                                    marginTop: 18,
+                                    marginBottom: 18,
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                },
                             },
-                        },
-                    }}
-                />
-            </Animated.View>
+                        }}
+                    />
+                )}
+            </View>
         </Screen>
     );
 }
 
 const s = StyleSheet.create({
     calendar: { height: 520 },
-    dayButton: {
-        width: 32,
-        height: 32,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 16,
-    },
-    dayText: {
-        textAlign: "center",
-    },
-    dayTextToday: {
-        fontWeight: "700",
-    },
 });

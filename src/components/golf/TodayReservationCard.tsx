@@ -19,8 +19,9 @@ function TodayReservationCard({ reservation }: Props) {
             }}
             asChild
         >
-            <Pressable className="self-start rounded-full border border-border bg-muted px-5 py-4 active:bg-secondary">
+            <Pressable className="self-start rounded-xl border border-border bg-muted px-5 py-4 active:bg-secondary">
                 <Text
+                    variant="label"
                     className="text-center text-base font-semibold text-foreground"
                     numberOfLines={1}
                 >

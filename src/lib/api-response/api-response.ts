@@ -178,6 +178,10 @@ export function responseError(input: {
 }): void {
     let message = input.errorMessage || "An unknown error occurred";
 
+    // if (__DEV__ && input.error) {
+    //     console.error("API error:", input.error);
+    // }
+
     if (input.error) {
         const err = input.error as {
             status?: { code?: number; message?: unknown };

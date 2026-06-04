@@ -4,9 +4,10 @@ import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
+import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { MotiView } from "moti";
 import {
     Pressable,
     RefreshControl,
@@ -14,7 +15,7 @@ import {
 } from "react-native";
 
 function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
-    return group.baySlots.filter((slot) => slot.slotStatus === "AVAILABLE").length;
+    return group.baySlots.filter((slot) => !getBaySlotAvailability(slot).isDisabled).length;
 }
 
 export default function TimeScreen() {
@@ -56,12 +57,17 @@ export default function TimeScreen() {
                 />
             }
         >
-            <Animated.View entering={FadeInDown.duration(220)} className="gap-1">
-                <AppText variant="value">Choose a time</AppText>
+            <MotiView
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 180 }}
+                className="gap-1"
+            >
+                <AppText variant="h3">Choose a time</AppText>
                 <AppText variant="meta" className="text-foreground/75">
                     {date}
                 </AppText>
-            </Animated.View>
+            </MotiView>
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -87,23 +93,29 @@ export default function TimeScreen() {
 
             <View className="gap-3">
                 {slotGroups.map((group, index) => (
-                    <Animated.View
+                    <MotiView
                         key={group.id}
-                        entering={FadeInDown.delay(60 + index * 35).duration(220)}
+                        from={{ opacity: 0, translateY: 12 }}
+                        animate={{ opacity: 1, translateY: 0 }}
+                        transition={{
+                            type: "timing",
+                            duration: 180,
+                            delay: 40 + index * 24,
+                        }}
                     >
                         <Pressable
-                            className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4 active:bg-surface"
+                            className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
                             onPress={() => handleSelect(group)}
                         >
                             <AppText variant="body" className="font-medium text-foreground">
                                 {formatTimeRange(group.startDateTime, group.endDateTime)}
                             </AppText>
 
-                            <AppText variant="label" className="text-primary">
+                            <AppText variant="count" className="text-primary">
                                 {getAvailableBayCount(group)} bays
                             </AppText>
                         </Pressable>
-                    </Animated.View>
+                    </MotiView>
                 ))}
             </View>
         </Screen>

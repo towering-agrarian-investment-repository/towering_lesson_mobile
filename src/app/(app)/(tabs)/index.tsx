@@ -1,4 +1,4 @@
-import GolfHeader from "@/components/golf/GolfHeader";
+import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
 import { CircleLoader } from "@/components/ui/CircleLoader";
@@ -68,6 +68,15 @@ export default function HomeScreen() {
     <Screen
       headerShown={false}
       contentClassName="flex-grow"
+      footer={
+        <Link href="/reservation" asChild>
+          <Pressable className="mx-6 rounded-xl bg-primary py-4 active:opacity-80">
+            <Text variant="label" className="text-center text-base font-bold text-primary-foreground">
+              VIEW MY RESERVATIONS
+            </Text>
+          </Pressable>
+        </Link>
+      }
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -77,30 +86,22 @@ export default function HomeScreen() {
         />
       }
     >
-      <View className="flex-1 justify-between">
+      <View className="flex-1 gap-8">
+        {/* <GolfHeader /> */}
+        <HappyGolfLogo width={148} height={35} />
+
+        {member ? (
+          <MyTicket member={member} />
+        ) : (
+          <EmptyState
+            title="No member profile found"
+            message="This account does not have a member profile yet."
+          />
+        )}
+
         <View className="flex-1">
-          <GolfHeader />
-          {member ? (
-            <MyTicket member={member} />
-          ) : (
-            <EmptyState
-              title="No member profile found"
-              message="This account does not have a member profile yet."
-            />
-          )}
-
-          <View className="flex-1">
-            <TodayReservation />
-          </View>
+          <TodayReservation />
         </View>
-
-        <Link href="/reservation" asChild>
-          <Pressable className="mt-4 rounded-2xl bg-primary py-4 active:opacity-80">
-            <Text className="text-center text-base font-bold text-primary-foreground">
-              VIEW MY RESERVATIONS
-            </Text>
-          </Pressable>
-        </Link>
       </View>
     </Screen>
   );

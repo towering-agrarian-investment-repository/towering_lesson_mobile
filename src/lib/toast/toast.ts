@@ -1,8 +1,8 @@
-type ToastType = "success" | "error" | "warning" | "info";
+export type ToastType = "success" | "error" | "warning" | "info";
 
-type ToastPosition = "top" | "bottom";
+export type ToastPosition = "top" | "bottom";
 
-type ToastOptions = {
+export type ToastOptions = {
     message: string;
     type?: ToastType;
     duration?: number;

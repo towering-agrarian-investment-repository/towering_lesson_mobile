@@ -1,6 +1,5 @@
 import { AppText as Text } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
-import { StyleSheet, View } from 'react-native';
+import { View } from "react-native";
 
 type Props = {
     label: string;
@@ -8,45 +7,21 @@ type Props = {
 }
 
 function TitleSectionWithBadge({ label, length }: Props) {
-    const colors = useThemeColors();
-
     return (
-        <View style={style.titleRow}>
-            <Text style={[style.sectionTitle, { color: colors.secondaryForeground }]}>
+        <View className="flex-row items-baseline gap-2">
+            <Text variant="h3" className="text-secondary-foreground">
                 {label}
             </Text>
 
-            <View style={[style.lengthBadge, { backgroundColor: colors.primary }]}>
-                <Text style={[style.lengthBadgeText, { color: colors.primaryForeground }]}>
+            <View className="h-[22px] w-[22px] items-center justify-center rounded-full -translate-y-0.5 bg-notification">
+                <Text
+                    variant="count"
+                    className="text-xs font-bold text-primary-foreground"
+                >
                     {length}
                 </Text>
             </View>
-        </View>)
+        </View>
+    );
 }
-
-const style = StyleSheet.create({
-    titleRow: {
-        flexDirection: "row",
-        alignItems: "baseline",
-        gap: 8,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: "600",
-        marginTop: 30,
-        marginBottom: 16,
-    },
-    lengthBadge: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        justifyContent: "center",
-        alignItems: "center",
-        transform: [{ translateY: -2 }],
-    },
-    lengthBadgeText: {
-        fontSize: 12,
-        fontWeight: "700",
-    }
-});
 export default TitleSectionWithBadge

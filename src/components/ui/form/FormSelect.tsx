@@ -107,7 +107,7 @@ export function FormSelect<
                                     onPress={() => setIsOpen(false)}
                                 >
                                     <Pressable
-                                        className="rounded-t-3xl bg-card px-6 pb-8 pt-5"
+                                        className="rounded-t-xl bg-card px-6 pb-8 pt-5"
                                         onPress={() => undefined}
                                     >
                                         <View className="mb-4 flex-row items-center justify-between">
@@ -138,7 +138,7 @@ export function FormSelect<
                                                     onChange(emptyValue);
                                                     setIsOpen(false);
                                                 }}
-                                                className={`mb-2 rounded-2xl border px-4 py-4 ${
+                                                className={`mb-3 rounded-xl border px-5 py-4 ${
                                                     !selectedValue
                                                         ? "border-success bg-success/10"
                                                         : "border-border bg-card"
@@ -166,7 +166,7 @@ export function FormSelect<
                                                             onChange(option.value);
                                                             setIsOpen(false);
                                                         }}
-                                                        className={`mb-2 flex-row items-center rounded-2xl border px-4 py-4 ${
+                                                        className={`mb-3 flex-row items-center rounded-xl border px-5 py-4 ${
                                                             isSelected
                                                                 ? "border-success bg-success/10"
                                                                 : "border-border bg-card"

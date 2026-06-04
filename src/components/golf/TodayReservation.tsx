@@ -10,7 +10,7 @@ function TodayReservation() {
     const { data: todayReservations = [], isLoading: todayReservationsLoading, isError: todayReservationError } = useTodayMemberReservations();
 
     return (
-        <View className="flex-1">
+        <View className="flex-1 gap-4">
             <TitleSectionWithBadge label="Today's Reservation" length={todayReservations.length} />
 
             {todayReservationsLoading ? (
@@ -34,10 +34,10 @@ function TodayReservation() {
                 </View>
             ) : todayReservations.length === 0 ? (
                 <View className="flex-1 justify-center">
-                    <EmptyState
+                    {/* <EmptyState
                         title="No reservations today"
                         message="Today's reservations will appear here."
-                    />
+                    /> */}
                 </View>
             ) : (
                 <FlatList
@@ -58,7 +58,7 @@ function TodayReservation() {
 const style = StyleSheet.create({
     listContent: {
         gap: 12,
-        paddingVertical: 10,
+        paddingVertical: 12,
         alignItems: "flex-start",
     },
 });

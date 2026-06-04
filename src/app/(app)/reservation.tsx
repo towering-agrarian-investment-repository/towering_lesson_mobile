@@ -3,6 +3,7 @@ import {
     FlatList,
     Pressable,
     RefreshControl,
+    ScrollView,
     View,
 } from "react-native";
 
@@ -12,6 +13,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
+import { cn } from "@/design-system";
 import { useMemberReservations } from "@/lib/hook/useReservation";
 import { MemberReservationType } from "@/service/reservation.service";
 import type {
@@ -140,29 +142,45 @@ function ReservationTabs({
     onTabChange: (tab: MemberReservationType) => void;
 }) {
     return (
-        <View className="flex-row border-b border-border">
-            {RESERVATION_TABS.map((tab) => {
-                const isActive = activeTab === tab;
+        <View className="border-b border-border bg-background">
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+            >
+                <View className="flex-row items-end gap-2">
+                {RESERVATION_TABS.map((tab) => {
+                    const isActive = activeTab === tab;
 
-                return (
-                    <Pressable
-                        key={tab}
-                        onPress={() => onTabChange(tab)}
-                        className="flex-1 items-center pb-3"
-                    >
-                        <AppText
-                            variant="label"
-                            className={isActive ? "text-primary" : "text-muted-foreground"}
+                    return (
+                        <Pressable
+                            key={tab}
+                            onPress={() => onTabChange(tab)}
+                            className="items-center gap-2 px-3 pb-2 pt-3"
                         >
-                            {TAB_LABELS[tab]}
-                        </AppText>
+                            <AppText
+                                variant="label"
+                                className={cn(
+                                    "text-base font-semibold",
+                                    isActive && "text-primary",
+                                    !isActive && "text-foreground/65",
+                                )}
+                            >
+                                {TAB_LABELS[tab]}
+                            </AppText>
 
-                        {isActive ? (
-                            <View className="absolute bottom-0 h-0.5 w-full rounded-full bg-primary" />
-                        ) : null}
-                    </Pressable>
-                );
-            })}
+                            <View
+                                className={cn(
+                                    "h-0.5 w-8 rounded-full",
+                                    isActive && "bg-primary",
+                                    !isActive && "bg-transparent",
+                                )}
+                            />
+                        </Pressable>
+                    );
+                })}
+                </View>
+            </ScrollView>
         </View>
     );
 }
@@ -196,7 +214,7 @@ function ReservationListHeaderSkeleton() {
 
 function ReservationCardSkeleton() {
     return (
-        <View className="overflow-hidden rounded-2xl border border-border bg-card p-4">
+        <View className="overflow-hidden rounded-xl border border-border bg-card p-4">
             <View className="flex-col gap-4">
                 <View className="flex-row items-center gap-3">
                     <Skeleton className="h-2.5 w-2.5 rounded-full" />
@@ -207,7 +225,7 @@ function ReservationCardSkeleton() {
                 <Skeleton className="h-px w-full rounded-none" />
 
                 <View className="flex-row items-center gap-3">
-                    <View className="h-[82px] w-[72px] flex-col gap-3 rounded-2xl bg-muted px-3 py-3">
+                    <View className="h-[82px] w-[72px] flex-col gap-3 rounded-lg bg-muted px-3 py-3">
                         <Skeleton className="h-4 w-8 rounded-full" />
                         <Skeleton className="h-8 w-12 rounded-full" />
                     </View>
@@ -236,7 +254,7 @@ function ReservationListHeader({
         <View className="flex-row items-center justify-between pb-4">
             <AppText
                 selectable
-                variant="meta"
+                variant="count"
                 className="text-foreground/75"
                 style={{ fontVariant: ["tabular-nums"] }}
             >

@@ -20,13 +20,13 @@ export function ReservationDetailField({
     leftElement?: ReactNode;
 }) {
     return (
-        <View className="flex-col gap-2">
+        <View className="flex-col gap-3">
             <ReservationFieldLabel>{label}</ReservationFieldLabel>
 
             <View className="flex-row items-center gap-3">
                 {leftElement ? leftElement : null}
 
-                <View className="flex-1 flex-col gap-2">
+                <View className="flex-1 flex-col gap-3">
                     <ReservationFieldValue>{value}</ReservationFieldValue>
 
                     {description ? (
@@ -48,15 +48,15 @@ export function ReservationPoliciesSection({
     policies: readonly ReservationPolicy[];
 }) {
     return (
-        <View className="flex-col gap-4">
-            <AppText variant="value" className="text-foreground">
+        <View className="flex-col gap-3">
+            <AppText variant="h3" className="text-foreground">
                 {title}
             </AppText>
 
-            <View className="gap-4">
+            <View className="gap-3">
                 {policies.map((policy) => (
-                    <View key={policy.title} className="flex-col gap-2">
-                        <AppText variant="body" className="text-foreground">
+                    <View key={policy.title} className="flex-col gap-3">
+                        <AppText variant="label" className="text-foreground">
                             - {policy.title}
                         </AppText>
 
@@ -79,7 +79,7 @@ export function ReservationFieldLabel({
 } & ComponentProps<typeof AppText>) {
     return (
         <AppText
-            variant="value"
+            variant="eyebrow"
             className={cn("text-foreground", className)}
             {...props}
         >
@@ -97,8 +97,8 @@ export function ReservationFieldValue({
 } & ComponentProps<typeof AppText>) {
     return (
         <AppText
-            variant="h3"
-            className={cn("text-foreground", className)}
+            variant="body"
+            className={cn("font-medium text-foreground", className)}
             {...props}
         >
             {children}

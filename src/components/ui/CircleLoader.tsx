@@ -1,6 +1,7 @@
 import { AppText } from "@/design-system";
 import { useThemeColors } from "@/design-system/utils/theme";
-import { Image, ActivityIndicator, View } from "react-native";
+import { MotiView } from "moti";
+import { Image, View } from "react-native";
 
 type CircleLoaderProps = {
     label?: string;
@@ -14,6 +15,7 @@ export function CircleLoader({
     logoOnly = false,
 }: CircleLoaderProps) {
     const colors = useThemeColors();
+    const dotSize = fullScreen ? 12 : 8;
 
     return (
         <View
@@ -24,20 +26,49 @@ export function CircleLoader({
             }
         >
             {logoOnly ? (
-                <Image
-                    source={require("../../../assets/images/happygolf_toolbar_logo.png")}
-                    className="h-14 w-64"
-                    resizeMode="contain"
-                />
+                <MotiView
+                    from={{ opacity: 0.75, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                        type: "timing",
+                        duration: 720,
+                        loop: true,
+                        repeatReverse: true,
+                    }}
+                >
+                    <Image
+                        source={require("../../../assets/images/happygolf_toolbar_logo.png")}
+                        className="h-14 w-64"
+                        resizeMode="contain"
+                    />
+                </MotiView>
             ) : (
-                <ActivityIndicator
-                    size={fullScreen ? "large" : "small"}
-                    color={colors.primary}
-                />
+                <View className="flex-row items-center gap-2">
+                    {[0, 1, 2].map((index) => (
+                        <MotiView
+                            key={index}
+                            from={{ opacity: 0.35, scale: 0.9, translateY: 0 }}
+                            animate={{ opacity: 1, scale: 1.15, translateY: -2 }}
+                            transition={{
+                                type: "timing",
+                                duration: 420,
+                                delay: index * 90,
+                                loop: true,
+                                repeatReverse: true,
+                            }}
+                            style={{
+                                width: dotSize,
+                                height: dotSize,
+                                borderRadius: 999,
+                                backgroundColor: colors.primary,
+                            }}
+                        />
+                    ))}
+                </View>
             )}
 
             {label && !logoOnly ? (
-                <AppText variant="subtext" className="mt-3 text-foreground/75">
+                <AppText variant="meta" className="mt-3 text-foreground/75">
                     {label}
                 </AppText>
             ) : null}

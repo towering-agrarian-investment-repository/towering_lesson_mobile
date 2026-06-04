@@ -86,7 +86,7 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                                     setIsOpen(true);
                                 }}
                                 disabled={!editable}
-                                className={`flex-row items-center rounded-2xl border px-4 py-3 ${fieldState.error
+                                className={`flex-row items-center rounded-xl border px-5 py-4 ${fieldState.error
                                     ? "border-danger"
                                     : "border-border"
                                     } ${!editable ? "opacity-60" : "bg-card"}`}

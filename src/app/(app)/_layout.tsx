@@ -8,10 +8,39 @@ import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 const queryClient = new QueryClient();
 const bookingFlowScreenOptions = {
     animation: "slide_from_right" as const,
-    animationDuration: 220,
+    animationDuration: 200,
     fullScreenGestureEnabled: true,
     gestureEnabled: true,
 };
+
+function getToastStyles(
+    colors: ReturnType<typeof useThemeColors>,
+    type: "success" | "error" | "warning" | "info",
+) {
+    const backgroundColor =
+        type === "error"
+            ? colors.danger
+            : type === "success"
+              ? colors.success
+              : type === "warning"
+                ? colors.warning
+                : colors.primary;
+    const textColor = type === "warning" ? colors.foreground : colors.primaryForeground;
+
+    return {
+        containerStyle: {
+            backgroundColor,
+            borderRadius: 14,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+        },
+        textStyle: {
+            color: textColor,
+            fontSize: 15,
+            fontWeight: "600" as const,
+        },
+    };
+}
 
 export default function AppLayout() {
     const colors = useThemeColors();
@@ -152,42 +181,23 @@ function ToastBridge() {
 
     useEffect(() => {
         registerToastHandler((options) => {
-            const isError = options.type === "error";
-            const isSuccess = options.type === "success";
-            const isWarning = options.type === "warning";
-
-            const backgroundColor = isError
-                ? colors.danger
-                : isSuccess
-                  ? colors.success
-                  : isWarning
-                    ? colors.warning
-                    : colors.foreground;
-            const textColor = isWarning ? colors.foreground : colors.primaryForeground;
+            const toastType = options.type ?? "info";
+            const { containerStyle, textStyle } = getToastStyles(colors, toastType);
 
             showToast({
                 message: options.message,
-                type: options.type ?? "info",
+                type: toastType,
                 duration: options.duration ?? 3000,
                 position: options.position ?? "bottom",
-                containerStyle: {
-                    backgroundColor,
-                    borderRadius: 16,
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                },
-                textStyle: {
-                    color: textColor,
-                    fontSize: 15,
-                    fontWeight: "600",
-                },
+                containerStyle,
+                textStyle,
             });
         });
 
         return () => {
             registerToastHandler(null);
         };
-    }, [colors.danger, colors.foreground, colors.primaryForeground, colors.success, colors.warning, showToast]);
+    }, [colors, showToast]);
 
     return null;
 }

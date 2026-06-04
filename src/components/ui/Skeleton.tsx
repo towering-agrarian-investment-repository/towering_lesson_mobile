@@ -1,40 +1,22 @@
-import { useEffect, useState } from "react";
-import { Animated, View } from "react-native";
+import { MotiView } from "moti";
+import { View } from "react-native";
 
 type SkeletonProps = {
     className?: string;
 };
 
 export function Skeleton({ className = "" }: SkeletonProps) {
-    const [opacity] = useState(() => new Animated.Value(0.45));
-
-    useEffect(() => {
-        const animation = Animated.loop(
-            Animated.sequence([
-                Animated.timing(opacity, {
-                    toValue: 1,
-                    duration: 800,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(opacity, {
-                    toValue: 0.45,
-                    duration: 800,
-                    useNativeDriver: true,
-                }),
-            ]),
-        );
-
-        animation.start();
-
-        return () => {
-            animation.stop();
-        };
-    }, [opacity]);
-
     return (
-        <Animated.View
-            style={{ opacity }}
-            className={`overflow-hidden rounded-2xl bg-muted ${className}`}
+        <MotiView
+            from={{ opacity: 0.45 }}
+            animate={{ opacity: 1 }}
+            transition={{
+                type: "timing",
+                duration: 700,
+                loop: true,
+                repeatReverse: true,
+            }}
+            className={`overflow-hidden rounded-xl bg-muted ${className}`}
         />
     );
 }

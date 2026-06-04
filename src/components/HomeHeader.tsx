@@ -14,7 +14,7 @@ export default function HomeHeader() {
 
     return (
         <View style={styles.header}>
-            <Text style={[styles.date, { color: colors.secondaryForeground }]}>
+            <Text variant="meta" style={[styles.date, { color: colors.secondaryForeground }]}>
                 {currentDate}
             </Text>
         </View>

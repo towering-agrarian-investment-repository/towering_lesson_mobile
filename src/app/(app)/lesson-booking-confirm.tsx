@@ -7,7 +7,7 @@ import { Button, Divider } from "@/design-system";
 import { useCreateMemberLessonReservation } from "@/lib/hook/useReservation";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { MotiView } from "moti";
 import {
     View
 } from "react-native";
@@ -44,34 +44,39 @@ export default function LessonBookingConfirmScreen() {
     }>();
     const router = useRouter();
     const {
-        mutateAsync: createReservation,
+        mutate: createReservation,
         isPending: isSubmitting,
     } = useCreateMemberLessonReservation();
 
-    const handleConfirm = async () => {
+    const handleConfirm = () => {
         if (!ticketId || !lessonAvailabilityId) {
             return;
         }
 
-        const response = await createReservation({
-            ticketId: Number(ticketId),
-            lessonAvailabilityId: Number(lessonAvailabilityId),
-        });
+        createReservation(
+            {
+                ticketId: Number(ticketId),
+                lessonAvailabilityId: Number(lessonAvailabilityId),
+            },
+            {
+                onSuccess: (response) => {
+                    const reservation = response.data;
 
-        const reservation = response.data;
+                    if (reservation) {
+                        router.replace({
+                            pathname: "/reservation/[id]",
+                            params: {
+                                id: String(reservation.id),
+                                type: reservation.reservationType,
+                            },
+                        });
+                        return;
+                    }
 
-        if (reservation) {
-            router.replace({
-                pathname: "/reservation/[id]",
-                params: {
-                    id: String(reservation.id),
-                    type: reservation.reservationType,
+                    router.replace("/reservation");
                 },
-            });
-            return;
-        }
-
-        router.replace("/reservation");
+            },
+        );
     };
 
     const reservationName = lessonName ?? "Private Lesson";
@@ -82,8 +87,10 @@ export default function LessonBookingConfirmScreen() {
         <Screen
             contentClassName="flex-1"
             footer={
-                <Animated.View
-                    entering={FadeInDown.delay(120).duration(220)}
+                <MotiView
+                    from={{ opacity: 0, translateY: 12 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{ type: "timing", duration: 180, delay: 80 }}
                     className="border-t border-border bg-background px-6 pb-8 pt-4"
                 >
                     <Button
@@ -92,10 +99,15 @@ export default function LessonBookingConfirmScreen() {
                         disabled={isSubmitting || !ticketId || !lessonAvailabilityId}
                         onPress={handleConfirm}
                     />
-                </Animated.View>
+                </MotiView>
             }
         >
-            <Animated.View entering={FadeInDown.duration(220)} className="grow">
+            <MotiView
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 180 }}
+                className="grow"
+            >
                 <View className="gap-4">
                     <ReservationDetailField
                         label="Reservation Name"
@@ -120,7 +132,7 @@ export default function LessonBookingConfirmScreen() {
                     <Divider className="bg-border" />
                     <ReservationPoliciesSection policies={POLICIES} />
                 </View>
-            </Animated.View>
+            </MotiView>
         </Screen>
     );
 }

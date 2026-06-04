@@ -112,7 +112,7 @@ export function useCreateMemberBayReservation() {
             queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
         },
         onError: (error) => {
-            // responseError({ error });
+            responseError({ error });
         },
     });
 }

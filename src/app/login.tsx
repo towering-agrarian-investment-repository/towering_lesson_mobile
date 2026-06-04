@@ -1,16 +1,17 @@
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { Screen } from "@/components/ui/Screen";
-import { AppText, Button } from "@/design-system";
 import {
     FormPasswordInput,
     FormTextInput,
 } from "@/components/ui/form";
-import { Image } from "expo-image";
+import { Screen } from "@/components/ui/Screen";
+import { AppText } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { signIn } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -22,6 +23,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [isLoginPressed, setIsLoginPressed] = useState(false);
+    const colors = useThemeColors();
 
     const form = useForm<LoginFormValues>({
         defaultValues: {
@@ -64,62 +67,98 @@ export default function LoginScreen() {
         <Screen
             headerShown={false}
             keyboardAware
-            contentClassName="justify-center"
+            scroll={false}
+            horizontalPadding={false}
+            contentClassName="justify-start"
         >
-            <View className="gap-10">
-                <View className="items-start gap-6">
-                    <Image
-                        source={require("../../assets/images/happygolf_toolbar_logo.png")}
-                        style={{
-                            width: 200,
-                            height: 50,
-                        }}
-                        contentFit="contain"
-                    />
+            <View className="relative flex-1">
+                <View className="gap-10 px-6 pb-40 pt-6">
+                    <View className="items-start gap-5">
+                        <Image
+                            source={require("../../assets/images/img_go.png")}
+                            style={{
+                                width: 64,
+                                height: 40,
+                            }}
+                            contentFit="contain"
+                        />
+                        <View className="gap-3">
+                            <AppText selectable variant="h1">
+                                Start HappyGolf
+                            </AppText>
+                        </View>
+                    </View>
 
-                    <View className="gap-2">
-                        <AppText selectable variant="h1">
-                            Start HappyGolf
-                        </AppText>
+                    <View className="gap-6">
+                        <View className="gap-5">
+                            <FormTextInput
+                                control={form.control}
+                                name="username"
+                                label="Username"
+                                placeholder="user_01000000000"
+                                // keyboardType="phone-pad"
+                                autoCapitalize="none"
+                                editable={!isLoggingIn}
+                            />
 
-                        <AppText
-                            selectable
-                            variant="subtext"
-                            className="text-foreground/80"
+                            <FormPasswordInput
+                                control={form.control}
+                                name="password"
+                                label="Password"
+                                placeholder="Enter password"
+                                editable={!isLoggingIn}
+                            />
+                        </View>
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={isLoggingIn ? "Logging in" : "Login"}
+                            disabled={isLoggingIn}
+                            className={isLoggingIn ? "overflow-hidden rounded-xl opacity-50" : "overflow-hidden rounded-xl"}
+                            onPress={form.handleSubmit(handleLogin)}
+                            onPressIn={() => setIsLoginPressed(true)}
+                            onPressOut={() => setIsLoginPressed(false)}
                         >
-                            Sign in to view your reservations, tickets, and lesson details.
-                        </AppText>
+                            <LinearGradient
+                                colors={
+                                    isLoginPressed
+                                        ? [colors.btnMainPressedStart, colors.btnMainPressedEnd]
+                                        : [colors.btnMainStart, colors.btnMainEnd]
+                                }
+                                start={{ x: 0, y: 0.5 }}
+                                end={{ x: 1, y: 0.5 }}
+                                style={{
+                                    minHeight: 56,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    paddingHorizontal: 24,
+                                    borderRadius: 12,
+                                }}
+                            >
+                                <AppText
+                                    variant="label"
+                                    className="text-base font-semibold text-primary-foreground"
+                                >
+                                    {isLoggingIn ? "LOGGING IN..." : "LOGIN"}
+                                </AppText>
+                            </LinearGradient>
+                        </Pressable>
                     </View>
                 </View>
 
-                <View className="gap-6">
-                    <View className="gap-5">
-                        <FormTextInput
-                            control={form.control}
-                            name="username"
-                            label="Username"
-                            placeholder="Enter username"
-                            autoCapitalize="none"
-                            editable={!isLoggingIn}
-                        />
-
-                        <FormPasswordInput
-                            control={form.control}
-                            name="password"
-                            label="Password"
-                            placeholder="Enter password"
-                            editable={!isLoggingIn}
-                        />
-                    </View>
-
-                    <Button
-                        title={isLoggingIn ? "Logging In..." : "Log In"}
-                        size="lg"
-                        loading={isLoggingIn}
-                        className="rounded-2xl"
-                        onPress={form.handleSubmit(handleLogin)}
-                    />
-                </View>
+                <Image
+                    source={require("../../assets/images/img_golf_filed.png")}
+                    style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: "100%",
+                        aspectRatio: 2390 / 424,
+                    }}
+                    contentFit="contain"
+                    contentPosition="center"
+                />
             </View>
         </Screen>
     );

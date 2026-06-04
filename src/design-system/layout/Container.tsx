@@ -6,5 +6,5 @@ type ContainerProps = ViewProps & {
 };
 
 export function Container({ className, ...props }: ContainerProps) {
-    return <View className={cn("w-full px-4", className)} {...props} />;
+    return <View className={cn("w-full px-5", className)} {...props} />;
 }

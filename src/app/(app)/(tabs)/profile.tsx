@@ -2,12 +2,14 @@ import { CircleLoader } from "@/components/ui/CircleLoader";
 import { Screen } from "@/components/ui/Screen";
 import { ErrorState } from "@/components/ui/StateCard";
 import { AppText, type ThemePreference, useThemePreference } from "@/design-system";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import { signOut } from "@/service/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { Alert, Pressable, RefreshControl, View } from "react-native";
 
@@ -292,11 +294,11 @@ function ProfileAvatar({
 function StatusBadge({ isActive }: { isActive?: boolean }) {
     return (
         <View
-            className={`self-start rounded-full px-3.5 py-1 ${isActive ? "bg-success/10" : "bg-danger/10"
+            className={`self-start rounded-md px-3.5 py-1 ${isActive ? "bg-success/10" : "bg-danger/10"
                 }`}
         >
             <AppText
-                variant="label"
+                variant="badge"
                 className={isActive ? "text-success" : "text-danger"}
             >
                 {isActive ? "Active" : "Inactive"}
@@ -308,7 +310,7 @@ function StatusBadge({ isActive }: { isActive?: boolean }) {
 function SectionTitle({ title }: { title: string }) {
     return (
         <AppText
-            variant="value"
+            variant="eyebrow"
             className="text-foreground"
         >
             {title}
@@ -331,7 +333,7 @@ function InfoRow({
         <View className="flex-row items-start justify-between gap-4 border-b border-border py-4">
             <AppText
                 selectable
-                variant="label"
+                variant="eyebrow"
                 className="min-w-[104px] text-foreground/75"
             >
                 {label}
@@ -339,7 +341,7 @@ function InfoRow({
 
             <AppText
                 selectable
-                variant="subtext"
+                variant="body"
                 className="min-w-0 flex-1 text-right text-foreground"
             >
                 {value}
@@ -396,7 +398,7 @@ function ParentRow({
 
                 <AppText
                     selectable
-                    variant="meta"
+                    variant="count"
                     className="text-foreground/75"
                     style={{ fontVariant: ["tabular-nums"] }}
                 >
@@ -408,16 +410,20 @@ function ParentRow({
 }
 
 function LinkRow({ label, href }: { label: string; href: Href }) {
+    const colors = useThemeColors();
+
     return (
         <Link href={href} asChild>
-            <Pressable className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4 active:bg-surface">
+            <Pressable className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface">
                 <AppText variant="body" className="text-foreground">
                     {label}
                 </AppText>
 
-                <AppText className="text-xl leading-5 text-foreground/45">
-                    ›
-                </AppText>
+                <ChevronRight
+                    size={20}
+                    color={colors.mutedForeground}
+                    strokeWidth={2.25}
+                />
             </Pressable>
         </Link>
     );
@@ -432,6 +438,7 @@ function ThemePreferenceRow({
     preference: ThemePreference;
     onChange: (preference: ThemePreference) => void;
 }) {
+    const colors = useThemeColors();
     const themeOptions: { label: string; value: ThemePreference }[] = [
         { label: "System", value: "system" },
         { label: "Light", value: "light" },
@@ -465,7 +472,7 @@ function ThemePreferenceRow({
             accessibilityLabel="Choose app appearance"
             disabled={disabled}
             onPress={openThemePicker}
-            className={`flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4 ${disabled ? "opacity-60" : "active:bg-surface"
+            className={`flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 ${disabled ? "opacity-60" : "active:bg-surface"
                 }`}
         >
             <AppText variant="body" className="text-foreground">
@@ -477,9 +484,11 @@ function ThemePreferenceRow({
                     {selectedLabel}
                 </AppText>
 
-                <AppText className="text-xl leading-5 text-foreground/45">
-                    {">"}
-                </AppText>
+                <ChevronRight
+                    size={20}
+                    color={colors.mutedForeground}
+                    strokeWidth={2.25}
+                />
             </View>
         </Pressable>
     );
@@ -496,7 +505,7 @@ function SignOutButton({
         <Pressable
             onPress={onPress}
             disabled={isSigningOut}
-            className={`rounded-2xl border px-4 py-4 ${isSigningOut
+            className={`rounded-xl border px-4 py-4 ${isSigningOut
                 ? "border-danger/20 bg-danger/10"
                 : "border-danger/20 bg-danger/10 active:opacity-80"
                 }`}

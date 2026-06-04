@@ -43,17 +43,17 @@ function ReservationCard({ reservation }: Props) {
         <Link href={detailHref} asChild>
             <Pressable className="active:bg-muted">
                 <Card
-                    className={`flex-col gap-4 overflow-hidden p-4 ${
+                    className={`flex-col gap-3 overflow-hidden p-5 ${
                         isTodayReservation
                             ? tone.emphasisBorderClassName
                             : tone.borderClassName
                     }`}
                 >
-                    <View className="flex-row items-center gap-2">
+                    <View className="flex-row items-center gap-3">
                         <View className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`} />
 
                         <AppText
-                            variant="body"
+                            variant="label"
                             className="min-w-0 flex-1 font-medium"
                             numberOfLines={1}
                         >
@@ -67,13 +67,13 @@ function ReservationCard({ reservation }: Props) {
                     <View className="flex-row items-center gap-3">
                         <ReservationDateBadge date={startDate} tone={tone} />
 
-                        <View className="min-w-0 flex-1 flex-col gap-1.5">
-                            <AppText variant="label" className="text-foreground/75">
+                        <View className="min-w-0 flex-1 flex-col gap-3">
+                            <AppText variant="eyebrow" className="text-foreground/75">
                                 Time
                             </AppText>
 
                             <AppText
-                                variant="value"
+                                variant="h3"
                                 className="text-foreground"
                                 numberOfLines={1}
                             >
@@ -127,11 +127,11 @@ function ReservationDateBadge({
 }) {
     return (
         <View
-            className={`h-[82px] w-[72px] shrink-0 overflow-hidden rounded-2xl border ${tone.borderClassName} ${tone.surfaceClassName}`}
+            className={`h-[82px] w-[72px] shrink-0 overflow-hidden rounded-lg border ${tone.borderClassName} ${tone.surfaceClassName}`}
         >
             <View className="flex-1 items-center justify-center px-2">
                 <AppText
-                    variant="meta"
+                    variant="badge"
                     className={tone.badgeTextClassName}
                     numberOfLines={1}
                 >

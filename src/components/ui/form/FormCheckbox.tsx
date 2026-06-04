@@ -40,12 +40,12 @@ export function FormCheckbox<TFieldValues extends FieldValues>({
                                 }`}
                         >
                             <View className="flex-1">
-                                <Text className="font-medium text-foreground">
+                                <Text variant="body" className="font-medium text-foreground">
                                     {label}
                                 </Text>
 
                                 {description ? (
-                                    <Text className="mt-1 text-sm leading-5 text-muted-foreground">
+                                    <Text variant="subtext" className="mt-1 leading-5 text-muted-foreground">
                                         {description}
                                     </Text>
                                 ) : null}

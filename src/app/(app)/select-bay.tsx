@@ -1,14 +1,16 @@
-import { Skeleton } from "@/components/ui/Skeleton";
 import { Screen } from "@/components/ui/Screen";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotScheduleResponse } from "@/types/member-bay";
+import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { MotiView } from "moti";
 import {
     Pressable,
+    RefreshControl,
     View,
 } from "react-native";
 
@@ -29,7 +31,13 @@ export default function BayScreen() {
         slotGroupId?: string;
     }>();
     const router = useRouter();
-    const { data, isLoading, isError } = useMemberBaySlotGroups(
+    const {
+        data,
+        isLoading,
+        isError,
+        refetch,
+        isRefetching,
+    } = useMemberBaySlotGroups(
         date,
         date,
         Boolean(date),
@@ -49,6 +57,7 @@ export default function BayScreen() {
             params: {
                 date,
                 ticketId,
+                slotGroupId: String(slotGroup.id),
                 baySlotId: String(baySlot.id),
                 bayName: baySlot.bayName,
                 startTime: slotGroup.startDateTime,
@@ -58,15 +67,30 @@ export default function BayScreen() {
     };
 
     return (
-        <Screen contentClassName="gap-6">
-            <Animated.View entering={FadeInDown.duration(220)} className="gap-1">
-                <AppText variant="value">Choose a bay</AppText>
+        <Screen
+            contentClassName="gap-6"
+            refreshControl={
+                <RefreshControl
+                    refreshing={isRefetching}
+                    onRefresh={() => {
+                        void refetch();
+                    }}
+                />
+            }
+        >
+            <MotiView
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 180 }}
+                className="gap-1"
+            >
+                <AppText variant="h3">Choose a bay</AppText>
                 <AppText variant="meta" className="text-foreground/75">
                     {slotGroup
                         ? formatTimeRange(slotGroup.startDateTime, slotGroup.endDateTime)
                         : date}
                 </AppText>
-            </Animated.View>
+            </MotiView>
 
             {isLoading ? (
                 <View className="gap-3">
@@ -75,7 +99,7 @@ export default function BayScreen() {
                             {row.map((item) => (
                                 <View
                                     key={item}
-                                    className="flex-1 rounded-2xl border border-border bg-card px-3 py-4"
+                                    className="flex-1 rounded-xl border border-border bg-card px-3 py-4"
                                 >
                                     <View className="items-center gap-2">
                                         <Skeleton className="h-5 w-16 rounded-full" />
@@ -109,42 +133,52 @@ export default function BayScreen() {
                 {bayRows.map((row, rowIndex) => (
                     <View key={rowIndex} className="flex-row gap-3">
                         {row.map((bay, index) => {
-                            const available = bay.slotStatus === "AVAILABLE";
+                            const { isBlocked, isReserved, isDisabled } = getBaySlotAvailability(bay);
                             const animationIndex = rowIndex * 3 + index;
+                            const statusLabel = isBlocked
+                                ? "Blocked"
+                                : isReserved
+                                    ? "Booked"
+                                    : isDisabled
+                                        ? "Unavailable"
+                                        : "Available";
 
                             return (
-                                <Animated.View
+                                <MotiView
                                     key={bay.id}
                                     className="flex-1"
-                                    entering={FadeInDown.delay(60 + animationIndex * 28).duration(220)}
+                                    from={{ opacity: 0, translateY: 12 }}
+                                    animate={{ opacity: 1, translateY: 0 }}
+                                    transition={{
+                                        type: "timing",
+                                        duration: 180,
+                                        delay: 40 + animationIndex * 22,
+                                    }}
                                 >
                                     <Pressable
-                                        className={`items-center gap-1.5 rounded-2xl border px-3 py-4 ${
-                                            available
+                                        className={`items-center gap-1.5 rounded-xl border px-3 py-4 ${!isDisabled
                                                 ? "border-border bg-card active:bg-surface"
                                                 : "border-muted bg-muted opacity-55"
-                                        }`}
-                                        onPress={() => available && handleSelect(bay)}
-                                        disabled={!available}
+                                            }`}
+                                        onPress={() => !isDisabled && handleSelect(bay)}
+                                        disabled={isDisabled}
                                     >
                                         <AppText
                                             variant="body"
-                                            className={`text-center font-medium ${
-                                                available ? "text-foreground" : "text-muted-foreground"
-                                            }`}
+                                            className={`text-center font-medium ${!isDisabled ? "text-foreground" : "text-muted-foreground"
+                                                }`}
                                         >
                                             {bay.bayName}
                                         </AppText>
                                         <AppText
-                                            variant="label"
-                                            className={`text-center ${
-                                                available ? "text-primary" : "text-muted-foreground"
-                                            }`}
+                                            variant="badge"
+                                            className={`text-center ${!isDisabled ? "text-primary" : "text-muted-foreground"
+                                                }`}
                                         >
-                                            {available ? "Available" : bay.slotStatus}
+                                            {statusLabel}
                                         </AppText>
                                     </Pressable>
-                                </Animated.View>
+                                </MotiView>
                             );
                         })}
                         {Array.from({ length: 3 - row.length }, (_, fillerIndex) => (

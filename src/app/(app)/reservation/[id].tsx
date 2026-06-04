@@ -26,6 +26,7 @@ import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import {
     Alert,
@@ -205,14 +206,14 @@ export default function ReservationDetailScreen() {
                     <View className="flex-col gap-4">
                         <Skeleton className="h-8 w-2/3 rounded-xl" />
                         <Skeleton className="h-6 w-1/3 rounded-full" />
-                        <Skeleton className="h-16 w-full rounded-2xl" />
+                        <Skeleton className="h-16 w-full rounded-xl" />
                     </View>
 
                     <View className="flex-col gap-4">
                         {Array.from({ length: 4 }, (_, index) => (
                             <Skeleton
                                 key={index}
-                                className="h-16 w-full rounded-2xl"
+                                className="h-16 w-full rounded-xl"
                             />
                         ))}
                     </View>
@@ -289,11 +290,6 @@ export default function ReservationDetailScreen() {
 
     const noteValue = reservation.notes?.trim();
 
-    const playerCountValue =
-        isBayReservation && reservation.numberOfPlayers != null
-            ? String(reservation.numberOfPlayers)
-            : "-";
-
     const policies = isBayReservation
         ? RESERVATION_POLICIES.bay
         : RESERVATION_POLICIES.lesson;
@@ -362,8 +358,7 @@ export default function ReservationDetailScreen() {
                             title="Cancel Reservation"
                             variant="danger"
                             loading={isCancelling}
-                            className={`rounded-2xl ${isCancelling ? "border border-danger bg-danger/10" : ""
-                                }`}
+                            className="rounded-xl"
                             onPress={handleCancelReservation}
                             disabled={isCancelling}
                         />
@@ -406,15 +401,7 @@ export default function ReservationDetailScreen() {
                             </>
                         ) : null}
 
-                        {isBayReservation ? (
-                            <>
-                                <Divider className="bg-border" />
-                                <DetailRow
-                                    label="Players"
-                                    value={playerCountValue}
-                                />
-                            </>
-                        ) : (
+                        {isBayReservation ? null : (
                             <>
                                 <Divider className="bg-border" />
                                 <CoachDetailRow
@@ -509,7 +496,7 @@ function ReservationStatusBanner({
 
     return (
         <View
-            className={`flex-row items-center gap-3 rounded-2xl px-4 py-3.5 ${statusTone.backgroundClassName}`}
+            className={`flex-row items-center gap-3 rounded-xl px-4 py-3.5 ${statusTone.backgroundClassName}`}
             style={BANNER_STYLE}
         >
             <View
@@ -525,14 +512,14 @@ function ReservationStatusBanner({
 
             <View className="min-w-0 flex-1 flex-col gap-0.5">
                 <AppText
-                    variant="label"
+                    variant="badge"
                     className={`font-bold ${statusTone.textClassName}`}
                 >
                     {statusLabel}
                 </AppText>
 
                 <AppText
-                    variant="label"
+                    variant="meta"
                     className={`font-medium ${statusTone.mutedClassName}`}
                 >
                     {getReservationStatusDescription(reservationStatus)}
@@ -554,6 +541,8 @@ function DetailRow({
         params: Record<string, string>;
     } | null;
 }) {
+    const colors = useThemeColors();
+
     const content = (
         <View className="flex-col gap-2 py-3">
             <ReservationFieldLabel>
@@ -569,9 +558,11 @@ function DetailRow({
                 </ReservationFieldValue>
 
                 {href ? (
-                    <AppText className="shrink-0 text-muted-foreground">
-                        ›
-                    </AppText>
+                    <ChevronRight
+                        size={18}
+                        color={colors.mutedForeground}
+                        strokeWidth={2.25}
+                    />
                 ) : null}
             </View>
         </View>

@@ -96,7 +96,7 @@ function ChangePasswordScreen() {
                     <Button
                         title={form.formState.isSubmitting ? "Saving..." : "Confirm"}
                         loading={form.formState.isSubmitting}
-                        className="rounded-2xl"
+                        className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit)}
                     />
                 </View>

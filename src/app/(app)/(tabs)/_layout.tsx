@@ -55,7 +55,6 @@ function TabLayout({ }: Props) {
                     ),
                 }}
             />
-
         </Tabs>
     )
 }

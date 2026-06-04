@@ -30,30 +30,38 @@ export type ThemeColors = {
     ticketGroup: string;
     ticketProgram: string;
     ticketDefault: string;
+    btnMainStart: string;
+    btnMainEnd: string;
+    btnMainPressedStart: string;
+    btnMainPressedEnd: string;
 };
 
 export type ThemePreference = "system" | "light" | "dark";
 
 const lightThemeColors = {
     background: "#ffffff",
-    foreground: "#111827",
-    surface: "#f9fafb",
+    foreground: "#000000",
+    surface: "#f3f3f3",
     card: "#ffffff",
-    border: "#e5e7eb",
-    muted: "#f3f4f6",
-    mutedForeground: "#6b7280",
-    primary: "#2563eb",
+    border: "#eeeeee",
+    muted: "#f3f3f3",
+    mutedForeground: "#888888",
+    primary: "#26a9e0",
     primaryForeground: "#ffffff",
-    secondary: "#f3f4f6",
-    secondaryForeground: "#111827",
-    danger: "#dc2626",
-    success: "#16a34a",
-    warning: "#f59e0b",
-    ticketBay: "#10b981",
-    ticketPrivate: "#2563eb",
-    ticketGroup: "#f59e0b",
-    ticketProgram: "#8b5cf6",
-    ticketDefault: "#64748b",
+    secondary: "#eefaff",
+    secondaryForeground: "#000000",
+    danger: "#ff6565",
+    success: "#40c057",
+    warning: "#ff9f3f",
+    ticketBay: "#26a9e0",
+    ticketPrivate: "#4071c0",
+    ticketGroup: "#faad3d",
+    ticketProgram: "#845ef7",
+    ticketDefault: "#7a8186",
+    btnMainStart: "#40C057",
+    btnMainEnd: "#49BBC4",
+    btnMainPressedStart: "#37A54B",
+    btnMainPressedEnd: "#3A9DA5",
 } satisfies ThemeColors;
 
 const darkThemeColors = {
@@ -71,11 +79,15 @@ const darkThemeColors = {
     danger: "#f87171",
     success: "#4ade80",
     warning: "#fbbf24",
-    ticketBay: "#34d399",
-    ticketPrivate: "#60a5fa",
-    ticketGroup: "#fbbf24",
-    ticketProgram: "#a78bfa",
-    ticketDefault: "#94a3b8",
+    ticketBay: "#26a9e0",
+    ticketPrivate: "#4071c0",
+    ticketGroup: "#faad3d",
+    ticketProgram: "#845ef7",
+    ticketDefault: "#7a8186",
+    btnMainStart: "#40C057",
+    btnMainEnd: "#49BBC4",
+    btnMainPressedStart: "#37A54B",
+    btnMainPressedEnd: "#3A9DA5",
 } satisfies ThemeColors;
 
 const THEME_PREFERENCE_STORAGE_KEY = "app-theme-preference";
