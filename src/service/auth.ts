@@ -1,5 +1,8 @@
 import { authClient } from "@/lib/auth-client";
 
+export const ALLOWED_APP_ROLE = "MEMBER";
+const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid username or password.";
+
 export type AuthSession = {
     session: {
         id: string;
@@ -24,7 +27,6 @@ export type AuthSession = {
     };
 };
 
-
 export const signIn = async ({ username, password }: { username: string; password: string }) => {
     const result = await authClient.signIn.username({
         username: username.trim(),
@@ -32,7 +34,15 @@ export const signIn = async ({ username, password }: { username: string; passwor
     });
 
     if (result.error) {
-        throw new Error(result.error.message || "Invalid username or password.");
+        throw new Error(GENERIC_LOGIN_ERROR_MESSAGE);
+    }
+
+    const signedInUser = result.data?.user as { role?: string | null } | undefined;
+    const signedInRole = signedInUser?.role?.toUpperCase?.() ?? null;
+
+    if (signedInRole !== ALLOWED_APP_ROLE) {
+        await authClient.signOut().catch(() => { });
+        throw new Error(GENERIC_LOGIN_ERROR_MESSAGE);
     }
 
     return result.data;
@@ -48,8 +58,6 @@ export const signOut = async () => {
     return result.data;
 };
 
-
-
 export const changePassword = async ({
     newPassword,
     currentPassword,
@@ -63,7 +71,7 @@ export const changePassword = async ({
     });
 
     if (error) {
-        throw error;
+        throw new Error(error.message || "Could not change password.");
     }
 
     return data;

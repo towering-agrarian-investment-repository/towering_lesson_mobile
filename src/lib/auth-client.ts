@@ -4,7 +4,6 @@ import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import { env } from "./config/env";
 
-
 export const authClient = createAuthClient({
     baseURL: env.authBaseUrl,
     plugins: [
@@ -18,3 +17,4 @@ export const authClient = createAuthClient({
         jwtClient(),
     ]
 });
+

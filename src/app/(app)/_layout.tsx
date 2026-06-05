@@ -69,7 +69,7 @@ export default function AppLayout() {
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel="Go back"
-                                    className="mr-2 rounded-full p-2 active:opacity-70"
+                                    className="will-change-pressable mr-2 rounded-full p-2 active:opacity-70"
                                     hitSlop={10}
                                     onPress={() => {
                                         navigation.goBack();
