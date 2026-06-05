@@ -23,7 +23,7 @@ export async function getMemberReservations({
     type,
     cursor,
     limit = MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
-}: MemberReservationHistoryParams): Promise<
+}: MemberReservationHistoryParams, signal?: AbortSignal): Promise<
     ApiResponse<CursorPageResponse<MemberReservationResponse>>
 > {
     const params = new URLSearchParams({
@@ -37,6 +37,7 @@ export async function getMemberReservations({
 
     return apiClient(`/member/reservations?${params.toString()}`, {
         method: "GET",
+        signal,
     });
 }
 
@@ -44,7 +45,7 @@ export async function getMemberReservationCalendar({
     type,
     from,
     to,
-}: MemberReservationCalendarParams): Promise<ApiResponse<MemberReservationCalendarResponse[]>> {
+}: MemberReservationCalendarParams, signal?: AbortSignal): Promise<ApiResponse<MemberReservationCalendarResponse[]>> {
     const params = new URLSearchParams({
         type,
         from,
@@ -53,13 +54,15 @@ export async function getMemberReservationCalendar({
 
     return apiClient(`/member/reservations/calendar?${params.toString()}`, {
         method: "GET",
+        signal,
     });
 }
 
-export async function getTodayMemberReservations(): Promise<
+export async function getTodayMemberReservations(signal?: AbortSignal): Promise<
     ApiResponse<MemberReservationSummaryResponse[]>
 > {
     return apiClient("/member/reservations/today", {
         method: "GET",
+        signal,
     });
 }

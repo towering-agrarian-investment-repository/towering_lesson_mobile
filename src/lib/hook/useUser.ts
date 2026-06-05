@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 export function useGetMemberProfile() {
     return useQuery<ApiResponse<MemberResponse>>({
         queryKey: ["member", "profile"],
-        queryFn: getMemberProfile,
+        queryFn: ({ signal }) => getMemberProfile(signal),
     });
 }
 

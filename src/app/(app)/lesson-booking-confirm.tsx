@@ -62,6 +62,8 @@ export default function LessonBookingConfirmScreen() {
                 onSuccess: (response) => {
                     const reservation = response.data;
 
+                    router.dismissAll();
+
                     if (reservation) {
                         router.replace({
                             pathname: "/reservation/[id]",
@@ -90,7 +92,7 @@ export default function LessonBookingConfirmScreen() {
                 <MotiView
                     from={{ opacity: 0, translateY: 12 }}
                     animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: "timing", duration: 180, delay: 80 }}
+                    transition={{ type: "timing", duration: 140 }}
                     className="border-t border-border bg-background px-6 pb-8 pt-4"
                 >
                     <Button
@@ -105,7 +107,7 @@ export default function LessonBookingConfirmScreen() {
             <MotiView
                 from={{ opacity: 0, translateY: 12 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 180 }}
+                transition={{ type: "timing", duration: 140 }}
                 className="grow"
             >
                 <View className="gap-4">

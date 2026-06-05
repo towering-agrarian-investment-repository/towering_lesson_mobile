@@ -4,9 +4,11 @@ import { BaySlotGroupScheduleResponse, MemberBayReservationRequest, MemberBayRes
 
 export async function getBayReservationById(
     id: number,
+    signal?: AbortSignal,
 ): Promise<ApiResponse<MemberBayReservationResponse>> {
     return apiClient(`/member/bay-reservations/${id}`, {
         method: "GET",
+        signal,
     });
 }
 
@@ -22,11 +24,13 @@ export async function createMemberBayReservation(
 export async function getMemberBaySlotGroups(
     startDate: string,
     endDate: string,
+    signal?: AbortSignal,
 ): Promise<ApiResponse<BaySlotGroupScheduleResponse[]>> {
     return apiClient(
         `/member/bay-slot-groups?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
         {
             method: "GET",
+            signal,
         },
     );
 }

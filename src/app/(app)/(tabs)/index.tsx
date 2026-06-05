@@ -6,9 +6,8 @@ import { Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText as Text } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { useQueryClient } from "@tanstack/react-query";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
-import { useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -17,7 +16,6 @@ import {
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
-  const [refreshing, setRefreshing] = useState(false);
   const {
     data: memberResponse,
     isLoading,
@@ -28,19 +26,22 @@ export default function HomeScreen() {
   } = useGetMemberProfile();
 
   const member = memberResponse?.data;
+  const ticketsFetching = useIsFetching({ queryKey: ["member", "tickets"] });
+  const todayReservationsFetching = useIsFetching({
+    queryKey: ["member", "reservations", "today"],
+  });
+  const refreshing =
+    isRefetching || ticketsFetching > 0 || todayReservationsFetching > 0;
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-
-    try {
-      await Promise.all([
-        refetch(),
-        queryClient.invalidateQueries({ queryKey: ["member", "tickets"] }),
-        queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] }),
-      ]);
-    } finally {
-      setRefreshing(false);
-    }
+    await Promise.all([
+      refetch(),
+      queryClient.refetchQueries({ queryKey: ["member", "tickets"], type: "active" }),
+      queryClient.refetchQueries({
+        queryKey: ["member", "reservations", "today"],
+        type: "active",
+      }),
+    ]);
   };
 
   if (isLoading) {
@@ -69,7 +70,7 @@ export default function HomeScreen() {
       headerShown={false}
       contentClassName="flex-grow"
       footer={
-        <Link href="/reservation" asChild>
+        <Link href="/reservation" push asChild>
           <Pressable className="mx-6 rounded-xl bg-primary py-4 active:opacity-80">
             <Text variant="label" className="text-center text-base font-bold text-primary-foreground">
               VIEW MY RESERVATIONS

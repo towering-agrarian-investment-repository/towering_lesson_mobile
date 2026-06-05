@@ -5,6 +5,7 @@ import { TicketListItemResponse } from "@/types/member-ticket";
 export const getMemberTickets = async (
     memberId: number,
     statuses?: string[],
+    signal?: AbortSignal,
 ): Promise<ApiResponse<TicketListItemResponse[]>> => {
     const searchParams = new URLSearchParams();
 
@@ -16,6 +17,6 @@ export const getMemberTickets = async (
 
     return apiClient(
         `/member/${memberId}/tickets${query ? `?${query}` : ""}`,
-        { method: "GET" }
+        { method: "GET", signal }
     );
 };

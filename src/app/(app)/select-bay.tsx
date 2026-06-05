@@ -2,6 +2,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
@@ -32,6 +33,7 @@ export default function BayScreen() {
     }>();
 
     const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const {
         data,
@@ -59,17 +61,19 @@ export default function BayScreen() {
     const handleSelect = (baySlot: BaySlotScheduleResponse) => {
         if (!slotGroup) return;
 
-        router.push({
-            pathname: "/booking-confirm",
-            params: {
-                date,
-                ticketId,
-                slotGroupId: String(slotGroup.id),
-                baySlotId: String(baySlot.id),
-                bayName: baySlot.bayName,
-                startTime: slotGroup.startDateTime,
-                endTime: slotGroup.endDateTime,
-            },
+        runWithNavigationLock(() => {
+            router.push({
+                pathname: "/booking-confirm",
+                params: {
+                    date,
+                    ticketId,
+                    slotGroupId: String(slotGroup.id),
+                    baySlotId: String(baySlot.id),
+                    bayName: baySlot.bayName,
+                    startTime: slotGroup.startDateTime,
+                    endTime: slotGroup.endDateTime,
+                },
+            });
         });
     };
 
@@ -88,7 +92,7 @@ export default function BayScreen() {
             <MotiView
                 from={{ opacity: 0, translateY: 12 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 180 }}
+                transition={{ type: "timing", duration: 140 }}
                 className="gap-1"
             >
                 <AppText variant="h3">Choose a bay</AppText>
@@ -158,8 +162,6 @@ export default function BayScreen() {
                                     isDisabled,
                                 } = getBaySlotAvailability(bay);
 
-                                const animationIndex = rowIndex * 3 + index;
-
                                 const statusLabel = isBlocked
                                     ? "Blocked"
                                     : isReserved
@@ -176,8 +178,7 @@ export default function BayScreen() {
                                         animate={{ opacity: 1, translateY: 0 }}
                                         transition={{
                                             type: "timing",
-                                            duration: 180,
-                                            delay: 40 + animationIndex * 22,
+                                            duration: 140,
                                         }}
                                     >
                                         <Pressable
@@ -188,7 +189,7 @@ export default function BayScreen() {
                                             onPress={() =>
                                                 !isDisabled && handleSelect(bay)
                                             }
-                                            disabled={isDisabled}
+                                            disabled={isDisabled || isLocked}
                                         >
                                             <AppText
                                                 variant="body"

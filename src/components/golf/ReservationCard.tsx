@@ -8,28 +8,22 @@ import type {
 } from "@/types/member-reservation";
 import { fmtTime } from "@/utils/time-helper";
 import { format, isToday } from "date-fns";
-import { Link } from "expo-router";
 import { memo } from "react";
 import { Pressable, View } from "react-native";
 
 type Props = {
     reservation: MemberReservationResponse | MemberReservationSummaryResponse;
+    disabled?: boolean;
+    onPress?: (
+        reservation: MemberReservationResponse | MemberReservationSummaryResponse,
+    ) => void;
 };
 
-function ReservationCard({ reservation }: Props) {
-    const reservationKind = reservation.reservationType;
+function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     const startDate = new Date(reservation.startTime);
     const endDate = new Date(reservation.endTime);
     const tone = getTicketTypeTone(reservation.ticketType);
     const isTodayReservation = isToday(startDate);
-
-    const detailHref = {
-        pathname: "/reservation/[id]",
-        params: {
-            id: String(reservation.id),
-            type: reservationKind,
-        },
-    } as const;
 
     const title =
         reservation.bayName ??
@@ -39,63 +33,69 @@ function ReservationCard({ reservation }: Props) {
         `Reservation #${reservation.id}`;
     const reservationDateLabel = format(startDate, "EEE, MMM d");
 
+    const handlePress = () => {
+        if (disabled) {
+            return;
+        }
+
+        onPress?.(reservation);
+    };
+
     return (
-        <Link href={detailHref} asChild>
-            <Pressable className="active:bg-muted">
-                <Card
-                    className={`flex-col gap-3 overflow-hidden p-5 ${
-                        isTodayReservation
-                            ? tone.emphasisBorderClassName
-                            : tone.borderClassName
-                    }`}
-                >
-                    <View className="flex-row items-center gap-3">
-                        <View className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`} />
+        <Pressable className="active:bg-muted" onPress={handlePress} disabled={disabled}>
+            <Card
+                className={`flex-col gap-3 overflow-hidden p-5 ${
+                    isTodayReservation
+                        ? tone.emphasisBorderClassName
+                        : tone.borderClassName
+                }`}
+            >
+                <View className="flex-row items-center gap-3">
+                    <View className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`} />
+
+                    <AppText
+                        variant="label"
+                        className="min-w-0 flex-1 font-medium"
+                        numberOfLines={1}
+                    >
+                        {title}
+                    </AppText>
+
+                </View>
+
+                <Divider className="bg-border" />
+
+                <View className="flex-row items-center gap-3">
+                    <ReservationDateBadge date={startDate} tone={tone} />
+
+                    <View className="min-w-0 flex-1 flex-col gap-3">
+                        <AppText variant="eyebrow" className="text-foreground/75">
+                            Time
+                        </AppText>
 
                         <AppText
-                            variant="label"
-                            className="min-w-0 flex-1 font-medium"
+                            variant="h3"
+                            className="text-foreground"
                             numberOfLines={1}
                         >
-                            {title}
+                            {fmtTime(startDate)} - {fmtTime(endDate)}
                         </AppText>
 
-                    </View>
-
-                    <Divider className="bg-border" />
-
-                    <View className="flex-row items-center gap-3">
-                        <ReservationDateBadge date={startDate} tone={tone} />
-
-                        <View className="min-w-0 flex-1 flex-col gap-3">
-                            <AppText variant="eyebrow" className="text-foreground/75">
-                                Time
-                            </AppText>
-
-                            <AppText
-                                variant="h3"
-                                className="text-foreground"
-                                numberOfLines={1}
-                            >
-                                {fmtTime(startDate)} - {fmtTime(endDate)}
-                            </AppText>
-
-                            <AppText
-                                variant="meta"
-                                className="text-foreground/75"
-                                numberOfLines={1}
-                            >
-                                {reservationDateLabel}
-                            </AppText>
-                        </View>
-
-                        <AppText className={`text-lg ${tone.iconClassName}`}>
-                            {">"}
+                        <AppText
+                            variant="meta"
+                            className="text-foreground/75"
+                            numberOfLines={1}
+                        >
+                            {reservationDateLabel}
                         </AppText>
                     </View>
-                </Card>
-            </Pressable>
-        </Link>
+
+                    <AppText className={`text-lg ${tone.iconClassName}`}>
+                        {">"}
+                    </AppText>
+                </View>
+            </Card>
+        </Pressable>
     );
 }
 
@@ -104,6 +104,8 @@ function areReservationCardsEqual(prev: Props, next: Props) {
     const nextReservation = next.reservation;
 
     return (
+        prev.disabled === next.disabled &&
+        prev.onPress === next.onPress &&
         previousReservation.id === nextReservation.id &&
         previousReservation.reservationType === nextReservation.reservationType &&
         previousReservation.ticketType === nextReservation.ticketType &&

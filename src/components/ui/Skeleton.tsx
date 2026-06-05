@@ -12,7 +12,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
             animate={{ opacity: 1 }}
             transition={{
                 type: "timing",
-                duration: 700,
+                duration: 520,
                 loop: true,
                 repeatReverse: true,
             }}

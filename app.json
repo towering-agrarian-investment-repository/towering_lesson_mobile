@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/ic_launcher.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.golflessonsystemmobile"
+      "package": "com.anonymous.golflessonsystemmobile",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",

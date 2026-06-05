@@ -3,17 +3,14 @@ import { cn } from "@/design-system/utils/cn";
 import {
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
-import { getMemberBaySlotGroups } from "@/service/member-bay-reservation.service";
-import { getTicketLessonSlots } from "@/service/member-lesson-reservation.service";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { formatType } from "@/utils/format-enum";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { useEffect } from "react";
 import { Pressable, View } from "react-native";
 
 type Props = {
     item: TicketListItemResponse;
+    disabled?: boolean;
+    onPress?: (item: TicketListItemResponse) => void;
 };
 
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
@@ -42,94 +39,27 @@ function getUsageNote(item: TicketListItemResponse) {
     return "Flexible Usage";
 }
 
-function getMonthRange(value: Date) {
-    const start = new Date(value.getFullYear(), value.getMonth(), 1);
-    const end = new Date(value.getFullYear(), value.getMonth() + 1, 0);
-
-    const formatDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    };
-
-    return {
-        startDate: formatDate(start),
-        endDate: formatDate(end),
-    };
-}
-
-function TicketCard({ item }: Props) {
-    const router = useRouter();
-    const queryClient = useQueryClient();
+function TicketCard({ item, disabled = false, onPress }: Props) {
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketTone = getTicketTypeTone(item.type);
     const isLessonProgramTicket = item.type === "LESSON_PROGRAM";
-    const isBookingDisabled = isInactive || isLessonProgramTicket;
-    const isLessonTicket = LESSON_TICKET_TYPES.includes(item.type);
+    const isBookingDisabled =
+        disabled || isInactive || isLessonProgramTicket || !LESSON_TICKET_TYPES.includes(item.type) && false;
 
     const badgeLabel = formatType(item.type);
     const usageNote = getUsageNote(item);
-
-    useEffect(() => {
-        if (isBookingDisabled) {
-            return;
-        }
-
-        router.prefetch("/select-date");
-    }, [isBookingDisabled, router]);
-
-    const prefetchBookingData = () => {
-        if (isBookingDisabled) {
-            return;
-        }
-
-        const today = new Date();
-
-        if (isLessonTicket) {
-            void queryClient.prefetchQuery({
-                queryKey: [
-                    "member",
-                    "ticket-lesson-slots",
-                    item.id,
-                    today.getFullYear(),
-                    today.getMonth() + 1,
-                ],
-                queryFn: () => getTicketLessonSlots(item.id, today.getFullYear(), today.getMonth() + 1),
-                staleTime: 30_000,
-            });
-
-            return;
-        }
-
-        const { startDate, endDate } = getMonthRange(today);
-
-        void queryClient.prefetchQuery({
-            queryKey: ["member", "bay-slot-groups", startDate, endDate],
-            queryFn: () => getMemberBaySlotGroups(startDate, endDate),
-            staleTime: 30_000,
-        });
-    };
 
     const handlePress = () => {
         if (isBookingDisabled) {
             return;
         }
 
-        router.push({
-            pathname: "/select-date",
-            params: {
-                ticketId: String(item.id),
-                ticketType: item.type,
-            },
-        });
+        onPress?.(item);
     };
 
     return (
         <Pressable
             disabled={isBookingDisabled}
-            onPressIn={prefetchBookingData}
             onPress={handlePress}
         >
             <View

@@ -2,6 +2,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { LessonAvailabilityResponse } from "@/types/member-lesson";
 import { formatTimeRange } from "@/utils/time-helper";
@@ -29,6 +30,7 @@ export default function SelectLessonSlotScreen() {
     }>();
 
     const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
@@ -48,23 +50,25 @@ export default function SelectLessonSlotScreen() {
     );
 
     const handleSelect = (slot: LessonAvailabilityResponse) => {
-        router.push({
-            pathname: "/lesson-booking-confirm",
-            params: {
-                ticketId,
-                ticketType,
-                lessonAvailabilityId: String(slot.id),
-                lessonName:
-                    slot.name ??
-                    slot.title ??
-                    slot.lessonProgramName ??
-                    slot.lessonProgram?.name ??
-                    "Private Lesson",
-                coachName: slot.coachName ?? "",
-                startTime: slot.startTime,
-                endTime: slot.endTime,
-                date,
-            },
+        runWithNavigationLock(() => {
+            router.push({
+                pathname: "/lesson-booking-confirm",
+                params: {
+                    ticketId,
+                    ticketType,
+                    lessonAvailabilityId: String(slot.id),
+                    lessonName:
+                        slot.name ??
+                        slot.title ??
+                        slot.lessonProgramName ??
+                        slot.lessonProgram?.name ??
+                        "Private Lesson",
+                    coachName: slot.coachName ?? "",
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    date,
+                },
+            });
         });
     };
 
@@ -83,7 +87,7 @@ export default function SelectLessonSlotScreen() {
             <MotiView
                 from={{ opacity: 0, translateY: 12 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 180 }}
+                transition={{ type: "timing", duration: 140 }}
                 className="gap-1"
             >
                 <AppText variant="h3">Choose a time</AppText>
@@ -120,7 +124,7 @@ export default function SelectLessonSlotScreen() {
 
             {!isLoading && !isError && slots.length > 0 ? (
                 <View className="gap-3">
-                    {slots.map((slot, index) => {
+                    {slots.map((slot) => {
                         const disabled = isSlotFull(slot);
 
                         const lessonTitle =
@@ -137,8 +141,7 @@ export default function SelectLessonSlotScreen() {
                                 animate={{ opacity: 1, translateY: 0 }}
                                 transition={{
                                     type: "timing",
-                                    duration: 180,
-                                    delay: 40 + index * 24,
+                                    duration: 140,
                                 }}
                             >
                                 <Pressable
@@ -147,7 +150,7 @@ export default function SelectLessonSlotScreen() {
                                         : "border-border bg-card active:bg-surface"
                                         }`}
                                     onPress={() => !disabled && handleSelect(slot)}
-                                    disabled={disabled}
+                                    disabled={disabled || isLocked}
                                 >
                                     <View className="min-w-0 flex-1 gap-1.5">
                                         <AppText

@@ -1,7 +1,11 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateCard";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { MemberResponse } from "@/types/member.type";
+import { TicketListItemResponse } from "@/types/member-ticket";
+import { useRouter } from "expo-router";
+import { useCallback } from "react";
 import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import TicketCard from "./TicketCard";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
@@ -11,9 +15,26 @@ type Props = {
 };
 
 function MyTicket({ member }: Props) {
-
+    const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data, isLoading, isError } = useMemberTickets(member.id);
     const tickets = data?.data ?? [];
+
+    const handleTicketPress = useCallback(
+        (item: TicketListItemResponse) => {
+            runWithNavigationLock(() => {
+                router.push({
+                    pathname: "/select-date",
+                    params: {
+                        ticketId: String(item.id),
+                        ticketType: item.type,
+                    },
+                });
+            });
+        },
+        [router, runWithNavigationLock],
+    );
+
     return (
         <View className="gap-4">
             <TitleSectionWithBadge label="My Tickets" length={tickets.length} />
@@ -46,7 +67,13 @@ function MyTicket({ member }: Props) {
                     contentInsetAdjustmentBehavior="automatic"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
-                    renderItem={({ item }) => <TicketCard item={item} />}
+                    renderItem={({ item }) => (
+                        <TicketCard
+                            item={item}
+                            disabled={isLocked}
+                            onPress={handleTicketPress}
+                        />
+                    )}
                 />
             )}
         </View>

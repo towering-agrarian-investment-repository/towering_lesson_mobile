@@ -1,6 +1,7 @@
 import { Screen } from "@/components/ui/Screen";
 import { AppText } from "@/design-system";
 import { useThemeColors } from "@/design-system/utils/theme";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     useMemberBaySlotGroups,
     useMemberTicketLessonSlots,
@@ -103,6 +104,7 @@ export default function DateScreen() {
     }>();
 
     const router = useRouter();
+    const { runWithNavigationLock } = useNavigationLock();
 
     const [visibleMonth, setVisibleMonth] = useState(() => {
         const today = new Date();
@@ -176,7 +178,7 @@ export default function DateScreen() {
         return monthDates.reduce<Record<string, object>>((acc, dateString) => {
             const isPast = dateString < today;
             const isAvailable = availableDates.has(dateString);
-            const isToday = dateString === today;
+            const isBookable = isAvailable && !isPast;
 
             acc[dateString] = {
                 disableTouchEvent: isPast,
@@ -185,10 +187,10 @@ export default function DateScreen() {
                         borderRadius: 999,
                     },
                     text: {
-                        color: isAvailable
+                        color: isBookable
                             ? colors.primary
                             : colors.mutedForeground,
-                        fontWeight: isAvailable || isToday ? "700" : "400",
+                        fontWeight: isBookable ? "700" : "400",
                     },
                 },
             };
@@ -204,13 +206,15 @@ export default function DateScreen() {
     ]);
 
     const handleAvailableDatePress = (day: DateData) => {
-        router.push({
-            pathname: isLessonTicket ? "../select-lesson-slot" : "../select-time",
-            params: {
-                date: day.dateString,
-                ticketId,
-                ticketType,
-            },
+        runWithNavigationLock(() => {
+            router.push({
+                pathname: isLessonTicket ? "/select-lesson-slot" : "/select-time",
+                params: {
+                    date: day.dateString,
+                    ticketId,
+                    ticketType,
+                },
+            });
         });
     };
 
@@ -240,10 +244,6 @@ export default function DateScreen() {
         handleUnavailableDatePress(day.dateString);
     };
 
-    const isRefreshing = isLessonTicket
-        ? isRefetchingLessonSlots
-        : isRefetchingBaySlotGroups;
-
     const isInitialLoading = isLessonTicket
         ? !lessonSlotData && isPendingLessonSlots
         : !baySlotGroupData && isPendingBaySlotGroups;
@@ -267,8 +267,13 @@ export default function DateScreen() {
             horizontalPadding={false}
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefreshing}
+                    refreshing={isLessonTicket ? isRefetchingLessonSlots : isRefetchingBaySlotGroups}
                     onRefresh={handleRefresh}
+                    colors={[colors.primary]}
+                    tintColor={colors.primary}
+                    progressBackgroundColor={colors.card}
+                    title="Refreshing availability..."
+                    titleColor={colors.mutedForeground}
                 />
             }
         >

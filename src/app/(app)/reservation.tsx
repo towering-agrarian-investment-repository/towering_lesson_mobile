@@ -13,7 +13,9 @@ import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText, cn } from "@/design-system";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberReservations } from "@/lib/hook/useReservation";
+import { useRouter } from "expo-router";
 import { MemberReservationType } from "@/service/reservation.service";
 import type {
     MemberReservationResponse,
@@ -42,8 +44,9 @@ type ReservationItem =
 
 export default function ReservationScreen() {
     const [activeTab, setActiveTab] = useState<MemberReservationType>("all");
-
+    const router = useRouter();
     const listRef = useRef<FlatList<ReservationItem>>(null);
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const {
         data,
@@ -63,11 +66,30 @@ export default function ReservationScreen() {
         return String(item.id);
     }, []);
 
+    const handleReservationPress = useCallback(
+        (reservation: ReservationItem) => {
+            runWithNavigationLock(() => {
+                router.push({
+                    pathname: "/reservation/[id]",
+                    params: {
+                        id: String(reservation.id),
+                        type: reservation.reservationType,
+                    },
+                });
+            });
+        },
+        [router, runWithNavigationLock],
+    );
+
     const renderReservationItem = useCallback(
         ({ item }: { item: ReservationItem }) => (
-            <ReservationCard reservation={item} />
+            <ReservationCard
+                reservation={item}
+                disabled={isLocked}
+                onPress={handleReservationPress}
+            />
         ),
-        [],
+        [handleReservationPress, isLocked],
     );
 
     const handleTabChange = useCallback((tab: MemberReservationType) => {
@@ -177,12 +199,12 @@ function ReservationTabs({
                             <Pressable
                                 key={tab}
                                 onPress={() => onTabChange(tab)}
-                                className="min-h-11 items-center justify-end gap-2 pr-4 pt-3"
+                                className="min-h-11 items-center justify-end gap-2 pr-4"
                             >
                                 <AppText
                                     variant="label"
                                     className={cn(
-                                        "text-base font-semibold",
+                                        "text-lg font-semibold",
                                         isActive && "text-primary",
                                         !isActive && "text-foreground/65",
                                     )}

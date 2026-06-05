@@ -8,13 +8,17 @@ import {
 } from "@/components/ui/form";
 import { FormFieldShell } from "@/components/ui/form/FormFieldShell";
 import { ErrorState } from "@/components/ui/StateCard";
+import { useUploadMemberUser } from "@/lib/hook/useUploadFile";
 import {
     useGetMemberProfile,
     useUpdateMemberProfile,
 } from "@/lib/hook/useUser";
+import { showAppToast } from "@/lib/toast/toast";
 import { useThemeColors } from "@/design-system/utils/theme";
 import { GenderEnum } from "@/types/member.type";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { useEffect } from "react";
@@ -75,6 +79,10 @@ export default function EditProfileScreen() {
         mutate: updateProfile,
         isPending: isSubmitting,
     } = useUpdateMemberProfile();
+    const {
+        mutate: uploadProfileImage,
+        isPending: isUploadingImage,
+    } = useUploadMemberUser();
 
     const member = memberResponse?.data;
 
@@ -143,6 +151,60 @@ export default function EditProfileScreen() {
         );
     };
 
+    const handlePickProfileImage = async () => {
+        if (!member?.id || isUploadingImage) {
+            return;
+        }
+
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+            showAppToast({
+                message: "Photo library permission is required to upload a profile image.",
+                type: "error",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.9,
+        });
+
+        if (result.canceled || !result.assets[0]) {
+            return;
+        }
+
+        try {
+            const file = await createFileFromAsset(result.assets[0]);
+
+            uploadProfileImage(
+                {
+                    id: member.id,
+                    file,
+                },
+                {
+                    onSuccess: () => {
+                        showAppToast({
+                            message: "Profile image updated.",
+                            type: "success",
+                        });
+                    },
+                },
+            );
+        } catch (uploadError) {
+            showAppToast({
+                message:
+                    uploadError instanceof Error
+                        ? uploadError.message
+                        : "Could not prepare the selected image.",
+                type: "error",
+            });
+        }
+    };
+
     if (isLoading) {
         return <CircleLoader fullScreen label="Loading your profile..." />;
     }
@@ -175,6 +237,23 @@ export default function EditProfileScreen() {
             }
         >
             <View className="gap-8">
+                <View className="items-center gap-4">
+                    <ProfileImagePreview
+                        name={member.name}
+                        imageUrl={member.profileImage}
+                    />
+
+                    <Button
+                        title={isUploadingImage ? "Uploading..." : "Change Photo"}
+                        variant="secondary"
+                        loading={isUploadingImage}
+                        disabled={isUploadingImage}
+                        onPress={() => {
+                            void handlePickProfileImage();
+                        }}
+                    />
+                </View>
+
                 <View className="gap-6">
                     <Text className="text-lg font-semibold text-foreground">
                         Basic Information
@@ -289,6 +368,46 @@ export default function EditProfileScreen() {
                 </View>
             </View>
         </Screen>
+    );
+}
+
+async function createFileFromAsset(asset: ImagePicker.ImagePickerAsset) {
+    const response = await fetch(asset.uri);
+    const blob = await response.blob();
+    const extension = asset.fileName?.split(".").pop() ?? "jpg";
+    const fileName = asset.fileName ?? `profile-image.${extension}`;
+    const mimeType = asset.mimeType ?? blob.type ?? "image/jpeg";
+
+    return new File([blob], fileName, { type: mimeType });
+}
+
+function ProfileImagePreview({
+    name,
+    imageUrl,
+}: {
+    name?: string | null;
+    imageUrl?: string | null;
+}) {
+    if (imageUrl) {
+        return (
+            <Image
+                source={{ uri: imageUrl }}
+                style={{
+                    width: 112,
+                    height: 112,
+                    borderRadius: 999,
+                }}
+                contentFit="cover"
+            />
+        );
+    }
+
+    return (
+        <View className="h-28 w-28 items-center justify-center rounded-full bg-primary">
+            <Text variant="h1" className="text-primary-foreground">
+                {name?.charAt(0).toUpperCase() || "?"}
+            </Text>
+        </View>
     );
 }
 

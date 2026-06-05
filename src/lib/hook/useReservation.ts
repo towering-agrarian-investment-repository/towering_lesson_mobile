@@ -26,12 +26,12 @@ export function useMemberReservations(type: MemberReservationType) {
     >({
         queryKey: ["member", "reservations", type],
         initialPageParam: null,
-        queryFn: ({ pageParam }) =>
+        queryFn: ({ pageParam, signal }) =>
             getMemberReservations({
                 type,
                 cursor: pageParam ?? undefined,
                 limit: MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
-            }),
+            }, signal),
         getNextPageParam: (lastPage) => {
             const page = lastPage.data;
             return page?.hasMore ? page.nextCursor : undefined;
@@ -51,7 +51,7 @@ export function useTodayMemberReservations() {
         MemberReservationSummaryResponse[]
     >({
         queryKey: ["member", "reservations", "today"],
-        queryFn: getTodayMemberReservations,
+        queryFn: ({ signal }) => getTodayMemberReservations(signal),
         select: (response) => response.data ?? [],
     });
 }
@@ -59,18 +59,18 @@ export function useTodayMemberReservations() {
 export function useMemberReservationById(id: number, domain?: MemberReservationDomain) {
     return useQuery<ApiResponse<MemberReservationDetailResponse>>({
         queryKey: ["member", "reservations", "detail", domain ?? "unknown", id],
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             if (domain === "bay") {
-                return getBayReservationById(id);
+                return getBayReservationById(id, signal);
             }
 
             if (domain === "lesson") {
-                return getLessonReservationById(id);
+                return getLessonReservationById(id, signal);
             }
 
             const [lessonResult, bayResult] = await Promise.allSettled([
-                getLessonReservationById(id),
-                getBayReservationById(id),
+                getLessonReservationById(id, signal),
+                getBayReservationById(id, signal),
             ]);
 
             if (lessonResult.status === "fulfilled") {
@@ -92,7 +92,7 @@ export function useMemberReservationById(id: number, domain?: MemberReservationD
 export function useMemberBaySlotGroups(startDate: string, endDate: string, enabled = true) {
     return useQuery<ApiResponse<BaySlotGroupScheduleResponse[]>>({
         queryKey: ["member", "bay-slot-groups", startDate, endDate],
-        queryFn: () => getMemberBaySlotGroups(startDate, endDate),
+        queryFn: ({ signal }) => getMemberBaySlotGroups(startDate, endDate, signal),
         enabled: enabled && Boolean(startDate) && Boolean(endDate),
     });
 }
@@ -147,7 +147,8 @@ export function useMemberTicketLessonSlots(
 ) {
     return useQuery<ApiResponse<LessonAvailabilityResponse[]>>({
         queryKey: ["member", "ticket-lesson-slots", ticketId, year, month],
-        queryFn: () => getTicketLessonSlots(ticketId as number, year, month),
+        queryFn: ({ signal }) =>
+            getTicketLessonSlots(ticketId as number, year, month, signal),
         enabled: enabled && Boolean(ticketId) && Boolean(year) && Boolean(month),
     });
 }

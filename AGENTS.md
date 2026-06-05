@@ -840,3 +840,45 @@ import {
 - Inputs support label and error states.
 - Screen supports scroll and non-scroll mode.
 - No app screen contains duplicated raw button/input/card markup when design-system components should be used.
+
+==================================================
+21. Screen review checklist
+==================================================
+
+Use this checklist for every new screen, flow step, and major interaction:
+
+1. What happens when loading?
+2. What happens when data is empty?
+3. What happens when the API fails?
+4. What happens when the user taps twice?
+5. What happens when the user goes back?
+6. What happens when the internet is slow?
+7. What happens when the user is logged out?
+8. What happens on Android?
+9. What happens on iOS?
+
+Watch out for these common app bugs:
+
+- using `push` everywhere instead of choosing between `push`, `replace`, and guarded navigation intentionally
+- not handling double taps on navigation triggers
+- fetching inside render
+- not disabling submit buttons while pending
+- no loading state
+- no error state
+- no empty state
+- storing secrets in the frontend
+- using `ScrollView` for huge lists instead of `FlatList`
+- not testing Android back button behavior
+- not testing on a real device
+- hardcoding API URLs
+- ignoring keyboard issues
+- redirecting before auth finishes loading
+
+Default implementation standards for this app:
+
+- Required-data screens should follow `loading -> error -> empty -> content`
+- Navigation triggers should guard against duplicate taps
+- Submit buttons should disable while pending
+- API URLs and similar environment-specific values must live in env/config
+- Large or unbounded lists should use `FlatList`
+- Auth-gated routing must wait for auth bootstrap to finish

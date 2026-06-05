@@ -1,6 +1,7 @@
 import { authClient } from "../auth-client";
+import { env } from "../config/env";
 
-const API_BASE_URL = "http://192.168.0.65:8082/api/v1";
+const API_BASE_URL = env.apiBaseUrl;
 
 type JwtResponse = {
     token?: string | null;
@@ -36,7 +37,7 @@ export async function getSession(): Promise<string | null> {
 
 export async function apiClient<T = unknown>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit & { signal?: AbortSignal } = {}
 ): Promise<T> {
     const jwtToken = await getJwtToken();
 
@@ -44,13 +45,16 @@ export async function apiClient<T = unknown>(
         throw new Error("No JWT token available");
     }
 
+    const headers = new Headers(options.headers);
+    headers.set("Authorization", `Bearer ${jwtToken}`);
+
+    if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${jwtToken}`,
-            ...options.headers,
-        },
+        headers,
     });
 
     const contentType = response.headers.get("content-type");

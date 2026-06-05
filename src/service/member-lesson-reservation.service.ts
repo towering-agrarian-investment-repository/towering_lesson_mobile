@@ -4,9 +4,11 @@ import { LessonAvailabilityResponse, MemberCreateLessonReservationRequest, Membe
 
 export async function getLessonReservationById(
     id: number,
+    signal?: AbortSignal,
 ): Promise<ApiResponse<MemberLessonReservationResponse>> {
     return apiClient(`/member/lesson-reservations/${id}`, {
         method: "GET",
+        signal,
     });
 }
 
@@ -15,11 +17,13 @@ export async function getTicketLessonSlots(
     ticketId: number,
     year: number,
     month: number,
+    signal?: AbortSignal,
 ): Promise<ApiResponse<LessonAvailabilityResponse[]>> {
     return apiClient(
         `/member/tickets/${ticketId}/lesson-slots?year=${encodeURIComponent(String(year))}&month=${encodeURIComponent(String(month))}`,
         {
             method: "GET",
+            signal,
         },
     );
 }

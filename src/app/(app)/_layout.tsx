@@ -2,13 +2,15 @@ import { useThemeColors } from "@/design-system/utils/theme";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 import { useEffect } from "react";
+import { Pressable } from "react-native";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient();
 const bookingFlowScreenOptions = {
     animation: "slide_from_right" as const,
-    animationDuration: 200,
+    animationDuration: 160,
     fullScreenGestureEnabled: true,
     gestureEnabled: true,
 };
@@ -50,8 +52,9 @@ export default function AppLayout() {
             <ToastProvider>
                 <ToastBridge />
                 <Stack
-                    screenOptions={{
+                    screenOptions={({ navigation }) => ({
                         headerBackButtonDisplayMode: "minimal",
+                        headerBackVisible: false,
                         contentStyle: { backgroundColor: colors.background },
                         headerStyle: {
                             backgroundColor: colors.card,
@@ -61,7 +64,25 @@ export default function AppLayout() {
                             color: colors.foreground,
                         },
                         headerShadowVisible: false,
-                    }}
+                        headerLeft: ({ canGoBack }) =>
+                            canGoBack ? (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Go back"
+                                    className="mr-2 rounded-full p-2 active:opacity-70"
+                                    hitSlop={10}
+                                    onPress={() => {
+                                        navigation.goBack();
+                                    }}
+                                >
+                                    <ChevronLeft
+                                        size={20}
+                                        color={colors.foreground}
+                                        strokeWidth={2.4}
+                                    />
+                                </Pressable>
+                            ) : undefined,
+                    })}
                 >
                     <Stack.Screen
                         name="(tabs)"
@@ -130,6 +151,7 @@ export default function AppLayout() {
                         options={{
                             title: "Reservation Detail",
                             animation: "slide_from_right",
+                            animationDuration: 160,
                             animationTypeForReplace: "push",
                         }}
                     />

@@ -65,3 +65,38 @@
   --logo-blue: #00aeef;
   --logo-orange: #f7941d;
 }
+
+.dark {
+  --background: #0b1120;
+  --foreground: #f9fafb;
+  --surface: #111827;
+  --card: #111827;
+  --border: #1f2937;
+  --muted: #1f2937;
+  --muted-foreground: #9ca3af;
+
+  --primary: #60a5fa;
+  --primary-foreground: #0b1120;
+
+  --secondary: #1f2937;
+  --secondary-foreground: #f9fafb;
+
+  --danger: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  --ticket-bay: #26a9e0;
+  --ticket-private: #faad3d;
+  --ticket-group: #b4f08c;
+  --ticket-program: #845ef7;
+  --ticket-default: #7a8186;
+  --notification: #f87171;
+
+  --bg-btn-main-start: #40c057;
+  --bg-btn-main-end: #49bbc4;
+  --bg-btn-main-pressed-start: #37a54b;
+  --bg-btn-main-pressed-end: #3a9da5;
+
+  --logo-blue: #00aeef;
+  --logo-orange: #f7941d;
+}

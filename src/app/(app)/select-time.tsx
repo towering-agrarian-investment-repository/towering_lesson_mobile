@@ -2,6 +2,7 @@ import { Screen } from "@/components/ui/Screen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/StateCard";
 import { AppText } from "@/design-system";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
@@ -27,6 +28,7 @@ export default function TimeScreen() {
     }>();
 
     const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberBaySlotGroups(
@@ -40,13 +42,15 @@ export default function TimeScreen() {
     );
 
     const handleSelect = (group: BaySlotGroupScheduleResponse) => {
-        router.push({
-            pathname: "/select-bay",
-            params: {
-                date,
-                ticketId,
-                slotGroupId: String(group.id),
-            },
+        runWithNavigationLock(() => {
+            router.push({
+                pathname: "/select-bay",
+                params: {
+                    date,
+                    ticketId,
+                    slotGroupId: String(group.id),
+                },
+            });
         });
     };
 
@@ -65,7 +69,7 @@ export default function TimeScreen() {
             <MotiView
                 from={{ opacity: 0, translateY: 12 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 180 }}
+                transition={{ type: "timing", duration: 140 }}
                 className="gap-1"
             >
                 <AppText variant="h3">Choose a time</AppText>
@@ -102,20 +106,20 @@ export default function TimeScreen() {
 
             {!isLoading && !isError && slotGroups.length > 0 ? (
                 <View className="gap-3">
-                    {slotGroups.map((group, index) => (
+                    {slotGroups.map((group) => (
                         <MotiView
                             key={group.id}
                             from={{ opacity: 0, translateY: 12 }}
                             animate={{ opacity: 1, translateY: 0 }}
                             transition={{
                                 type: "timing",
-                                duration: 180,
-                                delay: 40 + index * 24,
+                                duration: 140,
                             }}
                         >
                             <Pressable
                                 className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
                                 onPress={() => handleSelect(group)}
+                                disabled={isLocked}
                             >
                                 <AppText
                                     variant="body"

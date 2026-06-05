@@ -15,7 +15,7 @@ export function useMemberTickets(
 
     return useQuery<ApiResponse<TicketListItemResponse[]>>({
         queryKey: ["member", "tickets", memberId, resolvedStatuses],
-        queryFn: () => getMemberTickets(memberId!, resolvedStatuses),
+        queryFn: ({ signal }) => getMemberTickets(memberId!, resolvedStatuses, signal),
         enabled: Boolean(memberId),
     });
 }

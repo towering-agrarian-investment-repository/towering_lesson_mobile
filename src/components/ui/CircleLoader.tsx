@@ -31,7 +31,7 @@ export function CircleLoader({
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{
                         type: "timing",
-                        duration: 720,
+                        duration: 560,
                         loop: true,
                         repeatReverse: true,
                     }}
@@ -51,8 +51,8 @@ export function CircleLoader({
                             animate={{ opacity: 1, scale: 1.15, translateY: -2 }}
                             transition={{
                                 type: "timing",
-                                duration: 420,
-                                delay: index * 90,
+                                duration: 360,
+                                delay: index * 50,
                                 loop: true,
                                 repeatReverse: true,
                             }}

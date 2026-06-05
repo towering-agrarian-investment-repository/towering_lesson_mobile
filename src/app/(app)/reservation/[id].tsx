@@ -26,7 +26,7 @@ import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import {
     Alert,
     Pressable,
@@ -172,7 +172,9 @@ function getReservationStatusDescription(value?: string | null) {
 export default function ReservationDetailScreen() {
     const { id, type } = useLocalSearchParams<ReservationParams>();
 
-    const router = useRouter()
+    const colors = useThemeColors();
+    const router = useRouter();
+    const canGoBack = router.canGoBack();
 
     const reservationId = Number(id);
     const reservationType = isReservationDomain(type) ? type : undefined;
@@ -193,14 +195,37 @@ export default function ReservationDetailScreen() {
     const { mutate: cancelBayReservation, isPending: isCancellingBay } =
         useCancelMemberBayReservation();
 
+    const screenOptions = {
+        title: "Reservation Detail",
+        headerLeft: () => (
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                    canGoBack ? "Go back" : "Back to reservation list"
+                }
+                className="pr-3"
+                onPress={() => {
+                    if (canGoBack) {
+                        router.back();
+                        return;
+                    }
+
+                    router.replace("/reservation");
+                }}
+            >
+                <ChevronLeft
+                    size={20}
+                    color={colors.foreground}
+                    strokeWidth={2.25}
+                />
+            </Pressable>
+        ),
+    } as const;
+
     if (isLoading) {
         return (
             <>
-                <Stack.Screen
-                    options={{
-                        title: "Reservation Detail",
-                    }}
-                />
+                <Stack.Screen options={screenOptions} />
 
                 <View className="flex-1 flex-col gap-8 bg-background px-6 pt-6">
                     <View className="flex-col gap-4">
@@ -225,16 +250,24 @@ export default function ReservationDetailScreen() {
     if (isError) {
         return (
             <>
-                <Stack.Screen
-                    options={{
-                        title: "Reservation Detail",
-                    }}
-                />
+                <Stack.Screen options={screenOptions} />
 
-                <ErrorState
-                    title="Failed to load reservation details"
-                    message="Please pull to refresh or try again later."
-                />
+                <Screen
+                    contentClassName="grow"
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefetching}
+                            onRefresh={() => {
+                                void refetch();
+                            }}
+                        />
+                    }
+                >
+                    <ErrorState
+                        title="Failed to load reservation details"
+                        message="Pull to refresh and try again."
+                    />
+                </Screen>
             </>
         );
     }
@@ -242,16 +275,24 @@ export default function ReservationDetailScreen() {
     if (!reservation) {
         return (
             <>
-                <Stack.Screen
-                    options={{
-                        title: "Reservation Detail",
-                    }}
-                />
+                <Stack.Screen options={screenOptions} />
 
-                <EmptyState
-                    title="Reservation not available"
-                    message="The requested reservation could not be found."
-                />
+                <Screen
+                    contentClassName="grow"
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefetching}
+                            onRefresh={() => {
+                                void refetch();
+                            }}
+                        />
+                    }
+                >
+                    <EmptyState
+                        title="Reservation not available"
+                        message="The requested reservation could not be found."
+                    />
+                </Screen>
             </>
         );
     }
@@ -351,107 +392,109 @@ export default function ReservationDetailScreen() {
     };
 
     return (
-        <Screen
-            contentClassName="grow"
-            refreshControl={
-                <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
-                />
-            }
-            footer={
-                canCancelReservation ? (
-                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
-                        <Button
-                            title="Cancel Reservation"
-                            variant="danger"
-                            loading={isCancelling}
-                            className="rounded-xl"
-                            onPress={handleCancelReservation}
-                            disabled={isCancelling}
-                        />
+        <>
+            <Stack.Screen options={screenOptions} />
+
+            <Screen
+                contentClassName="grow"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefetching}
+                        onRefresh={() => {
+                            void refetch();
+                        }}
+                    />
+                }
+                footer={
+                    canCancelReservation ? (
+                        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                            <Button
+                                title="Cancel Reservation"
+                                variant="danger"
+                                loading={isCancelling}
+                                className="rounded-xl"
+                                onPress={handleCancelReservation}
+                                disabled={isCancelling}
+                            />
+                        </View>
+                    ) : null
+                }
+            >
+                <View className="flex-1 flex-col gap-6 bg-background">
+                    <HeaderSection
+                        title={title}
+                        reservationStatus={reservation.reservationStatus}
+                        ticketType={reservation.ticket?.type ?? null}
+                    />
+
+                    <View className="flex-col gap-2">
+                        <View className="flex-col">
+
+                            <DetailRow label="Date" value={dateValue} />
+
+                            <Divider className="bg-border" />
+
+                            <DetailRow label="Time" value={timeValue} />
+
+                            {isBayReservation ? (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <DetailRow
+                                        label="Bay"
+                                        value={reservationLocationValue}
+                                    />
+                                </>
+                            ) : null}
+
+                            {programValue !== "-" ? (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <DetailRow label="Program" value={programValue} />
+                                </>
+                            ) : null}
+
+                            {isBayReservation ? null : (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <CoachDetailRow
+                                        label="Coach"
+                                        value={coachName}
+                                        imageUrl={
+                                            lessonReservation?.coach?.profileImage
+                                        }
+                                    />
+                                </>
+                            )}
+
+                            {lessonNameValue ? (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <DetailRow
+                                        label="Lesson"
+                                        value={lessonNameValue}
+                                        href={lessonDetailsHref}
+                                    />
+                                </>
+                            ) : null}
+
+                            {noteValue ? (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <DetailRow
+                                        label="Notes"
+                                        value={noteValue}
+                                    />
+                                </>
+                            ) : null}
+                        </View>
                     </View>
-                ) : null
-            }
-        >
-            <View className="flex-1 flex-col gap-6 bg-background">
-                <HeaderSection
-                    title={title}
-                    reservationStatus={reservation.reservationStatus}
-                    ticketType={reservation.ticket?.type ?? null}
-                />
 
-                <View className="flex-col gap-2">
-                    {/* <SectionEyebrow>Info</SectionEyebrow> */}
-
-                    <View className="flex-col">
-
-                        <DetailRow label="Date" value={dateValue} />
-
-                        <Divider className="bg-border" />
-
-                        <DetailRow label="Time" value={timeValue} />
-
-                        {isBayReservation ? (
-                            <>
-                                <Divider className="bg-border" />
-                                <DetailRow
-                                    label="Bay"
-                                    value={reservationLocationValue}
-                                />
-                            </>
-                        ) : null}
-
-                        {programValue !== "-" ? (
-                            <>
-                                <Divider className="bg-border" />
-                                <DetailRow label="Program" value={programValue} />
-                            </>
-                        ) : null}
-
-                        {isBayReservation ? null : (
-                            <>
-                                <Divider className="bg-border" />
-                                <CoachDetailRow
-                                    label="Coach"
-                                    value={coachName}
-                                    imageUrl={
-                                        lessonReservation?.coach?.profileImage
-                                    }
-                                />
-                            </>
-                        )}
-
-                        {lessonNameValue ? (
-                            <>
-                                <Divider className="bg-border" />
-                                <DetailRow
-                                    label="Lesson"
-                                    value={lessonNameValue}
-                                    href={lessonDetailsHref}
-                                />
-                            </>
-                        ) : null}
-
-                        {noteValue ? (
-                            <>
-                                <Divider className="bg-border" />
-                                <DetailRow
-                                    label="Notes"
-                                    value={noteValue}
-                                />
-                            </>
-                        ) : null}
+                    <View className="flex-col gap-2">
+                        <ReservationPoliciesSection policies={policies} />
                     </View>
                 </View>
-
-                <View className="flex-col gap-2">
-                    <ReservationPoliciesSection policies={policies} />
-                </View>
-            </View>
-        </Screen>
+            </Screen>
+        </>
     );
 }
 
