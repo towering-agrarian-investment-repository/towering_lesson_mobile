@@ -7,6 +7,7 @@ import {
     AppText,
     Badge,
     Button,
+    ConfirmSheet,
     Divider,
     EmptyState,
     ErrorState,
@@ -33,8 +34,8 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { useState } from "react";
 import {
-    Alert,
     Pressable,
     RefreshControl,
     View,
@@ -181,6 +182,7 @@ export default function ReservationDetailScreen() {
     const colors = useThemeColors();
     const router = useRouter();
     const canGoBack = router.canGoBack();
+    const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
 
     const reservationId = Number(id);
     const reservationType = isReservationDomain(type) ? type : undefined;
@@ -272,6 +274,10 @@ export default function ReservationDetailScreen() {
                     <ErrorState
                         title="Failed to load reservation details"
                         message="Pull to refresh and try again."
+                        actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                        onAction={() => {
+                            void refetch();
+                        }}
                     />
                 </Screen>
             </>
@@ -376,43 +382,49 @@ export default function ReservationDetailScreen() {
             void Haptics.selectionAsync();
         }
 
-        Alert.alert(
-            "Cancel Reservation",
-            "Are you sure you want to cancel this reservation?",
-            [
-                {
-                    text: "Keep Reservation",
-                    style: "cancel",
+        setIsCancelSheetVisible(true);
+    };
+
+    const confirmCancelReservation = () => {
+        if (!canCancelReservation || isCancelling) {
+            return;
+        }
+
+        if (isBayReservation) {
+            cancelBayReservation(reservation.id, {
+                onSuccess: () => {
+                    router.replace("/reservation");
                 },
-                {
-                    text: "Cancel Reservation",
-                    style: "destructive",
-                    onPress: () => {
-                        if (isBayReservation) {
-                            cancelBayReservation(reservation.id, {
-                                onSuccess: () => {
-                                    router.replace("/reservation");
-                                }
-                            });
-                            return;
-                        }
+            });
+            return;
+        }
 
-                        cancelLessonReservation(reservation.id, {
-                            onSuccess: () => {
-                                router.replace("/reservation");
-                            }
-                        });
-
-
-                    },
-                },
-            ],
-        );
+        cancelLessonReservation(reservation.id, {
+            onSuccess: () => {
+                router.replace("/reservation");
+            },
+        });
     };
 
     return (
         <>
             <Stack.Screen options={screenOptions} />
+
+            <ConfirmSheet
+                visible={isCancelSheetVisible}
+                title="Cancel Reservation"
+                message="Are you sure you want to cancel this reservation? This action cannot be undone."
+                confirmLabel="Cancel Reservation"
+                cancelLabel="Keep Reservation"
+                variant="danger"
+                loading={isCancelling}
+                onClose={() => {
+                    if (!isCancelling) {
+                        setIsCancelSheetVisible(false);
+                    }
+                }}
+                onConfirm={confirmCancelReservation}
+            />
 
             <Screen
                 contentClassName="grow"

@@ -5,6 +5,7 @@ import {
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
+import { formatType } from "@/utils/format-enum";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -279,7 +280,9 @@ export default function DateScreen() {
                     <AppText variant="h3">Choose a date</AppText>
 
                     <AppText variant="meta" className="text-foreground/75">
-                        Select an available day to continue your booking.
+                        {formatType(ticketType) !== "-"
+                            ? `${formatType(ticketType)} ticket · Select an available day to continue.`
+                            : "Select an available day to continue your booking."}
                     </AppText>
                 </View>
             </View>
@@ -292,6 +295,16 @@ export default function DateScreen() {
                         <ErrorState
                             title="Failed to load available dates"
                             message="Pull to refresh and try again."
+                            actionLabel={
+                                isLessonTicket
+                                    ? isRefetchingLessonSlots
+                                        ? "Refreshing..."
+                                        : "Try Again"
+                                    : isRefetchingBaySlotGroups
+                                        ? "Refreshing..."
+                                        : "Try Again"
+                            }
+                            onAction={handleRefresh}
                         />
                     </View>
                 ) : (

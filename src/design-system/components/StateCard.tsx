@@ -44,9 +44,13 @@ export function ErrorState({
 export function EmptyState({
     title,
     message,
+    actionLabel,
+    onAction,
 }: {
     title: string;
     message: string;
+    actionLabel?: string;
+    onAction?: () => void;
 }) {
     const colors = useThemeColors();
 
@@ -63,6 +67,10 @@ export function EmptyState({
             <AppText variant="subtext" className="mt-3 text-center text-foreground/75">
                 {message}
             </AppText>
+
+            {actionLabel && onAction ? (
+                <Button title={actionLabel} onPress={onAction} className="mt-5 rounded-xl" />
+            ) : null}
         </StateCardShell>
     );
 }

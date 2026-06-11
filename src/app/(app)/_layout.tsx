@@ -190,14 +190,6 @@ export default function AppLayout() {
                     />
 
                     <Stack.Screen
-                        name="profile/gender-modal"
-                        options={{
-                            title: "Gender",
-                            presentation: "modal",
-                        }}
-                    />
-
-                    <Stack.Screen
                         name="design-system-demo"
                         options={{
                             title: "Design System",

@@ -37,27 +37,12 @@ export const uploadMemberUserProfileImage = async (
         throw new Error("Selected image is missing uri, name, or MIME type.");
     }
 
-    const localFileResponse = await fetch(file.uri);
-
-    if (!localFileResponse.ok) {
-        throw new Error("Could not read the selected image file.");
-    }
-
-    const sourceBlob = await localFileResponse.blob();
-    const uploadBlob =
-        sourceBlob.type === file.type
-            ? sourceBlob
-            : sourceBlob.slice(0, sourceBlob.size, file.type);
-
     const formData = new FormData();
-    if (typeof File !== "undefined") {
-        const uploadFile = new File([uploadBlob], file.name, {
-            type: file.type,
-        });
-        formData.append("file", uploadFile);
-    } else {
-        formData.append("file", uploadBlob, file.name);
-    }
+    formData.append("file", {
+        uri: file.uri,
+        name: file.name,
+        type: file.type,
+    } as unknown as Blob);
 
     return apiClient(`/member/${id}/profile-image`, {
         method: "PUT",

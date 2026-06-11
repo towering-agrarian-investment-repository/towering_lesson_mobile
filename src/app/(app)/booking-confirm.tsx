@@ -2,7 +2,7 @@ import {
     ReservationDetailField,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { Button, Divider, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { showAppToast } from "@/lib/toast/toast";
 import { useCreateMemberBayReservation, useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
@@ -122,6 +122,14 @@ export default function ConfirmScreen() {
         !baySlotId ||
         isMissingRequiredData ||
         isBaySlotDisabled;
+    const disabledReason =
+        !ticketId
+            ? "Ticket information is missing."
+            : !baySlotId || isMissingRequiredData
+                ? "Selected bay is no longer available."
+                : isBaySlotDisabled
+                    ? "Selected bay is no longer available."
+                    : null;
 
     return (
         <Screen
@@ -175,11 +183,19 @@ export default function ConfirmScreen() {
                 <ErrorState
                     title="Failed to load reservation details"
                     message="Pull to refresh and try again."
+                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : isMissingRequiredData ? (
                 <EmptyState
                     title="Selected bay no longer available"
                     message="Please go back and choose another bay."
+                    actionLabel="Choose Another Bay"
+                    onAction={() => {
+                        router.back();
+                    }}
                 />
             ) : (
                 <MotiView
@@ -203,6 +219,14 @@ export default function ConfirmScreen() {
 
                     <View className="mt-6 gap-4">
                         <Divider className="bg-border" />
+
+                        {disabledReason ? (
+                            <View className="rounded-xl bg-warning/10 px-4 py-3">
+                                <AppText variant="meta" className="text-warning">
+                                    {disabledReason}
+                                </AppText>
+                            </View>
+                        ) : null}
 
                         <ReservationPoliciesSection policies={POLICIES} />
                     </View>

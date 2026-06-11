@@ -1,4 +1,4 @@
-import { AppText as Text, Button, CircleLoader, ErrorState, Screen, useThemeColors } from "@/design-system";
+import { ActionSheet, AppText as Text, Button, CircleLoader, ErrorState, Screen, useThemeColors } from "@/design-system";
 import {
     FormDateInput,
     FormNumberInput,
@@ -16,9 +16,9 @@ import { GenderEnum } from "@/types/member.type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { Link, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
-import { useEffect } from "react";
+import { useRouter } from "expo-router";
+import { Camera, ChevronRight, ImageIcon } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
     Pressable,
@@ -44,10 +44,6 @@ const editProfileSchema = z.object({
 
 type EditProfileFormValues = z.infer<typeof editProfileSchema>;
 
-type EditProfileParams = {
-    selectedGender?: GenderEnum | "";
-};
-
 const GENDER_OPTIONS: {
     label: string;
     value: GenderEnum;
@@ -65,7 +61,6 @@ function normalizeOptionalText(value: string) {
 export default function EditProfileScreen() {
     const colors = useThemeColors();
     const router = useRouter();
-    const { selectedGender } = useLocalSearchParams<EditProfileParams>();
     const {
         data: memberResponse,
         isLoading,
@@ -80,6 +75,9 @@ export default function EditProfileScreen() {
         mutate: uploadProfileImage,
         isPending: isUploadingImage,
     } = useUploadMemberUser();
+    const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
+        useState(false);
+    const [isGenderSheetVisible, setIsGenderSheetVisible] = useState(false);
 
     const member = memberResponse?.data;
 
@@ -113,22 +111,6 @@ export default function EditProfileScreen() {
         });
     }, [form, member]);
 
-    useEffect(() => {
-        if (
-            selectedGender === "" ||
-            selectedGender === "MALE" ||
-            selectedGender === "FEMALE" ||
-            selectedGender === "OTHER"
-        ) {
-            form.setValue("gender", selectedGender, {
-                shouldDirty: true,
-                shouldTouch: true,
-                shouldValidate: true,
-            });
-            router.setParams({ selectedGender: undefined });
-        }
-    }, [form, router, selectedGender]);
-
     const onSubmit = (values: EditProfileFormValues) => {
         updateProfile(
             {
@@ -148,7 +130,29 @@ export default function EditProfileScreen() {
         );
     };
 
-    const handlePickProfileImage = async () => {
+    const uploadSelectedProfileImage = (
+        memberId: number,
+        asset: ImagePicker.ImagePickerAsset,
+    ) => {
+        const file = createFileFromAsset(asset);
+
+        uploadProfileImage(
+            {
+                id: memberId,
+                file,
+            },
+            {
+                onSuccess: () => {
+                    showAppToast({
+                        message: "Profile image updated.",
+                        type: "success",
+                    });
+                },
+            },
+        );
+    };
+
+    const handlePickProfileImageFromLibrary = async () => {
         if (!member?.id || isUploadingImage) {
             return;
         }
@@ -175,22 +179,7 @@ export default function EditProfileScreen() {
         }
 
         try {
-            const file = createFileFromAsset(result.assets[0]);
-
-            uploadProfileImage(
-                {
-                    id: member.id,
-                    file,
-                },
-                {
-                    onSuccess: () => {
-                        showAppToast({
-                            message: "Profile image updated.",
-                            type: "success",
-                        });
-                    },
-                },
-            );
+            uploadSelectedProfileImage(member.id, result.assets[0]);
         } catch (uploadError) {
             showAppToast({
                 message:
@@ -200,6 +189,57 @@ export default function EditProfileScreen() {
                 type: "error",
             });
         }
+    };
+
+    const handleTakeProfileImage = async () => {
+        if (!member?.id || isUploadingImage) {
+            return;
+        }
+
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (!permission.granted) {
+            showAppToast({
+                message: "Camera permission is required to take a profile image.",
+                type: "error",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.9,
+        });
+
+        if (result.canceled || !result.assets[0]) {
+            return;
+        }
+
+        try {
+            uploadSelectedProfileImage(member.id, result.assets[0]);
+        } catch (uploadError) {
+            showAppToast({
+                message:
+                    uploadError instanceof Error
+                        ? uploadError.message
+                        : "Could not prepare the captured image.",
+                type: "error",
+            });
+        }
+    };
+
+    const handleChangeProfileImage = () => {
+        if (!member?.id || isUploadingImage) {
+            return;
+        }
+
+        setIsPhotoSourceSheetVisible(true);
+    };
+
+    const closePhotoSourceSheet = () => {
+        setIsPhotoSourceSheetVisible(false);
     };
 
     if (isLoading) {
@@ -233,6 +273,36 @@ export default function EditProfileScreen() {
                 </View>
             }
         >
+            <ActionSheet
+                visible={isPhotoSourceSheetVisible}
+                title="Change profile photo"
+                description="Take a new photo or choose one from your library."
+                onClose={closePhotoSourceSheet}
+                closeDelayMs={250}
+                options={[
+                    {
+                        key: "camera",
+                        title: "Take Photo",
+                        description: "Use your camera",
+                        icon: <Camera size={22} color={colors.foreground} />,
+                        disabled: isUploadingImage,
+                        onPress: () => {
+                            void handleTakeProfileImage();
+                        },
+                    },
+                    {
+                        key: "library",
+                        title: "Choose from Library",
+                        description: "Select an existing photo",
+                        icon: <ImageIcon size={22} color={colors.foreground} />,
+                        disabled: isUploadingImage,
+                        onPress: () => {
+                            void handlePickProfileImageFromLibrary();
+                        },
+                    },
+                ]}
+            />
+
             <View className="gap-8">
                 <View className="items-center gap-4">
                     <ProfileImagePreview
@@ -246,7 +316,7 @@ export default function EditProfileScreen() {
                         loading={isUploadingImage}
                         disabled={isUploadingImage}
                         onPress={() => {
-                            void handlePickProfileImage();
+                            handleChangeProfileImage();
                         }}
                     />
                 </View>
@@ -288,7 +358,7 @@ export default function EditProfileScreen() {
                     <Controller
                         control={form.control}
                         name="gender"
-                        render={({ field: { value }, fieldState }) => {
+                        render={({ field: { onChange, value }, fieldState }) => {
                             const selectedValue =
                                 typeof value === "string" && value.length > 0 ? value : "";
                             const selectedLabel =
@@ -296,18 +366,39 @@ export default function EditProfileScreen() {
                                     ?.label ?? "Select an option";
 
                             return (
-                                <FormFieldShell
-                                    label="Gender"
-                                    errorMessage={fieldState.error?.message}
-                                >
-                                    <View className="mt-2">
-                                        <Link
-                                            href={{
-                                                pathname: "/profile/gender-modal",
-                                                params: { currentGender: selectedValue },
-                                            }}
-                                            asChild
-                                        >
+                                <>
+                                    <ActionSheet
+                                        visible={isGenderSheetVisible}
+                                        title="Gender"
+                                        description="Choose the gender value for this member profile."
+                                        onClose={() => {
+                                            setIsGenderSheetVisible(false);
+                                        }}
+                                        options={[
+                                            {
+                                                key: "clear",
+                                                title: "Clear selection",
+                                                selected: selectedValue === "",
+                                                onPress: () => {
+                                                    onChange("");
+                                                },
+                                            },
+                                            ...GENDER_OPTIONS.map((option) => ({
+                                                key: option.value,
+                                                title: option.label,
+                                                selected: option.value === selectedValue,
+                                                onPress: () => {
+                                                    onChange(option.value);
+                                                },
+                                            })),
+                                        ]}
+                                    />
+
+                                    <FormFieldShell
+                                        label="Gender"
+                                        errorMessage={fieldState.error?.message}
+                                    >
+                                        <View className="mt-2">
                                             <Pressable
                                                 className={`flex-row items-center border-b px-0 pb-3 pt-2 ${
                                                     fieldState.error
@@ -316,6 +407,9 @@ export default function EditProfileScreen() {
                                                 }`}
                                                 accessibilityRole="button"
                                                 accessibilityLabel="Select gender"
+                                                onPress={() => {
+                                                    setIsGenderSheetVisible(true);
+                                                }}
                                             >
                                                 <Text
                                                     className={`flex-1 text-base ${
@@ -333,9 +427,9 @@ export default function EditProfileScreen() {
                                                     strokeWidth={2.25}
                                                 />
                                             </Pressable>
-                                        </Link>
-                                    </View>
-                                </FormFieldShell>
+                                        </View>
+                                    </FormFieldShell>
+                                </>
                             );
                         }}
                     />

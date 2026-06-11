@@ -1,7 +1,10 @@
 import {
+    ActionSheet,
     AppText,
     CircleLoader,
+    ConfirmSheet,
     ErrorState,
+    ListRow,
     Screen,
     type ThemePreference,
     useThemeColors,
@@ -13,14 +16,15 @@ import { signOut } from "@/service/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import { Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
-import { Alert, Pressable, RefreshControl, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
 
 export default function ProfileScreen() {
     const queryClient = useQueryClient();
     const [refreshing, setRefreshing] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
     const { isThemeReady, themePreference, setThemePreference } = useThemePreference();
 
     const {
@@ -72,19 +76,7 @@ export default function ProfileScreen() {
             return;
         }
 
-        Alert.alert("Log Out", "Are you sure you want to log out?", [
-            {
-                text: "Cancel",
-                style: "cancel",
-            },
-            {
-                text: "Log Out",
-                style: "destructive",
-                onPress: () => {
-                    void handleSignOut();
-                },
-            },
-        ]);
+        setIsSignOutSheetVisible(true);
     };
 
     if (isLoading) {
@@ -115,6 +107,23 @@ export default function ProfileScreen() {
                 />
             }
         >
+            <ConfirmSheet
+                visible={isSignOutSheetVisible}
+                title="Log Out"
+                message="Are you sure you want to log out of this account?"
+                confirmLabel="Log Out"
+                variant="danger"
+                loading={isSigningOut}
+                onClose={() => {
+                    if (!isSigningOut) {
+                        setIsSignOutSheetVisible(false);
+                    }
+                }}
+                onConfirm={() => {
+                    void handleSignOut();
+                }}
+            />
+
             <View className="flex-col gap-8">
                 <ProfileHeader
                     name={member?.name}
@@ -414,21 +423,9 @@ function ParentRow({
 }
 
 function LinkRow({ label, href }: { label: string; href: Href }) {
-    const colors = useThemeColors();
-
     return (
         <Link href={href} asChild>
-            <Pressable className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface">
-                <AppText variant="body" className="text-foreground">
-                    {label}
-                </AppText>
-
-                <ChevronRight
-                    size={20}
-                    color={colors.mutedForeground}
-                    strokeWidth={2.25}
-                />
-            </Pressable>
+            <ListRow title={label} />
         </Link>
     );
 }
@@ -443,6 +440,7 @@ function ThemePreferenceRow({
     onChange: (preference: ThemePreference) => void;
 }) {
     const colors = useThemeColors();
+    const [isThemeSheetVisible, setIsThemeSheetVisible] = useState(false);
     const themeOptions: { label: string; value: ThemePreference }[] = [
         { label: "System", value: "system" },
         { label: "Light", value: "light" },
@@ -456,45 +454,87 @@ function ThemePreferenceRow({
             return;
         }
 
-        Alert.alert("Appearance", "Choose a theme", [
-            ...themeOptions.map((option) => ({
-                text: option.label,
-                onPress: () => {
-                    onChange(option.value);
-                },
-            })),
-            {
-                text: "Cancel",
-                style: "cancel",
-            },
-        ]);
+        setIsThemeSheetVisible(true);
     };
 
     return (
-        <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Choose app appearance"
-            disabled={disabled}
-            onPress={openThemePicker}
-            className={`flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 ${disabled ? "opacity-60" : "active:bg-surface"
-                }`}
-        >
-            <AppText variant="body" className="text-foreground">
-                Theme
-            </AppText>
+        <>
+            <ListRow
+                accessibilityRole="button"
+                accessibilityLabel="Choose app appearance"
+                disabled={disabled}
+                onPress={openThemePicker}
+                title="Theme"
+                meta={selectedLabel}
+            />
 
-            <View className="flex-row items-center gap-3">
-                <AppText variant="meta" className="text-foreground/75">
-                    {selectedLabel}
-                </AppText>
+            <ThemePreferenceSheet
+                visible={isThemeSheetVisible}
+                preference={preference}
+                colors={colors}
+                onClose={() => {
+                    setIsThemeSheetVisible(false);
+                }}
+                onSelect={(nextPreference) => {
+                    onChange(nextPreference);
+                }}
+            />
+        </>
+    );
+}
 
-                <ChevronRight
-                    size={20}
-                    color={colors.mutedForeground}
-                    strokeWidth={2.25}
-                />
-            </View>
-        </Pressable>
+function ThemePreferenceSheet({
+    visible,
+    preference,
+    colors,
+    onClose,
+    onSelect,
+}: {
+    visible: boolean;
+    preference: ThemePreference;
+    colors: ReturnType<typeof useThemeColors>;
+    onClose: () => void;
+    onSelect: (preference: ThemePreference) => void;
+}) {
+    return (
+        <ActionSheet
+            visible={visible}
+            title="Appearance"
+            description="Choose how the app should look."
+            onClose={onClose}
+            options={[
+                {
+                    key: "system",
+                    title: "System",
+                    description: "Follow your device setting",
+                    icon: <Smartphone size={22} color={colors.foreground} />,
+                    selected: preference === "system",
+                    onPress: () => {
+                        onSelect("system");
+                    },
+                },
+                {
+                    key: "light",
+                    title: "Light",
+                    description: "Use the light appearance",
+                    icon: <Sun size={22} color={colors.foreground} />,
+                    selected: preference === "light",
+                    onPress: () => {
+                        onSelect("light");
+                    },
+                },
+                {
+                    key: "dark",
+                    title: "Dark",
+                    description: "Use the dark appearance",
+                    icon: <Moon size={22} color={colors.foreground} />,
+                    selected: preference === "dark",
+                    onPress: () => {
+                        onSelect("dark");
+                    },
+                },
+            ]}
+        />
     );
 }
 

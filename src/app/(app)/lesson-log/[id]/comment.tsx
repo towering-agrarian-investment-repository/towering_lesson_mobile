@@ -4,6 +4,7 @@ import {
     EmptyState,
     ErrorState,
     Screen,
+    Textarea,
     useThemeColors,
 } from "@/design-system";
 import {
@@ -16,7 +17,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Star } from "lucide-react-native";
 import React from "react";
-import { Pressable, RefreshControl, TextInput, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
 import { z } from "zod";
 
 type LessonLogParams = {
@@ -95,6 +96,10 @@ function LessonLogCommentScreen() {
                 <ErrorState
                     title="Failed to load comment form"
                     message="Pull to refresh and try again."
+                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             </Screen>
         );
@@ -137,7 +142,7 @@ function LessonLogCommentScreen() {
             keyboardAware
             contentClassName="grow gap-5"
             footer={
-                <View className="border-t border-border bg-background px-6 pb-4 pt-4">
+                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                     <Button
                         title="Confirm"
                         accessibilityLabel="Submit lesson rating and comment"
@@ -154,7 +159,12 @@ function LessonLogCommentScreen() {
                                 },
                                 {
                                     onSuccess: () => {
-                                        router.replace(`/lesson-log/${String(lessonLog.id)}` as any);
+                                        router.replace({
+                                            pathname: "/lesson-log/[id]",
+                                            params: {
+                                                id: String(lessonLog.id),
+                                            },
+                                        });
                                     },
                                 },
                             );
@@ -234,30 +244,13 @@ function LessonLogCommentScreen() {
                     control={form.control}
                     name="comment"
                     render={({ field: { value, onChange, onBlur }, fieldState }) => (
-                        <View className="gap-3">
-                            <TextInput
-                                value={value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                placeholder="Please leave a comment"
-                                placeholderTextColor={colors.mutedForeground}
-                                multiline
-                                textAlignVertical="top"
-                                className="min-h-32 border-b px-0 pb-3 pt-2 text-base text-foreground"
-                                style={{
-                                    borderBottomColor: fieldState.error
-                                        ? colors.danger
-                                        : colors.border,
-                                    borderBottomWidth: 1,
-                                }}
-                            />
-
-                            {fieldState.error?.message ? (
-                                <AppText selectable variant="meta" className="text-danger">
-                                    {fieldState.error.message}
-                                </AppText>
-                            ) : null}
-                        </View>
+                        <Textarea
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            placeholder="Please leave a comment"
+                            error={fieldState.error?.message}
+                        />
                     )}
                 />
             </View>

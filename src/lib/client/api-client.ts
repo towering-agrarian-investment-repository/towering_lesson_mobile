@@ -52,6 +52,15 @@ export async function apiClient<T = unknown>(
         headers.set("Content-Type", "application/json");
     }
 
+    if (options.body instanceof FormData) {
+        return uploadFormDataWithXhr<T>(
+            `${API_BASE_URL}${endpoint}`,
+            options.method ?? "GET",
+            headers,
+            options.body,
+        );
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
@@ -67,4 +76,52 @@ export async function apiClient<T = unknown>(
     }
 
     return data as T;
+}
+
+function uploadFormDataWithXhr<T>(
+    url: string,
+    method: string,
+    headers: Headers,
+    body: FormData,
+): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+
+        request.open(method, url);
+        headers.forEach((value, key) => {
+            request.setRequestHeader(key, value);
+        });
+
+        request.onload = () => {
+            const contentType = request.getResponseHeader("content-type");
+            const responseText =
+                typeof request.responseText === "string" ? request.responseText : "";
+            let data: unknown = responseText;
+
+            if (contentType?.includes("application/json") && responseText) {
+                try {
+                    data = JSON.parse(responseText);
+                } catch {
+                    data = responseText;
+                }
+            }
+
+            if (request.status >= 200 && request.status < 300) {
+                resolve(data as T);
+                return;
+            }
+
+            reject(data);
+        };
+
+        request.onerror = () => {
+            reject(new Error("Network request failed"));
+        };
+
+        request.ontimeout = () => {
+            reject(new Error("Network request timed out"));
+        };
+
+        request.send(body);
+    });
 }

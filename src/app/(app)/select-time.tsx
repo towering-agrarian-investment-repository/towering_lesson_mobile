@@ -3,6 +3,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
+import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MotiView } from "moti";
@@ -19,9 +20,10 @@ function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
 }
 
 export default function TimeScreen() {
-    const { date, ticketId } = useLocalSearchParams<{
+    const { date, ticketId, ticketType } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
+        ticketType?: string;
     }>();
 
     const router = useRouter();
@@ -45,6 +47,7 @@ export default function TimeScreen() {
                 params: {
                     date,
                     ticketId,
+                    ticketType,
                     slotGroupId: String(group.id),
                 },
             });
@@ -72,7 +75,9 @@ export default function TimeScreen() {
                 <AppText variant="h3">Choose a time</AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
-                    {date}
+                    {formatType(ticketType) !== "-"
+                        ? `${date} · ${formatType(ticketType)}`
+                        : date}
                 </AppText>
             </MotiView>
 
@@ -91,6 +96,10 @@ export default function TimeScreen() {
                 <ErrorState
                     title="Failed to load available times"
                     message="Pull to refresh and try again."
+                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : null}
 
@@ -98,6 +107,10 @@ export default function TimeScreen() {
                 <EmptyState
                     title="No available times"
                     message="There are no available times for this date."
+                    actionLabel="Choose Another Date"
+                    onAction={() => {
+                        router.back();
+                    }}
                 />
             ) : null}
 

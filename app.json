@@ -46,6 +46,13 @@
           "resizeMode": "contain"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Golf Lesson System to use your camera to take a profile photo.",
+          "photosPermission": "Allow Golf Lesson System to access your photos to choose a profile photo."
+        }
+      ],
       "expo-video"
     ],
     "experiments": {

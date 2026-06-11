@@ -2,6 +2,7 @@ import { AppText, EmptyState, ErrorState, Screen, Skeleton } from "@/design-syst
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { LessonAvailabilityResponse } from "@/types/member-lesson";
+import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MotiView } from "moti";
@@ -90,7 +91,9 @@ export default function SelectLessonSlotScreen() {
                 <AppText variant="h3">Choose a time</AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
-                    {date}
+                    {formatType(ticketType) !== "-"
+                        ? `${date} · ${formatType(ticketType)}`
+                        : date}
                 </AppText>
             </MotiView>
 
@@ -109,6 +112,10 @@ export default function SelectLessonSlotScreen() {
                 <ErrorState
                     title="Failed to load lesson slots"
                     message="Pull to refresh and try again."
+                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : null}
 
@@ -116,6 +123,10 @@ export default function SelectLessonSlotScreen() {
                 <EmptyState
                     title="No lesson slots"
                     message="There are no lesson slots for this date."
+                    actionLabel="Choose Another Date"
+                    onAction={() => {
+                        router.back();
+                    }}
                 />
             ) : null}
 

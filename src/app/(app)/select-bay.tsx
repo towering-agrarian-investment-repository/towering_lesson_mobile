@@ -3,6 +3,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
+import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MotiView } from "moti";
@@ -23,9 +24,10 @@ function chunkItems<T>(items: T[], size: number) {
 }
 
 export default function BayScreen() {
-    const { date, ticketId, slotGroupId } = useLocalSearchParams<{
+    const { date, ticketId, ticketType, slotGroupId } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
+        ticketType?: string;
         slotGroupId?: string;
     }>();
 
@@ -64,6 +66,7 @@ export default function BayScreen() {
                 params: {
                     date,
                     ticketId,
+                    ticketType,
                     slotGroupId: String(slotGroup.id),
                     baySlotId: String(baySlot.id),
                     bayName: baySlot.bayName,
@@ -96,10 +99,12 @@ export default function BayScreen() {
 
                 <AppText variant="meta" className="text-foreground/75">
                     {slotGroup
-                        ? formatTimeRange(
+                        ? `${formatTimeRange(
                             slotGroup.startDateTime,
                             slotGroup.endDateTime,
-                        )
+                        )}${formatType(ticketType) !== "-"
+                            ? ` · ${formatType(ticketType)}`
+                            : ""}`
                         : date}
                 </AppText>
             </MotiView>
@@ -138,6 +143,10 @@ export default function BayScreen() {
                 <ErrorState
                     title="Failed to load bays"
                     message="Pull to refresh and try again."
+                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : null}
 
@@ -145,6 +154,10 @@ export default function BayScreen() {
                 <EmptyState
                     title="Time no longer available"
                     message="Please go back and choose another time."
+                    actionLabel="Choose Another Time"
+                    onAction={() => {
+                        router.back();
+                    }}
                 />
             ) : null}
 

@@ -1,11 +1,11 @@
-import { AppText, Button, EmptyState, ErrorState, Screen, Skeleton, useThemeColors } from "@/design-system";
+import { AppText, Button, EmptyState, ErrorState, ListRow, Screen, Skeleton, useThemeColors } from "@/design-system";
 import { useMemberLessonLogById } from "@/lib/hook/useLessonLog";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useEvent } from "expo";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { ChevronRight, Star } from "lucide-react-native";
+import { Star } from "lucide-react-native";
 import React from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 
@@ -81,7 +81,14 @@ function LessonLogDetailsScreen() {
                     <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
                 }
             >
-                <ErrorState title="Failed to load lesson post" message="Pull to refresh and try again." />
+                <ErrorState
+                    title="Failed to load lesson post"
+                    message="Pull to refresh and try again."
+                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    onAction={() => {
+                        void refetch();
+                    }}
+                />
             </Screen>
         );
     }
@@ -109,14 +116,19 @@ function LessonLogDetailsScreen() {
             }
             footer={
                 canReview ? (
-                    <View className="border-t border-border bg-background px-6 pb-4 pt-4">
+                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                         <Button
                             title="Leave a Comment"
                             accessibilityLabel="Leave a comment for this lesson"
                             disabled={isLocked}
                             onPress={() => {
                                 runWithNavigationLock(() => {
-                                    router.push(`/lesson-log/${String(lessonLog.id)}/comment` as any);
+                                    router.push({
+                                        pathname: "/lesson-log/[id]/comment",
+                                        params: {
+                                            id: String(lessonLog.id),
+                                        },
+                                    });
                                 });
                             }}
                         />
@@ -187,7 +199,7 @@ function LessonLogDetailsScreen() {
                     <AppText selectable variant="muted" className="leading-6">
                         {canReview
                             ? "You can leave a rating and comment for this lesson."
-                            : "The review period has ended."}
+                            : "Your comment has been submitted."}
                     </AppText>
                 )}
 
@@ -197,7 +209,7 @@ function LessonLogDetailsScreen() {
                         variant="caption"
                         className={canReview ? "text-warning" : "text-success"}
                     >
-                        {canReview ? "Review available" : "Review closed"}
+                        {canReview ? "Leave a review" : "Comment submitted"}
                     </AppText>
                 </View>
             </View>
@@ -221,21 +233,10 @@ function LessonLogDetailsScreen() {
                             }}
                             asChild
                         >
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel={`Open reservation ${lessonLog.reservation.name ?? lessonLog.reservation.id}`}
-                                className="flex-row items-center justify-between gap-3 px-1 py-2 active:opacity-80"
-                            >
-                                <View className="min-w-0 flex-1 gap-1">
-                                    <AppText selectable variant="body" className="text-base">
-                                        {lessonLog.reservation.name?.trim() || `Reservation #${lessonLog.reservation.id}`}
-                                    </AppText>
-                                    <AppText selectable variant="caption">
-                                        View reservation details
-                                    </AppText>
-                                </View>
-                                <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={2.1} />
-                            </Pressable>
+                            <ListRow
+                                title={lessonLog.reservation.name?.trim() || `Reservation #${lessonLog.reservation.id}`}
+                                subtitle="View reservation details"
+                            />
                         </Link>
                     </View>
                 </>

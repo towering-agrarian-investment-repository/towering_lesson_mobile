@@ -128,11 +128,19 @@ export default function ReservationScreen() {
                         <ErrorState
                             title="Failed to load reservations"
                             message="Pull to refresh and try again."
+                            actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                            onAction={() => {
+                                void refetch();
+                            }}
                         />
                     ) : reservations.length === 0 ? (
                         <EmptyState
                             title="No reservations found"
                             message="Your reservations will appear here."
+                            actionLabel="Refresh"
+                            onAction={() => {
+                                void refetch();
+                            }}
                         />
                     ) : (
                         <FlatList

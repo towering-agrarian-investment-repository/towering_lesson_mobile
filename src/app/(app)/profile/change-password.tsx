@@ -49,11 +49,16 @@ function ChangePasswordScreen() {
                 newPassword: data.newPassword
             })
             showAppToast({
-                message: "Success",
+                message: "Password updated.",
                 type: "success",
             });
 
-            router.replace("/")
+            if (router.canGoBack()) {
+                router.back();
+                return;
+            }
+
+            router.replace("/profile" as never);
 
         } catch (error) {
             const err = error as {
@@ -95,6 +100,7 @@ function ChangePasswordScreen() {
                     <Button
                         title={form.formState.isSubmitting ? "Saving..." : "Confirm"}
                         loading={form.formState.isSubmitting}
+                        disabled={form.formState.isSubmitting}
                         className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit)}
                     />
