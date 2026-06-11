@@ -1,7 +1,8 @@
-import { AppText } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import happyGolfToolbarLogo from "@/assets/images/happygolf_toolbar_logo.png";
 import { MotiView } from "moti";
 import { Image, View } from "react-native";
+import { AppText } from "./AppText";
+import { useThemeColors } from "../utils/theme";
 
 type CircleLoaderProps = {
     label?: string;
@@ -37,7 +38,7 @@ export function CircleLoader({
                     }}
                 >
                     <Image
-                        source={require("../../../assets/images/happygolf_toolbar_logo.png")}
+                        source={happyGolfToolbarLogo}
                         className="h-14 w-64"
                         resizeMode="contain"
                     />

@@ -1,6 +1,5 @@
-import { AppText as Text, Button } from "@/design-system";
+import { AppText as Text, Button, Screen } from "@/design-system";
 import { FormPasswordInput } from "@/components/ui/form";
-import { Screen } from "@/components/ui/Screen";
 import { responseError } from "@/lib/api-response/api-response";
 import { showAppToast } from "@/lib/toast/toast";
 import { changePassword } from "@/service/auth";

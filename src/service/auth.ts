@@ -1,7 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
-const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid username or password.";
+const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid username or password";
 
 export type AuthSession = {
     session: {

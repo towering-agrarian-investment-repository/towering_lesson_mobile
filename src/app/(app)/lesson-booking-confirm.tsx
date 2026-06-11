@@ -2,8 +2,7 @@ import {
     ReservationDetailField,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { Screen } from "@/components/ui/Screen";
-import { Button, Divider } from "@/design-system";
+import { Button, Divider, Screen } from "@/design-system";
 import { useCreateMemberLessonReservation } from "@/lib/hook/useReservation";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";

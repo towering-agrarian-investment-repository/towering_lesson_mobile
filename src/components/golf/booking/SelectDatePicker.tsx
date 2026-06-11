@@ -1,6 +1,4 @@
-import { Screen } from "@/components/ui/Screen";
-import { AppText } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { AppText, ErrorState, Screen, useThemeColors } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     useMemberBaySlotGroups,
@@ -18,7 +16,6 @@ import {
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 
-import { ErrorState } from "@/components/ui/StateCard";
 
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
 const CALENDAR_WEEKDAY_PLACEHOLDERS = Array.from({ length: 7 }, (_, index) => index);

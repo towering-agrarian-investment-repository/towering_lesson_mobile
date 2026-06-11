@@ -1,11 +1,12 @@
 import { MotiView } from "moti";
 import { View } from "react-native";
+import { cn } from "../utils/cn";
 
 type SkeletonProps = {
     className?: string;
 };
 
-export function Skeleton({ className = "" }: SkeletonProps) {
+export function Skeleton({ className }: SkeletonProps) {
     return (
         <MotiView
             from={{ opacity: 0.45 }}
@@ -16,7 +17,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
                 loop: true,
                 repeatReverse: true,
             }}
-            className={`overflow-hidden rounded-xl bg-muted ${className}`}
+            className={cn("overflow-hidden rounded-xl bg-muted", className)}
         />
     );
 }

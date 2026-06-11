@@ -1,5 +1,5 @@
 import { Controller, FieldValues } from "react-hook-form";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { useThemeColors } from "@/design-system";
 import { TextInput } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -40,10 +40,13 @@ export function FormTextInput<TFieldValues extends FieldValues>({
                         numberOfLines={numberOfLines}
                         editable={editable}
                         textAlignVertical={multiline ? "top" : "center"}
-                        className={`mt-2 border-b px-0 pb-3 pt-2 ${fieldState.error
-                            ? "border-danger"
-                            : "border-border"
-                            } text-base text-foreground`}
+                        className="mt-2 border-b px-0 pb-3 pt-2 text-base text-foreground"
+                        style={{
+                            borderBottomColor: fieldState.error
+                                ? colors.danger
+                                : colors.border,
+                            borderBottomWidth: 1,
+                        }}
                     />
                 </FormFieldShell>
             )}

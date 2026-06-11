@@ -33,29 +33,29 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #000000;
-  --surface: #f3f3f3;
+  --foreground: #111827;
+  --surface: #f9fafb;
   --card: #ffffff;
-  --border: #eeeeee;
-  --muted: #f3f3f3;
-  --muted-foreground: #888888;
+  --border: #e5e7eb;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
 
-  --primary: #26a9e0;
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
 
-  --secondary: #eefaff;
-  --secondary-foreground: #000000;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
 
-  --danger: #ff6565;
-  --success: #40c057;
-  --warning: #ff9f3f;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
 
   --ticket-bay: #26a9e0;
-  --ticket-private: #faad3d;
-  --ticket-group: #b4f08c;
+  --ticket-private: #4071c0;
+  --ticket-group: #faad3d;
   --ticket-program: #845ef7;
   --ticket-default: #7a8186;
-  --notification: #ff6565;
+  --notification: #dc2626;
 
   --bg-btn-main-start: #40c057;
   --bg-btn-main-end: #49bbc4;
@@ -86,8 +86,8 @@
   --warning: #fbbf24;
 
   --ticket-bay: #26a9e0;
-  --ticket-private: #faad3d;
-  --ticket-group: #b4f08c;
+  --ticket-private: #4071c0;
+  --ticket-group: #faad3d;
   --ticket-program: #845ef7;
   --ticket-default: #7a8186;
   --notification: #f87171;

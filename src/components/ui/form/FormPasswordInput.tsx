@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { useThemeColors } from "@/design-system";
 import { Pressable, TextInput, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -28,10 +28,13 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                     errorMessage={fieldState.error?.message}
                 >
                     <View
-                        className={`mt-2 flex-row items-center border-b pb-3 pt-2 ${fieldState.error
-                            ? "border-danger"
-                            : "border-border"
-                            }`}
+                        className="mt-2 flex-row items-center border-b pb-3 pt-2"
+                        style={{
+                            borderBottomColor: fieldState.error
+                                ? colors.danger
+                                : colors.border,
+                            borderBottomWidth: 1,
+                        }}
                     >
                         <TextInput
                             value={typeof value === "string" ? value : value == null ? "" : String(value)}

@@ -1,7 +1,8 @@
-import { AppText, Button } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
 import { CircleAlert, Inbox } from "lucide-react-native";
 import { View } from "react-native";
+import { AppText } from "./AppText";
+import { Button } from "./Button";
+import { useThemeColors } from "../utils/theme";
 
 const CircleAlertIcon = CircleAlert as React.ComponentType<any>;
 const InboxIcon = Inbox as React.ComponentType<any>;

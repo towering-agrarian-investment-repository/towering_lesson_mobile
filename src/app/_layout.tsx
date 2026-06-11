@@ -1,13 +1,18 @@
+import { ThemeProvider, useTheme } from "@/design-system";
 import { authClient } from "@/lib/auth-client";
-import { ALLOWED_APP_ROLE, type AuthSession } from "@/service/auth";
-import { ThemeProvider } from "@/design-system/utils/theme";
+import {
+  ALLOWED_APP_ROLE,
+  type AuthSession,
+} from "@/service/auth";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { Stack } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { View } from "react-native";
+import { VariableContextProvider } from "react-native-css/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
+import { usePushNotification } from "@/lib/hook/shared/usePushNotification";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -29,14 +34,62 @@ export default function RootLayout() {
       return;
     }
 
-    void authClient.signOut().catch(() => {});
+    void authClient.signOut().catch(() => { });
   }, [hasUnauthorizedSession]);
 
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <View className="flex-1 bg-background">
-          <Stack>
+        <ThemedRoot hasAuthorizedSession={hasAuthorizedSession} />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function ThemedRoot({
+  hasAuthorizedSession,
+}: {
+  hasAuthorizedSession: boolean;
+}) {
+  const { colors, resolvedScheme } = useTheme();
+
+  usePushNotification(hasAuthorizedSession);
+
+  const themeVariables = useMemo(
+    () => ({
+      "--background": colors.background,
+      "--foreground": colors.foreground,
+      "--surface": colors.surface,
+      "--card": colors.card,
+      "--border": colors.border,
+      "--muted": colors.muted,
+      "--muted-foreground": colors.mutedForeground,
+      "--primary": colors.primary,
+      "--primary-foreground": colors.primaryForeground,
+      "--secondary": colors.secondary,
+      "--secondary-foreground": colors.secondaryForeground,
+      "--danger": colors.danger,
+      "--success": colors.success,
+      "--warning": colors.warning,
+      "--ticket-bay": colors.ticketBay,
+      "--ticket-private": colors.ticketPrivate,
+      "--ticket-group": colors.ticketGroup,
+      "--ticket-program": colors.ticketProgram,
+      "--ticket-default": colors.ticketDefault,
+      "--notification": colors.notification,
+      "--bg-btn-main-start": colors.btnMainStart,
+      "--bg-btn-main-end": colors.btnMainEnd,
+      "--bg-btn-main-pressed-start": colors.btnMainPressedStart,
+      "--bg-btn-main-pressed-end": colors.btnMainPressedEnd,
+    }),
+    [colors],
+  );
+
+  return (
+    <>
+      <VariableContextProvider value={themeVariables}>
+        <View className="will-change-variable flex-1 bg-background">
+          <Stack screenOptions={{ headerShown: false }}>
             <Stack.Protected guard={!hasAuthorizedSession}>
               <Stack.Screen
                 name="login"
@@ -56,8 +109,8 @@ export default function RootLayout() {
             </Stack.Protected>
           </Stack>
         </View>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </SafeAreaProvider>
+      </VariableContextProvider>
+      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
+    </>
   );
 }

@@ -23,9 +23,41 @@ export const updateMemberProfile = async (
     });
 };
 
-export const uploadMemberUserProfileImage = async (id: number, file: File) => {
+export type UploadFormFile = {
+    uri: string;
+    name: string;
+    type: string;
+};
+
+export const uploadMemberUserProfileImage = async (
+    id: number,
+    file: UploadFormFile,
+) => {
+    if (!file?.uri || !file?.name || !file?.type) {
+        throw new Error("Selected image is missing uri, name, or MIME type.");
+    }
+
+    const localFileResponse = await fetch(file.uri);
+
+    if (!localFileResponse.ok) {
+        throw new Error("Could not read the selected image file.");
+    }
+
+    const sourceBlob = await localFileResponse.blob();
+    const uploadBlob =
+        sourceBlob.type === file.type
+            ? sourceBlob
+            : sourceBlob.slice(0, sourceBlob.size, file.type);
+
     const formData = new FormData();
-    formData.append("file", file);
+    if (typeof File !== "undefined") {
+        const uploadFile = new File([uploadBlob], file.name, {
+            type: file.type,
+        });
+        formData.append("file", uploadFile);
+    } else {
+        formData.append("file", uploadBlob, file.name);
+    }
 
     return apiClient(`/member/${id}/profile-image`, {
         method: "PUT",

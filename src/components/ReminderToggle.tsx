@@ -1,8 +1,7 @@
 import { cancelMealReminders, requestPermission, scheduleMealReminders } from "@/utils/notification";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-import { AppText as Text } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { AppText as Text, useThemeColors } from "@/design-system";
 import { StyleSheet, Switch, View } from 'react-native';
 
 const REMINDERS_KEY = 'remindersEnabled';

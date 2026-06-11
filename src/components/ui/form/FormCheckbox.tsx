@@ -1,6 +1,5 @@
 import { Controller, FieldValues } from "react-hook-form";
-import { AppText as Text } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { AppText as Text, useThemeColors } from "@/design-system";
 import { Switch, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";

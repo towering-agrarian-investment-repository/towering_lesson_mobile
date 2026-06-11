@@ -8,11 +8,15 @@ import {
 } from "react-native";
 
 import ReservationCard from "@/components/golf/ReservationCard";
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { Screen } from "@/components/ui/Screen";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
-import { AppText, cn } from "@/design-system";
+import {
+    AppText,
+    CircleLoader,
+    cn,
+    EmptyState,
+    ErrorState,
+    Screen,
+    Skeleton,
+} from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberReservations } from "@/lib/hook/useReservation";
 import { useRouter } from "expo-router";

@@ -1,5 +1,4 @@
-import { Screen } from "@/components/ui/Screen";
-import { AppText as Text } from "@/design-system";
+import { AppText as Text, Screen } from "@/design-system";
 import { GenderEnum } from "@/types/member.type";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";

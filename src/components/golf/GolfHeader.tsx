@@ -1,3 +1,4 @@
+import happyGolfToolbarLogo from "@/assets/images/happygolf_toolbar_logo.png";
 import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
 
@@ -5,7 +6,7 @@ function GolfHeader() {
     return (
         <View style={style.container}>
             <Image
-                source={require('../../../assets/images/happygolf_toolbar_logo.png')}
+                source={happyGolfToolbarLogo}
                 style={{
                     width: 150,
                     height: 50,

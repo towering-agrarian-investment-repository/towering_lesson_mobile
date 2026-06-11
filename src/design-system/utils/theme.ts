@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useColorScheme as useSystemColorScheme } from "react-native";
 import { useColorScheme } from "nativewind";
+import * as SystemUI from "expo-system-ui";
 
 export type ThemeColors = {
     background: string;
@@ -25,6 +26,7 @@ export type ThemeColors = {
     danger: string;
     success: string;
     warning: string;
+    notification: string;
     ticketBay: string;
     ticketPrivate: string;
     ticketGroup: string;
@@ -40,19 +42,20 @@ export type ThemePreference = "system" | "light" | "dark";
 
 const lightThemeColors = {
     background: "#ffffff",
-    foreground: "#000000",
-    surface: "#f3f3f3",
+    foreground: "#111827",
+    surface: "#f9fafb",
     card: "#ffffff",
-    border: "#eeeeee",
-    muted: "#f3f3f3",
-    mutedForeground: "#888888",
-    primary: "#26a9e0",
+    border: "#e5e7eb",
+    muted: "#f3f4f6",
+    mutedForeground: "#6b7280",
+    primary: "#2563eb",
     primaryForeground: "#ffffff",
-    secondary: "#eefaff",
-    secondaryForeground: "#000000",
-    danger: "#ff6565",
-    success: "#40c057",
-    warning: "#ff9f3f",
+    secondary: "#f3f4f6",
+    secondaryForeground: "#111827",
+    danger: "#dc2626",
+    success: "#16a34a",
+    warning: "#f59e0b",
+    notification: "#dc2626",
     ticketBay: "#26a9e0",
     ticketPrivate: "#4071c0",
     ticketGroup: "#faad3d",
@@ -79,6 +82,7 @@ const darkThemeColors = {
     danger: "#f87171",
     success: "#4ade80",
     warning: "#fbbf24",
+    notification: "#f87171",
     ticketBay: "#26a9e0",
     ticketPrivate: "#4071c0",
     ticketGroup: "#faad3d",
@@ -170,6 +174,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         preference === "system" ? systemColorScheme : colorScheme;
     const resolvedScheme = effectiveColorScheme === "dark" ? "dark" : "light";
     const colors = getThemeColors(resolvedScheme);
+
+    useEffect(() => {
+        void SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
+    }, [colors.background]);
 
     const value: ThemeContextValue = {
         colors,

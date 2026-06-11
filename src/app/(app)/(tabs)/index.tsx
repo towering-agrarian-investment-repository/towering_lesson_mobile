@@ -1,13 +1,11 @@
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { Screen } from "@/components/ui/Screen";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
-import { AppText as Text } from "@/design-system";
+import { AppText as Text, CircleLoader, EmptyState, ErrorState, Screen } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { useIsFetching, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
+import { useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -16,6 +14,7 @@ import {
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const {
     data: memberResponse,
     isLoading,
@@ -26,22 +25,22 @@ export default function HomeScreen() {
   } = useGetMemberProfile();
 
   const member = memberResponse?.data;
-  const ticketsFetching = useIsFetching({ queryKey: ["member", "tickets"] });
-  const todayReservationsFetching = useIsFetching({
-    queryKey: ["member", "reservations", "today"],
-  });
-  const refreshing =
-    isRefetching || ticketsFetching > 0 || todayReservationsFetching > 0;
 
   const handleRefresh = async () => {
-    await Promise.all([
-      refetch(),
-      queryClient.refetchQueries({ queryKey: ["member", "tickets"], type: "active" }),
-      queryClient.refetchQueries({
-        queryKey: ["member", "reservations", "today"],
-        type: "active",
-      }),
-    ]);
+    setRefreshing(true);
+
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.refetchQueries({ queryKey: ["member", "tickets"], type: "active" }),
+        queryClient.refetchQueries({
+          queryKey: ["member", "reservations", "today"],
+          type: "active",
+        }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (isLoading) {

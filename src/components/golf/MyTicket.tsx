@@ -1,5 +1,4 @@
-import { Skeleton } from "@/components/ui/Skeleton";
-import { ErrorState, EmptyState } from "@/components/ui/StateCard";
+import { EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { MemberResponse } from "@/types/member.type";

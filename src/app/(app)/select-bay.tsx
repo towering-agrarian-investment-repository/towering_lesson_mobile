@@ -1,7 +1,4 @@
-import { Screen } from "@/components/ui/Screen";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
-import { AppText } from "@/design-system";
+import { AppText, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { BaySlotScheduleResponse } from "@/types/member-bay";

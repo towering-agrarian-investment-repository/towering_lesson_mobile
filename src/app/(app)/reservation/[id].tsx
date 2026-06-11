@@ -3,11 +3,17 @@ import {
     ReservationFieldValue,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { Screen } from "@/components/ui/Screen";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
-import { AppText, Badge, Button, Divider } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import {
+    AppText,
+    Badge,
+    Button,
+    Divider,
+    EmptyState,
+    ErrorState,
+    Screen,
+    Skeleton,
+    useThemeColors,
+} from "@/design-system";
 import {
     formatTicketTypeLabel,
     getTicketTypeTone,
@@ -227,7 +233,7 @@ export default function ReservationDetailScreen() {
             <>
                 <Stack.Screen options={screenOptions} />
 
-                <View className="flex-1 flex-col gap-8 bg-background px-6 pt-6">
+                <Screen contentClassName="flex-col gap-8">
                     <View className="flex-col gap-4">
                         <Skeleton className="h-8 w-2/3 rounded-xl" />
                         <Skeleton className="h-6 w-1/3 rounded-full" />
@@ -242,7 +248,7 @@ export default function ReservationDetailScreen() {
                             />
                         ))}
                     </View>
-                </View>
+                </Screen>
             </>
         );
     }
@@ -347,6 +353,19 @@ export default function ReservationDetailScreen() {
                 },
             }
             : null;
+    const lessonLogHref =
+        !isBayReservation &&
+            lessonReservation?.lessonLog?.id != null
+            ? {
+                pathname: "/lesson-log/[id]",
+                params: {
+                    id: String(lessonReservation.lessonLog.id),
+                },
+            }
+            : null;
+    const lessonLogValue = isBayReservation
+        ? ""
+        : lessonReservation?.lessonLog?.name?.trim() || "View lesson post";
 
     const handleCancelReservation = () => {
         if (!canCancelReservation || isCancelling) {
@@ -473,6 +492,17 @@ export default function ReservationDetailScreen() {
                                         label="Lesson"
                                         value={lessonNameValue}
                                         href={lessonDetailsHref}
+                                    />
+                                </>
+                            ) : null}
+
+                            {lessonLogHref ? (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <DetailRow
+                                        label="Lesson Post"
+                                        value={lessonLogValue}
+                                        href={lessonLogHref}
                                     />
                                 </>
                             ) : null}

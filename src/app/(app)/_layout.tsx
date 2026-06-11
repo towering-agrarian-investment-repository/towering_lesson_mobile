@@ -1,4 +1,4 @@
-import { useThemeColors } from "@/design-system/utils/theme";
+import { useThemeColors } from "@/design-system";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -23,10 +23,10 @@ function getToastStyles(
         type === "error"
             ? colors.danger
             : type === "success"
-              ? colors.success
-              : type === "warning"
-                ? colors.warning
-                : colors.primary;
+                ? colors.success
+                : type === "warning"
+                    ? colors.warning
+                    : colors.primary;
     const textColor = type === "warning" ? colors.foreground : colors.primaryForeground;
 
     return {
@@ -56,9 +56,7 @@ export default function AppLayout() {
                         headerBackButtonDisplayMode: "minimal",
                         headerBackVisible: false,
                         contentStyle: { backgroundColor: colors.background },
-                        headerStyle: {
-                            backgroundColor: colors.card,
-                        },
+                        headerStyle: { backgroundColor: colors.background },
                         headerTintColor: colors.foreground,
                         headerTitleStyle: {
                             color: colors.foreground,
@@ -159,7 +157,21 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="lesson-log"
                         options={{
-                            title: "Lesson Log",
+                            title: "Lesson Post List",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="lesson-log/[id]"
+                        options={{
+                            title: "Lesson Post",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="lesson-log/[id]/comment"
+                        options={{
+                            title: "Lesson Post",
                         }}
                     />
 

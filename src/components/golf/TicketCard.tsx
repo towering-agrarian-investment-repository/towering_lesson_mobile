@@ -1,5 +1,4 @@
-import { AppText as Text } from "@/design-system";
-import { cn } from "@/design-system/utils/cn";
+import { AppText as Text, cn } from "@/design-system";
 import {
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";

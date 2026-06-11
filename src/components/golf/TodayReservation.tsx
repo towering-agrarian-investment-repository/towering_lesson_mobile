@@ -1,5 +1,4 @@
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
 import { FlatList, StyleSheet, View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";

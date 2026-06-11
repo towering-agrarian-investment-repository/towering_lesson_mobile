@@ -14,9 +14,9 @@ export type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
 export type LessonSlotStatus = "AVAILABLE" | "BLOCKED" | "CANCELLED";
 
 export type MemberLessonReservationResponse = {
+    reservationType: string;
     id: number;
     reservationNumber: string;
-    reservationType: MemberReservationDomain;
     lessonId: number | null;
     lessonName: string | null;
     lessonProgramGroupId: number | null;
@@ -43,6 +43,10 @@ export type MemberLessonReservationResponse = {
         bookedCount: number | null;
         lessonType: LessonType | null;
         slotStatus: LessonSlotStatus | null;
+    } | null;
+    lessonLog: {
+        id: number;
+        name: string | null;
     } | null;
     bookedAt: string | null;
     startTime: string | null;

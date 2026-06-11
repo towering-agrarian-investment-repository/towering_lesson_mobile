@@ -2,11 +2,8 @@ import {
     ReservationDetailField,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { Screen } from "@/components/ui/Screen";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState, ErrorState } from "@/components/ui/StateCard";
+import { Button, Divider, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { showAppToast } from "@/lib/toast/toast";
-import { Button, Divider } from "@/design-system";
 import { useCreateMemberBayReservation, useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";

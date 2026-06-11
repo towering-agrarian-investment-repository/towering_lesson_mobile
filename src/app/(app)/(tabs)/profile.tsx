@@ -1,8 +1,12 @@
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { Screen } from "@/components/ui/Screen";
-import { ErrorState } from "@/components/ui/StateCard";
-import { AppText, type ThemePreference, useThemePreference } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import {
+    AppText,
+    CircleLoader,
+    ErrorState,
+    Screen,
+    type ThemePreference,
+    useThemeColors,
+    useThemePreference,
+} from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import { signOut } from "@/service/auth";

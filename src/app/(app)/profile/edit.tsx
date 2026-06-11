@@ -1,20 +1,17 @@
-import { CircleLoader } from "@/components/ui/CircleLoader";
-import { Screen } from "@/components/ui/Screen";
-import { AppText as Text, Button } from "@/design-system";
+import { AppText as Text, Button, CircleLoader, ErrorState, Screen, useThemeColors } from "@/design-system";
 import {
     FormDateInput,
     FormNumberInput,
     FormTextInput,
 } from "@/components/ui/form";
 import { FormFieldShell } from "@/components/ui/form/FormFieldShell";
-import { ErrorState } from "@/components/ui/StateCard";
 import { useUploadMemberUser } from "@/lib/hook/useUploadFile";
 import {
     useGetMemberProfile,
     useUpdateMemberProfile,
 } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { type UploadFormFile } from "@/service/user";
 import { GenderEnum } from "@/types/member.type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
@@ -178,7 +175,7 @@ export default function EditProfileScreen() {
         }
 
         try {
-            const file = await createFileFromAsset(result.assets[0]);
+            const file = createFileFromAsset(result.assets[0]);
 
             uploadProfileImage(
                 {
@@ -371,14 +368,19 @@ export default function EditProfileScreen() {
     );
 }
 
-async function createFileFromAsset(asset: ImagePicker.ImagePickerAsset) {
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
-    const extension = asset.fileName?.split(".").pop() ?? "jpg";
-    const fileName = asset.fileName ?? `profile-image.${extension}`;
-    const mimeType = asset.mimeType ?? blob.type ?? "image/jpeg";
+function createFileFromAsset(asset: ImagePicker.ImagePickerAsset): UploadFormFile {
+    const rawName =
+        asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
+    const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mimeType =
+        asset.mimeType ??
+        (extension === "jpg" ? "image/jpeg" : `image/${extension}`);
 
-    return new File([blob], fileName, { type: mimeType });
+    return {
+        uri: asset.uri,
+        name: rawName,
+        type: mimeType,
+    };
 }
 
 function ProfileImagePreview({

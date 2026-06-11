@@ -2,9 +2,9 @@ import {
     FormPasswordInput,
     FormTextInput,
 } from "@/components/ui/form";
-import { Screen } from "@/components/ui/Screen";
-import { AppText } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import golfFieldImage from "@/assets/images/img_golf_filed.png";
+import goLogoImage from "@/assets/images/img_go.png";
+import { AppText, Screen, useThemeColors } from "@/design-system";
 import { signIn } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
@@ -75,7 +75,7 @@ export default function LoginScreen() {
                 <View className="gap-10 px-6 pb-40 pt-6">
                     <View className="items-start gap-5">
                         <Image
-                            source={require("../../assets/images/img_go.png")}
+                            source={goLogoImage}
                             style={{
                                 width: 64,
                                 height: 40,
@@ -147,7 +147,7 @@ export default function LoginScreen() {
                 </View>
 
                 <Image
-                    source={require("../../assets/images/img_golf_filed.png")}
+                    source={golfFieldImage}
                     style={{
                         position: "absolute",
                         left: 0,

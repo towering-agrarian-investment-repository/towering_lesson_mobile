@@ -45,8 +45,7 @@
           "imageWidth": 76,
           "resizeMode": "contain"
         }
-      ],
-      "expo-video"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -55,9 +54,8 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "075f354d-9980-43e0-9ae5-07584735ab10"
+        "projectId": "94f7525e-6d26-48a5-a634-cc46ae8f1505"
       }
-    },
-    "owner": "mthanak"
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { cn } from "@/utils/cn";
+import { cn } from "../utils/cn";
 import { ReactElement, ReactNode } from "react";
 import {
     KeyboardAvoidingView,
@@ -11,7 +11,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ScreenProps = {
-    children: ReactNode;
+    children?: ReactNode;
     className?: string;
     contentClassName?: string;
     scrollClassName?: string;
@@ -49,7 +49,7 @@ export function Screen({
     const scrollContentContainerStyle = {
         flexGrow: 1,
         paddingTop,
-        paddingBottom: footer ? 24 : 24,
+        paddingBottom: 24,
         paddingHorizontal,
     } as const;
 
@@ -61,11 +61,11 @@ export function Screen({
     } as const;
 
     return (
-        <View className={cn("flex-1 bg-background", className)}>
+        <View className={cn("will-change-variable flex-1 bg-background", className)}>
             {scroll ? (
                 keyboardAware ? (
                     <KeyboardAwareScrollView
-                        className={cn("flex-1 bg-background", scrollClassName)}
+                        className={cn("will-change-variable flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
                         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                         bounces={bounces}
@@ -81,7 +81,7 @@ export function Screen({
                     </KeyboardAwareScrollView>
                 ) : (
                     <ScrollView
-                        className={cn("flex-1 bg-background", scrollClassName)}
+                        className={cn("will-change-variable flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
                         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                         bounces={bounces}

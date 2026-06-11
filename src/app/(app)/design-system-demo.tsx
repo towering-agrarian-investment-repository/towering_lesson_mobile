@@ -1,5 +1,4 @@
 import { View } from "react-native";
-import { Screen } from "@/components/ui/Screen";
 import {
     AppText,
     Badge,
@@ -9,6 +8,7 @@ import {
     Divider,
     Input,
     Row,
+    Screen,
     Stack,
 } from "@/design-system";
 

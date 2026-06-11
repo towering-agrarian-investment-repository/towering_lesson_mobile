@@ -1,5 +1,4 @@
-import { AppText as Text } from "@/design-system";
-import { useThemeColors } from "@/design-system/utils/theme";
+import { AppText as Text, useThemeColors } from "@/design-system";
 import { StyleSheet, View } from "react-native";
 
 type Props = {}
