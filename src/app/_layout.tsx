@@ -9,7 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
 import { View } from "react-native";
-import { VariableContextProvider } from "react-native-css/native";
+import { VariableContextProvider } from "@/lib/react-native-css-variable-context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 import { usePushNotification } from "@/lib/hook/shared/usePushNotification";

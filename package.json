@@ -14,7 +14,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
-    "expo": "~56.0.8",
+    "expo": "^56.0.11",
     "expo-build-properties": "~56.0.16",
     "expo-constants": "~56.0.17",
     "expo-dev-client": "~56.0.18",

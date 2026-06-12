@@ -110,12 +110,18 @@ function applyThemePreference(
     setColorScheme: (scheme: "light" | "dark" | "unspecified") => void,
     preference: ThemePreference,
 ) {
-    if (preference === "system") {
-        setColorScheme("unspecified");
-        return;
-    }
+    try {
+        if (preference === "system") {
+            setColorScheme("unspecified");
+            return;
+        }
 
-    setColorScheme(preference);
+        setColorScheme(preference);
+    } catch {
+        // react-native-web does not implement Appearance.setColorScheme
+        // behind NativeWind's setter, so theme preference falls back to the
+        // local provider state on web.
+    }
 }
 
 export function getThemeColors(

@@ -4,16 +4,16 @@
     "slug": "golf-lesson-system-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/ic_launcher.png",
+    "icon": "./assets/images/expo-icons/icon.png",
     "scheme": "golflessonsystemmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/ic_launcher.png"
+      "icon": "./assets/images/expo-icons/icon.png"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#2563EB",
-        "foregroundImage": "./assets/images/ic_launcher.png"
+        "foregroundImage": "./assets/images/expo-icons/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.golflessonsystemmobile",
@@ -21,7 +21,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/expo-icons/favicon.png"
     },
     "plugins": [
       "expo-notifications",
