@@ -17,5 +17,6 @@ export function useMemberTickets(
         queryKey: ["member", "tickets", memberId, resolvedStatuses],
         queryFn: ({ signal }) => getMemberTickets(memberId!, resolvedStatuses, signal),
         enabled: Boolean(memberId),
+        staleTime: 60_000,
     });
 }

@@ -8,7 +8,6 @@ import { useCreateMemberBayReservation, useMemberBaySlotGroups } from "@/lib/hoo
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MotiView } from "moti";
 import {
     RefreshControl,
     View
@@ -27,10 +26,11 @@ const POLICIES = [
 ] as const;
 
 export default function ConfirmScreen() {
-    const { date, ticketId, slotGroupId, baySlotId, bayName, startTime, endTime } =
+    const { date, ticketId, ticketName, slotGroupId, baySlotId, bayName, startTime, endTime } =
         useLocalSearchParams<{
             date: string;
             ticketId?: string;
+            ticketName: string;
             slotGroupId?: string;
             baySlotId?: string;
             bayName?: string;
@@ -75,6 +75,7 @@ export default function ConfirmScreen() {
                 params: {
                     date,
                     ticketId,
+                    ticketName,
                     slotGroupId,
                 },
             });
@@ -144,19 +145,14 @@ export default function ConfirmScreen() {
             }
             footer={
                 !isLoading && !isError && !isMissingRequiredData ? (
-                    <MotiView
-                        from={{ opacity: 0, translateY: 12 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ type: "timing", duration: 140 }}
-                        className="border-t border-border bg-background px-6 pb-8 pt-4"
-                    >
+                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                         <Button
                             title="Agree & Book"
                             loading={isSubmitting}
                             disabled={isDisabled}
                             onPress={handleConfirm}
                         />
-                    </MotiView>
+                    </View>
                 ) : null
             }
         >
@@ -198,13 +194,14 @@ export default function ConfirmScreen() {
                     }}
                 />
             ) : (
-                <MotiView
-                    from={{ opacity: 0, translateY: 12 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: "timing", duration: 140 }}
-                    className="grow"
-                >
+                <View className="grow">
                     <View className="gap-4">
+                        <ReservationDetailField
+                            label="Ticket"
+                            value={ticketName}
+                        />
+                        <Divider className="bg-border" />
+
                         <ReservationDetailField
                             label="Reservation Name"
                             value={reservationName}
@@ -230,7 +227,7 @@ export default function ConfirmScreen() {
 
                         <ReservationPoliciesSection policies={POLICIES} />
                     </View>
-                </MotiView>
+                </View>
             )}
         </Screen>
     );

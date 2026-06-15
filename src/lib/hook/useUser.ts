@@ -10,6 +10,7 @@ export function useGetMemberProfile() {
     return useQuery<ApiResponse<MemberResponse>>({
         queryKey: ["member", "profile"],
         queryFn: ({ signal }) => getMemberProfile(signal),
+        staleTime: 5 * 60_000,
     });
 }
 

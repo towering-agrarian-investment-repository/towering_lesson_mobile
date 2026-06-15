@@ -6,7 +6,6 @@ import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MotiView } from "moti";
 import {
     Pressable,
     RefreshControl,
@@ -20,9 +19,10 @@ function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
 }
 
 export default function TimeScreen() {
-    const { date, ticketId, ticketType } = useLocalSearchParams<{
+    const { date, ticketId, ticketName, ticketType } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
+        ticketName: string;
         ticketType?: string;
     }>();
 
@@ -47,6 +47,7 @@ export default function TimeScreen() {
                 params: {
                     date,
                     ticketId,
+                    ticketName,
                     ticketType,
                     slotGroupId: String(group.id),
                 },
@@ -66,12 +67,7 @@ export default function TimeScreen() {
                 />
             }
         >
-            <MotiView
-                from={{ opacity: 0, translateY: 12 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 140 }}
-                className="gap-1"
-            >
+            <View className="gap-1">
                 <AppText variant="h3">Choose a time</AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
@@ -79,7 +75,7 @@ export default function TimeScreen() {
                         ? `${date} · ${formatType(ticketType)}`
                         : date}
                 </AppText>
-            </MotiView>
+            </View>
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -117,35 +113,30 @@ export default function TimeScreen() {
             {!isLoading && !isError && slotGroups.length > 0 ? (
                 <View className="gap-3">
                     {slotGroups.map((group) => (
-                        <MotiView
-                            key={group.id}
-                            from={{ opacity: 0, translateY: 12 }}
-                            animate={{ opacity: 1, translateY: 0 }}
-                            transition={{
-                                type: "timing",
-                                duration: 140,
-                            }}
-                        >
+                        <View key={group.id}>
                             <Pressable
                                 className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
                                 onPress={() => handleSelect(group)}
                                 disabled={isLocked}
                             >
-                                <AppText
-                                    variant="body"
-                                    className="font-medium text-foreground"
-                                >
-                                    {formatTimeRange(
-                                        group.startDateTime,
-                                        group.endDateTime,
-                                    )}
-                                </AppText>
+                                <View className="min-w-0 flex-1 gap-1">
+                                    <AppText variant="h3" className="text-foreground">
+                                        {formatTimeRange(
+                                            group.startDateTime,
+                                            group.endDateTime,
+                                        )}
+                                    </AppText>
 
-                                <AppText variant="count" className="text-primary">
-                                    {getAvailableBayCount(group)} bays
+                                    <AppText variant="meta" className="text-foreground/75">
+                                        {getAvailableBayCount(group)} bays available
+                                    </AppText>
+                                </View>
+
+                                <AppText variant="badge" className="text-primary">
+                                    Select
                                 </AppText>
                             </Pressable>
-                        </MotiView>
+                        </View>
                     ))}
                 </View>
             ) : null}

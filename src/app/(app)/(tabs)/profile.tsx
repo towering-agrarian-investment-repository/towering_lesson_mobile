@@ -323,7 +323,7 @@ function StatusBadge({ isActive }: { isActive?: boolean }) {
 function SectionTitle({ title }: { title: string }) {
     return (
         <AppText
-            variant="eyebrow"
+            variant="label"
             className="text-foreground"
         >
             {title}
@@ -346,7 +346,7 @@ function InfoRow({
         <View className="flex-row items-start justify-between gap-4 border-b border-border py-4">
             <AppText
                 selectable
-                variant="eyebrow"
+                variant="meta"
                 className="min-w-[104px] text-foreground/75"
             >
                 {label}

@@ -1,10 +1,12 @@
 import { AppText, ErrorState, Screen, useThemeColors } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
+    getMemberBaySlotGroupsQueryOptions,
     useMemberBaySlotGroups,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
@@ -96,12 +98,14 @@ function CalendarLoadingSkeleton() {
 export default function DateScreen() {
     const colors = useThemeColors();
 
-    const { ticketId, ticketType } = useLocalSearchParams<{
+    const { ticketId, ticketName, ticketType } = useLocalSearchParams<{
         ticketId?: string;
+        ticketName: string;
         ticketType?: string;
     }>();
 
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { runWithNavigationLock } = useNavigationLock();
 
     const [visibleMonth, setVisibleMonth] = useState(() => {
@@ -172,6 +176,7 @@ export default function DateScreen() {
 
     const markedDates = useMemo(() => {
         const monthDates = getDatesForMonth(visibleMonth);
+        const inactiveTextColor = colors.mutedForeground;
 
         return monthDates.reduce<Record<string, object>>((acc, dateString) => {
             const isPast = dateString < today;
@@ -187,7 +192,7 @@ export default function DateScreen() {
                     text: {
                         color: isBookable
                             ? colors.primary
-                            : colors.mutedForeground,
+                            : inactiveTextColor,
                         fontWeight: isBookable ? "700" : "400",
                     },
                 },
@@ -204,12 +209,22 @@ export default function DateScreen() {
     ]);
 
     const handleAvailableDatePress = (day: DateData) => {
+        if (!isLessonTicket) {
+            void queryClient.prefetchQuery(
+                getMemberBaySlotGroupsQueryOptions(
+                    day.dateString,
+                    day.dateString,
+                ),
+            );
+        }
+
         runWithNavigationLock(() => {
             router.push({
                 pathname: isLessonTicket ? "/select-lesson-slot" : "/select-time",
                 params: {
                     date: day.dateString,
                     ticketId,
+                    ticketName,
                     ticketType,
                 },
             });
@@ -336,7 +351,8 @@ export default function DateScreen() {
                             selectedDayBackgroundColor: colors.primary,
                             selectedDayTextColor: colors.primaryForeground,
                             todayTextColor: colors.primary,
-                            textDisabledColor: colors.border,
+                            textDisabledColor: colors.mutedForeground,
+                            dayTextColor: colors.mutedForeground,
                             // @ts-ignore
                             "stylesheet.calendar.main": {
                                 week: {

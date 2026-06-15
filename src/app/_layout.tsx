@@ -89,7 +89,13 @@ function ThemedRoot({
     <>
       <VariableContextProvider value={themeVariables}>
         <View className="will-change-variable flex-1 bg-background">
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: "slide_from_right",
+              animationDuration: 80,
+            }}
+          >
             <Stack.Protected guard={!hasAuthorizedSession}>
               <Stack.Screen
                 name="login"

@@ -3,19 +3,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiResponse, responseError, responseStatus } from "../api-response/api-response";
 import { getMemberLessonLogById, getMemberLessonLogs, updateMemberLessonLog } from "@/service/member-lesson-log.service";
 
+export function getMemberLessonLogByIdQueryOptions(id: number) {
+	return {
+		queryKey: ["member", "lesson-logs", String(id)] as const,
+		queryFn: ({ signal }: { signal: AbortSignal }) => getMemberLessonLogById(id, signal),
+	};
+}
 
 export function useMemberLessonLogs() {
 	return useQuery<ApiResponse<MemberLessonLogResponse[]>>({
 		queryKey: ["member", "lesson-logs"],
 		queryFn: ({ signal }) => getMemberLessonLogs(signal),
+		staleTime: 60_000,
 	});
 }
 
 export function useMemberLessonLogById(id: number) {
 	return useQuery<ApiResponse<MemberLessonLogResponse>>({
-		queryKey: ["member", "lesson-logs", String(id)],
-		queryFn: ({ signal }) => getMemberLessonLogById(id, signal),
+		...getMemberLessonLogByIdQueryOptions(id),
 		enabled: Number.isFinite(id),
+		staleTime: 60_000,
 	});
 }
 

@@ -49,8 +49,12 @@ function TabLayout({ }: Props) {
                 name='index'
                 options={{
                     title: "Home",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name='home' size={size} color={color} />
+                    tabBarIcon: ({ color, size, focused }) => (
+                        <Ionicons
+                            name={focused ? 'home' : 'home-outline'}
+                            size={size}
+                            color={color}
+                        />
                     ),
                 }}
             />
@@ -59,8 +63,12 @@ function TabLayout({ }: Props) {
                 options={{
                     title: "Notifications",
                     headerShown: true,
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name='notifications-outline' size={size} color={color} />
+                    tabBarIcon: ({ color, size, focused }) => (
+                        <Ionicons
+                            name={focused ? 'notifications' : 'notifications-outline'}
+                            size={size}
+                            color={color}
+                        />
                     )
                 }}
             />
@@ -69,8 +77,12 @@ function TabLayout({ }: Props) {
                 options={{
                     title: 'Profile',
                     headerShown: true,
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name='person' size={size} color={color} />
+                    tabBarIcon: ({ color, size, focused }) => (
+                        <Ionicons
+                            name={focused ? 'person' : 'person-outline'}
+                            size={size}
+                            color={color}
+                        />
                     ),
                 }}
             />

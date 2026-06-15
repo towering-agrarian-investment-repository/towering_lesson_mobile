@@ -7,10 +7,18 @@ import { useEffect } from "react";
 import { Pressable } from "react-native";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 30_000,
+            gcTime: 10 * 60_000,
+            retry: 1,
+        },
+    },
+});
 const bookingFlowScreenOptions = {
     animation: "slide_from_right" as const,
-    animationDuration: 160,
+    animationDuration: 80,
     fullScreenGestureEnabled: true,
     gestureEnabled: true,
 };
@@ -27,7 +35,12 @@ function getToastStyles(
                 : type === "warning"
                     ? colors.warning
                     : colors.primary;
-    const textColor = type === "warning" ? colors.foreground : colors.primaryForeground;
+    const textColor =
+        type === "info"
+            ? colors.primaryForeground
+            : type === "warning"
+                ? colors.foreground
+                : "#ffffff";
 
     return {
         containerStyle: {
@@ -53,6 +66,8 @@ export default function AppLayout() {
                 <ToastBridge />
                 <Stack
                     screenOptions={({ navigation }) => ({
+                        animation: "slide_from_right",
+                        animationDuration: 80,
                         headerBackButtonDisplayMode: "minimal",
                         headerBackVisible: false,
                         contentStyle: { backgroundColor: colors.background },
@@ -61,14 +76,17 @@ export default function AppLayout() {
                         headerTitleStyle: {
                             color: colors.foreground,
                         },
+                        headerLeftContainerStyle: {
+                            paddingLeft: 8,
+                        },
                         headerShadowVisible: false,
                         headerLeft: ({ canGoBack }) =>
                             canGoBack ? (
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel="Go back"
-                                    className="will-change-pressable mr-2 rounded-full p-2 active:opacity-70"
-                                    hitSlop={10}
+                                    className="will-change-pressable mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
+                                    hitSlop={8}
                                     onPress={() => {
                                         navigation.goBack();
                                     }}
@@ -149,7 +167,7 @@ export default function AppLayout() {
                         options={{
                             title: "Reservation Detail",
                             animation: "slide_from_right",
-                            animationDuration: 160,
+                            animationDuration: 80,
                             animationTypeForReplace: "push",
                         }}
                     />

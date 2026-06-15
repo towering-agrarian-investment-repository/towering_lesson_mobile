@@ -12,8 +12,6 @@ type Props = {
     onPress?: (item: TicketListItemResponse) => void;
 };
 
-const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
-
 function formatTicketDate(date?: string | null) {
     if (!date) return "-";
 
@@ -41,9 +39,8 @@ function getUsageNote(item: TicketListItemResponse) {
 function TicketCard({ item, disabled = false, onPress }: Props) {
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketTone = getTicketTypeTone(item.type);
-    const isLessonProgramTicket = item.type === "LESSON_PROGRAM";
     const isBookingDisabled =
-        disabled || isInactive || isLessonProgramTicket || !LESSON_TICKET_TYPES.includes(item.type) && false;
+        disabled || isInactive;
 
     const badgeLabel = formatType(item.type);
     const usageNote = getUsageNote(item);

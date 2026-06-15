@@ -14,7 +14,7 @@ export type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
 export type LessonSlotStatus = "AVAILABLE" | "BLOCKED" | "CANCELLED";
 
 export type MemberLessonReservationResponse = {
-    reservationType: string;
+    reservationType: Extract<MemberReservationDomain, "lesson">;
     id: number;
     reservationNumber: string;
     lessonId: number | null;
@@ -26,13 +26,13 @@ export type MemberLessonReservationResponse = {
     coach: {
         id: number;
         name: string;
-        profileImage: string | null;
+        profileImage: string;
     } | null;
     ticket: {
         id: number;
         name: string;
-        type: TicketType | null;
-        status: TicketStatus | null;
+        type: TicketType;
+        status: TicketStatus;
     } | null;
     lessonAvailability: {
         id: number;
@@ -41,12 +41,12 @@ export type MemberLessonReservationResponse = {
         endTime: string;
         capacity: number | null;
         bookedCount: number | null;
-        lessonType: LessonType | null;
-        slotStatus: LessonSlotStatus | null;
+        lessonType: LessonType;
+        slotStatus: LessonSlotStatus;
     } | null;
     lessonLog: {
         id: number;
-        name: string | null;
+        name: string;
     } | null;
     bookedAt: string | null;
     startTime: string | null;
@@ -66,23 +66,24 @@ export type LessonAvailabilityReservationResponse = {
 };
 
 
-export type LessonAvailabilityResponse = {
+export type MemberLessonSlotResponse = {
     id: number;
-    lessonId?: number | null;
-    lessonProgramGroupId?: number | null;
-    lessonProgramName?: string | null;
-    title?: string | null;
+    branchId?: number | null;
+    instructorId?: number | null;
     name?: string | null;
     coachName?: string | null;
     lessonType: LessonType;
     startTime: string;
     endTime: string;
+    coachBlockedUntil?: string | null;
     capacity: number;
     bookedCount: number;
+    bookable?: boolean;
+    remainingSessionsFromSelectedStart?: number | null;
+    slotStatus?: LessonSlotStatus | null;
+    notes?: string | null;
+    lessonInstances?: unknown[];
     reservations?: LessonAvailabilityReservationResponse[];
-    lessonProgram?: {
-        name?: string | null;
-    } | null;
 };
 
 export type MemberCreateLessonReservationRequest = {

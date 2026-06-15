@@ -25,7 +25,7 @@ function getButtonTextColorClass(variant: ButtonVariant) {
         case "primary":
             return "text-primary-foreground";
         case "danger":
-            return "text-primary-foreground";
+            return "text-white";
         case "secondary":
             return "text-foreground";
         case "ghost":
@@ -41,8 +41,9 @@ function getButtonSpinnerColor(
 ) {
     switch (variant) {
         case "primary":
-        case "danger":
             return colors.primaryForeground;
+        case "danger":
+            return "#ffffff";
         case "secondary":
         case "ghost":
             return colors.foreground;

@@ -1,5 +1,6 @@
 import { EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
+import { useCallback } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 import TodayReservationCard from "./TodayReservationCard";
@@ -7,6 +8,12 @@ import TodayReservationCard from "./TodayReservationCard";
 function TodayReservation() {
 
     const { data: todayReservations = [], isLoading: todayReservationsLoading, isError: todayReservationError } = useTodayMemberReservations();
+    const renderReservationItem = useCallback(
+        ({ item }: { item: (typeof todayReservations)[number] }) => (
+            <TodayReservationCard reservation={item} />
+        ),
+        [],
+    );
 
     return (
         <View className="flex-1 gap-4">
@@ -46,9 +53,8 @@ function TodayReservation() {
                     contentInsetAdjustmentBehavior="automatic"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
-                    renderItem={({ item }) => (
-                        <TodayReservationCard reservation={item} />
-                    )} />
+                    renderItem={renderReservationItem}
+                />
             )}
         </View>
     );

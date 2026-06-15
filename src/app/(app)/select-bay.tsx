@@ -6,7 +6,6 @@ import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MotiView } from "moti";
 import {
     Pressable,
     RefreshControl,
@@ -24,9 +23,10 @@ function chunkItems<T>(items: T[], size: number) {
 }
 
 export default function BayScreen() {
-    const { date, ticketId, ticketType, slotGroupId } = useLocalSearchParams<{
+    const { date, ticketId, ticketName, ticketType, slotGroupId } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
+        ticketName: string;
         ticketType?: string;
         slotGroupId?: string;
     }>();
@@ -66,6 +66,7 @@ export default function BayScreen() {
                 params: {
                     date,
                     ticketId,
+                    ticketName,
                     ticketType,
                     slotGroupId: String(slotGroup.id),
                     baySlotId: String(baySlot.id),
@@ -89,12 +90,7 @@ export default function BayScreen() {
                 />
             }
         >
-            <MotiView
-                from={{ opacity: 0, translateY: 12 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 140 }}
-                className="gap-1"
-            >
+            <View className="gap-1">
                 <AppText variant="h3">Choose a bay</AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
@@ -107,7 +103,7 @@ export default function BayScreen() {
                             : ""}`
                         : date}
                 </AppText>
-            </MotiView>
+            </View>
 
             {isLoading ? (
                 <View className="gap-3">
@@ -181,16 +177,7 @@ export default function BayScreen() {
                                             : "Available";
 
                                 return (
-                                    <MotiView
-                                        key={bay.id}
-                                        className="flex-1"
-                                        from={{ opacity: 0, translateY: 12 }}
-                                        animate={{ opacity: 1, translateY: 0 }}
-                                        transition={{
-                                            type: "timing",
-                                            duration: 140,
-                                        }}
-                                    >
+                                    <View key={bay.id} className="flex-1">
                                         <Pressable
                                             className={`items-center gap-1.5 rounded-xl border px-3 py-4 ${!isDisabled
                                                     ? "border-border bg-card active:bg-surface"
@@ -202,8 +189,8 @@ export default function BayScreen() {
                                             disabled={isDisabled || isLocked}
                                         >
                                             <AppText
-                                                variant="body"
-                                                className={`text-center font-medium ${!isDisabled
+                                                variant="label"
+                                                className={`text-center ${!isDisabled
                                                         ? "text-foreground"
                                                         : "text-muted-foreground"
                                                     }`}
@@ -221,7 +208,7 @@ export default function BayScreen() {
                                                 {statusLabel}
                                             </AppText>
                                         </Pressable>
-                                    </MotiView>
+                                    </View>
                                 );
                             })}
 

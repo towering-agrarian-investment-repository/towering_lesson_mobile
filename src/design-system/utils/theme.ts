@@ -1,15 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SystemUI from "expo-system-ui";
+import { useColorScheme } from "nativewind";
 import {
-    createElement,
     createContext,
+    createElement,
     type ReactNode,
     useContext,
     useEffect,
     useState,
 } from "react";
 import { useColorScheme as useSystemColorScheme } from "react-native";
-import { useColorScheme } from "nativewind";
-import * as SystemUI from "expo-system-ui";
 
 export type ThemeColors = {
     background: string;
@@ -48,7 +48,7 @@ const lightThemeColors = {
     border: "#e5e7eb",
     muted: "#f3f4f6",
     mutedForeground: "#6b7280",
-    primary: "#2563eb",
+    primary: "#00AEEF",
     primaryForeground: "#ffffff",
     secondary: "#f3f4f6",
     secondaryForeground: "#111827",
@@ -68,30 +68,30 @@ const lightThemeColors = {
 } satisfies ThemeColors;
 
 const darkThemeColors = {
-    background: "#0b1120",
-    foreground: "#f9fafb",
-    surface: "#111827",
-    card: "#111827",
-    border: "#1f2937",
-    muted: "#1f2937",
-    mutedForeground: "#9ca3af",
-    primary: "#60a5fa",
-    primaryForeground: "#0b1120",
-    secondary: "#1f2937",
-    secondaryForeground: "#f9fafb",
+    background: "#0a0e16",
+    foreground: "#e5e7eb",
+    surface: "#11161f",
+    card: "#161b26",
+    border: "#262d3a",
+    muted: "#1c2330",
+    mutedForeground: "#8b95a7",
+    primary: "#33C6FF",
+    primaryForeground: "#ffffff",
+    secondary: "#1c2330",
+    secondaryForeground: "#e5e7eb",
     danger: "#f87171",
     success: "#4ade80",
     warning: "#fbbf24",
     notification: "#f87171",
-    ticketBay: "#26a9e0",
-    ticketPrivate: "#4071c0",
-    ticketGroup: "#faad3d",
-    ticketProgram: "#845ef7",
-    ticketDefault: "#7a8186",
-    btnMainStart: "#40C057",
-    btnMainEnd: "#49BBC4",
-    btnMainPressedStart: "#37A54B",
-    btnMainPressedEnd: "#3A9DA5",
+    ticketBay: "#4cc3f0",
+    ticketPrivate: "#5b8def",
+    ticketGroup: "#ffc24b",
+    ticketProgram: "#9775fa",
+    ticketDefault: "#8b95a7",
+    btnMainStart: "#48D469",
+    btnMainEnd: "#54CBD4",
+    btnMainPressedStart: "#3DAE54",
+    btnMainPressedEnd: "#46AEB6",
 } satisfies ThemeColors;
 
 const THEME_PREFERENCE_STORAGE_KEY = "app-theme-preference";
@@ -182,7 +182,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const colors = getThemeColors(resolvedScheme);
 
     useEffect(() => {
-        void SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
+        void SystemUI.setBackgroundColorAsync(colors.background).catch(() => { });
     }, [colors.background]);
 
     const value: ThemeContextValue = {

@@ -5,9 +5,14 @@ import {
 import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { useCreateMemberLessonReservation, useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
+import {
+    getLessonSlotDisplayName,
+    isLessonSlotBookable,
+    isGroupLessonSlot,
+    isLessonSlotFull,
+} from "@/utils/lesson-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { MotiView } from "moti";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
     RefreshControl,
     View
@@ -29,6 +34,7 @@ export default function LessonBookingConfirmScreen() {
     const {
         date,
         ticketId,
+        ticketName,
         ticketType,
         lessonAvailabilityId,
         lessonName,
@@ -38,6 +44,7 @@ export default function LessonBookingConfirmScreen() {
     } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
+        ticketName: string;
         ticketType?: string;
         lessonAvailabilityId?: string;
         lessonName?: string;
@@ -46,6 +53,7 @@ export default function LessonBookingConfirmScreen() {
         endTime?: string;
     }>();
     const router = useRouter();
+    const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const {
         mutate: createReservation,
         isPending: isSubmitting,
@@ -73,9 +81,13 @@ export default function LessonBookingConfirmScreen() {
     const selectedSlot = (data?.data ?? []).find(
         (slot) => slot.id === lessonAvailabilityIdNumber,
     );
-    const isSelectedSlotFull = selectedSlot
-        ? selectedSlot.bookedCount >= selectedSlot.capacity
+    const isSelectedSlotBookable = selectedSlot
+        ? isLessonSlotBookable(selectedSlot)
         : false;
+    const isSelectedSlotFull = selectedSlot ? isLessonSlotFull(selectedSlot) : false;
+    const isGroupSelection = selectedSlot
+        ? isGroupLessonSlot(selectedSlot)
+        : isGroupTicket;
     const isMissingRequiredData = !ticketIdNumber || !lessonAvailabilityIdNumber;
 
     const handleConfirm = () => {
@@ -85,7 +97,13 @@ export default function LessonBookingConfirmScreen() {
 
         if (isSelectedSlotFull) {
             showAppToast({
-                message: "Selected lesson slot is no longer available.",
+                message: isSelectedSlotBookable
+                    ? isGroupSelection
+                        ? "Selected group is no longer available."
+                        : "Selected lesson slot is no longer available."
+                    : isGroupSelection
+                        ? "Selected group is not bookable."
+                        : "Selected lesson slot is not bookable.",
                 type: "warning",
             });
 
@@ -94,6 +112,7 @@ export default function LessonBookingConfirmScreen() {
                 params: {
                     date,
                     ticketId,
+                    ticketName,
                     ticketType,
                 },
             });
@@ -130,12 +149,9 @@ export default function LessonBookingConfirmScreen() {
     };
 
     const reservationName =
-        selectedSlot?.name ??
-        selectedSlot?.title ??
-        selectedSlot?.lessonProgramName ??
-        selectedSlot?.lessonProgram?.name ??
+        (selectedSlot ? getLessonSlotDisplayName(selectedSlot) : null) ??
         lessonName ??
-        "Private Lesson";
+        (isGroupSelection ? "Group Lesson" : "Private Lesson");
     const dateValue = formatDateValue(date, "yyyy. MM. dd");
     const timeValue = formatTimeRange(
         selectedSlot?.startTime ?? startTime,
@@ -149,12 +165,20 @@ export default function LessonBookingConfirmScreen() {
         isSelectedSlotFull;
     const disabledReason =
         isMissingRequiredData
-            ? "Ticket or lesson slot information is missing."
-            : !selectedSlot
-                ? "Selected lesson slot is no longer available."
-                : isSelectedSlotFull
-                    ? "Selected lesson slot is now full."
-                    : null;
+                    ? "Ticket or lesson slot information is missing."
+                    : !selectedSlot
+                        ? isGroupSelection
+                            ? "Selected group is no longer available."
+                            : "Selected lesson slot is no longer available."
+                        : isSelectedSlotFull
+                            ? isSelectedSlotBookable
+                                ? isGroupSelection
+                                    ? "Selected group is now full."
+                                    : "Selected lesson slot is now full."
+                                : isGroupSelection
+                                    ? "Selected group is not currently bookable."
+                                    : "Selected lesson slot is not currently bookable."
+                            : null;
 
     return (
         <Screen
@@ -169,22 +193,22 @@ export default function LessonBookingConfirmScreen() {
             }
             footer={
                 !isLoading && !isError && !isMissingRequiredData ? (
-                    <MotiView
-                        from={{ opacity: 0, translateY: 12 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ type: "timing", duration: 140 }}
-                        className="border-t border-border bg-background px-6 pb-8 pt-4"
-                    >
+                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                         <Button
-                            title="Agree & Book"
+                            title={isGroupSelection ? "Agree & Join Group" : "Agree & Book"}
                             loading={isSubmitting}
                             disabled={isDisabled}
                             onPress={handleConfirm}
                         />
-                    </MotiView>
+                    </View>
                 ) : null
             }
         >
+            <Stack.Screen
+                options={{
+                    title: isGroupSelection ? "Join Group Confirmation" : "Booking Confirmation",
+                }}
+            />
             {isLoading ? (
                 <View className="gap-6">
                     <View className="gap-4">
@@ -215,28 +239,38 @@ export default function LessonBookingConfirmScreen() {
                 />
             ) : isMissingRequiredData || !selectedSlot ? (
                 <EmptyState
-                    title="Selected lesson slot no longer available"
-                    message="Please go back and choose another lesson slot."
-                    actionLabel="Choose Another Slot"
+                    title={
+                        isGroupSelection
+                            ? "Selected group no longer available"
+                            : "Selected lesson slot no longer available"
+                    }
+                    message={
+                        isGroupSelection
+                            ? "Please go back and choose another group to join."
+                            : "Please go back and choose another lesson slot."
+                    }
+                    actionLabel={isGroupSelection ? "Choose Another Group" : "Choose Another Slot"}
                     onAction={() => {
                         router.replace({
                             pathname: "/select-lesson-slot",
                             params: {
                                 date,
                                 ticketId,
+                                ticketName,
                                 ticketType,
                             },
                         });
                     }}
                 />
             ) : (
-                <MotiView
-                    from={{ opacity: 0, translateY: 12 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: "timing", duration: 140 }}
-                    className="grow"
-                >
+                <View className="grow">
                     <View className="gap-4">
+                        <ReservationDetailField
+                            label="Ticket"
+                            value={ticketName}
+                        />
+                        <Divider className="bg-border" />
+
                         <ReservationDetailField
                             label="Reservation Name"
                             value={reservationName}
@@ -269,7 +303,7 @@ export default function LessonBookingConfirmScreen() {
 
                         <ReservationPoliciesSection policies={POLICIES} />
                     </View>
-                </MotiView>
+                </View>
             )}
         </Screen>
     );

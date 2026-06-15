@@ -6,16 +6,21 @@ import {
     Screen,
     Skeleton,
 } from "@/design-system";
-import { useMemberLessonLogs } from "@/lib/hook/useLessonLog";
+import {
+    getMemberLessonLogByIdQueryOptions,
+    useMemberLessonLogs,
+} from "@/lib/hook/useLessonLog";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { useQueryClient } from "@tanstack/react-query";
 import { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { FlatList, RefreshControl, View } from "react-native";
 
 function LessonLogScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const {
         data,
         isLoading,
@@ -33,6 +38,34 @@ function LessonLogScreen() {
                 void refetch();
             }}
         />
+    );
+    const renderLessonLogItem = useCallback(
+        ({ item }: { item: MemberLessonLogResponse }) => (
+            <MemoLessonLogRow
+                item={item}
+                disabled={isLocked}
+                onPress={() => {
+                    const lessonLogId =
+                        typeof item.id === "number" ? item.id : null;
+
+                    if (lessonLogId != null) {
+                        void queryClient.prefetchQuery(
+                            getMemberLessonLogByIdQueryOptions(lessonLogId),
+                        );
+                    }
+
+                    runWithNavigationLock(() => {
+                        router.push({
+                            pathname: "/lesson-log/[id]",
+                            params: {
+                                id: String(item.id),
+                            },
+                        });
+                    });
+                }}
+            />
+        ),
+        [isLocked, queryClient, router, runWithNavigationLock],
     );
 
     return (
@@ -71,22 +104,7 @@ function LessonLogScreen() {
                 <FlatList
                     data={lessonLogs}
                     keyExtractor={(item) => String(item.id)}
-                    renderItem={({ item }) => (
-                        <LessonLogRow
-                            item={item}
-                            disabled={isLocked}
-                            onPress={() => {
-                                runWithNavigationLock(() => {
-                                    router.push({
-                                        pathname: "/lesson-log/[id]",
-                                        params: {
-                                            id: String(item.id),
-                                        },
-                                    });
-                                });
-                            }}
-                        />
-                    )}
+                    renderItem={renderLessonLogItem}
                     refreshControl={refreshControl}
                     contentContainerStyle={{
                         gap: 12,
@@ -125,6 +143,8 @@ function LessonLogRow({
         />
     );
 }
+
+const MemoLessonLogRow = memo(LessonLogRow);
 
 function LessonLogStateList({
     emptyComponent,

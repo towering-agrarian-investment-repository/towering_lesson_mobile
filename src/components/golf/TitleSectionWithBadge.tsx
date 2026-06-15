@@ -16,7 +16,7 @@ function TitleSectionWithBadge({ label, length }: Props) {
             <View className="h-[22px] w-[22px] items-center justify-center rounded-full -translate-y-0.5 bg-notification">
                 <Text
                     variant="count"
-                    className="text-xs font-bold text-primary-foreground"
+                    className="text-xs font-bold text-white"
                 >
                     {length}
                 </Text>

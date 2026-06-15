@@ -302,7 +302,11 @@ export default function ReservationDetailScreen() {
                 >
                     <EmptyState
                         title="Reservation not available"
-                        message="The requested reservation could not be found."
+                        message={
+                            reservationType
+                                ? "The requested reservation could not be found."
+                                : "Reservation type is missing for this detail view."
+                        }
                     />
                 </Screen>
             </>
@@ -727,6 +731,8 @@ function Avatar({
         return (
             <Image
                 source={{ uri: imageUrl }}
+                cachePolicy="memory-disk"
+                recyclingKey={imageUrl}
                 style={{
                     width: 32,
                     height: 32,

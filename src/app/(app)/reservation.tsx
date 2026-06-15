@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     FlatList,
     Pressable,
@@ -18,7 +18,12 @@ import {
     Skeleton,
 } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useMemberReservations } from "@/lib/hook/useReservation";
+import {
+    getMemberReservationDetailQueryOptions,
+    getMemberReservationsQueryOptions,
+    useMemberReservations,
+} from "@/lib/hook/useReservation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { MemberReservationType } from "@/service/reservation.service";
 import type {
@@ -49,6 +54,7 @@ type ReservationItem =
 export default function ReservationScreen() {
     const [activeTab, setActiveTab] = useState<MemberReservationType>("all");
     const router = useRouter();
+    const queryClient = useQueryClient();
     const listRef = useRef<FlatList<ReservationItem>>(null);
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
@@ -66,12 +72,28 @@ export default function ReservationScreen() {
 
     const reservations = data?.items ?? [];
 
+    useEffect(() => {
+        const tabsToPrefetch = RESERVATION_TABS.filter((tab) => tab !== activeTab);
+
+        void Promise.all(
+            tabsToPrefetch.map((tab) =>
+                queryClient.prefetchInfiniteQuery(getMemberReservationsQueryOptions(tab))),
+        );
+    }, [activeTab, queryClient]);
+
     const keyExtractor = useCallback((item: ReservationItem) => {
         return String(item.id);
     }, []);
 
     const handleReservationPress = useCallback(
         (reservation: ReservationItem) => {
+            void queryClient.prefetchQuery(
+                getMemberReservationDetailQueryOptions(
+                    reservation.id,
+                    reservation.reservationType,
+                ),
+            );
+
             runWithNavigationLock(() => {
                 router.push({
                     pathname: "/reservation/[id]",
@@ -82,7 +104,7 @@ export default function ReservationScreen() {
                 });
             });
         },
-        [router, runWithNavigationLock],
+        [queryClient, router, runWithNavigationLock],
     );
 
     const renderReservationItem = useCallback(

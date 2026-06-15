@@ -40,6 +40,7 @@ export const useGetNotifications = (isRead?: boolean) => {
 			items: data.pages.flatMap((page) => page.data?.items ?? []),
 			hasMore: data.pages[data.pages.length - 1]?.data?.hasMore ?? false,
 		}),
+		staleTime: 15_000,
 	});
 };
 
@@ -47,6 +48,7 @@ export const useGetUnreadNotificationCount = () => {
 	return useQuery({
 		queryKey: ["notifications", "unread-count"],
 		queryFn: getUnreadNotificationCount,
+		staleTime: 15_000,
 	});
 };
 
@@ -57,6 +59,7 @@ export const useMarkAsRead = () => {
 		mutationFn: markNotificationAsRead,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
 			responseError({ error });
@@ -71,6 +74,7 @@ export const useMarkAllAsRead = () => {
 		mutationFn: markAllNotificationsAsRead,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
 			responseError({ error });

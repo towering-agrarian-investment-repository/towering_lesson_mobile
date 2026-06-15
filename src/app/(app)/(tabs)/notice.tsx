@@ -1,27 +1,31 @@
 import {
     AppText,
     CircleLoader,
+    cn,
     EmptyState,
     ErrorState,
     Screen,
 } from "@/design-system";
-import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     useGetNotifications,
     useMarkAllAsRead,
     useMarkAsRead,
 } from "@/lib/hook/shared/useNotification";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import {
     NotificationResponse,
     type NotificationReferenceType,
 } from "@/service/shared/notification-service";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatRelativeTime } from "@/utils/relative-time";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useCallback, useLayoutEffect } from "react";
+import React, { memo, useCallback, useLayoutEffect } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 function NoticeScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const navigation = useNavigation();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
     const {
@@ -63,11 +67,14 @@ function NoticeScreen() {
         });
     }, [hasUnread, isMarkingAllAsRead, markAllAsRead, navigation]);
 
-    const navigateFromNotification = (
+    const navigateFromNotification = useCallback((
         referenceType: NotificationReferenceType | null,
         referenceId: string,
     ) => {
         if (referenceType === "BOOKING_BAY") {
+            void queryClient.prefetchQuery(
+                getMemberReservationDetailQueryOptions(Number(referenceId), "bay"),
+            );
             router.push({
                 pathname: "/reservation/[id]",
                 params: {
@@ -75,10 +82,13 @@ function NoticeScreen() {
                     type: "bay",
                 },
             });
-            return;
+            return true;
         }
 
         if (referenceType === "BOOKING_LESSON") {
+            void queryClient.prefetchQuery(
+                getMemberReservationDetailQueryOptions(Number(referenceId), "lesson"),
+            );
             router.push({
                 pathname: "/reservation/[id]",
                 params: {
@@ -86,23 +96,16 @@ function NoticeScreen() {
                     type: "lesson",
                 },
             });
-            return;
+            return true;
         }
 
-        if (referenceType === "BOOKING") {
-            router.push({
-                pathname: "/reservation/[id]",
-                params: {
-                    id: referenceId,
-                },
-            });
-        }
-    };
+        return false;
+    }, [queryClient, router]);
 
-    const handleNotificationPress = async (item: NotificationResponse) => {
+    const handleNotificationPress = useCallback(async (item: NotificationResponse) => {
         const referenceId =
             item.referenceId != null ? String(item.referenceId) : null;
-        const didLock = runWithNavigationLock(() => {});
+        const didLock = runWithNavigationLock(() => { });
 
         if (!didLock) {
             return;
@@ -123,12 +126,19 @@ function NoticeScreen() {
         }
 
         try {
-            navigateFromNotification(item.referenceType, referenceId);
+            const didNavigate = navigateFromNotification(
+                item.referenceType,
+                referenceId,
+            );
+
+            if (!didNavigate) {
+                unlock();
+            }
         } catch (error) {
             unlock();
             throw error;
         }
-    };
+    }, [markAsRead, navigateFromNotification, runWithNavigationLock, unlock]);
 
     const handleRefresh = async () => {
         await refetch();
@@ -139,6 +149,19 @@ function NoticeScreen() {
             void fetchNextPage();
         }
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    const renderNotificationItem = useCallback(
+        ({ item, index }: { item: NotificationResponse; index: number }) => (
+            <MemoNotificationRow
+                item={item}
+                isLast={index === notifications.length - 1}
+                disabled={isMarkingAsRead || isLocked}
+                onPress={() => {
+                    void handleNotificationPress(item);
+                }}
+            />
+        ),
+        [handleNotificationPress, isLocked, isMarkingAsRead, notifications.length],
+    );
 
     return (
         <Screen scroll={false}>
@@ -162,16 +185,7 @@ function NoticeScreen() {
                 <FlatList
                     data={notifications}
                     keyExtractor={(item) => String(item.id)}
-                    renderItem={({ item, index }) => (
-                        <NotificationRow
-                            item={item}
-                            isLast={index === notifications.length - 1}
-                            disabled={isMarkingAsRead || isLocked}
-                            onPress={() => {
-                                void handleNotificationPress(item);
-                            }}
-                        />
-                    )}
+                    renderItem={renderNotificationItem}
                     refreshControl={
                         <RefreshControl
                             refreshing={isRefetching}
@@ -238,28 +252,38 @@ function NotificationRow({
     onPress: () => void;
 }) {
     return (
-        <View className={isLast ? "" : "border-b border-border"}>
+        <View className={cn(!isLast && "border-b border-border")}>
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={item.title}
-                className={`py-3 ${disabled ? "opacity-60" : "active:opacity-80"}`}
+                className={cn("py-3", disabled ? "opacity-60" : "active:opacity-80")}
                 disabled={disabled}
                 onPress={onPress}
             >
                 <View className="flex-row items-start gap-3">
-                    <View
-                        className={`mt-1 h-2.5 w-2.5 rounded-full ${item.isRead ? "bg-border" : "bg-primary"}`}
-                    />
-
                     <View className="min-w-0 flex-1 gap-1.5">
                         <View className="flex-row items-start justify-between gap-3">
-                            <AppText
-                                selectable
-                                variant="body"
-                                className={item.isRead ? "min-w-0 flex-1 text-sm text-foreground/75" : "min-w-0 flex-1 text-sm text-foreground"}
-                            >
-                                {item.title}
-                            </AppText>
+                            <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                                <View
+                                    className={cn(
+                                        "h-2.5 w-2.5 rounded-full",
+                                        item.isRead ? "bg-border" : "bg-primary",
+                                    )}
+                                />
+
+                                <AppText
+                                    selectable
+                                    variant="label"
+                                    className={cn(
+                                        "min-w-0 flex-1 font-semibold",
+                                        item.isRead
+                                            ? "text-foreground/75"
+                                            : "text-foreground",
+                                    )}
+                                >
+                                    {item.title}
+                                </AppText>
+                            </View>
 
                             <AppText selectable variant="caption" className="shrink-0">
                                 {formatRelativeTime(item.createdAt)}
@@ -268,8 +292,12 @@ function NotificationRow({
 
                         <AppText
                             selectable
-                            variant="subtext"
-                            className={item.isRead ? "text-sm text-foreground/70" : "text-sm text-foreground/85"}
+                            variant="meta"
+                            className={cn(
+                                item.isRead
+                                    ? "text-foreground/70"
+                                    : "text-foreground/85",
+                            )}
                         >
                             {item.message}
                         </AppText>
@@ -285,6 +313,8 @@ function NotificationRow({
         </View>
     );
 }
+
+const MemoNotificationRow = memo(NotificationRow);
 
 function NoticeListFooter() {
     return (

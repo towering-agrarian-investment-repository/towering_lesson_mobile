@@ -79,8 +79,8 @@ export function ReservationFieldLabel({
 } & ComponentProps<typeof AppText>) {
     return (
         <AppText
-            variant="eyebrow"
-            className={cn("text-foreground", className)}
+            variant="meta"
+            className={cn("font-medium text-foreground", className)}
             {...props}
         >
             {children}

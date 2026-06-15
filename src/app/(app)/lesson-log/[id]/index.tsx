@@ -1,6 +1,8 @@
 import { AppText, Button, EmptyState, ErrorState, ListRow, Screen, Skeleton, useThemeColors } from "@/design-system";
+import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import { useMemberLessonLogById } from "@/lib/hook/useLessonLog";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useEvent } from "expo";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
@@ -49,6 +51,7 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
 function LessonLogDetailsScreen() {
     const { id } = useLocalSearchParams<LessonLogParams>()
     const router = useRouter();
+    const queryClient = useQueryClient();
     const colors = useThemeColors();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
@@ -236,6 +239,14 @@ function LessonLogDetailsScreen() {
                             <ListRow
                                 title={lessonLog.reservation.name?.trim() || `Reservation #${lessonLog.reservation.id}`}
                                 subtitle="View reservation details"
+                                onPressIn={() => {
+                                    void queryClient.prefetchQuery(
+                                        getMemberReservationDetailQueryOptions(
+                                            lessonLog.reservation!.id,
+                                            "lesson",
+                                        ),
+                                    );
+                                }}
                             />
                         </Link>
                     </View>

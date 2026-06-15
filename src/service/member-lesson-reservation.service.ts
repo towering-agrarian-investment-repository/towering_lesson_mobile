@@ -1,6 +1,6 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import { LessonAvailabilityResponse, MemberCreateLessonReservationRequest, MemberLessonReservationResponse } from "@/types/member-lesson";
+import { MemberCreateLessonReservationRequest, MemberLessonReservationResponse, MemberLessonSlotResponse } from "@/types/member-lesson";
 
 export async function getLessonReservationById(
     id: number,
@@ -18,7 +18,7 @@ export async function getTicketLessonSlots(
     year: number,
     month: number,
     signal?: AbortSignal,
-): Promise<ApiResponse<LessonAvailabilityResponse[]>> {
+): Promise<ApiResponse<MemberLessonSlotResponse[]>> {
     return apiClient(
         `/member/tickets/${ticketId}/lesson-slots?year=${encodeURIComponent(String(year))}&month=${encodeURIComponent(String(month))}`,
         {
