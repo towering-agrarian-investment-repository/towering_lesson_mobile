@@ -56,7 +56,7 @@ export type MemberLessonReservationResponse = {
     reservationStatus: LessonReservationStatus | null;
     checkedInAt: string | null;
     cancelledAt: string | null;
-    notes: string | null;
+    memberNotes: string | null;
 };
 
 export type LessonAvailabilityReservationResponse = {
@@ -86,9 +86,16 @@ export type MemberLessonSlotResponse = {
     reservations?: LessonAvailabilityReservationResponse[];
 };
 
-export type MemberCreateLessonReservationRequest = {
+export type CreateLessonReservationRequest = {
     ticketId: number;
     lessonAvailabilityId: number;
     baySlotId?: number | null;
+    // Request-side `notes` maps to `memberNotes` in the backend.
+    notes?: string | null;
+};
+
+export type RescheduleLessonReservationRequest = {
+    lessonAvailabilityId: number;
+    // Request-side `notes` maps to `memberNotes` in the backend.
     notes?: string | null;
 };

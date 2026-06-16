@@ -19,11 +19,14 @@ function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
 }
 
 export default function TimeScreen() {
-    const { date, ticketId, ticketName, ticketType } = useLocalSearchParams<{
+    const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
         ticketName: string;
         ticketType?: string;
+        mode?: string;
+        reservationId?: string;
+        notes?: string;
     }>();
 
     const router = useRouter();
@@ -50,6 +53,9 @@ export default function TimeScreen() {
                     ticketName,
                     ticketType,
                     slotGroupId: String(group.id),
+                    mode,
+                    reservationId,
+                    notes,
                 },
             });
         });

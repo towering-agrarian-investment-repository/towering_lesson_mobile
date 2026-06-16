@@ -1,6 +1,11 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import { MemberCreateLessonReservationRequest, MemberLessonReservationResponse, MemberLessonSlotResponse } from "@/types/member-lesson";
+import {
+    CreateLessonReservationRequest,
+    MemberLessonReservationResponse,
+    MemberLessonSlotResponse,
+    RescheduleLessonReservationRequest,
+} from "@/types/member-lesson";
 
 export async function getLessonReservationById(
     id: number,
@@ -29,7 +34,7 @@ export async function getTicketLessonSlots(
 }
 
 export async function createMemberLessonReservation(
-    data: MemberCreateLessonReservationRequest,
+    data: CreateLessonReservationRequest,
 ): Promise<ApiResponse<MemberLessonReservationResponse>> {
     return apiClient("/member/lesson-reservations", {
         method: "POST",
@@ -43,5 +48,15 @@ export async function cancelLessonReservationById(
 ): Promise<ApiResponse<void>> {
     return apiClient(`/member/lesson-reservations/${id}/cancel`, {
         method: "PUT",
+    });
+}
+
+export async function rescheduleLessonReservationById(
+    id: number,
+    data: RescheduleLessonReservationRequest,
+): Promise<ApiResponse<MemberLessonReservationResponse>> {
+    return apiClient(`/member/lesson-reservations/${id}/reschedule`, {
+        method: "PUT",
+        body: JSON.stringify(data),
     });
 }

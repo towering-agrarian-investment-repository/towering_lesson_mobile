@@ -2,8 +2,12 @@ import {
     ReservationDetailField,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
-import { useCreateMemberLessonReservation, useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
+import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton, Textarea } from "@/design-system";
+import {
+    useCreateMemberLessonReservation,
+    useMemberTicketLessonSlots,
+    useRescheduleMemberLessonReservation,
+} from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
 import {
     getLessonSlotDisplayName,
@@ -17,6 +21,7 @@ import {
     RefreshControl,
     View
 } from "react-native";
+import { useState } from "react";
 
 const POLICIES = [
     {
@@ -41,6 +46,9 @@ export default function LessonBookingConfirmScreen() {
         coachName,
         startTime,
         endTime,
+        mode,
+        reservationId,
+        notes: initialNotes,
     } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
@@ -51,13 +59,24 @@ export default function LessonBookingConfirmScreen() {
         coachName?: string;
         startTime?: string;
         endTime?: string;
+        mode?: string;
+        reservationId?: string;
+        notes?: string;
     }>();
     const router = useRouter();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
+    const isRescheduleMode = mode === "reschedule";
+    const reservationIdNumber = reservationId ? Number(reservationId) : null;
+    const [notes, setNotes] = useState(initialNotes ?? "");
     const {
         mutate: createReservation,
-        isPending: isSubmitting,
+        isPending: isCreating,
     } = useCreateMemberLessonReservation();
+    const {
+        mutate: rescheduleReservation,
+        isPending: isRescheduling,
+    } = useRescheduleMemberLessonReservation();
+    const isSubmitting = isCreating || isRescheduling;
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
@@ -114,9 +133,51 @@ export default function LessonBookingConfirmScreen() {
                     ticketId,
                     ticketName,
                     ticketType,
+                    mode,
+                    reservationId,
+                    notes,
                 },
             });
 
+            return;
+        }
+
+        const handleSuccess = (response: { data?: { id: number; reservationType: string } | null }) => {
+            const reservation = response.data;
+
+            router.dismissAll();
+
+            if (reservation) {
+                router.replace({
+                    pathname: "/reservation/[id]",
+                    params: {
+                        id: String(reservation.id),
+                        type: reservation.reservationType,
+                    },
+                });
+                return;
+            }
+
+            router.replace("/reservation");
+        };
+
+        if (isRescheduleMode) {
+            if (!reservationIdNumber) {
+                return;
+            }
+
+            rescheduleReservation(
+                {
+                    reservationId: reservationIdNumber,
+                    data: {
+                        lessonAvailabilityId: lessonAvailabilityIdNumber,
+                        notes: notes.trim() || null,
+                    },
+                },
+                {
+                    onSuccess: handleSuccess,
+                },
+            );
             return;
         }
 
@@ -124,26 +185,10 @@ export default function LessonBookingConfirmScreen() {
             {
                 ticketId: ticketIdNumber,
                 lessonAvailabilityId: lessonAvailabilityIdNumber,
+                notes: notes.trim() || null,
             },
             {
-                onSuccess: (response) => {
-                    const reservation = response.data;
-
-                    router.dismissAll();
-
-                    if (reservation) {
-                        router.replace({
-                            pathname: "/reservation/[id]",
-                            params: {
-                                id: String(reservation.id),
-                                type: reservation.reservationType,
-                            },
-                        });
-                        return;
-                    }
-
-                    router.replace("/reservation");
-                },
+                onSuccess: handleSuccess,
             },
         );
     };
@@ -162,9 +207,12 @@ export default function LessonBookingConfirmScreen() {
         isSubmitting ||
         isMissingRequiredData ||
         !selectedSlot ||
-        isSelectedSlotFull;
+        isSelectedSlotFull ||
+        (isRescheduleMode && !reservationIdNumber);
     const disabledReason =
-        isMissingRequiredData
+        isRescheduleMode && !reservationIdNumber
+            ? "Reservation information is missing."
+            : isMissingRequiredData
                     ? "Ticket or lesson slot information is missing."
                     : !selectedSlot
                         ? isGroupSelection
@@ -183,6 +231,7 @@ export default function LessonBookingConfirmScreen() {
     return (
         <Screen
             contentClassName="flex-1"
+            keyboardAware
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -195,7 +244,13 @@ export default function LessonBookingConfirmScreen() {
                 !isLoading && !isError && !isMissingRequiredData ? (
                     <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                         <Button
-                            title={isGroupSelection ? "Agree & Join Group" : "Agree & Book"}
+                            title={
+                                isRescheduleMode
+                                    ? "Confirm Reschedule"
+                                    : isGroupSelection
+                                        ? "Agree & Join Group"
+                                        : "Agree & Book"
+                            }
                             loading={isSubmitting}
                             disabled={isDisabled}
                             onPress={handleConfirm}
@@ -204,9 +259,13 @@ export default function LessonBookingConfirmScreen() {
                 ) : null
             }
         >
-            <Stack.Screen
+                    <Stack.Screen
                 options={{
-                    title: isGroupSelection ? "Join Group Confirmation" : "Booking Confirmation",
+                    title: isRescheduleMode
+                        ? "Reschedule Confirmation"
+                        : isGroupSelection
+                            ? "Join Group Confirmation"
+                            : "Booking Confirmation",
                 }}
             />
             {isLoading ? (
@@ -292,6 +351,13 @@ export default function LessonBookingConfirmScreen() {
 
                     <View className="mt-6 gap-4">
                         <Divider className="bg-border" />
+
+                        <Textarea
+                            label="Notes"
+                            placeholder="Add a note (optional)"
+                            value={notes}
+                            onChangeText={setNotes}
+                        />
 
                         {disabledReason ? (
                             <View className="rounded-xl bg-warning/10 px-4 py-3">

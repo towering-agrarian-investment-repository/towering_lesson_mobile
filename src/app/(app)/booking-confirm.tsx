@@ -2,16 +2,21 @@ import {
     ReservationDetailField,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton, Textarea } from "@/design-system";
 import { showAppToast } from "@/lib/toast/toast";
-import { useCreateMemberBayReservation, useMemberBaySlotGroups } from "@/lib/hook/useReservation";
+import {
+    useCreateMemberBayReservation,
+    useMemberBaySlotGroups,
+    useRescheduleMemberBayReservation,
+} from "@/lib/hook/useReservation";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
     RefreshControl,
-    View
+    View,
 } from "react-native";
+import { useState } from "react";
 
 const POLICIES = [
     {
@@ -26,22 +31,46 @@ const POLICIES = [
 ] as const;
 
 export default function ConfirmScreen() {
-    const { date, ticketId, ticketName, slotGroupId, baySlotId, bayName, startTime, endTime } =
+    const {
+        date,
+        ticketId,
+        ticketName,
+        ticketType,
+        slotGroupId,
+        baySlotId,
+        bayName,
+        startTime,
+        endTime,
+        mode,
+        reservationId,
+        notes: initialNotes,
+    } =
         useLocalSearchParams<{
             date: string;
             ticketId?: string;
             ticketName: string;
+            ticketType?: string;
             slotGroupId?: string;
             baySlotId?: string;
             bayName?: string;
             startTime?: string;
             endTime?: string;
+            mode?: string;
+            reservationId?: string;
+            notes?: string;
         }>();
     const router = useRouter();
+    const isRescheduleMode = mode === "reschedule";
+    const reservationIdNumber = reservationId ? Number(reservationId) : null;
+    const [notes, setNotes] = useState(initialNotes ?? "");
     const {
         mutate: createReservation,
-        isPending: isSubmitting,
+        isPending: isCreating,
     } = useCreateMemberBayReservation();
+    const {
+        mutate: rescheduleReservation,
+        isPending: isRescheduling,
+    } = useRescheduleMemberBayReservation();
     const {
         data,
         isLoading,
@@ -50,6 +79,7 @@ export default function ConfirmScreen() {
         isRefetching,
     } = useMemberBaySlotGroups(date, date, Boolean(date));
 
+    const isSubmitting = isCreating || isRescheduling;
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
     );
@@ -60,7 +90,7 @@ export default function ConfirmScreen() {
     const isMissingRequiredData = !slotGroup || !selectedBaySlot;
 
     const handleConfirm = () => {
-        if (!ticketId || !baySlotId || !slotGroup || !selectedBaySlot) {
+        if (!baySlotId || !slotGroup || !selectedBaySlot) {
             return;
         }
 
@@ -76,10 +106,57 @@ export default function ConfirmScreen() {
                     date,
                     ticketId,
                     ticketName,
+                    ticketType,
                     slotGroupId,
+                    mode,
+                    reservationId,
+                    notes,
                 },
             });
 
+            return;
+        }
+
+        const handleSuccess = (response: { data?: { id: number; reservationType: string } | null }) => {
+            const reservation = response.data;
+
+            router.dismissAll();
+
+            if (reservation) {
+                router.replace({
+                    pathname: "/reservation/[id]",
+                    params: {
+                        id: String(reservation.id),
+                        type: reservation.reservationType,
+                    },
+                });
+                return;
+            }
+
+            router.replace("/reservation");
+        };
+
+        if (isRescheduleMode) {
+            if (!reservationIdNumber) {
+                return;
+            }
+
+            rescheduleReservation(
+                {
+                    reservationId: reservationIdNumber,
+                    data: {
+                        baySlotId: Number(baySlotId),
+                        notes: notes.trim() || null,
+                    },
+                },
+                {
+                    onSuccess: handleSuccess,
+                },
+            );
+            return;
+        }
+
+        if (!ticketId) {
             return;
         }
 
@@ -87,26 +164,10 @@ export default function ConfirmScreen() {
             {
                 ticketId: Number(ticketId),
                 baySlotId: Number(baySlotId),
+                notes: notes.trim() || null,
             },
             {
-                onSuccess: (response) => {
-                    const reservation = response.data;
-
-                    router.dismissAll();
-
-                    if (reservation) {
-                        router.replace({
-                            pathname: "/reservation/[id]",
-                            params: {
-                                id: String(reservation.id),
-                                type: reservation.reservationType,
-                            },
-                        });
-                        return;
-                    }
-
-                    router.replace("/reservation");
-                },
+                onSuccess: handleSuccess,
             },
         );
     };
@@ -119,12 +180,14 @@ export default function ConfirmScreen() {
     );
     const isDisabled =
         isSubmitting ||
-        !ticketId ||
         !baySlotId ||
         isMissingRequiredData ||
-        isBaySlotDisabled;
+        isBaySlotDisabled ||
+        (isRescheduleMode ? !reservationIdNumber : !ticketId);
     const disabledReason =
-        !ticketId
+        isRescheduleMode && !reservationIdNumber
+            ? "Reservation information is missing."
+            : !isRescheduleMode && !ticketId
             ? "Ticket information is missing."
             : !baySlotId || isMissingRequiredData
                 ? "Selected bay is no longer available."
@@ -135,6 +198,7 @@ export default function ConfirmScreen() {
     return (
         <Screen
             contentClassName="grow"
+            keyboardAware
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -147,7 +211,7 @@ export default function ConfirmScreen() {
                 !isLoading && !isError && !isMissingRequiredData ? (
                     <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                         <Button
-                            title="Agree & Book"
+                            title={isRescheduleMode ? "Confirm Reschedule" : "Agree & Book"}
                             loading={isSubmitting}
                             disabled={isDisabled}
                             onPress={handleConfirm}
@@ -216,6 +280,13 @@ export default function ConfirmScreen() {
 
                     <View className="mt-6 gap-4">
                         <Divider className="bg-border" />
+
+                        <Textarea
+                            label="Notes"
+                            placeholder="Add a note (optional)"
+                            value={notes}
+                            onChangeText={setNotes}
+                        />
 
                         {disabledReason ? (
                             <View className="rounded-xl bg-warning/10 px-4 py-3">

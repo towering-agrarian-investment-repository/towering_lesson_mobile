@@ -30,6 +30,7 @@ import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
+import { toAppTimeZoneDate } from "@/utils/timezone";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -176,6 +177,20 @@ function getReservationStatusDescription(value?: string | null) {
     }
 }
 
+function isFutureReservation(startTime?: string | null) {
+    if (!startTime) {
+        return false;
+    }
+
+    const reservationStart = toAppTimeZoneDate(startTime);
+
+    if (!reservationStart) {
+        return false;
+    }
+
+    return reservationStart.getTime() > Date.now();
+}
+
 export default function ReservationDetailScreen() {
     const { id, type } = useLocalSearchParams<ReservationParams>();
 
@@ -319,6 +334,10 @@ export default function ReservationDetailScreen() {
         : null;
 
     const canCancelReservation = reservation.reservationStatus === "RESERVED";
+    const canRescheduleReservation =
+        reservation.reservationStatus === "RESERVED" &&
+        isFutureReservation(reservation.startTime) &&
+        Boolean(reservation.ticket?.id);
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
 
     const title = getReservationTitle(reservation);
@@ -345,7 +364,7 @@ export default function ReservationDetailScreen() {
         ? "-"
         : lessonReservation?.coach?.name?.trim() || "-";
 
-    const noteValue = reservation.notes?.trim();
+    const noteValue = reservation.memberNotes?.trim() || "-";
 
     const policies = isBayReservation
         ? RESERVATION_POLICIES.bay
@@ -387,6 +406,24 @@ export default function ReservationDetailScreen() {
         }
 
         setIsCancelSheetVisible(true);
+    };
+
+    const handleRescheduleReservation = () => {
+        if (!canRescheduleReservation || !reservation.ticket?.id) {
+            return;
+        }
+
+        router.push({
+            pathname: "/select-date",
+            params: {
+                ticketId: String(reservation.ticket.id),
+                ticketName: reservation.ticket.name,
+                ticketType: reservation.ticket.type,
+                mode: "reschedule",
+                reservationId: String(reservation.id),
+                notes: reservation.memberNotes ?? "",
+            },
+        });
     };
 
     const confirmCancelReservation = () => {
@@ -441,16 +478,27 @@ export default function ReservationDetailScreen() {
                     />
                 }
                 footer={
-                    canCancelReservation ? (
-                        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
-                            <Button
-                                title="Cancel Reservation"
-                                variant="danger"
-                                loading={isCancelling}
-                                className="rounded-xl"
-                                onPress={handleCancelReservation}
-                                disabled={isCancelling}
-                            />
+                    canCancelReservation || canRescheduleReservation ? (
+                        <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
+                            {canRescheduleReservation ? (
+                                <Button
+                                    title="Reschedule"
+                                    variant="secondary"
+                                    className="rounded-xl"
+                                    onPress={handleRescheduleReservation}
+                                />
+                            ) : null}
+
+                            {canCancelReservation ? (
+                                <Button
+                                    title="Cancel Reservation"
+                                    variant="danger"
+                                    loading={isCancelling}
+                                    className="rounded-xl"
+                                    onPress={handleCancelReservation}
+                                    disabled={isCancelling}
+                                />
+                            ) : null}
                         </View>
                     ) : null
                 }
@@ -523,15 +571,13 @@ export default function ReservationDetailScreen() {
                                 </>
                             ) : null}
 
-                            {noteValue ? (
-                                <>
-                                    <Divider className="bg-border" />
-                                    <DetailRow
-                                        label="Notes"
-                                        value={noteValue}
-                                    />
-                                </>
-                            ) : null}
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow
+                                    label="Member Notes"
+                                    value={noteValue}
+                                />
+                            </>
                         </View>
                     </View>
 

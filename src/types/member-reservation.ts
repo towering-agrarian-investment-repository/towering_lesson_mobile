@@ -18,7 +18,8 @@ type MemberReservationResponseBase = {
     endTime: string;
     reservationDate: string;
     durationMinutes: number;
-    notes: string | null;
+    memberNotes: string | null;
+    adminNotes: string | null;
 };
 
 export type MemberLessonReservationListResponse =
@@ -50,6 +51,8 @@ type MemberReservationSummaryBase = Pick<
     | "startTime"
     | "endTime"
     | "reservationDate"
+    | "memberNotes"
+    | "adminNotes"
 >;
 
 export type MemberLessonReservationSummaryResponse =

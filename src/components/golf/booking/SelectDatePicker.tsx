@@ -98,10 +98,13 @@ function CalendarLoadingSkeleton() {
 export default function DateScreen() {
     const colors = useThemeColors();
 
-    const { ticketId, ticketName, ticketType } = useLocalSearchParams<{
+    const { ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
         ticketId?: string;
         ticketName: string;
         ticketType?: string;
+        mode?: string;
+        reservationId?: string;
+        notes?: string;
     }>();
 
     const router = useRouter();
@@ -226,6 +229,9 @@ export default function DateScreen() {
                     ticketId,
                     ticketName,
                     ticketType,
+                    mode,
+                    reservationId,
+                    notes,
                 },
             });
         });

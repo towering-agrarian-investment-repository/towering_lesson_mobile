@@ -1,6 +1,11 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import { BaySlotGroupScheduleResponse, MemberBayReservationRequest, MemberBayReservationResponse } from "@/types/member-bay";
+import {
+    BaySlotGroupScheduleResponse,
+    MemberBayReservationResponse,
+    CreateBayReservationRequest,
+    RescheduleBayReservationRequest,
+} from "@/types/member-bay";
 
 export async function getBayReservationById(
     id: number,
@@ -13,7 +18,7 @@ export async function getBayReservationById(
 }
 
 export async function createMemberBayReservation(
-    data: MemberBayReservationRequest,
+    data: CreateBayReservationRequest,
 ): Promise<ApiResponse<MemberBayReservationResponse>> {
     return apiClient("/member/bay-reservations", {
         method: "POST",
@@ -38,5 +43,15 @@ export async function getMemberBaySlotGroups(
 export async function cancelBayReservationById(id: number): Promise<ApiResponse<void>> {
     return apiClient(`/member/bay-reservations/${id}/cancel`, {
         method: "PUT",
+    });
+}
+
+export async function rescheduleBayReservationById(
+    id: number,
+    data: RescheduleBayReservationRequest,
+): Promise<ApiResponse<MemberBayReservationResponse>> {
+    return apiClient(`/member/bay-reservations/${id}/reschedule`, {
+        method: "PUT",
+        body: JSON.stringify(data),
     });
 }

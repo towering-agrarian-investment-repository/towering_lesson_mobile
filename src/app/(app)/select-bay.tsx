@@ -23,12 +23,24 @@ function chunkItems<T>(items: T[], size: number) {
 }
 
 export default function BayScreen() {
-    const { date, ticketId, ticketName, ticketType, slotGroupId } = useLocalSearchParams<{
+    const {
+        date,
+        ticketId,
+        ticketName,
+        ticketType,
+        slotGroupId,
+        mode,
+        reservationId,
+        notes,
+    } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
         ticketName: string;
         ticketType?: string;
         slotGroupId?: string;
+        mode?: string;
+        reservationId?: string;
+        notes?: string;
     }>();
 
     const router = useRouter();
@@ -73,6 +85,9 @@ export default function BayScreen() {
                     bayName: baySlot.bayName,
                     startTime: slotGroup.startDateTime,
                     endTime: slotGroup.endDateTime,
+                    mode,
+                    reservationId,
+                    notes,
                 },
             });
         });

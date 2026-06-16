@@ -53,7 +53,8 @@ export type MemberBayReservationResponse = {
     reservationStatus: string;
     checkedInAt: string | null;
     cancelledAt: string | null;
-    notes: string | null;
+    memberNotes: string | null;
+    adminNotes: string | null;
     participants: MemberBayReservationParticipant[];
     attendance: MemberBayReservationAttendance;
 };
@@ -88,8 +89,15 @@ export type BaySlotGroupScheduleResponse = {
     baySlots: BaySlotScheduleResponse[];
 };
 
-export type MemberBayReservationRequest = {
+export type CreateBayReservationRequest = {
     baySlotId: number;
     ticketId: number;
+    // Request-side `notes` maps to `memberNotes` in the backend.
+    notes?: string | null;
+};
+
+export type RescheduleBayReservationRequest = {
+    baySlotId: number;
+    // Request-side `notes` maps to `memberNotes` in the backend.
     notes?: string | null;
 };

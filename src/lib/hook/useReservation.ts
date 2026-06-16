@@ -1,8 +1,30 @@
-import { cancelBayReservationById, createMemberBayReservation, getBayReservationById, getMemberBaySlotGroups } from "@/service/member-bay-reservation.service";
-import { cancelLessonReservationById, createMemberLessonReservation, getLessonReservationById, getTicketLessonSlots } from "@/service/member-lesson-reservation.service";
+import {
+    cancelBayReservationById,
+    createMemberBayReservation,
+    getBayReservationById,
+    getMemberBaySlotGroups,
+    rescheduleBayReservationById,
+} from "@/service/member-bay-reservation.service";
+import {
+    cancelLessonReservationById,
+    createMemberLessonReservation,
+    getLessonReservationById,
+    getTicketLessonSlots,
+    rescheduleLessonReservationById,
+} from "@/service/member-lesson-reservation.service";
 import { getMemberReservations, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
-import { BaySlotGroupScheduleResponse, MemberBayReservationRequest, MemberBayReservationResponse } from "@/types/member-bay";
-import { MemberCreateLessonReservationRequest, MemberLessonReservationResponse, MemberLessonSlotResponse } from "@/types/member-lesson";
+import {
+    BaySlotGroupScheduleResponse,
+    MemberBayReservationResponse,
+    CreateBayReservationRequest,
+    RescheduleBayReservationRequest,
+} from "@/types/member-bay";
+import {
+    CreateLessonReservationRequest,
+    MemberLessonReservationResponse,
+    MemberLessonSlotResponse,
+    RescheduleLessonReservationRequest,
+} from "@/types/member-lesson";
 import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "../api-response/api-response";
@@ -11,6 +33,16 @@ import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "
 export type MemberReservationDetailResponse =
     | MemberLessonReservationResponse
     | MemberBayReservationResponse;
+
+type RescheduleMemberLessonReservationVariables = {
+    reservationId: number;
+    data: RescheduleLessonReservationRequest;
+};
+
+type RescheduleMemberBayReservationVariables = {
+    reservationId: number;
+    data: RescheduleBayReservationRequest;
+};
 
 export function getMemberBaySlotGroupsQueryOptions(startDate: string, endDate: string) {
     return {
@@ -141,7 +173,7 @@ export function useCreateMemberBayReservation() {
     return useMutation<
         ApiResponse<MemberBayReservationResponse>,
         unknown,
-        MemberBayReservationRequest
+        CreateBayReservationRequest
     >({
         mutationFn: createMemberBayReservation,
         onSuccess: (res) => {
@@ -163,7 +195,7 @@ export function useCreateMemberLessonReservation() {
     return useMutation<
         ApiResponse<MemberLessonReservationResponse>,
         unknown,
-        MemberCreateLessonReservationRequest
+        CreateLessonReservationRequest
     >({
         mutationFn: createMemberLessonReservation,
         onSuccess: (res) => {
@@ -231,6 +263,56 @@ export function useCancelMemberBayReservation() {
     return useMutation<ApiResponse<void>, unknown, number>({
         mutationFn: cancelBayReservationById,
         onSuccess: (res, reservationId) => {
+            responseStatus({ res });
+            queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "reservations", "detail", "bay", reservationId],
+            });
+        },
+        onError: (error) => {
+            responseError({ error });
+        },
+    });
+}
+
+export function useRescheduleMemberLessonReservation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        ApiResponse<MemberLessonReservationResponse>,
+        unknown,
+        RescheduleMemberLessonReservationVariables
+    >({
+        mutationFn: ({ reservationId, data }) =>
+            rescheduleLessonReservationById(reservationId, data),
+        onSuccess: (res, { reservationId }) => {
+            responseStatus({ res });
+            queryClient.invalidateQueries({ queryKey: ["member", "ticket-lesson-slots"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "reservations", "detail", "lesson", reservationId],
+            });
+        },
+        onError: (error) => {
+            responseError({ error });
+        },
+    });
+}
+
+export function useRescheduleMemberBayReservation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        ApiResponse<MemberBayReservationResponse>,
+        unknown,
+        RescheduleMemberBayReservationVariables
+    >({
+        mutationFn: ({ reservationId, data }) =>
+            rescheduleBayReservationById(reservationId, data),
+        onSuccess: (res, { reservationId }) => {
             responseStatus({ res });
             queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
             queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });

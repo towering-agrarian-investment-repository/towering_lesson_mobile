@@ -29,11 +29,14 @@ function formatSlotTime(slot: MemberLessonSlotResponse) {
 
 export default function SelectLessonSlotScreen() {
     const colors = useThemeColors();
-    const { date, ticketId, ticketName, ticketType } = useLocalSearchParams<{
+    const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
         ticketName: string;
         ticketType?: string;
+        mode?: string;
+        reservationId?: string;
+        notes?: string;
     }>();
 
     const router = useRouter();
@@ -71,6 +74,9 @@ export default function SelectLessonSlotScreen() {
                     startTime: slot.startTime,
                     endTime: slot.endTime,
                     date,
+                    mode,
+                    reservationId,
+                    notes,
                 },
             });
         });

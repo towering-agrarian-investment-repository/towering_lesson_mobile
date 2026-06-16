@@ -275,7 +275,7 @@ function NotificationRow({
                                     selectable
                                     variant="label"
                                     className={cn(
-                                        "min-w-0 flex-1 font-semibold",
+                                        "min-w-0 flex-1 font-semibold leading-5",
                                         item.isRead
                                             ? "text-foreground/75"
                                             : "text-foreground",
@@ -294,6 +294,7 @@ function NotificationRow({
                             selectable
                             variant="meta"
                             className={cn(
+                                "leading-6",
                                 item.isRead
                                     ? "text-foreground/70"
                                     : "text-foreground/85",
