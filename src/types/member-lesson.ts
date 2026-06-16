@@ -57,6 +57,7 @@ export type MemberLessonReservationResponse = {
     checkedInAt: string | null;
     cancelledAt: string | null;
     memberNotes: string | null;
+    rescheduleCount: number;
 };
 
 export type LessonAvailabilityReservationResponse = {

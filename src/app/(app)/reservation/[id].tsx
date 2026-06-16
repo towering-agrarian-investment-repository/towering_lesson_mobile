@@ -327,17 +327,21 @@ export default function ReservationDetailScreen() {
             </>
         );
     }
-
+    const isLessonProgram = reservation.ticket?.type === "LESSON_PROGRAM"
     const isBayReservation = isBayReservationDetail(reservation);
     const lessonReservation = isLessonReservationDetail(reservation)
         ? reservation
         : null;
 
     const canCancelReservation = reservation.reservationStatus === "RESERVED";
-    const canRescheduleReservation =
-        reservation.reservationStatus === "RESERVED" &&
-        isFutureReservation(reservation.startTime) &&
-        Boolean(reservation.ticket?.id);
+
+    const RESCHEDULE_LIMIT = 1;
+    const rescheduleCount = reservation.rescheduleCount ?? 0;
+    const hasReachedRescheduleLimit = rescheduleCount >= RESCHEDULE_LIMIT;
+    const isEligibleToReschedule = reservation.reservationStatus === "RESERVED" && isFutureReservation;
+    const canRescheduleReservation = isEligibleToReschedule && !hasReachedRescheduleLimit;
+    const showRescheduleButton = isEligibleToReschedule;
+
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
 
     const title = getReservationTitle(reservation);
@@ -409,7 +413,8 @@ export default function ReservationDetailScreen() {
     };
 
     const handleRescheduleReservation = () => {
-        if (!canRescheduleReservation || !reservation.ticket?.id) {
+
+        if (!canRescheduleReservation || hasReachedRescheduleLimit || !reservation.ticket?.id || isLessonProgram) {
             return;
         }
 
@@ -478,15 +483,26 @@ export default function ReservationDetailScreen() {
                     />
                 }
                 footer={
-                    canCancelReservation || canRescheduleReservation ? (
+                    canCancelReservation || (!isLessonProgram && showRescheduleButton) ? (
                         <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
-                            {canRescheduleReservation ? (
-                                <Button
-                                    title="Reschedule"
-                                    variant="secondary"
-                                    className="rounded-xl"
-                                    onPress={handleRescheduleReservation}
-                                />
+                            {!isLessonProgram && showRescheduleButton ? (
+                                <View className="gap-1.5">
+                                    <Button
+                                        title="Reschedule"
+                                        variant="secondary"
+                                        className="rounded-xl"
+                                        onPress={handleRescheduleReservation}
+                                        disabled={hasReachedRescheduleLimit}
+                                    />
+                                    {hasReachedRescheduleLimit ? (
+                                        <AppText
+                                            variant="meta"
+                                            className="text-center text-muted-foreground"
+                                        >
+                                            Reschedule limit reached (1 per reservation)
+                                        </AppText>
+                                    ) : null}
+                                </View>
                             ) : null}
 
                             {canCancelReservation ? (

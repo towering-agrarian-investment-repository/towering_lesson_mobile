@@ -55,6 +55,7 @@ export type MemberBayReservationResponse = {
     cancelledAt: string | null;
     memberNotes: string | null;
     adminNotes: string | null;
+    rescheduleCount: number;
     participants: MemberBayReservationParticipant[];
     attendance: MemberBayReservationAttendance;
 };

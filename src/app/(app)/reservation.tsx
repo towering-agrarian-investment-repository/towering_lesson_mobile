@@ -23,13 +23,13 @@ import {
     getMemberReservationsQueryOptions,
     useMemberReservations,
 } from "@/lib/hook/useReservation";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import { MemberReservationType } from "@/service/reservation.service";
 import type {
     MemberReservationResponse,
     MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 
 const RESERVATION_TABS: MemberReservationType[] = [
     "all",
@@ -135,6 +135,10 @@ export default function ReservationScreen() {
         }
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
+    const handleRefetch = useCallback(() => {
+        void refetch();
+    }, [refetch]);
+
     return (
         <Screen scroll={false}>
             <View className="flex-1 flex-col">
@@ -151,18 +155,14 @@ export default function ReservationScreen() {
                             title="Failed to load reservations"
                             message="Pull to refresh and try again."
                             actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
-                            onAction={() => {
-                                void refetch();
-                            }}
+                            onAction={handleRefetch}
                         />
                     ) : reservations.length === 0 ? (
                         <EmptyState
                             title="No reservations found"
                             message="Your reservations will appear here."
                             actionLabel="Refresh"
-                            onAction={() => {
-                                void refetch();
-                            }}
+                            onAction={handleRefetch}
                         />
                     ) : (
                         <FlatList
@@ -173,9 +173,7 @@ export default function ReservationScreen() {
                             refreshControl={
                                 <RefreshControl
                                     refreshing={isRefetching}
-                                    onRefresh={() => {
-                                        void refetch();
-                                    }}
+                                    onRefresh={handleRefetch}
                                 />
                             }
                             contentContainerStyle={{
@@ -234,6 +232,7 @@ function ReservationTabs({
                                 key={tab}
                                 onPress={() => onTabChange(tab)}
                                 className="min-h-11 items-center justify-end gap-2 pr-4"
+                                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                             >
                                 <AppText
                                     variant="label"
