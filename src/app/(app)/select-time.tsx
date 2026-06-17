@@ -1,7 +1,7 @@
 import { AppText, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
-import { BaySlotGroupScheduleResponse } from "@/types/member-bay";
+import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
@@ -119,30 +119,29 @@ export default function TimeScreen() {
             {!isLoading && !isError && slotGroups.length > 0 ? (
                 <View className="gap-3">
                     {slotGroups.map((group) => (
-                        <View key={group.id}>
-                            <Pressable
-                                className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
-                                onPress={() => handleSelect(group)}
-                                disabled={isLocked}
-                            >
-                                <View className="min-w-0 flex-1 gap-1">
-                                    <AppText variant="h3" className="text-foreground">
-                                        {formatTimeRange(
-                                            group.startDateTime,
-                                            group.endDateTime,
-                                        )}
-                                    </AppText>
-
-                                    <AppText variant="meta" className="text-foreground/75">
-                                        {getAvailableBayCount(group)} bays available
-                                    </AppText>
-                                </View>
-
-                                <AppText variant="badge" className="text-primary">
-                                    Select
+                        <Pressable
+                            key={group.id}
+                            className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
+                            onPress={() => handleSelect(group)}
+                            disabled={isLocked}
+                        >
+                            <View className="min-w-0 flex-1 gap-1">
+                                <AppText variant="h3" className="text-foreground">
+                                    {formatTimeRange(
+                                        group.startDateTime,
+                                        group.endDateTime,
+                                    )}
                                 </AppText>
-                            </Pressable>
-                        </View>
+
+                                <AppText variant="meta" className="text-foreground/75">
+                                    {getAvailableBayCount(group)} bays available
+                                </AppText>
+                            </View>
+
+                            <AppText variant="badge" className="text-primary">
+                                Select
+                            </AppText>
+                        </Pressable>
                     ))}
                 </View>
             ) : null}

@@ -1,34 +1,23 @@
 import { AppText as Text, useThemeColors } from "@/design-system";
-import { StyleSheet, View } from "react-native";
-
-type Props = {}
+import { View } from "react-native";
 
 export default function HomeHeader() {
     const colors = useThemeColors();
-    const currentDate = new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
+    const currentDate = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
     });
 
     return (
-        <View style={styles.header}>
-            <Text variant="meta" style={[styles.date, { color: colors.secondaryForeground }]}>
+        <View className="flex-row items-center justify-between">
+            <Text
+                variant="meta"
+                className="mb-7 mt-1"
+                style={{ color: colors.secondaryForeground }}
+            >
                 {currentDate}
             </Text>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-    },
-    date: {
-        fontSize: 14,
-        marginTop: 4,
-        marginBottom: 30,
-    },
-});

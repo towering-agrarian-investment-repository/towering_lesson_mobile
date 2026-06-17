@@ -1,0 +1,221 @@
+import {
+    AppText,
+    Badge,
+    Card,
+    EmptyState,
+    ErrorState,
+    Skeleton,
+    useThemeColors,
+} from "@/design-system";
+import {
+    getMemberGroupByIdQueryOptions,
+    useMemberGroups,
+} from "@/lib/hook/useMemberLessonFlow";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import type { MemberGroupSummaryResponse } from "@/types/member-group";
+import { formatType } from "@/utils/format-enum";
+import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
+import { getGroupName } from "@/utils/member-lesson";
+import { useQueryClient } from "@tanstack/react-query";
+import { Href, useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
+import { useCallback } from "react";
+import { Pressable, View } from "react-native";
+
+export function MemberGroups() {
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { data, isLoading, isError, refetch } = useMemberGroups();
+    const groups = data?.data ?? [];
+
+    const renderGroup = useCallback(
+        ({ item }: { item: MemberGroupSummaryResponse }) => {
+            return (
+                <GroupCard
+                    group={item}
+                    disabled={isLocked}
+                    onPressIn={() => {
+                        void queryClient.prefetchQuery(
+                            getMemberGroupByIdQueryOptions(item.groupId),
+                        );
+                    }}
+                    onPress={() => {
+                        runWithNavigationLock(() => {
+                            router.push(`/groups/${item.groupId}` as Href);
+                        });
+                    }}
+                />
+            );
+        },
+        [isLocked, queryClient, router, runWithNavigationLock],
+    );
+
+    return (
+        <View className="gap-4">
+            {isLoading ? (
+                <GroupListSkeleton />
+            ) : isError ? (
+                <ErrorState
+                    title="Failed to load groups"
+                    message="Please pull to refresh and try again."
+                    actionLabel="Try Again"
+                    onAction={() => {
+                        void refetch();
+                    }}
+                />
+            ) : groups.length === 0 ? (
+                <EmptyState
+                    title="No lesson groups"
+                    message="Your lesson groups will appear here when they are assigned."
+                />
+            ) : (
+                <View className="gap-3">
+                    {groups.map((group) => (
+                        <View key={`group-${group.groupId}`}>
+                            {renderGroup({ item: group })}
+                        </View>
+                    ))}
+                </View>
+            )}
+        </View>
+    );
+}
+
+function GroupCard({
+    group,
+    disabled,
+    onPress,
+    onPressIn,
+}: {
+    group: MemberGroupSummaryResponse;
+    disabled: boolean;
+    onPress: () => void;
+    onPressIn: () => void;
+}) {
+    const colors = useThemeColors();
+    const groupName = getGroupName(group);
+    const ticketName = group.ticketName?.trim() || "No ticket";
+    const statusLabel = group.groupStatus ? formatType(group.groupStatus) : null;
+    const startDate = formatDateForDisplay(group.programStartDate ?? null);
+    const endDate = formatDateForDisplay(group.programEndDate ?? null);
+    const dateRange =
+        startDate && endDate ? `${startDate} - ${endDate}` : startDate || "-";
+    const timeRange = formatTimeRange(group.sessionStartTime, group.sessionEndTime);
+    const lessonType = formatType(group.lessonType);
+    const capacity = group.capacity ? `Capacity ${group.capacity}` : "Capacity -";
+
+    return (
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${groupName}`}
+            disabled={disabled}
+            className="active:opacity-80 disabled:opacity-60"
+            onPress={onPress}
+            onPressIn={onPressIn}
+        >
+            <Card className="gap-3 border-border bg-card p-4">
+                <View className="flex-row items-start gap-3">
+                    <View className="min-w-0 flex-1 gap-1">
+                        <AppText
+                            variant="h3"
+                            className="text-lg font-semibold leading-7 text-foreground"
+                            numberOfLines={2}
+                        >
+                            {groupName}
+                        </AppText>
+
+                        <AppText
+                            variant="meta"
+                            className="leading-5 text-muted-foreground"
+                            numberOfLines={1}
+                        >
+                            {group.lessonProgramName?.trim() || lessonType}
+                        </AppText>
+                    </View>
+
+                    <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-muted">
+                        <ChevronRight
+                            size={18}
+                            color={colors.mutedForeground}
+                            strokeWidth={2.4}
+                        />
+                    </View>
+                </View>
+
+                <View className="flex-row flex-wrap gap-2">
+                    {statusLabel ? (
+                        <Badge
+                            label={statusLabel}
+                            className="bg-primary/10 px-2.5 py-1"
+                            textClassName="text-primary"
+                        />
+                    ) : null}
+
+                    <Badge
+                        label={lessonType}
+                        className="bg-muted px-2.5 py-1"
+                        textClassName="text-muted-foreground"
+                    />
+
+                    <Badge
+                        label={capacity}
+                        className="bg-muted px-2.5 py-1"
+                        textClassName="text-muted-foreground"
+                    />
+                </View>
+
+                <View className="gap-2 rounded-xl bg-surface px-3 py-3">
+                    <GroupMetaRow label="Schedule" value={dateRange} />
+                    <GroupMetaRow label="Time" value={timeRange} />
+                </View>
+            </Card>
+        </Pressable>
+    );
+}
+
+function GroupMetaRow({
+    label,
+    value,
+}: {
+    label: string;
+    value: string;
+}) {
+    return (
+        <View className="flex-row items-center justify-between gap-3">
+            <AppText variant="caption" className="shrink-0 leading-5 text-muted-foreground">
+                {label}
+            </AppText>
+            <AppText
+                variant="caption"
+                className="min-w-0 flex-1 text-right font-medium leading-5 text-foreground"
+                numberOfLines={1}
+            >
+                {value}
+            </AppText>
+        </View>
+    );
+}
+
+function GroupListSkeleton() {
+    return (
+        <View className="gap-3">
+            {Array.from({ length: 3 }, (_, index) => (
+                <View
+                    key={index}
+                    className="gap-3 rounded-xl border border-border bg-card p-4"
+                >
+                    <View className="flex-1 gap-2">
+                        <Skeleton className="h-6 w-3/4 rounded-full" />
+                        <Skeleton className="h-4 w-1/2 rounded-full" />
+                    </View>
+                    <View className="flex-row gap-2">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                    </View>
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                </View>
+            ))}
+        </View>
+    );
+}

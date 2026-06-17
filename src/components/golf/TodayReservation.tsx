@@ -1,4 +1,4 @@
-import { EmptyState, ErrorState, Skeleton } from "@/design-system";
+import { ErrorState, Skeleton } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
 import { useCallback } from "react";
 import { FlatList, StyleSheet, View } from "react-native";

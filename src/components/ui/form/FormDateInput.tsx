@@ -1,9 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import ExpoDateTimePicker from "@expo/ui/community/datetime-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
 import { AppText as Text, useThemeColors } from "@/design-system";
-import { Platform, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
 
@@ -58,6 +58,8 @@ export function FormDateInput<TFieldValues extends FieldValues>({
 }: FormDateInputProps<TFieldValues>) {
     const [isOpen, setIsOpen] = useState(false);
     const colors = useThemeColors();
+    const isIOS = process.env.EXPO_OS === "ios";
+    const isAndroid = process.env.EXPO_OS === "android";
 
     return (
         <Controller
@@ -120,22 +122,26 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                             </Pressable>
 
                             {isOpen ? (
-                                <ExpoDateTimePicker
+                                <DateTimePicker
                                     value={pickerValue}
                                     mode="date"
-                                    display={Platform.OS === "ios" ? "inline" : "default"}
-                                    presentation={Platform.OS === "android" ? "dialog" : undefined}
+                                    display={isIOS ? "inline" : "default"}
                                     minimumDate={minimumDate}
                                     maximumDate={maximumDate}
-                                    onValueChange={(_event, nextDate) => {
+                                    onChange={(event, nextDate) => {
+                                        if (event.type === "dismissed" || !nextDate) {
+                                            if (isAndroid) {
+                                                setIsOpen(false);
+                                            }
+
+                                            return;
+                                        }
+
                                         onChange(formatDateOnly(nextDate));
 
-                                        if (Platform.OS === "android") {
+                                        if (isAndroid) {
                                             setIsOpen(false);
                                         }
-                                    }}
-                                    onDismiss={() => {
-                                        setIsOpen(false);
                                     }}
                                 />
                             ) : null}

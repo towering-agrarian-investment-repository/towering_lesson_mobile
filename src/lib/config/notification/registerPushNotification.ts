@@ -2,7 +2,6 @@ import { savePushToken } from "@/service/shared/push-token-service";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
 
 Notifications.setNotificationHandler({
 	handleNotification: async () => ({
@@ -15,11 +14,10 @@ Notifications.setNotificationHandler({
 
 export const registerForPushNotifications = async (): Promise<string | null> => {
 	if (!Device.isDevice) {
-		console.log("Push notifications require a physical device");
 		return null;
 	}
 
-	if (Platform.OS === "android") {
+	if (process.env.EXPO_OS === "android") {
 		await Notifications.setNotificationChannelAsync("default", {
 			name: "default",
 			importance: Notifications.AndroidImportance.MAX,
@@ -38,7 +36,6 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 	}
 
 	if (finalStatus !== "granted") {
-		console.log("Notification permission not granted");
 		return null;
 	}
 
@@ -56,12 +53,10 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 
 	const expoPushToken = tokenResponse.data;
 
-	console.log("Expo push token:", expoPushToken);
-
 	await savePushToken({
 		deviceId: getDeviceId(),
 		expoPushToken,
-		deviceType: Platform.OS === "ios" ? "IOS" : "ANDROID",
+		deviceType: process.env.EXPO_OS === "ios" ? "IOS" : "ANDROID",
 	});
 
 	return expoPushToken;

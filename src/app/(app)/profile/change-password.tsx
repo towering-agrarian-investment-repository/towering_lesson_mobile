@@ -5,7 +5,6 @@ import { showAppToast } from "@/lib/toast/toast";
 import { changePassword } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
-import React from 'react';
 import { useForm } from "react-hook-form";
 import { View } from 'react-native';
 import { z } from "zod";

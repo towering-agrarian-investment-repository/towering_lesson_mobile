@@ -59,7 +59,8 @@
           "photosPermission": "Allow Golf Lesson System to access your photos to choose a profile photo."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

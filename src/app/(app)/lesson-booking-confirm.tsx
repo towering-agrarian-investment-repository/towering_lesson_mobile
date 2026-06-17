@@ -1,8 +1,14 @@
 import {
+    BookingConfirmationContent,
+    BookingConfirmationFooter,
+    BookingConfirmationLoadingState,
+    type BookingConfirmationSuccessResponse,
+    handleBookingConfirmationSuccess,
+} from "@/components/golf/booking/BookingConfirmationShared";
+import {
     ReservationDetailField,
-    ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { AppText, Button, Divider, EmptyState, ErrorState, Screen, Skeleton, Textarea } from "@/design-system";
+import { Divider, EmptyState, ErrorState, Screen } from "@/design-system";
 import {
     useCreateMemberLessonReservation,
     useMemberTicketLessonSlots,
@@ -16,7 +22,8 @@ import {
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack } from "expo-router/stack";
 import {
     RefreshControl,
     View
@@ -142,25 +149,6 @@ export default function LessonBookingConfirmScreen() {
             return;
         }
 
-        const handleSuccess = (response: { data?: { id: number; reservationType: string } | null }) => {
-            const reservation = response.data;
-
-            router.dismissAll();
-
-            if (reservation) {
-                router.replace({
-                    pathname: "/reservation/[id]",
-                    params: {
-                        id: String(reservation.id),
-                        type: reservation.reservationType,
-                    },
-                });
-                return;
-            }
-
-            router.replace("/reservation");
-        };
-
         if (isRescheduleMode) {
             if (!reservationIdNumber) {
                 return;
@@ -175,7 +163,8 @@ export default function LessonBookingConfirmScreen() {
                     },
                 },
                 {
-                    onSuccess: handleSuccess,
+                    onSuccess: (response: BookingConfirmationSuccessResponse) =>
+                        handleBookingConfirmationSuccess(router, response),
                 },
             );
             return;
@@ -188,7 +177,8 @@ export default function LessonBookingConfirmScreen() {
                 notes: notes.trim() || null,
             },
             {
-                onSuccess: handleSuccess,
+                onSuccess: (response: BookingConfirmationSuccessResponse) =>
+                    handleBookingConfirmationSuccess(router, response),
             },
         );
     };
@@ -231,7 +221,6 @@ export default function LessonBookingConfirmScreen() {
     return (
         <Screen
             contentClassName="flex-1"
-            keyboardAware
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -242,24 +231,22 @@ export default function LessonBookingConfirmScreen() {
             }
             footer={
                 !isLoading && !isError && !isMissingRequiredData ? (
-                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
-                        <Button
-                            title={
-                                isRescheduleMode
-                                    ? "Confirm Reschedule"
-                                    : isGroupSelection
-                                        ? "Agree & Join Group"
-                                        : "Agree & Book"
-                            }
-                            loading={isSubmitting}
-                            disabled={isDisabled}
-                            onPress={handleConfirm}
-                        />
-                    </View>
+                    <BookingConfirmationFooter
+                        title={
+                            isRescheduleMode
+                                ? "Confirm Reschedule"
+                                : isGroupSelection
+                                    ? "Agree & Join Group"
+                                    : "Agree & Book"
+                        }
+                        loading={isSubmitting}
+                        disabled={isDisabled}
+                        onPress={handleConfirm}
+                    />
                 ) : null
             }
         >
-                    <Stack.Screen
+            <Stack.Screen
                 options={{
                     title: isRescheduleMode
                         ? "Reschedule Confirmation"
@@ -269,24 +256,7 @@ export default function LessonBookingConfirmScreen() {
                 }}
             />
             {isLoading ? (
-                <View className="gap-6">
-                    <View className="gap-4">
-                        {Array.from({ length: 4 }, (_, index) => (
-                            <View key={index} className="gap-4">
-                                <View className="gap-2">
-                                    <Skeleton className="h-4 w-24 rounded-full" />
-                                    <Skeleton className="h-6 w-full rounded-full" />
-                                </View>
-                                {index < 3 ? <Divider className="bg-border" /> : null}
-                            </View>
-                        ))}
-                    </View>
-
-                    <View className="gap-4">
-                        <Divider className="bg-border" />
-                        <Skeleton className="h-24 w-full rounded-xl" />
-                    </View>
-                </View>
+                <BookingConfirmationLoadingState fieldCount={4} />
             ) : isError ? (
                 <ErrorState
                     title="Failed to load reservation details"
@@ -322,54 +292,36 @@ export default function LessonBookingConfirmScreen() {
                     }}
                 />
             ) : (
-                <View className="grow">
-                    <View className="gap-4">
-                        <ReservationDetailField
-                            label="Ticket"
-                            value={ticketName}
-                        />
-                        <Divider className="bg-border" />
+                <BookingConfirmationContent
+                    notes={notes}
+                    onNotesChange={setNotes}
+                    disabledReason={disabledReason}
+                    policies={POLICIES}
+                >
+                    <ReservationDetailField
+                        label="Ticket"
+                        value={ticketName}
+                    />
+                    <Divider className="bg-border" />
 
-                        <ReservationDetailField
-                            label="Reservation Name"
-                            value={reservationName}
-                        />
-                        <Divider className="bg-border" />
+                    <ReservationDetailField
+                        label="Reservation Name"
+                        value={reservationName}
+                    />
+                    <Divider className="bg-border" />
 
-                        <ReservationDetailField label="Date" value={dateValue} />
-                        <Divider className="bg-border" />
+                    <ReservationDetailField label="Date" value={dateValue} />
+                    <Divider className="bg-border" />
 
-                        <ReservationDetailField label="Time" value={timeValue} />
+                    <ReservationDetailField label="Time" value={timeValue} />
 
-                        {coachNameValue ? (
-                            <>
-                                <Divider className="bg-border" />
-                                <ReservationDetailField label="Coach" value={coachNameValue} />
-                            </>
-                        ) : null}
-                    </View>
-
-                    <View className="mt-6 gap-4">
-                        <Divider className="bg-border" />
-
-                        <Textarea
-                            label="Notes"
-                            placeholder="Add a note (optional)"
-                            value={notes}
-                            onChangeText={setNotes}
-                        />
-
-                        {disabledReason ? (
-                            <View className="rounded-xl bg-warning/10 px-4 py-3">
-                                <AppText variant="meta" className="text-warning">
-                                    {disabledReason}
-                                </AppText>
-                            </View>
-                        ) : null}
-
-                        <ReservationPoliciesSection policies={POLICIES} />
-                    </View>
-                </View>
+                    {coachNameValue ? (
+                        <>
+                            <Divider className="bg-border" />
+                            <ReservationDetailField label="Coach" value={coachNameValue} />
+                        </>
+                    ) : null}
+                </BookingConfirmationContent>
             )}
         </Screen>
     );

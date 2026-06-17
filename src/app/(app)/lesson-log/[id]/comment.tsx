@@ -16,7 +16,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Star } from "lucide-react-native";
-import React from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { z } from "zod";
 

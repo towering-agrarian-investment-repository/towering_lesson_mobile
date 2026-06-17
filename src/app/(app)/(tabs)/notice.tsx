@@ -20,7 +20,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { formatRelativeTime } from "@/utils/relative-time";
 import { useNavigation, useRouter } from "expo-router";
-import React, { memo, useCallback, useLayoutEffect } from "react";
+import { memo, useCallback, useLayoutEffect } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 function NoticeScreen() {

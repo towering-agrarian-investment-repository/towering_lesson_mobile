@@ -118,9 +118,7 @@ function applyThemePreference(
 
         setColorScheme(preference);
     } catch {
-        // react-native-web does not implement Appearance.setColorScheme
-        // behind NativeWind's setter, so theme preference falls back to the
-        // local provider state on web.
+        // Fall back to local provider state if the platform setter is unavailable.
     }
 }
 

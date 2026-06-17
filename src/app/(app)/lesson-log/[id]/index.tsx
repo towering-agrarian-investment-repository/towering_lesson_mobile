@@ -8,7 +8,6 @@ import { useEvent } from "expo";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Star } from "lucide-react-native";
-import React from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 
 type LessonLogParams = {
@@ -206,7 +205,7 @@ function LessonLogDetailsScreen() {
                     </AppText>
                 )}
 
-                <View className="rounded-full self-start bg-muted px-3 py-1.5">
+                <View className="self-start rounded-full bg-muted px-3 py-1.5">
                     <AppText
                         selectable
                         variant="caption"

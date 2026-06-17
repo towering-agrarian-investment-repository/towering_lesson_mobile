@@ -30,7 +30,6 @@ import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { toAppTimeZoneDate } from "@/utils/timezone";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -177,20 +176,6 @@ function getReservationStatusDescription(value?: string | null) {
     }
 }
 
-function isFutureReservation(startTime?: string | null) {
-    if (!startTime) {
-        return false;
-    }
-
-    const reservationStart = toAppTimeZoneDate(startTime);
-
-    if (!reservationStart) {
-        return false;
-    }
-
-    return reservationStart.getTime() > Date.now();
-}
-
 export default function ReservationDetailScreen() {
     const { id, type } = useLocalSearchParams<ReservationParams>();
 
@@ -199,7 +184,6 @@ export default function ReservationDetailScreen() {
     const canGoBack = router.canGoBack();
     const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
 
-    const reservationId = Number(id);
     const reservationType = isReservationDomain(type) ? type : undefined;
 
     const {
@@ -208,7 +192,7 @@ export default function ReservationDetailScreen() {
         isError,
         refetch,
         isRefetching,
-    } = useMemberReservationById(reservationId, reservationType);
+    } = useMemberReservationById(Number(id), reservationType);
 
     const reservation = data?.data;
 
@@ -327,21 +311,13 @@ export default function ReservationDetailScreen() {
             </>
         );
     }
-    const isLessonProgram = reservation.ticket?.type === "LESSON_PROGRAM"
+
     const isBayReservation = isBayReservationDetail(reservation);
     const lessonReservation = isLessonReservationDetail(reservation)
         ? reservation
         : null;
 
     const canCancelReservation = reservation.reservationStatus === "RESERVED";
-
-    const RESCHEDULE_LIMIT = 1;
-    const rescheduleCount = reservation.rescheduleCount ?? 0;
-    const hasReachedRescheduleLimit = rescheduleCount >= RESCHEDULE_LIMIT;
-    const isEligibleToReschedule = reservation.reservationStatus === "RESERVED" && isFutureReservation;
-    const canRescheduleReservation = isEligibleToReschedule && !hasReachedRescheduleLimit;
-    const showRescheduleButton = isEligibleToReschedule;
-
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
 
     const title = getReservationTitle(reservation);
@@ -412,25 +388,6 @@ export default function ReservationDetailScreen() {
         setIsCancelSheetVisible(true);
     };
 
-    const handleRescheduleReservation = () => {
-
-        if (!canRescheduleReservation || hasReachedRescheduleLimit || !reservation.ticket?.id || isLessonProgram) {
-            return;
-        }
-
-        router.push({
-            pathname: "/select-date",
-            params: {
-                ticketId: String(reservation.ticket.id),
-                ticketName: reservation.ticket.name,
-                ticketType: reservation.ticket.type,
-                mode: "reschedule",
-                reservationId: String(reservation.id),
-                notes: reservation.memberNotes ?? "",
-            },
-        });
-    };
-
     const confirmCancelReservation = () => {
         if (!canCancelReservation || isCancelling) {
             return;
@@ -483,38 +440,16 @@ export default function ReservationDetailScreen() {
                     />
                 }
                 footer={
-                    canCancelReservation || (!isLessonProgram && showRescheduleButton) ? (
-                        <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
-                            {!isLessonProgram && showRescheduleButton ? (
-                                <View className="gap-1.5">
-                                    <Button
-                                        title="Reschedule"
-                                        variant="secondary"
-                                        className="rounded-xl"
-                                        onPress={handleRescheduleReservation}
-                                        disabled={hasReachedRescheduleLimit}
-                                    />
-                                    {hasReachedRescheduleLimit ? (
-                                        <AppText
-                                            variant="meta"
-                                            className="text-center text-muted-foreground"
-                                        >
-                                            Reschedule limit reached (1 per reservation)
-                                        </AppText>
-                                    ) : null}
-                                </View>
-                            ) : null}
-
-                            {canCancelReservation ? (
-                                <Button
-                                    title="Cancel Reservation"
-                                    variant="danger"
-                                    loading={isCancelling}
-                                    className="rounded-xl"
-                                    onPress={handleCancelReservation}
-                                    disabled={isCancelling}
-                                />
-                            ) : null}
+                    canCancelReservation ? (
+                        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                            <Button
+                                title="Cancel Reservation"
+                                variant="danger"
+                                loading={isCancelling}
+                                className="rounded-xl"
+                                onPress={handleCancelReservation}
+                                disabled={isCancelling}
+                            />
                         </View>
                     ) : null
                 }
@@ -590,7 +525,7 @@ export default function ReservationDetailScreen() {
                             <>
                                 <Divider className="bg-border" />
                                 <DetailRow
-                                    label="Member Notes"
+                                    label="Notes"
                                     value={noteValue}
                                 />
                             </>

@@ -1,7 +1,7 @@
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
-import { AppText as Text, CircleLoader, EmptyState, ErrorState, Screen } from "@/design-system";
+import { AppText, CircleLoader, EmptyState, ErrorState, Screen } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
@@ -71,9 +71,12 @@ export default function HomeScreen() {
       footer={
         <Link href="/reservation" push asChild>
           <Pressable className="mx-6 rounded-xl bg-primary py-4 active:opacity-80">
-            <Text variant="label" className="text-center text-base font-bold text-primary-foreground">
+            <AppText
+              variant="label"
+              className="text-center text-base font-bold text-primary-foreground"
+            >
               VIEW MY RESERVATIONS
-            </Text>
+            </AppText>
           </Pressable>
         </Link>
       }
@@ -87,7 +90,6 @@ export default function HomeScreen() {
       }
     >
       <View className="flex-1 gap-8">
-        {/* <GolfHeader /> */}
         <HappyGolfLogo width={148} height={35} />
 
         {member ? (
@@ -99,9 +101,7 @@ export default function HomeScreen() {
           />
         )}
 
-        <View className="flex-1">
-          <TodayReservation />
-        </View>
+        <TodayReservation />
       </View>
     </Screen>
   );

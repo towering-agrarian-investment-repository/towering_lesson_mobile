@@ -88,9 +88,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             .then((token) => {
                 setExpoPushToken(token);
             })
-            .catch((error) => {
-                console.log("Failed to register push notification:", error);
-            });
+            .catch(() => {});
 
         notificationListener.current = addNotificationReceivedListener(
             (receivedNotification) => {
@@ -100,9 +98,6 @@ export const usePushNotification = (isLoggedIn: boolean) => {
 
         responseListener.current = addNotificationResponseReceivedListener(
             (response) => {
-                const data = response.notification.request.content.data;
-
-                console.log("Notification tapped:", data);
                 handleNotificationNavigation(response);
             },
         );

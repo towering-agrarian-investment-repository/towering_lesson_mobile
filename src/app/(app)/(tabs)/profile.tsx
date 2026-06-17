@@ -20,9 +20,14 @@ import { Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 
+const THEME_OPTIONS: { label: string; value: ThemePreference }[] = [
+    { label: "System", value: "system" },
+    { label: "Light", value: "light" },
+    { label: "Dark", value: "dark" },
+];
+
 export default function ProfileScreen() {
     const queryClient = useQueryClient();
-    const [refreshing, setRefreshing] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
     const { isThemeReady, themePreference, setThemePreference } = useThemePreference();
@@ -37,17 +42,6 @@ export default function ProfileScreen() {
     } = useGetMemberProfile();
 
     const member = memberResponse?.data;
-
-    const handleRefresh = async () => {
-        setRefreshing(true);
-
-        try {
-            await refetch();
-        } finally {
-            setRefreshing(false);
-        }
-    };
-
     const handleSignOut = async () => {
         if (isSigningOut) {
             return;
@@ -100,9 +94,9 @@ export default function ProfileScreen() {
         <Screen
             refreshControl={
                 <RefreshControl
-                    refreshing={refreshing}
+                    refreshing={isRefetching}
                     onRefresh={() => {
-                        void handleRefresh();
+                        void refetch();
                     }}
                 />
             }
@@ -441,21 +435,8 @@ function ThemePreferenceRow({
 }) {
     const colors = useThemeColors();
     const [isThemeSheetVisible, setIsThemeSheetVisible] = useState(false);
-    const themeOptions: { label: string; value: ThemePreference }[] = [
-        { label: "System", value: "system" },
-        { label: "Light", value: "light" },
-        { label: "Dark", value: "dark" },
-    ];
     const selectedLabel =
-        themeOptions.find((option) => option.value === preference)?.label ?? "System";
-
-    const openThemePicker = () => {
-        if (disabled) {
-            return;
-        }
-
-        setIsThemeSheetVisible(true);
-    };
+        THEME_OPTIONS.find((option) => option.value === preference)?.label ?? "System";
 
     return (
         <>
@@ -463,7 +444,11 @@ function ThemePreferenceRow({
                 accessibilityRole="button"
                 accessibilityLabel="Choose app appearance"
                 disabled={disabled}
-                onPress={openThemePicker}
+                onPress={() => {
+                    if (!disabled) {
+                        setIsThemeSheetVisible(true);
+                    }
+                }}
                 title="Theme"
                 meta={selectedLabel}
             />
@@ -549,10 +534,9 @@ function SignOutButton({
         <Pressable
             onPress={onPress}
             disabled={isSigningOut}
-            className={`rounded-xl border px-4 py-4 ${isSigningOut
-                ? "border-danger/20 bg-danger/10"
-                : "border-danger/20 bg-danger/10 active:opacity-80"
-                }`}
+            className={`rounded-xl border border-danger/20 bg-danger/10 px-4 py-4 ${
+                isSigningOut ? "" : "active:opacity-80"
+            }`}
         >
             <AppText variant="label" className="text-danger">
                 {isSigningOut ? "Logging Out..." : "Log Out"}

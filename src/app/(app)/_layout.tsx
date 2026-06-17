@@ -85,7 +85,7 @@ export default function AppLayout() {
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel="Go back"
-                                    className="will-change-pressable mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
+                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
                                     hitSlop={8}
                                     onPress={() => {
                                         navigation.goBack();
@@ -169,6 +169,50 @@ export default function AppLayout() {
                             animation: "slide_from_right",
                             animationDuration: 80,
                             animationTypeForReplace: "push",
+                            fullScreenGestureEnabled: true, 
+                            gestureEnabled: true,       
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="groups/[groupId]/index"
+                        options={{
+                            title: "Group Detail",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="groups/[groupId]/lessons/[lessonId]/index"
+                        options={{
+                            title: "Lesson Detail",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="groups/[groupId]/lessons/[lessonId]/sessions/[sessionId]"
+                        options={{
+                            title: "Session Detail",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="lessons/[lessonId]/index"
+                        options={{
+                            title: "Lesson Detail",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="lessons/[lessonId]/sessions/[sessionId]"
+                        options={{
+                            title: "Session Detail",
+                        }}
+                    />
+
+                    <Stack.Screen
+                        name="homework/[homeworkId]"
+                        options={{
+                            title: "Homework Detail",
                         }}
                     />
 
@@ -204,13 +248,6 @@ export default function AppLayout() {
                         name="profile/edit"
                         options={{
                             title: "Edit Personal Information",
-                        }}
-                    />
-
-                    <Stack.Screen
-                        name="design-system-demo"
-                        options={{
-                            title: "Design System",
                         }}
                     />
                 </Stack>

@@ -88,7 +88,7 @@ function ThemedRoot({
   return (
     <>
       <VariableContextProvider value={themeVariables}>
-        <View className="will-change-variable flex-1 bg-background">
+        <View className="flex-1 bg-background">
           <Stack
             screenOptions={{
               headerShown: false,

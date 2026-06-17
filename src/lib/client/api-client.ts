@@ -13,7 +13,6 @@ async function getJwtToken(): Promise<string | null> {
     });
 
     if (result.error) {
-        console.log("Failed to get JWT:", result.error);
         return null;
     }
 
@@ -27,7 +26,6 @@ export async function getSession(): Promise<string | null> {
     });
 
     if (result.error) {
-        console.log("Failed to get Session:", result.error);
         return null;
     }
 

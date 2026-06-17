@@ -6,16 +6,16 @@ import {
     Screen,
     Skeleton,
 } from "@/design-system";
+import type { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import {
     getMemberLessonLogByIdQueryOptions,
     useMemberLessonLogs,
 } from "@/lib/hook/useLessonLog";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useQueryClient } from "@tanstack/react-query";
-import { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useRouter } from "expo-router";
-import React, { memo, useCallback } from "react";
+import { useCallback } from "react";
 import { FlatList, RefreshControl, View } from "react-native";
 
 function LessonLogScreen() {
@@ -41,7 +41,7 @@ function LessonLogScreen() {
     );
     const renderLessonLogItem = useCallback(
         ({ item }: { item: MemberLessonLogResponse }) => (
-            <MemoLessonLogRow
+            <LessonLogRow
                 item={item}
                 disabled={isLocked}
                 onPress={() => {
@@ -143,8 +143,6 @@ function LessonLogRow({
         />
     );
 }
-
-const MemoLessonLogRow = memo(LessonLogRow);
 
 function LessonLogStateList({
     emptyComponent,

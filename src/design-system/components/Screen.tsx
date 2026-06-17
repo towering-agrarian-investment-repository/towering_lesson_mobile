@@ -2,7 +2,6 @@ import { cn } from "../utils/cn";
 import { ReactElement, ReactNode } from "react";
 import {
     KeyboardAvoidingView,
-    Platform,
     RefreshControlProps,
     ScrollView,
     View,
@@ -61,11 +60,11 @@ export function Screen({
     } as const;
 
     return (
-        <View className={cn("will-change-variable flex-1 bg-background", className)}>
+        <View className={cn("flex-1 bg-background", className)}>
             {scroll ? (
                 keyboardAware ? (
                     <KeyboardAwareScrollView
-                        className={cn("will-change-variable flex-1 bg-background", scrollClassName)}
+                        className={cn("flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
                         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                         bounces={bounces}
@@ -81,7 +80,7 @@ export function Screen({
                     </KeyboardAwareScrollView>
                 ) : (
                     <ScrollView
-                        className={cn("will-change-variable flex-1 bg-background", scrollClassName)}
+                        className={cn("flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
                         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                         bounces={bounces}
@@ -98,7 +97,7 @@ export function Screen({
                 <KeyboardAvoidingView
                     className="flex-1"
                     behavior={
-                        keyboardAware && Platform.OS === "ios"
+                        keyboardAware && process.env.EXPO_OS === "ios"
                             ? "padding"
                             : undefined
                     }

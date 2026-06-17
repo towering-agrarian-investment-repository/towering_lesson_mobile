@@ -73,6 +73,20 @@ function TabLayout({ }: Props) {
                 }}
             />
             <Tabs.Screen
+                name='lessons'
+                options={{
+                    title: "Lessons",
+                    headerShown: true,
+                    tabBarIcon: ({ color, size, focused }) => (
+                        <Ionicons
+                            name={focused ? 'golf' : 'golf-outline'}
+                            size={size}
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name='profile'
                 options={{
                     title: 'Profile',
