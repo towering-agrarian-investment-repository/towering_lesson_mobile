@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { AppText } from "@/design-system";
 import { cn } from "@/design-system";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export type ReservationPolicy = {
@@ -41,16 +42,19 @@ export function ReservationDetailField({
 }
 
 export function ReservationPoliciesSection({
-    title = "Policies",
+    title,
     policies,
 }: {
     title?: string;
     policies: readonly ReservationPolicy[];
 }) {
+    const { t } = useTranslation();
+    const resolvedTitle = title ?? t("reservations.policiesTitle");
+
     return (
         <View className="flex-col gap-3">
             <AppText variant="h3" className="text-foreground">
-                {title}
+                {resolvedTitle}
             </AppText>
 
             <View className="gap-3">

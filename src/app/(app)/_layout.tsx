@@ -1,10 +1,11 @@
 import { useThemeColors } from "@/design-system";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { type Href, Stack, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useEffect } from "react";
 import { Pressable } from "react-native";
+import { useTranslation } from "react-i18next";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,8 @@ function getToastStyles(
 
 export default function AppLayout() {
     const colors = useThemeColors();
+    const { t } = useTranslation();
+    const router = useRouter();
 
     return (
         <QueryClientProvider client={queryClient}>
@@ -69,7 +72,6 @@ export default function AppLayout() {
                         animation: "slide_from_right",
                         animationDuration: 80,
                         headerBackButtonDisplayMode: "minimal",
-                        headerBackVisible: false,
                         contentStyle: { backgroundColor: colors.background },
                         headerStyle: { backgroundColor: colors.background },
                         headerTintColor: colors.foreground,
@@ -84,7 +86,7 @@ export default function AppLayout() {
                             canGoBack ? (
                                 <Pressable
                                     accessibilityRole="button"
-                                    accessibilityLabel="Go back"
+                                    accessibilityLabel={t("common.goBack")}
                                     className="mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
                                     hitSlop={8}
                                     onPress={() => {
@@ -110,14 +112,36 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="reservation"
                         options={{
-                            title: "My Reservations",
+                            title: t("navigation.screens.myReservations"),
+                            headerLeft: () => (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t("common.goBack")}
+                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
+                                    hitSlop={8}
+                                    onPress={() => {
+                                        if (router.canGoBack()) {
+                                            router.back();
+                                            return;
+                                        }
+
+                                        router.replace("/(app)/(tabs)" as Href);
+                                    }}
+                                >
+                                    <ChevronLeft
+                                        size={20}
+                                        color={colors.foreground}
+                                        strokeWidth={2.4}
+                                    />
+                                </Pressable>
+                            ),
                         }}
                     />
 
                     <Stack.Screen
                         name="select-date"
                         options={{
-                            title: "Select Date",
+                            title: t("navigation.screens.selectDate"),
                             ...bookingFlowScreenOptions,
                         }}
                     />
@@ -125,7 +149,7 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="select-bay"
                         options={{
-                            title: "Select Bay",
+                            title: t("navigation.screens.selectBay"),
                             ...bookingFlowScreenOptions,
                         }}
                     />
@@ -133,7 +157,7 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="select-time"
                         options={{
-                            title: "Select Time",
+                            title: t("navigation.screens.selectTime"),
                             ...bookingFlowScreenOptions,
                         }}
                     />
@@ -141,7 +165,7 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="select-lesson-slot"
                         options={{
-                            title: "Select Slot",
+                            title: t("navigation.screens.selectSlot"),
                             ...bookingFlowScreenOptions,
                         }}
                     />
@@ -149,7 +173,7 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="booking-confirm"
                         options={{
-                            title: "Booking Confirmation",
+                            title: t("navigation.screens.bookingConfirmation"),
                             ...bookingFlowScreenOptions,
                         }}
                     />
@@ -157,7 +181,7 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="lesson-booking-confirm"
                         options={{
-                            title: "Booking Confirmation",
+                            title: t("navigation.screens.bookingConfirmation"),
                             ...bookingFlowScreenOptions,
                         }}
                     />
@@ -165,7 +189,7 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="reservation/[id]"
                         options={{
-                            title: "Reservation Detail",
+                            title: t("reservations.reservationDetailTitle"),
                             animation: "slide_from_right",
                             animationDuration: 80,
                             animationTypeForReplace: "push",
@@ -177,77 +201,77 @@ export default function AppLayout() {
                     <Stack.Screen
                         name="groups/[groupId]/index"
                         options={{
-                            title: "Group Detail",
+                            title: t("navigation.screens.groupDetail"),
                         }}
                     />
 
                     <Stack.Screen
                         name="groups/[groupId]/lessons/[lessonId]/index"
                         options={{
-                            title: "Lesson Detail",
+                            title: t("navigation.screens.groupLesson"),
                         }}
                     />
 
                     <Stack.Screen
-                        name="groups/[groupId]/lessons/[lessonId]/sessions/[sessionId]"
+                        name="groups/[groupId]/lessons/[lessonId]/sessions/index"
                         options={{
-                            title: "Session Detail",
+                            title: t("lessons.sessionsTitle"),
                         }}
                     />
 
                     <Stack.Screen
                         name="lessons/[lessonId]/index"
                         options={{
-                            title: "Lesson Detail",
+                            title: t("navigation.screens.lessonDetail"),
                         }}
                     />
 
                     <Stack.Screen
-                        name="lessons/[lessonId]/sessions/[sessionId]"
+                        name="lessons/[lessonId]/sessions/index"
                         options={{
-                            title: "Session Detail",
+                            title: t("lessons.sessionsTitle"),
                         }}
                     />
 
                     <Stack.Screen
                         name="homework/[homeworkId]"
                         options={{
-                            title: "Homework Detail",
+                            title: t("navigation.screens.homeworkDetail"),
                         }}
                     />
 
                     <Stack.Screen
                         name="lesson-log"
                         options={{
-                            title: "Lesson Post List",
+                            title: t("navigation.screens.lessonPostList"),
                         }}
                     />
 
                     <Stack.Screen
                         name="lesson-log/[id]"
                         options={{
-                            title: "Lesson Post",
+                            title: t("navigation.screens.lessonPost"),
                         }}
                     />
 
                     <Stack.Screen
                         name="lesson-log/[id]/comment"
                         options={{
-                            title: "Lesson Post",
+                            title: t("navigation.screens.lessonPost"),
                         }}
                     />
 
                     <Stack.Screen
                         name="profile/change-password"
                         options={{
-                            title: "Reset Password",
+                            title: t("navigation.screens.resetPassword"),
                         }}
                     />
 
                     <Stack.Screen
                         name="profile/edit"
                         options={{
-                            title: "Edit Personal Information",
+                            title: t("profile.editPersonalInformation"),
                         }}
                     />
                 </Stack>

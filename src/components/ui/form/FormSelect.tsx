@@ -2,6 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
 import { AppText as Text, useThemeColors } from "@/design-system";
+import { useTranslation } from "react-i18next";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -29,12 +30,14 @@ export function FormSelect<
     label,
     rules,
     options,
-    clearLabel = "Clear selection",
+    clearLabel,
     emptyValue = "",
     editable = true,
 }: FormSelectProps<TFieldValues, TValue>) {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const colors = useThemeColors();
+    const resolvedClearLabel = clearLabel ?? t("common.clearSelection");
 
     return (
         <Controller
@@ -46,7 +49,7 @@ export function FormSelect<
                     typeof value === "string" && value.length > 0 ? value : null;
                 const selectedLabel =
                     options.find((option) => option.value === selectedValue)?.label ??
-                    "Select an option";
+                    t("common.selectOption");
 
                 return (
                     <FormFieldShell
@@ -61,7 +64,7 @@ export function FormSelect<
                                     fieldState.error ? "border-danger" : "border-border"
                                 } ${editable ? "" : "opacity-60"}`}
                                 accessibilityRole="button"
-                                accessibilityLabel={label ?? "Select an option"}
+                                accessibilityLabel={label ?? t("common.selectOption")}
                             >
                                 <Text
                                     className={`flex-1 text-base ${
@@ -77,7 +80,7 @@ export function FormSelect<
                                         disabled={!editable}
                                         className="mr-2 rounded-full p-1"
                                         accessibilityRole="button"
-                                        accessibilityLabel={clearLabel}
+                                        accessibilityLabel={resolvedClearLabel}
                                         hitSlop={8}
                                     >
                                         <MaterialIcons
@@ -111,14 +114,14 @@ export function FormSelect<
                                     >
                                         <View className="mb-4 flex-row items-center justify-between">
                                             <Text className="text-lg font-semibold text-foreground">
-                                                {label ?? "Select an option"}
+                                                {label ?? t("common.selectOption")}
                                             </Text>
 
                                             <Pressable
                                                 onPress={() => setIsOpen(false)}
                                                 className="rounded-full p-1"
                                                 accessibilityRole="button"
-                                                accessibilityLabel="Close options"
+                                                accessibilityLabel={t("common.closeOptions")}
                                             >
                                                 <MaterialIcons
                                                     name="close"
@@ -150,7 +153,7 @@ export function FormSelect<
                                                             : "text-foreground"
                                                     }`}
                                                 >
-                                                    Select an option
+                                                    {t("common.selectOption")}
                                                 </Text>
                                             </Pressable>
 

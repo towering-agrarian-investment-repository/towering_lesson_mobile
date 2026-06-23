@@ -7,18 +7,18 @@ import {
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatType } from "@/utils/format-enum";
-import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     RefreshControl,
     StyleSheet,
     View,
 } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
-
+import { formatType } from "@/utils/format-enum";
+import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
 const CALENDAR_WEEKDAY_PLACEHOLDERS = Array.from({ length: 7 }, (_, index) => index);
@@ -96,6 +96,7 @@ function CalendarLoadingSkeleton() {
 }
 
 export default function DateScreen() {
+    const { t } = useTranslation();
     const colors = useThemeColors();
 
     const { ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
@@ -239,7 +240,9 @@ export default function DateScreen() {
 
     const handleUnavailableDatePress = (dateString: string) => {
         showAppToast({
-            message: `Unavailable: ${formatDateValue(dateString, "EEE, MMM d")}`,
+            message: t("booking.unavailableDate", {
+                date: formatDateValue(dateString, "EEE, MMM d"),
+            }),
             type: "warning",
             duration: 2500,
             position: "bottom",
@@ -291,19 +294,21 @@ export default function DateScreen() {
                     colors={[colors.primary]}
                     tintColor={colors.primary}
                     progressBackgroundColor={colors.card}
-                    title="Refreshing availability..."
+                    title={t("booking.refreshingAvailability")}
                     titleColor={colors.mutedForeground}
                 />
             }
         >
             <View className="px-6">
                 <View className="gap-3">
-                    <AppText variant="h3">Choose a date</AppText>
+                    <AppText variant="h3">{t("booking.chooseDate")}</AppText>
 
                     <AppText variant="meta" className="text-foreground/75">
                         {formatType(ticketType) !== "-"
-                            ? `${formatType(ticketType)} ticket · Select an available day to continue.`
-                            : "Select an available day to continue your booking."}
+                            ? t("booking.ticketSelectAvailableDay", {
+                                ticketType: formatType(ticketType),
+                            })
+                            : t("booking.selectAvailableDay")}
                     </AppText>
                 </View>
             </View>
@@ -314,16 +319,16 @@ export default function DateScreen() {
                 ) : isError ? (
                     <View className="px-6">
                         <ErrorState
-                            title="Failed to load available dates"
-                            message="Pull to refresh and try again."
+                            title={t("booking.failedAvailableDatesTitle")}
+                            message={t("booking.failedAvailableDatesMessage")}
                             actionLabel={
                                 isLessonTicket
                                     ? isRefetchingLessonSlots
-                                        ? "Refreshing..."
-                                        : "Try Again"
+                                        ? t("common.refreshing")
+                                        : t("common.refreshTryAgain")
                                     : isRefetchingBaySlotGroups
-                                        ? "Refreshing..."
-                                        : "Try Again"
+                                        ? t("common.refreshing")
+                                        : t("common.refreshTryAgain")
                             }
                             onAction={handleRefresh}
                         />

@@ -8,7 +8,7 @@ import { useThemeColors } from "../utils/theme";
 type ListRowProps = PressableProps & {
     title: string;
     subtitle?: string;
-    meta?: string;
+    meta?: ReactNode;
     leading?: ReactNode;
     trailing?: ReactNode;
     showChevron?: boolean;
@@ -60,9 +60,13 @@ export function ListRow({
             </View>
 
             {meta ? (
-                <AppText variant="meta" className="shrink-0 text-foreground/75">
-                    {meta}
-                </AppText>
+                typeof meta === "string" ? (
+                    <AppText variant="meta" className="shrink-0 text-foreground/75">
+                        {meta}
+                    </AppText>
+                ) : (
+                    <View className="shrink-0">{meta}</View>
+                )
             ) : null}
 
             {trailing}

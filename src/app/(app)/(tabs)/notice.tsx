@@ -5,6 +5,7 @@ import {
     EmptyState,
     ErrorState,
     Screen,
+    useThemeColors,
 } from "@/design-system";
 import {
     useGetNotifications,
@@ -20,10 +21,13 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { formatRelativeTime } from "@/utils/relative-time";
 import { useNavigation, useRouter } from "expo-router";
+import { Bell } from "lucide-react-native";
 import { memo, useCallback, useLayoutEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 function NoticeScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const navigation = useNavigation();
@@ -51,7 +55,7 @@ function NoticeScreen() {
                 hasUnread ? (
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Mark all notifications as read"
+                        accessibilityLabel={t("notice.markAllAsRead")}
                         disabled={isMarkingAllAsRead}
                         className={isMarkingAllAsRead ? "opacity-60" : "active:opacity-80"}
                         hitSlop={10}
@@ -60,7 +64,7 @@ function NoticeScreen() {
                         }}
                     >
                         <AppText variant="meta" className="text-primary">
-                            {isMarkingAllAsRead ? "Marking..." : "Mark all read"}
+                            {isMarkingAllAsRead ? t("notice.marking") : t("notice.markAllRead")}
                         </AppText>
                     </Pressable>
                 ) : null,
@@ -166,20 +170,20 @@ function NoticeScreen() {
     return (
         <Screen scroll={false}>
             {isLoading ? (
-                <CircleLoader fullScreen label="Loading notifications..." />
+                <CircleLoader fullScreen label={t("notice.loadingNotifications")} />
             ) : isError ? (
                 <ErrorState
-                    title="Failed to load notifications"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("notice.failedNotificationsTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
                 />
             ) : notifications.length === 0 ? (
                 <EmptyState
-                    title="No notifications yet"
-                    message="Updates and alerts will appear here."
+                    title={t("notice.noNotificationsTitle")}
+                    message={t("notice.noNotificationsMessage")}
                 />
             ) : (
                 <FlatList
@@ -205,6 +209,7 @@ function NoticeScreen() {
                         <NoticeListHeader
                             count={notifications.length}
                             isUpdating={isFetching && !isFetchingNextPage}
+                            t={t}
                         />
                     }
                     ListFooterComponent={
@@ -221,19 +226,21 @@ export default NoticeScreen;
 function NoticeListHeader({
     count,
     isUpdating,
+    t,
 }: {
     count: number;
     isUpdating: boolean;
+    t: (key: string, options?: Record<string, unknown>) => string;
 }) {
     return (
         <View className="flex-row items-center justify-between pb-3">
             <AppText selectable variant="meta" className="text-foreground/75">
-                {count} notification{count !== 1 ? "s" : ""}
+                {t("notice.notificationsCount", { count })}
             </AppText>
 
             {isUpdating ? (
                 <AppText selectable variant="meta" className="text-foreground/75">
-                    Updating...
+                    {t("notice.updating")}
                 </AppText>
             ) : null}
         </View>
@@ -251,6 +258,15 @@ function NotificationRow({
     disabled: boolean;
     onPress: () => void;
 }) {
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+    const iconClassName = item.isRead
+        ? "bg-muted"
+        : "bg-primary/10";
+    const iconColor = item.isRead
+        ? colors.mutedForeground
+        : colors.primary;
+
     return (
         <View className={cn(!isLast && "border-b border-border")}>
             <Pressable
@@ -261,29 +277,32 @@ function NotificationRow({
                 onPress={onPress}
             >
                 <View className="flex-row items-start gap-3">
+                    <View
+                        className={cn(
+                            "h-10 w-10 items-center justify-center rounded-xl",
+                            iconClassName,
+                        )}
+                    >
+                        <Bell
+                            size={18}
+                            color={iconColor}
+                        />
+                    </View>
+
                     <View className="min-w-0 flex-1 gap-1.5">
                         <View className="flex-row items-start justify-between gap-3">
-                            <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                                <View
-                                    className={cn(
-                                        "h-2.5 w-2.5 rounded-full",
-                                        item.isRead ? "bg-border" : "bg-primary",
-                                    )}
-                                />
-
-                                <AppText
-                                    selectable
-                                    variant="label"
-                                    className={cn(
-                                        "min-w-0 flex-1 font-semibold leading-5",
-                                        item.isRead
-                                            ? "text-foreground/75"
-                                            : "text-foreground",
-                                    )}
-                                >
-                                    {item.title}
-                                </AppText>
-                            </View>
+                            <AppText
+                                selectable
+                                variant="label"
+                                className={cn(
+                                    "min-w-0 flex-1 font-semibold leading-5",
+                                    item.isRead
+                                        ? "text-foreground/75"
+                                        : "text-foreground",
+                                )}
+                            >
+                                {item.title}
+                            </AppText>
 
                             <AppText selectable variant="caption" className="shrink-0">
                                 {formatRelativeTime(item.createdAt)}
@@ -305,7 +324,7 @@ function NotificationRow({
 
                         {!item.isRead ? (
                             <AppText selectable variant="caption" className="text-primary">
-                                Unread
+                                {t("notice.unread")}
                             </AppText>
                         ) : null}
                     </View>

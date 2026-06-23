@@ -26,9 +26,7 @@ export function getHomeworkTitle(
 
 export function getSessionTitle(session?: SessionInstanceResponse | null) {
     return (
-        session?.sessionName?.trim() ||
-        session?.title?.trim() ||
-        session?.name?.trim() ||
+        session?.titleSnapshot?.trim() ||
         "-"
     );
 }

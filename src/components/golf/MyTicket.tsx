@@ -1,4 +1,4 @@
-import { EmptyState, ErrorState, Skeleton } from "@/design-system";
+import { InlineState, Skeleton } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
 import { useMemberTickets } from "@/lib/hook/useTicket";
@@ -8,6 +8,7 @@ import { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import TicketCard from "./TicketCard";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
@@ -17,6 +18,7 @@ type Props = {
 };
 
 function MyTicket({ member }: Props) {
+    const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
@@ -27,7 +29,7 @@ function MyTicket({ member }: Props) {
         (item: TicketListItemResponse) => {
             if (item.type === "LESSON_PROGRAM") {
                 showAppToast({
-                    message: "Not available",
+                    message: t("common.notAvailable"),
                     type: "info",
                 });
                 return;
@@ -57,12 +59,15 @@ function MyTicket({ member }: Props) {
                 });
             });
         },
-        [queryClient, router, runWithNavigationLock],
+        [queryClient, router, runWithNavigationLock, t],
     );
 
     return (
         <View className="gap-4">
-            <TitleSectionWithBadge label="My Tickets" length={tickets.length} />
+            <TitleSectionWithBadge
+                label={t("tickets.sectionTitle")}
+                length={tickets.length}
+            />
 
             {isLoading ? (
                 <ScrollView
@@ -75,14 +80,13 @@ function MyTicket({ member }: Props) {
                     ))}
                 </ScrollView>
             ) : isError ? (
-                <ErrorState
-                    title="Failed to load tickets"
-                    message="Please pull to refresh and try again."
+                <InlineState
+                    title={t("tickets.loadError")}
+                    tone="danger"
                 />
             ) : tickets.length === 0 ? (
-                <EmptyState
-                    title="No tickets found"
-                    message="Your active tickets will appear here."
+                <InlineState
+                    title={t("tickets.empty")}
                 />
             ) : (
                 <FlatList

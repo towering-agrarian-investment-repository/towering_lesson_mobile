@@ -1,10 +1,12 @@
+import { BlurView } from "expo-blur";
 import { Check } from "lucide-react-native";
 import { type ReactNode } from "react";
 import { Modal, Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { cn } from "../utils/cn";
-import { useThemeColors } from "../utils/theme";
+import { useTheme, useThemeColors } from "../utils/theme";
 
 export type ActionSheetOption = {
     key: string;
@@ -24,6 +26,8 @@ type ActionSheetProps = {
     onClose: () => void;
     cancelLabel?: string;
     closeDelayMs?: number;
+    blurEnabled?: boolean;
+    blurIntensity?: number;
 };
 
 export function ActionSheet({
@@ -32,10 +36,15 @@ export function ActionSheet({
     description,
     options,
     onClose,
-    cancelLabel = "Cancel",
+    cancelLabel,
     closeDelayMs = 0,
+    blurEnabled = true,
+    blurIntensity = 24,
 }: ActionSheetProps) {
+    const { t } = useTranslation();
     const colors = useThemeColors();
+    const { resolvedScheme } = useTheme();
+    const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
 
     const handleSelect = (option: ActionSheetOption) => {
         if (option.disabled) {
@@ -53,11 +62,26 @@ export function ActionSheet({
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View className="flex-1 justify-end bg-black/40">
+            <View className="flex-1 justify-end">
+                {blurEnabled ? (
+                    <BlurView
+                        tint={resolvedScheme === "dark" ? "dark" : "light"}
+                        intensity={blurIntensity}
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            left: 0,
+                        }}
+                    />
+                ) : null}
+                <View className="absolute inset-0 bg-black/35" />
+
                 <Pressable
                     className="flex-1"
                     accessibilityRole="button"
-                    accessibilityLabel={`Close ${title}`}
+                    accessibilityLabel={t("common.closeTitle", { title })}
                     onPress={onClose}
                 />
 
@@ -118,7 +142,7 @@ export function ActionSheet({
                         ))}
                     </View>
 
-                    <Button title={cancelLabel} variant="ghost" onPress={onClose} />
+                    <Button title={resolvedCancelLabel} variant="ghost" onPress={onClose} />
                 </View>
             </View>
         </Modal>

@@ -6,6 +6,7 @@ import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
     Pressable,
     RefreshControl,
@@ -19,6 +20,7 @@ function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
 }
 
 export default function TimeScreen() {
+    const { t } = useTranslation();
     const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
@@ -74,11 +76,11 @@ export default function TimeScreen() {
             }
         >
             <View className="gap-1">
-                <AppText variant="h3">Choose a time</AppText>
+                <AppText variant="h3">{t("booking.chooseTime")}</AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
                     {formatType(ticketType) !== "-"
-                        ? `${date} · ${formatType(ticketType)}`
+                        ? `${date} - ${formatType(ticketType)}`
                         : date}
                 </AppText>
             </View>
@@ -96,9 +98,9 @@ export default function TimeScreen() {
 
             {isError ? (
                 <ErrorState
-                    title="Failed to load available times"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("booking.failedAvailableTimesTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -107,9 +109,9 @@ export default function TimeScreen() {
 
             {!isLoading && !isError && slotGroups.length === 0 ? (
                 <EmptyState
-                    title="No available times"
-                    message="There are no available times for this date."
-                    actionLabel="Choose Another Date"
+                    title={t("booking.noAvailableTimesTitle")}
+                    message={t("booking.noAvailableTimesMessage")}
+                    actionLabel={t("booking.chooseAnotherDate")}
                     onAction={() => {
                         router.back();
                     }}
@@ -134,12 +136,14 @@ export default function TimeScreen() {
                                 </AppText>
 
                                 <AppText variant="meta" className="text-foreground/75">
-                                    {getAvailableBayCount(group)} bays available
+                                    {t("booking.baysAvailable", {
+                                        count: getAvailableBayCount(group),
+                                    })}
                                 </AppText>
                             </View>
 
                             <AppText variant="badge" className="text-primary">
-                                Select
+                                {t("booking.select")}
                             </AppText>
                         </Pressable>
                     ))}

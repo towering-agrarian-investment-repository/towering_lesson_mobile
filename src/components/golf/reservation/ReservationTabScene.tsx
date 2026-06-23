@@ -20,6 +20,7 @@ import type {
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
 export const RESERVATION_TABS: MemberReservationType[] = [
@@ -29,14 +30,6 @@ export const RESERVATION_TABS: MemberReservationType[] = [
     "group",
     "program",
 ];
-
-export const RESERVATION_TAB_LABELS: Record<MemberReservationType, string> = {
-    all: "All",
-    bay: "Bay",
-    private: "Private",
-    group: "Group",
-    program: "Program",
-};
 
 type ReservationItem =
     | MemberReservationResponse
@@ -49,6 +42,7 @@ type ReservationTabSceneProps = {
 };
 
 export function ReservationTabScene({ type }: ReservationTabSceneProps) {
+    const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
@@ -125,9 +119,9 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     if (isError) {
         return (
             <ErrorState
-                title="Failed to load reservations"
-                message="Pull to refresh and try again."
-                actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                title={t("reservations.failedListTitle")}
+                message={t("common.pullToRefreshAndTryAgain")}
+                actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                 onAction={handleRefetch}
             />
         );
@@ -136,9 +130,9 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     if (reservations.length === 0) {
         return (
             <EmptyState
-                title="No reservations found"
-                message="Your reservations will appear here."
-                actionLabel="Refresh"
+                title={t("reservations.noReservationsTitle")}
+                message={t("reservations.noReservationsMessage")}
+                actionLabel={t("lessonLog.refresh")}
                 onAction={handleRefetch}
             />
         );
@@ -166,9 +160,9 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             removeClippedSubviews
             updateCellsBatchingPeriod={50}
             ListHeaderComponent={
-                <ReservationListHeader
-                    count={reservations.length}
-                    isUpdating={isFetching && !isFetchingNextPage}
+                    <ReservationListHeader
+                        count={reservations.length}
+                        isUpdating={isFetching && !isFetchingNextPage}
                 />
             }
             onEndReached={handleEndReached}
@@ -245,6 +239,8 @@ function ReservationListHeader({
     count: number;
     isUpdating: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <View className="flex-row items-center justify-between pb-4">
             <AppText
@@ -253,12 +249,12 @@ function ReservationListHeader({
                 className="text-foreground/75"
                 style={{ fontVariant: ["tabular-nums"] }}
             >
-                {count} reservation{count !== 1 ? "s" : ""}
+                {t("reservations.count", { count })}
             </AppText>
 
             {isUpdating ? (
                 <AppText selectable variant="meta" className="text-foreground/75">
-                    Updating...
+                    {t("reservations.updating")}
                 </AppText>
             ) : null}
         </View>

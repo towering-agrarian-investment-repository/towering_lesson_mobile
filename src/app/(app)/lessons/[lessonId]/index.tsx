@@ -1,12 +1,13 @@
 import {
     AppText,
     Badge,
-    Card,
     EmptyState,
     ErrorState,
+    InlineState,
     ListRow,
     Screen,
     Skeleton,
+    useThemeColors,
 } from "@/design-system";
 import {
     getMemberHomeworkByIdQueryOptions,
@@ -25,11 +26,17 @@ import {
     getLessonName,
     getSessionTitle,
 } from "@/utils/member-lesson";
+import {
+    getHomeworkReviewTone,
+    getHomeworkSubmissionTone,
+    getLessonStatusTone,
+} from "@/utils/status-tone";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
-import { Href, useLocalSearchParams, useRouter } from "expo-router";
-import { ClipboardCheck, PlayCircle } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Check, ClipboardCheck, PlayCircle } from "lucide-react-native";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
 type LessonParams = {
@@ -37,6 +44,7 @@ type LessonParams = {
 };
 
 export default function StandaloneLessonDetailScreen() {
+    const { t } = useTranslation();
     const { lessonId } = useLocalSearchParams<LessonParams>();
     const numericLessonId = Number(lessonId);
     const router = useRouter();
@@ -55,6 +63,7 @@ export default function StandaloneLessonDetailScreen() {
     const sessions = detail?.sessions ?? [];
     const homeworks = detail?.homeworks ?? [];
     const submissions = detail?.currentHomeworkSubmissions ?? [];
+    const lessonStatusTone = getLessonStatusTone(lesson?.lessonStatus);
 
     const refreshControl = (
         <RefreshControl
@@ -77,9 +86,9 @@ export default function StandaloneLessonDetailScreen() {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <ErrorState
-                    title="Failed to load lesson"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("lessons.failedLessonTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -92,8 +101,8 @@ export default function StandaloneLessonDetailScreen() {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <EmptyState
-                    title="Lesson not available"
-                    message="The requested lesson could not be found."
+                    title={t("lessons.lessonNotAvailableTitle")}
+                    message={t("lessons.lessonNotFoundMessage")}
                 />
             </Screen>
         );
@@ -101,7 +110,7 @@ export default function StandaloneLessonDetailScreen() {
 
     return (
         <Screen contentClassName="gap-5" refreshControl={refreshControl}>
-            <Card className="overflow-hidden border-border bg-card p-0">
+            <View className="overflow-hidden rounded-xl bg-card">
                 <View className="gap-4 bg-surface px-4 py-4">
                     <View className="gap-2">
                         <AppText
@@ -124,17 +133,17 @@ export default function StandaloneLessonDetailScreen() {
                         {lesson.lessonStatus ? (
                             <Badge
                                 label={formatType(lesson.lessonStatus)}
-                                className="bg-primary/10"
-                                textClassName="text-primary"
+                                className={lessonStatusTone.className}
+                                textClassName={lessonStatusTone.textClassName}
                             />
                         ) : null}
                         <Badge
-                            label={`${sessions.length} sessions`}
+                            label={t("lessons.sessionsCount", { count: sessions.length })}
                             className="bg-muted"
                             textClassName="text-muted-foreground"
                         />
                         <Badge
-                            label={`${homeworks.length} homework`}
+                            label={t("lessons.homeworkCount", { count: homeworks.length })}
                             className="bg-muted"
                             textClassName="text-muted-foreground"
                         />
@@ -148,13 +157,12 @@ export default function StandaloneLessonDetailScreen() {
                         </AppText>
                     </View>
                 ) : null}
-            </Card>
+            </View>
 
-            <SectionHeader title="Sessions" count={sessions.length} />
+            <SectionHeader title={t("lessons.sessionsTitle")} count={sessions.length} />
             {sessions.length === 0 ? (
-                <EmptyState
-                    title="No sessions"
-                    message="Sessions for this lesson will appear here."
+                <InlineState
+                    title={t("lessons.noSessions")}
                 />
             ) : (
                 <View className="gap-3">
@@ -165,14 +173,9 @@ export default function StandaloneLessonDetailScreen() {
                             disabled={isLocked}
                             onPress={() => {
                                 runWithNavigationLock(() => {
-                                    router.push({
-                                        pathname:
-                                            "/lessons/[lessonId]/sessions/[sessionId]",
-                                        params: {
-                                            lessonId: String(numericLessonId),
-                                            sessionId: String(session.id),
-                                        },
-                                    } as unknown as Href);
+                                    router.push(
+                                        `/lessons/${numericLessonId}/sessions?sessionId=${session.id}`,
+                                    );
                                 });
                             }}
                         />
@@ -180,11 +183,10 @@ export default function StandaloneLessonDetailScreen() {
                 </View>
             )}
 
-            <SectionHeader title="Homework" count={homeworks.length} />
+            <SectionHeader title={t("lessons.homeworkTitle")} count={homeworks.length} />
             {homeworks.length === 0 ? (
-                <EmptyState
-                    title="No homework"
-                    message="Homework for this lesson will appear here."
+                <InlineState
+                    title={t("lessons.noHomework")}
                 />
             ) : (
                 <View className="gap-3">
@@ -239,14 +241,29 @@ function SessionRow({
     disabled: boolean;
     onPress: () => void;
 }) {
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+    const isCompleted = session.status === "COMPLETED" || !!session.completedAt;
+    const rowClassName = isCompleted
+        ? "border-emerald-100 bg-emerald-50/60 px-4 py-3.5"
+        : "border-border bg-card px-4 py-3.5";
+
     return (
         <ListRow
             title={getSessionTitle(session)}
-            subtitle={session.description?.trim() || undefined}
-            meta={session.sessionOrder != null ? `#${session.sessionOrder}` : undefined}
-            leading={<RowIcon tone="primary"><PlayCircle size={18} color="#2563EB" /></RowIcon>}
-            className="border-border bg-card px-4 py-3.5"
-            titleClassName="font-medium leading-6"
+            subtitle={session.descriptionSnapshot?.trim() || undefined}
+            meta={session.orderIndex != null ? `#${session.orderIndex}` : undefined}
+            leading={(
+                <RowIcon tone={isCompleted ? "success" : "primary"}>
+                    {isCompleted ? (
+                        <Check size={18} color={colors.success} />
+                    ) : (
+                        <PlayCircle size={18} color={colors.primary} />
+                    )}
+                </RowIcon>
+            )}
+            className={rowClassName}
+            titleClassName={isCompleted ? "font-medium leading-6 text-foreground/70" : "font-medium leading-6"}
             disabled={disabled}
             onPress={onPress}
         />
@@ -264,17 +281,40 @@ function HomeworkRow({
     disabled: boolean;
     onPress: () => void;
 }) {
-    const hasSubmission = submissions.some(
-        (submission) => submission.homeworkId === homework.homeworkId,
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+    const latestSubmission = submissions.find(
+        (submission) => submission.homeworkId === homework.homeworkId && submission.isCurrent,
     );
+    const submissionStatus = latestSubmission?.status ?? homework.currentSubmissionStatus;
+    const reviewStatus = latestSubmission?.review?.status ?? homework.currentReviewStatus;
+    const statusLabel = reviewStatus
+        ? formatType(reviewStatus)
+        : submissionStatus
+            ? formatType(submissionStatus)
+            : formatType(homework.homeworkStatus);
+    const statusTone = reviewStatus
+        ? getHomeworkReviewTone(reviewStatus)
+        : submissionStatus
+            ? getHomeworkSubmissionTone(submissionStatus)
+            : getFallbackHomeworkTone(homework.homeworkStatus);
+    const rowClassName = getHomeworkRowClassName(reviewStatus, submissionStatus, homework.homeworkStatus);
 
     return (
         <ListRow
             title={getHomeworkTitle(homework)}
-            subtitle={homework.dueAt ? `Due ${formatDateForDisplay(homework.dueAt)}` : homework.description ?? undefined}
-            meta={hasSubmission ? "Submitted" : homework.homeworkStatus ? formatType(homework.homeworkStatus) : undefined}
-            leading={<RowIcon><ClipboardCheck size={18} color="#6B7280" /></RowIcon>}
-            className="border-border bg-card px-4 py-3.5"
+            subtitle={homework.dueAt
+                ? t("lessons.dueDate", { date: formatDateForDisplay(homework.dueAt) })
+                : homework.description ?? undefined}
+            meta={(
+                <Badge
+                    label={statusLabel}
+                    className={`px-2 py-1 ${statusTone.className}`}
+                    textClassName={statusTone.textClassName}
+                />
+            )}
+            leading={<RowIcon><ClipboardCheck size={18} color={colors.mutedForeground} /></RowIcon>}
+            className={rowClassName}
             titleClassName="font-medium leading-6"
             disabled={disabled}
             onPress={onPress}
@@ -287,13 +327,15 @@ function RowIcon({
     tone = "muted",
 }: {
     children: ReactNode;
-    tone?: "primary" | "muted";
+    tone?: "primary" | "muted" | "success";
 }) {
     return (
         <View
             className={
                 tone === "primary"
                     ? "h-10 w-10 items-center justify-center rounded-xl bg-primary/10"
+                    : tone === "success"
+                        ? "h-10 w-10 items-center justify-center rounded-xl bg-success/10"
                     : "h-10 w-10 items-center justify-center rounded-xl bg-muted"
             }
         >
@@ -314,9 +356,50 @@ function SectionHeader({
             <AppText variant="h3" className="text-lg font-semibold">
                 {title}
             </AppText>
-            <AppText variant="count">{count}</AppText>
+            {count > 0 ? <AppText variant="count">{count}</AppText> : null}
         </View>
     );
+}
+
+function getFallbackHomeworkTone(status?: string | null) {
+    if (status === "COMPLETED" || status === "SUBMITTED") {
+        return {
+            className: "bg-emerald-100",
+            textClassName: "text-emerald-700",
+        };
+    }
+
+    if (status === "OVERDUE" || status === "REJECTED" || status === "MISSING") {
+        return {
+            className: "bg-rose-100",
+            textClassName: "text-rose-700",
+        };
+    }
+
+    return {
+        className: "bg-amber-100",
+        textClassName: "text-amber-700",
+    };
+}
+
+function getHomeworkRowClassName(
+    reviewStatus?: string | null,
+    submissionStatus?: string | null,
+    homeworkStatus?: string | null,
+) {
+    if (reviewStatus === "CONFIRMED" || submissionStatus === "REVIEWED" || homeworkStatus === "COMPLETED") {
+        return "border-emerald-100 bg-emerald-50/60 px-4 py-3.5";
+    }
+
+    if (
+        homeworkStatus === "OVERDUE"
+        || homeworkStatus === "REJECTED"
+        || homeworkStatus === "MISSING"
+    ) {
+        return "border-rose-100 bg-rose-50/70 px-4 py-3.5";
+    }
+
+    return "border-border bg-card px-4 py-3.5";
 }
 
 function LessonDetailSkeleton() {

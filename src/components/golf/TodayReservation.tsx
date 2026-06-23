@@ -1,11 +1,13 @@
-import { ErrorState, Skeleton } from "@/design-system";
+import { InlineState, Skeleton } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 import TodayReservationCard from "./TodayReservationCard";
 
 function TodayReservation() {
+    const { t } = useTranslation();
 
     const { data: todayReservations = [], isLoading: todayReservationsLoading, isError: todayReservationError } = useTodayMemberReservations();
     const renderReservationItem = useCallback(
@@ -17,7 +19,10 @@ function TodayReservation() {
 
     return (
         <View className="flex-1 gap-4">
-            <TitleSectionWithBadge label="Today's Reservation" length={todayReservations.length} />
+            <TitleSectionWithBadge
+                label={t("reservations.todayTitle")}
+                length={todayReservations.length}
+            />
 
             {todayReservationsLoading ? (
                 <View
@@ -33,17 +38,16 @@ function TodayReservation() {
                 </View>
             ) : todayReservationError ? (
                 <View className="flex-1 justify-center">
-                    <ErrorState
-                        title="Failed to load reservations"
-                        message="Please pull to refresh and try again."
+                    <InlineState
+                        title={t("reservations.loadError")}
+                        tone="danger"
                     />
                 </View>
             ) : todayReservations.length === 0 ? (
                 <View className="flex-1 justify-center">
-                    {/* <EmptyState
-                        title="No reservations today"
-                        message="Today's reservations will appear here."
-                    /> */}
+                    <InlineState
+                        title={t("reservations.empty")}
+                    />
                 </View>
             ) : (
                 <FlatList

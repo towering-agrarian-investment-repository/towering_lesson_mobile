@@ -1,10 +1,7 @@
 import { ActionSheet, AppText as Text, Button, CircleLoader, ErrorState, Screen, useThemeColors } from "@/design-system";
 import {
-    FormDateInput,
-    FormNumberInput,
     FormTextInput,
 } from "@/components/ui/form";
-import { FormFieldShell } from "@/components/ui/form/FormFieldShell";
 import { useUploadMemberUser } from "@/lib/hook/useUploadFile";
 import {
     useGetMemberProfile,
@@ -12,53 +9,33 @@ import {
 } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import { type UploadFormFile } from "@/service/user";
-import { GenderEnum } from "@/types/member.type";
+import {
+    getFileExtension,
+    getProfileImageMimeType,
+    isAllowedExtension,
+    isAllowedMimeType,
+    PROFILE_IMAGE_EXTENSIONS,
+    PROFILE_IMAGE_MIME_TYPES,
+} from "@/utils/media";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Camera, ChevronRight, ImageIcon } from "lucide-react-native";
+import { Camera, ImageIcon } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import {
-    Pressable,
-    View,
-} from "react-native";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import { z } from "zod";
+const createEditProfileSchema = (t: (key: string) => string) =>
+    z.object({
+        name: z.string().trim().min(1, t("profile.nameRequired")),
+    });
 
-const editProfileSchema = z.object({
-    name: z.string().trim().min(1, "Name is required."),
-    phoneNumber: z.string().trim().min(4, "Phone number is required."),
-    username: z.string().trim().min(1, "Username is required."),
-    gender: z.enum(["", "MALE", "FEMALE", "OTHER"]),
-    dateOfBirth: z
-        .string()
-        .trim()
-        .refine(
-            (value) => value.length === 0 || /^\d{4}-\d{2}-\d{2}$/.test(value),
-            "Date of birth must be in YYYY-MM-DD format.",
-        ),
-    address: z.string().trim(),
-    memo: z.string().trim(),
-});
-
-type EditProfileFormValues = z.infer<typeof editProfileSchema>;
-
-const GENDER_OPTIONS: {
-    label: string;
-    value: GenderEnum;
-}[] = [
-        { label: "Male", value: "MALE" },
-        { label: "Female", value: "FEMALE" },
-        { label: "Other", value: "OTHER" },
-    ];
-
-function normalizeOptionalText(value: string) {
-    const trimmed = value.trim();
-    return trimmed ? trimmed : null;
-}
+type EditProfileFormValues = z.infer<ReturnType<typeof createEditProfileSchema>>;
 
 export default function EditProfileScreen() {
+    const { t } = useTranslation();
     const colors = useThemeColors();
     const router = useRouter();
     const {
@@ -77,19 +54,13 @@ export default function EditProfileScreen() {
     } = useUploadMemberUser();
     const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
         useState(false);
-    const [isGenderSheetVisible, setIsGenderSheetVisible] = useState(false);
 
     const member = memberResponse?.data;
+    const editProfileSchema = createEditProfileSchema(t);
 
     const form = useForm<EditProfileFormValues>({
         defaultValues: {
             name: "",
-            phoneNumber: "",
-            username: "",
-            gender: "",
-            dateOfBirth: "",
-            address: "",
-            memo: "",
         },
         resolver: zodResolver(editProfileSchema),
         mode: "onSubmit",
@@ -102,25 +73,17 @@ export default function EditProfileScreen() {
 
         form.reset({
             name: member.name ?? "",
-            phoneNumber: member.phoneNumber ?? "",
-            username: member.username ?? "",
-            gender: member.gender ?? "",
-            dateOfBirth: member.dateOfBirth ?? "",
-            address: member.address ?? "",
-            memo: member.memo ?? "",
         });
     }, [form, member]);
 
     const onSubmit = (values: EditProfileFormValues) => {
+        if (!member) {
+            return;
+        }
+
         updateProfile(
             {
                 name: values.name.trim(),
-                phoneNumber: normalizeOptionalText(values.phoneNumber),
-                username: values.username.trim(),
-                gender: values.gender || null,
-                dateOfBirth: normalizeOptionalText(values.dateOfBirth),
-                address: normalizeOptionalText(values.address),
-                memo: normalizeOptionalText(values.memo),
             },
             {
                 onSuccess: () => {
@@ -134,7 +97,7 @@ export default function EditProfileScreen() {
         memberId: number,
         asset: ImagePicker.ImagePickerAsset,
     ) => {
-        const file = createFileFromAsset(asset);
+        const file = createFileFromAsset(asset, t);
 
         uploadProfileImage(
             {
@@ -144,7 +107,7 @@ export default function EditProfileScreen() {
             {
                 onSuccess: () => {
                     showAppToast({
-                        message: "Profile image updated.",
+                        message: t("profile.profileImageUpdated"),
                         type: "success",
                     });
                 },
@@ -161,7 +124,7 @@ export default function EditProfileScreen() {
 
         if (!permission.granted) {
             showAppToast({
-                message: "Photo library permission is required to upload a profile image.",
+                message: t("profile.photoLibraryPermission"),
                 type: "error",
             });
             return;
@@ -185,7 +148,7 @@ export default function EditProfileScreen() {
                 message:
                     uploadError instanceof Error
                         ? uploadError.message
-                        : "Could not prepare the selected image.",
+                        : t("profile.prepareSelectedImageFailed"),
                 type: "error",
             });
         }
@@ -200,7 +163,7 @@ export default function EditProfileScreen() {
 
         if (!permission.granted) {
             showAppToast({
-                message: "Camera permission is required to take a profile image.",
+                message: t("profile.cameraPermission"),
                 type: "error",
             });
             return;
@@ -224,7 +187,7 @@ export default function EditProfileScreen() {
                 message:
                     uploadError instanceof Error
                         ? uploadError.message
-                        : "Could not prepare the captured image.",
+                        : t("profile.prepareCapturedImageFailed"),
                 type: "error",
             });
         }
@@ -243,17 +206,17 @@ export default function EditProfileScreen() {
     };
 
     if (isLoading) {
-        return <CircleLoader fullScreen label="Loading your profile..." />;
+        return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
     }
 
     if (isError || !member) {
         return (
             <ErrorState
-                title="Could not load profile"
+                title={t("home.couldNotLoadProfile")}
                 message={
                     error instanceof Error
                         ? error.message
-                        : "Please try again."
+                        : t("common.refreshTryAgain")
                 }
             />
         );
@@ -265,7 +228,7 @@ export default function EditProfileScreen() {
             footer={
                 <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                     <Button
-                        title={isSubmitting ? "Saving..." : "Save Changes"}
+                        title={isSubmitting ? t("profile.saving") : t("profile.saveChanges")}
                         loading={isSubmitting}
                         className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit)}
@@ -275,15 +238,15 @@ export default function EditProfileScreen() {
         >
             <ActionSheet
                 visible={isPhotoSourceSheetVisible}
-                title="Change profile photo"
-                description="Take a new photo or choose one from your library."
+                title={t("profile.changeProfilePhoto")}
+                description={t("profile.changeProfilePhotoDescription")}
                 onClose={closePhotoSourceSheet}
                 closeDelayMs={250}
                 options={[
                     {
                         key: "camera",
-                        title: "Take Photo",
-                        description: "Use your camera",
+                        title: t("profile.takePhoto"),
+                        description: t("profile.useCamera"),
                         icon: <Camera size={22} color={colors.foreground} />,
                         disabled: isUploadingImage,
                         onPress: () => {
@@ -292,8 +255,8 @@ export default function EditProfileScreen() {
                     },
                     {
                         key: "library",
-                        title: "Choose from Library",
-                        description: "Select an existing photo",
+                        title: t("profile.chooseFromLibrary"),
+                        description: t("profile.selectExistingPhoto"),
                         icon: <ImageIcon size={22} color={colors.foreground} />,
                         disabled: isUploadingImage,
                         onPress: () => {
@@ -311,7 +274,7 @@ export default function EditProfileScreen() {
                     />
 
                     <Button
-                        title={isUploadingImage ? "Uploading..." : "Change Photo"}
+                        title={isUploadingImage ? t("profile.uploading") : t("profile.changePhoto")}
                         variant="secondary"
                         loading={isUploadingImage}
                         disabled={isUploadingImage}
@@ -323,17 +286,17 @@ export default function EditProfileScreen() {
 
                 <View className="gap-6">
                     <Text className="text-lg font-semibold text-foreground">
-                        Basic Information
+                        {t("profile.basicInformation")}
                     </Text>
 
                     <FormTextInput
                         control={form.control}
                         name="name"
-                        label="Full Name"
-                        placeholder="Jane Member"
+                        label={t("profile.fullName")}
+                        placeholder={t("profile.fullNamePlaceholder")}
                     />
 
-                    <FormTextInput
+                    {/* <FormTextInput
                         control={form.control}
                         name="username"
                         label="Username"
@@ -347,10 +310,10 @@ export default function EditProfileScreen() {
                         label="Phone Number"
                         placeholder="+66812345678"
                         numericMode="phone-pad"
-                    />
+                    /> */}
                 </View>
 
-                <View className="gap-6">
+                {/* <View className="gap-6">
                     <Text className="text-lg font-semibold text-foreground">
                         Personal Details
                     </Text>
@@ -434,41 +397,30 @@ export default function EditProfileScreen() {
                         }}
                     />
 
-                    <FormDateInput
-                        control={form.control}
-                        name="dateOfBirth"
-                        label="Date of Birth"
-                        placeholder="Select date of birth"
-                    />
-
-                    <FormTextInput
-                        control={form.control}
-                        name="address"
-                        label="Address"
-                        placeholder="Bangkok"
-                    />
-
-                    <FormTextInput
-                        control={form.control}
-                        name="memo"
-                        label="Memo"
-                        placeholder="Prefers evening lessons"
-                        multiline
-                        numberOfLines={4}
-                    />
-                </View>
+                </View> */}
             </View>
         </Screen>
     );
 }
 
-function createFileFromAsset(asset: ImagePicker.ImagePickerAsset): UploadFormFile {
+function createFileFromAsset(
+    asset: ImagePicker.ImagePickerAsset,
+    t: (key: string) => string,
+): UploadFormFile {
     const rawName =
         asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
     const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
+    const hasSupportedExtension = isAllowedExtension(rawName, PROFILE_IMAGE_EXTENSIONS);
+    const hasSupportedMimeType = isAllowedMimeType(asset.mimeType, [...PROFILE_IMAGE_MIME_TYPES]);
+
+    if (!hasSupportedExtension && !hasSupportedMimeType) {
+        throw new Error(t("profile.onlyImageTypesSupported"));
+    }
+
     const mimeType =
-        asset.mimeType ??
-        (extension === "jpg" ? "image/jpeg" : `image/${extension}`);
+        asset.mimeType?.toLowerCase()
+        ?? getProfileImageMimeType(extension)
+        ?? "image/jpeg";
 
     return {
         uri: asset.uri,

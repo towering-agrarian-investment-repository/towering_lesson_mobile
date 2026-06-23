@@ -7,10 +7,7 @@ export type MemberResponse = {
     phoneNumber: string | null;
     profileImage: string | null;
     gender: GenderEnum | null;
-    dateOfBirth: string | null; // LocalDate -> "YYYY-MM-DD"
     checkinNumber: string | null;
-    address: string | null;
-    memo: string | null;
     isActive: boolean;
     grade: MemberGradeResponse | null;
     latestTicket: TicketResponse | null;
@@ -85,25 +82,8 @@ export type MemberRequest = {
     phone: string;
 };
 
-
-export interface MemberUpdateRequest {
-    username: string;
-    name: string;
-    gender?: "MALE" | "FEMALE" | "OTHER";
-    dateOfBirth?: string;
-    phoneNumber?: string;
-    address?: string;
-    memo?: string;
-}
-
-export interface MemberMobileProfileUpdateRequest {
-    name: string;
-    phoneNumber?: string | null;
-    username: string;
-    gender?: "MALE" | "FEMALE" | "OTHER" | null;
-    dateOfBirth?: string | null;
-    address?: string | null;
-    memo?: string | null;
+export interface UpdateMyProfileRequest {
+    name?: string | null;
 }
 export interface UpdatePasswordRequest {
     currentPassword: string; // @NotBlank → required

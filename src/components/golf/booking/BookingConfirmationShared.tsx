@@ -9,6 +9,7 @@ import {
     Skeleton,
     Textarea,
 } from "@/design-system";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export type BookingConfirmationSuccessResponse = {
@@ -114,6 +115,7 @@ export function BookingConfirmationContent({
     disabledReason,
     policies,
 }: BookingConfirmationContentProps) {
+    const { t } = useTranslation();
     return (
         <View className="grow">
             <View className="gap-4">{children}</View>
@@ -122,8 +124,8 @@ export function BookingConfirmationContent({
                 <Divider className="bg-border" />
 
                 <Textarea
-                    label="Notes"
-                    placeholder="Add a note (optional)"
+                    label={t("common.notes")}
+                    placeholder={t("bookingConfirmation.notesPlaceholder")}
                     value={notes}
                     onChangeText={onNotesChange}
                 />

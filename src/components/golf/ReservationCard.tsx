@@ -9,6 +9,7 @@ import type {
 import { fmtTime } from "@/utils/time-helper";
 import { format, isToday } from "date-fns";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
 };
 
 function ReservationCard({ reservation, disabled = false, onPress }: Props) {
+    const { t } = useTranslation();
     const startDate = new Date(reservation.startTime);
     const endDate = new Date(reservation.endTime);
     const tone = getTicketTypeTone(reservation.ticketType);
@@ -30,7 +32,7 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
         reservation.lessonAvailabilityName ??
         reservation.lessonProgramGroupName ??
         reservation.lessonProgramName ??
-        `Reservation #${reservation.id}`;
+        t("reservations.reservationFallbackWithId", { id: reservation.id });
     const reservationDateLabel = format(startDate, "EEE, MMM d");
 
     const handlePress = () => {
@@ -70,7 +72,7 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
 
                     <View className="min-w-0 flex-1 flex-col gap-3">
                         <AppText variant="eyebrow" className="text-foreground/75">
-                            Time
+                            {t("reservations.timeLabel")}
                         </AppText>
 
                         <AppText

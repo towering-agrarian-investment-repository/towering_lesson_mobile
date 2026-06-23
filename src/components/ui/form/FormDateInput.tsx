@@ -3,6 +3,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
 import { AppText as Text, useThemeColors } from "@/design-system";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -33,12 +34,12 @@ function formatDateOnly(value: Date) {
     return `${year}-${month}-${day}`;
 }
 
-function formatDisplayDate(value?: string | null) {
+function formatDisplayDate(value: string | null | undefined, locale: string) {
     if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return "";
     }
 
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(locale, {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -49,17 +50,20 @@ export function FormDateInput<TFieldValues extends FieldValues>({
     control,
     name,
     label,
-    placeholder = "Select a date",
+    placeholder,
     rules,
     editable = true,
-    clearLabel = "Clear date",
+    clearLabel,
     minimumDate,
     maximumDate,
 }: FormDateInputProps<TFieldValues>) {
+    const { i18n, t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const colors = useThemeColors();
     const isIOS = process.env.EXPO_OS === "ios";
     const isAndroid = process.env.EXPO_OS === "android";
+    const resolvedPlaceholder = placeholder ?? t("common.selectDate");
+    const resolvedClearLabel = clearLabel ?? t("common.clearDate");
 
     return (
         <Controller
@@ -70,7 +74,7 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                 const currentValue =
                     typeof value === "string" ? value : value == null ? "" : String(value);
                 const pickerValue = parseDateOnly(currentValue);
-                const displayValue = formatDisplayDate(currentValue);
+                const displayValue = formatDisplayDate(currentValue, i18n.resolvedLanguage || i18n.language || "en");
 
                 return (
                     <FormFieldShell
@@ -96,7 +100,7 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                                     className={`flex-1 text-base ${displayValue ? "text-foreground" : "text-muted-foreground"
                                         }`}
                                 >
-                                    {displayValue || placeholder}
+                                    {displayValue || resolvedPlaceholder}
                                 </Text>
 
                                 {currentValue ? (
@@ -110,7 +114,7 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                                         disabled={!editable}
                                         className="ml-3 rounded-full p-1 active:bg-muted"
                                         accessibilityRole="button"
-                                        accessibilityLabel={clearLabel}
+                                        accessibilityLabel={resolvedClearLabel}
                                     >
                                         <MaterialIcons
                                             name="cancel"

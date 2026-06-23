@@ -1,6 +1,6 @@
 import {
+    FormNumberInput,
     FormPasswordInput,
-    FormTextInput,
 } from "@/components/ui/form";
 import golfFieldImage from "@/assets/images/img_golf_filed.png";
 import goLogoImage from "@/assets/images/img_go.png";
@@ -11,24 +11,31 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { z } from "zod";
 
-const loginSchema = z.object({
-    username: z.string().trim().min(1, "Username is required."),
-    password: z.string().min(1, "Password is required."),
-});
+const createLoginSchema = (t: (key: string) => string) =>
+    z.object({
+        phoneNumber: z
+            .string()
+            .trim()
+            .min(1, t("login.phoneNumberRequired")),
+        password: z.string().min(1, t("login.passwordRequired")),
+    });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<ReturnType<typeof createLoginSchema>>;
 
 export default function LoginScreen() {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isLoginPressed, setIsLoginPressed] = useState(false);
     const colors = useThemeColors();
+    const { t } = useTranslation();
+    const loginSchema = createLoginSchema(t);
 
     const form = useForm<LoginFormValues>({
         defaultValues: {
-            username: "",
+            phoneNumber: "",
             password: "",
         },
         resolver: zodResolver(loginSchema),
@@ -42,7 +49,7 @@ export default function LoginScreen() {
             setIsLoggingIn(true);
 
             await signIn({
-                username: values.username.trim(),
+                phoneNumber: values.phoneNumber.trim(),
                 password: values.password,
             });
 
@@ -56,7 +63,7 @@ export default function LoginScreen() {
                 message:
                     error instanceof Error
                         ? error.message
-                        : "Something went wrong. Please try again.",
+                        : t("login.genericError"),
             });
         } finally {
             setIsLoggingIn(false);
@@ -84,35 +91,38 @@ export default function LoginScreen() {
                         />
                         <View className="gap-3">
                             <AppText selectable variant="h1">
-                                Start HappyGolf
+                                {t("login.title")}
                             </AppText>
                         </View>
                     </View>
 
                     <View className="gap-6">
                         <View className="gap-5">
-                            <FormTextInput
+                            <FormNumberInput
                                 control={form.control}
-                                name="username"
-                                label="Username"
-                                placeholder="user_01000000000"
-                                // keyboardType="phone-pad"
-                                autoCapitalize="none"
+                                name="phoneNumber"
+                                label={t("login.phoneNumberLabel")}
+                                placeholder={t("login.phoneNumberPlaceholder")}
+                                numericMode="phone-pad"
                                 editable={!isLoggingIn}
                             />
 
                             <FormPasswordInput
                                 control={form.control}
                                 name="password"
-                                label="Password"
-                                placeholder="Enter password"
+                                label={t("login.passwordLabel")}
+                                placeholder={t("login.passwordPlaceholder")}
                                 editable={!isLoggingIn}
                             />
                         </View>
 
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel={isLoggingIn ? "Logging in" : "Login"}
+                            accessibilityLabel={
+                                isLoggingIn
+                                    ? t("login.accessibilitySubmitting")
+                                    : t("login.accessibilitySubmit")
+                            }
                             disabled={isLoggingIn}
                             className={isLoggingIn ? "overflow-hidden rounded-xl opacity-50" : "overflow-hidden rounded-xl"}
                             onPress={form.handleSubmit(handleLogin)}
@@ -139,7 +149,9 @@ export default function LoginScreen() {
                                     variant="label"
                                     className="text-base font-semibold text-primary-foreground"
                                 >
-                                    {isLoggingIn ? "LOGGING IN..." : "LOGIN"}
+                                    {isLoggingIn
+                                        ? t("login.submitting")
+                                        : t("login.submit")}
                                 </AppText>
                             </LinearGradient>
                         </Pressable>

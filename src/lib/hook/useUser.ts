@@ -1,7 +1,7 @@
 import { ApiResponse, responseError, responseStatus } from "@/lib/api-response/api-response";
 import { getMemberProfile, updateMemberProfile } from "@/service/user";
 import {
-    MemberMobileProfileUpdateRequest,
+    UpdateMyProfileRequest,
     MemberResponse,
 } from "@/types/member.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,7 +20,7 @@ export function useUpdateMemberProfile() {
     return useMutation<
         ApiResponse<MemberResponse>,
         unknown,
-        MemberMobileProfileUpdateRequest
+        UpdateMyProfileRequest
     >({
         mutationFn: updateMemberProfile,
         onSuccess: (res) => {

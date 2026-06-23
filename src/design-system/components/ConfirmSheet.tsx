@@ -1,6 +1,9 @@
-import { Modal, Pressable, View } from "react-native";
+import { BlurView } from "expo-blur";
+import { Modal, Platform, Pressable, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
+import { useTheme } from "../utils/theme";
 
 type ConfirmSheetVariant = "default" | "danger";
 
@@ -15,6 +18,8 @@ type ConfirmSheetProps = {
     loading?: boolean;
     disabled?: boolean;
     variant?: ConfirmSheetVariant;
+    blurEnabled?: boolean;
+    blurIntensity?: number;
 };
 
 export function ConfirmSheet({
@@ -24,12 +29,17 @@ export function ConfirmSheet({
     confirmLabel,
     onConfirm,
     onClose,
-    cancelLabel = "Cancel",
+    cancelLabel,
     loading = false,
     disabled = false,
     variant = "default",
+    blurEnabled = true,
+    blurIntensity = 60,
 }: ConfirmSheetProps) {
+    const { t } = useTranslation();
     const isDisabled = disabled || loading;
+    const { resolvedScheme } = useTheme();
+    const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
 
     return (
         <Modal
@@ -38,11 +48,32 @@ export function ConfirmSheet({
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View className="flex-1 justify-end bg-black/40">
+            <View className="flex-1 justify-end">
+                {blurEnabled ? (
+                    <BlurView
+                        tint={resolvedScheme === "dark" ? "dark" : "light"}
+                        intensity={blurIntensity}
+                        blurMethod={
+                            Platform.OS === "android" ? "dimezisBlurViewSdk31Plus" : undefined
+                        }
+                        blurReductionFactor={Platform.OS === "android" ? 1 : undefined}
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            left: 0,
+                        }}
+                    />
+                ) : null}
+                <View
+                    className={blurEnabled ? "absolute inset-0 bg-black/18" : "absolute inset-0 bg-black/35"}
+                />
+
                 <Pressable
                     className="flex-1"
                     accessibilityRole="button"
-                    accessibilityLabel={`Close ${title}`}
+                    accessibilityLabel={t("common.closeTitle", { title })}
                     disabled={loading}
                     onPress={onClose}
                 />
@@ -68,7 +99,7 @@ export function ConfirmSheet({
                         />
 
                         <Button
-                            title={cancelLabel}
+                            title={resolvedCancelLabel}
                             variant="ghost"
                             disabled={loading}
                             onPress={onClose}

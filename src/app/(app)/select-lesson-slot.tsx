@@ -14,14 +14,15 @@ import { formatType } from "@/utils/format-enum";
 import {
     getLessonSlotDisplayName,
     getLessonSpotsLeft,
-    isLessonSlotBookable,
     isGroupLessonSlot,
+    isLessonSlotBookable,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { ChevronRight, UserRound } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
 
 function formatSlotTime(slot: MemberLessonSlotResponse) {
@@ -29,6 +30,7 @@ function formatSlotTime(slot: MemberLessonSlotResponse) {
 }
 
 export default function SelectLessonSlotScreen() {
+    const { t } = useTranslation();
     const colors = useThemeColors();
     const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
         date: string;
@@ -96,17 +98,21 @@ export default function SelectLessonSlotScreen() {
             }
         >
             <Stack.Screen
-                options={{ title: isGroupTicket ? "Select Group" : "Select Slot" }}
+                options={{
+                    title: isGroupTicket
+                        ? t("booking.selectGroupTitle")
+                        : t("booking.selectSlotTitle"),
+                }}
             />
 
             <View className="gap-1">
                 <AppText variant="h3">
-                    {isGroupTicket ? "Choose a group" : "Choose a slot"}
+                    {isGroupTicket ? t("booking.chooseGroup") : t("booking.chooseSlot")}
                 </AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
                     {formatType(ticketType) !== "-"
-                        ? `${date} · ${formatType(ticketType)}`
+                        ? `${date} - ${formatType(ticketType)}`
                         : date}
                 </AppText>
             </View>
@@ -121,9 +127,9 @@ export default function SelectLessonSlotScreen() {
 
             {isError ? (
                 <ErrorState
-                    title="Failed to load lesson slots"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("booking.failedLessonSlotsTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -132,13 +138,17 @@ export default function SelectLessonSlotScreen() {
 
             {!isLoading && !isError && slots.length === 0 ? (
                 <EmptyState
-                    title={isGroupTicket ? "No available groups" : "No lesson slots"}
+                    title={
+                        isGroupTicket
+                            ? t("booking.noAvailableGroupsTitle")
+                            : t("booking.noLessonSlotsTitle")
+                    }
                     message={
                         isGroupTicket
-                            ? "There are no group lessons with remaining capacity for this date."
-                            : "There are no lesson slots for this date."
+                            ? t("booking.noAvailableGroupsMessage")
+                            : t("booking.noLessonSlotsMessage")
                     }
-                    actionLabel="Choose Another Date"
+                    actionLabel={t("booking.chooseAnotherDate")}
                     onAction={() => {
                         router.back();
                     }}
@@ -155,159 +165,166 @@ export default function SelectLessonSlotScreen() {
                         const spotsLeft = getLessonSpotsLeft(slot);
                         const statusLabel = disabled
                             ? isBookable
-                                ? "Full"
-                                : "Unavailable"
+                                ? t("booking.full")
+                                : t("booking.statusUnavailable")
                             : isGroupSlot
-                                ? `${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left`
-                                : "Available";
+                                ? t("booking.spotsLeft", { count: spotsLeft })
+                                : t("booking.statusAvailable");
 
-                        return (
-                            isGroupSlot ? (
-                                <Pressable
-                                    key={slot.id}
-                                    className="active:opacity-95"
-                                    onPress={() => !disabled && handleSelect(slot)}
-                                    disabled={disabled || isLocked}
-                                >
-                                    <Card
-                                        className={`gap-2.5 rounded-2xl border p-3.5 ${
-                                            disabled
-                                                ? "border-border bg-muted/70 opacity-70"
-                                                : "border-border bg-card"
+                        return isGroupSlot ? (
+                            <Pressable
+                                key={slot.id}
+                                className="active:opacity-95"
+                                onPress={() => !disabled && handleSelect(slot)}
+                                disabled={disabled || isLocked}
+                            >
+                                <Card
+                                    className={`gap-2.5 rounded-2xl border p-3.5 ${disabled
+                                        ? "border-border bg-muted/70 opacity-70"
+                                        : "border-border bg-card"
                                         }`}
-                                    >
-                                        <View className="flex-row items-center justify-between gap-3">
-                                            <View className="min-w-0 flex-1">
+                                >
+                                    <View className="flex-row items-center justify-between gap-3">
+                                        <View className="min-w-0 flex-1">
+                                            <AppText
+                                                variant="h3"
+                                                className={
+                                                    disabled
+                                                        ? "text-muted-foreground"
+                                                        : "text-foreground"
+                                                }
+                                                numberOfLines={1}
+                                            >
+                                                {formatSlotTime(slot)}
+                                            </AppText>
+                                        </View>
+
+                                        <View
+                                            className={`shrink-0 rounded-full px-2.5 py-1 ${disabled
+                                                ? "bg-danger/10"
+                                                : "bg-ticket-group/10"
+                                                }`}
+                                        >
+                                            <AppText
+                                                variant="badge"
+                                                className={
+                                                    disabled
+                                                        ? "text-danger"
+                                                        : "text-ticket-group"
+                                                }
+                                            >
+                                                {statusLabel}
+                                            </AppText>
+                                        </View>
+                                    </View>
+
+                                    <View className="gap-2">
+                                        <AppText
+                                            variant="meta"
+                                            className={
+                                                disabled
+                                                    ? "text-muted-foreground"
+                                                    : "text-foreground/75"
+                                            }
+                                            numberOfLines={1}
+                                        >
+                                            {lessonTitle}
+                                        </AppText>
+                                    </View>
+
+                                    <View className="flex-row items-center gap-3">
+                                        <View className="min-w-0 flex-1 gap-1.5">
+                                            <View className="flex-row items-center gap-1.5">
+                                                <UserRound
+                                                    size={13}
+                                                    color={colors.mutedForeground}
+                                                />
                                                 <AppText
-                                                    variant="h3"
+                                                    variant="meta"
+                                                    className="flex-1 text-foreground/75"
+                                                    numberOfLines={1}
+                                                >
+                                                    {slot.coachName || t("booking.tba")}
+                                                </AppText>
+                                            </View>
+                                        </View>
+
+                                        <View className="shrink-0 flex-row items-center gap-2">
+                                            <View className="items-end">
+                                                <AppText
+                                                    variant="caption"
+                                                    className="text-foreground/60"
+                                                >
+                                                    {t("booking.spots")}
+                                                </AppText>
+                                                <AppText
+                                                    variant="meta"
                                                     className={
                                                         disabled
                                                             ? "text-muted-foreground"
                                                             : "text-foreground"
                                                     }
-                                                    numberOfLines={1}
                                                 >
-                                                    {formatSlotTime(slot)}
+                                                    {slot.bookedCount}/{slot.capacity}
                                                 </AppText>
                                             </View>
 
-                                            <View
-                                                className={`shrink-0 rounded-full px-2.5 py-1 ${
+                                            <ChevronRight
+                                                size={16}
+                                                color={
                                                     disabled
-                                                        ? "bg-danger/10"
-                                                        : "bg-ticket-group/10"
-                                                }`}
-                                            >
-                                                <AppText
-                                                    variant="badge"
-                                                    className={
-                                                        disabled
-                                                            ? "text-danger"
-                                                            : "text-ticket-group"
-                                                    }
-                                                >
-                                                    {statusLabel}
-                                                </AppText>
-                                            </View>
-                                        </View>
-
-                                        <View className="gap-2">
-                                            <AppText
-                                                variant="meta"
-                                                className={
-                                                    disabled
-                                                        ? "text-muted-foreground"
-                                                        : "text-foreground/75"
+                                                        ? colors.mutedForeground
+                                                        : colors.primary
                                                 }
-                                                numberOfLines={1}
-                                            >
-                                                {lessonTitle}
-                                            </AppText>
+                                            />
                                         </View>
+                                    </View>
 
-                                        <View className="flex-row items-center gap-3">
-                                            <View className="min-w-0 flex-1 gap-1.5">
-                                                <View className="flex-row items-center gap-1.5">
-                                                    <UserRound
-                                                        size={13}
-                                                        color={colors.mutedForeground}
-                                                    />
-                                                    <AppText
-                                                        variant="meta"
-                                                        className="flex-1 text-foreground/75"
-                                                        numberOfLines={1}
-                                                    >
-                                                        {slot.coachName || "TBA"}
-                                                    </AppText>
-                                                </View>
-                                            </View>
-
-                                            <View className="shrink-0 flex-row items-center gap-2">
-                                                <View className="items-end">
-                                                    <AppText
-                                                        variant="caption"
-                                                        className="text-foreground/60"
-                                                    >
-                                                        Spots
-                                                    </AppText>
-                                                    <AppText
-                                                        variant="meta"
-                                                        className={
-                                                            disabled
-                                                                ? "text-muted-foreground"
-                                                                : "text-foreground"
-                                                        }
-                                                    >
-                                                        {slot.bookedCount}/{slot.capacity}
-                                                    </AppText>
-                                                </View>
-
-                                                <ChevronRight
-                                                    size={16}
-                                                    color={
-                                                        disabled
-                                                            ? colors.mutedForeground
-                                                            : colors.primary
-                                                    }
-                                                />
-                                            </View>
-                                        </View>
-
-                                        {disabled ? (
-                                            <AppText
-                                                variant="caption"
-                                                className="text-danger"
-                                            >
-                                                {isBookable
-                                                    ? "Full - viewable only"
-                                                    : "Unavailable - viewable only"}
-                                            </AppText>
-                                        ) : null}
-                                    </Card>
-                                </Pressable>
-                            ) : (
-                                <Pressable
-                                    key={slot.id}
-                                    className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${
-                                        disabled
-                                            ? "border-muted bg-muted opacity-55"
-                                            : "border-border bg-card active:bg-surface"
-                                    }`}
-                                    onPress={() => !disabled && handleSelect(slot)}
-                                    disabled={disabled || isLocked}
-                                >
-                                    <View className="min-w-0 flex-1 gap-1.5">
+                                    {disabled ? (
                                         <AppText
-                                            variant="h3"
-                                            className={`${
-                                                disabled
-                                                    ? "text-muted-foreground"
-                                                    : "text-foreground"
-                                            }`}
+                                            variant="caption"
+                                            className="text-danger"
                                         >
-                                            {formatSlotTime(slot)}
+                                            {isBookable
+                                                ? t("booking.fullViewOnly")
+                                                : t("booking.unavailableViewOnly")}
                                         </AppText>
+                                    ) : null}
+                                </Card>
+                            </Pressable>
+                        ) : (
+                            <Pressable
+                                key={slot.id}
+                                className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${disabled
+                                    ? "border-muted bg-muted opacity-55"
+                                    : "border-border bg-card active:bg-surface"
+                                    }`}
+                                onPress={() => !disabled && handleSelect(slot)}
+                                disabled={disabled || isLocked}
+                            >
+                                <View className="min-w-0 flex-1 gap-1.5">
+                                    <AppText
+                                        variant="h3"
+                                        className={`${disabled
+                                            ? "text-muted-foreground"
+                                            : "text-foreground"
+                                            }`}
+                                    >
+                                        {formatSlotTime(slot)}
+                                    </AppText>
 
+                                    <AppText
+                                        variant="meta"
+                                        className={
+                                            disabled
+                                                ? "text-muted-foreground"
+                                                : "text-foreground/75"
+                                        }
+                                    >
+                                        {lessonTitle}
+                                    </AppText>
+
+                                    {slot.coachName ? (
                                         <AppText
                                             variant="meta"
                                             className={
@@ -316,35 +333,24 @@ export default function SelectLessonSlotScreen() {
                                                     : "text-foreground/75"
                                             }
                                         >
-                                            {lessonTitle}
+                                            {t("booking.coachLabel", {
+                                                name: slot.coachName,
+                                            })}
                                         </AppText>
+                                    ) : null}
+                                </View>
 
-                                        {slot.coachName ? (
-                                            <AppText
-                                                variant="meta"
-                                                className={
-                                                    disabled
-                                                        ? "text-muted-foreground"
-                                                        : "text-foreground/75"
-                                                }
-                                            >
-                                                Coach: {slot.coachName}
-                                            </AppText>
-                                        ) : null}
-                                    </View>
-
-                                    <AppText
-                                        variant="badge"
-                                        className={
-                                            disabled
-                                                ? "text-muted-foreground"
-                                                : "text-primary"
-                                        }
-                                    >
-                                        {statusLabel}
-                                    </AppText>
-                                </Pressable>
-                            )
+                                <AppText
+                                    variant="badge"
+                                    className={
+                                        disabled
+                                            ? "text-muted-foreground"
+                                            : "text-primary"
+                                    }
+                                >
+                                    {statusLabel}
+                                </AppText>
+                            </Pressable>
                         );
                     })}
                 </View>

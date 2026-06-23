@@ -8,7 +8,8 @@ import { useEvent } from "expo";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Star } from "lucide-react-native";
-import { Pressable, RefreshControl, View } from "react-native";
+import { RefreshControl, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 type LessonLogParams = {
     id: string;
@@ -17,6 +18,7 @@ type LessonLogParams = {
 const VIDEO_BACKGROUND_COLOR = "#000";
 
 function LessonVideo({ videoUrl }: { videoUrl: string }) {
+    const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
     });
@@ -40,7 +42,7 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
             {videoError ? (
                 <View className="px-4 py-3">
                     <AppText selectable variant="caption" className="leading-5 text-danger">
-                        Video failed to load. Try refreshing the page.
+                        {t("lessonLog.videoLoadFailed")}
                     </AppText>
                 </View>
             ) : null}
@@ -48,6 +50,7 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
     );
 }
 function LessonLogDetailsScreen() {
+    const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>()
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -84,9 +87,9 @@ function LessonLogDetailsScreen() {
                 }
             >
                 <ErrorState
-                    title="Failed to load lesson post"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("lessonLog.failedPostTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -103,7 +106,10 @@ function LessonLogDetailsScreen() {
                     <RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} />
                 }
             >
-                <EmptyState title="Lesson post not available" message="The requested lesson post could not be found." />
+                <EmptyState
+                    title={t("lessonLog.postNotAvailableTitle")}
+                    message={t("lessonLog.postNotFoundMessage")}
+                />
             </Screen>
         );
     }
@@ -120,8 +126,8 @@ function LessonLogDetailsScreen() {
                 canReview ? (
                     <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                         <Button
-                            title="Leave a Comment"
-                            accessibilityLabel="Leave a comment for this lesson"
+                            title={t("lessonLog.leaveComment")}
+                            accessibilityLabel={t("lessonLog.leaveCommentAccessibility")}
                             disabled={isLocked}
                             onPress={() => {
                                 runWithNavigationLock(() => {
@@ -140,7 +146,7 @@ function LessonLogDetailsScreen() {
         >
             <View className="gap-2">
                 <AppText selectable variant="h2">
-                    {lessonLog.coachName ?? "Coach"}
+                    {lessonLog.coachName ?? t("lessonLog.coachFallback")}
                 </AppText>
                 <AppText selectable variant="meta">
                     {formatDateForDisplay(lessonLog.lessonDate)}
@@ -151,10 +157,10 @@ function LessonLogDetailsScreen() {
 
             <View className="gap-3">
                 <AppText selectable variant="label">
-                    Lesson Pro Comment
+                    {t("lessonLog.proCommentLabel")}
                 </AppText>
                 <AppText selectable variant="body" className="leading-7">
-                    {lessonLog.body?.trim() || "No pro comment has been added for this lesson yet."}
+                    {lessonLog.body?.trim() || t("lessonLog.noProComment")}
                 </AppText>
             </View>
 
@@ -164,7 +170,7 @@ function LessonLogDetailsScreen() {
 
                     <View className="gap-3">
                         <AppText selectable variant="label">
-                            Lesson Video
+                            {t("lessonLog.videoLabel")}
                         </AppText>
                         <LessonVideo videoUrl={videoUrl} />
                     </View>
@@ -173,7 +179,7 @@ function LessonLogDetailsScreen() {
 
             <View className="gap-3">
                 <AppText selectable variant="label">
-                    Your Review
+                    {t("lessonLog.yourReviewLabel")}
                 </AppText>
 
                 {lessonLog.ratings ? (
@@ -200,8 +206,8 @@ function LessonLogDetailsScreen() {
                 ) : (
                     <AppText selectable variant="muted" className="leading-6">
                         {canReview
-                            ? "You can leave a rating and comment for this lesson."
-                            : "Your comment has been submitted."}
+                            ? t("lessonLog.canLeaveReviewMessage")
+                            : t("lessonLog.reviewSubmittedMessage")}
                     </AppText>
                 )}
 
@@ -211,7 +217,7 @@ function LessonLogDetailsScreen() {
                         variant="caption"
                         className={canReview ? "text-warning" : "text-success"}
                     >
-                        {canReview ? "Leave a review" : "Comment submitted"}
+                        {canReview ? t("lessonLog.leaveReview") : t("lessonLog.commentSubmitted")}
                     </AppText>
                 </View>
             </View>
@@ -222,7 +228,7 @@ function LessonLogDetailsScreen() {
 
                     <View className="gap-3">
                         <AppText selectable variant="label">
-                            Related Reservation
+                            {t("lessonLog.relatedReservationLabel")}
                         </AppText>
 
                         <Link
@@ -236,8 +242,8 @@ function LessonLogDetailsScreen() {
                             asChild
                         >
                             <ListRow
-                                title={lessonLog.reservation.name?.trim() || `Reservation #${lessonLog.reservation.id}`}
-                                subtitle="View reservation details"
+                                title={lessonLog.reservation.name?.trim() || t("reservations.reservationFallbackWithId", { id: lessonLog.reservation.id })}
+                                subtitle={t("lessonLog.viewReservationDetails")}
                                 onPressIn={() => {
                                     void queryClient.prefetchQuery(
                                         getMemberReservationDetailQueryOptions(

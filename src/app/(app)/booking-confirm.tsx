@@ -18,25 +18,15 @@ import {
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
     RefreshControl,
     View,
 } from "react-native";
 import { useState } from "react";
 
-const POLICIES = [
-    {
-        title: "Cancellation Policy",
-        description:
-            "Bay reservations can only be cancelled up to 3 hours before the reservation time.",
-    },
-    {
-        title: "No-show Policy",
-        description: "A no-show will result in one bay ticket deduction.",
-    },
-] as const;
-
 export default function ConfirmScreen() {
+    const { t } = useTranslation();
     const {
         date,
         ticketId,
@@ -84,6 +74,16 @@ export default function ConfirmScreen() {
         refetch,
         isRefetching,
     } = useMemberBaySlotGroups(date, date, Boolean(date));
+    const policies = [
+        {
+            title: t("bookingConfirmation.bayCancellationPolicyTitle"),
+            description: t("bookingConfirmation.bayCancellationPolicyDescription"),
+        },
+        {
+            title: t("bookingConfirmation.bayNoShowPolicyTitle"),
+            description: t("bookingConfirmation.bayNoShowPolicyDescription"),
+        },
+    ] as const;
 
     const isSubmitting = isCreating || isRescheduling;
     const slotGroup = (data?.data ?? []).find(
@@ -102,7 +102,7 @@ export default function ConfirmScreen() {
 
         if (isBaySlotDisabled) {
             showAppToast({
-                message: "Selected bay is no longer available.",
+                message: t("bookingConfirmation.selectedBayUnavailable"),
                 type: "warning",
             });
 
@@ -161,7 +161,8 @@ export default function ConfirmScreen() {
         );
     };
 
-    const reservationName = selectedBaySlot?.bayName ?? bayName ?? "Bay Session";
+    const reservationName =
+        selectedBaySlot?.bayName ?? bayName ?? t("bookingConfirmation.baySessionFallback");
     const dateValue = formatDateValue(date, "yyyy. MM. dd");
     const timeValue = formatTimeRange(
         slotGroup?.startDateTime ?? startTime,
@@ -175,13 +176,13 @@ export default function ConfirmScreen() {
         (isRescheduleMode ? !reservationIdNumber : !ticketId);
     const disabledReason =
         isRescheduleMode && !reservationIdNumber
-            ? "Reservation information is missing."
+            ? t("bookingConfirmation.reservationInfoMissing")
             : !isRescheduleMode && !ticketId
-            ? "Ticket information is missing."
+            ? t("bookingConfirmation.ticketInfoMissing")
             : !baySlotId || isMissingRequiredData
-                ? "Selected bay is no longer available."
+                ? t("bookingConfirmation.selectedBayUnavailable")
                 : isBaySlotDisabled
-                    ? "Selected bay is no longer available."
+                    ? t("bookingConfirmation.selectedBayUnavailable")
                     : null;
 
     return (
@@ -198,7 +199,9 @@ export default function ConfirmScreen() {
             footer={
                 !isLoading && !isError && !isMissingRequiredData ? (
                     <BookingConfirmationFooter
-                        title={isRescheduleMode ? "Confirm Reschedule" : "Agree & Book"}
+                        title={isRescheduleMode
+                            ? t("bookingConfirmation.confirmReschedule")
+                            : t("bookingConfirmation.agreeBook")}
                         loading={isSubmitting}
                         disabled={isDisabled}
                         onPress={handleConfirm}
@@ -210,18 +213,18 @@ export default function ConfirmScreen() {
                 <BookingConfirmationLoadingState fieldCount={3} />
             ) : isError ? (
                 <ErrorState
-                    title="Failed to load reservation details"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("bookingConfirmation.failedReservationDetailsTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
                 />
             ) : isMissingRequiredData ? (
                 <EmptyState
-                    title="Selected bay no longer available"
-                    message="Please go back and choose another bay."
-                    actionLabel="Choose Another Bay"
+                    title={t("bookingConfirmation.selectedBayUnavailableTitle")}
+                    message={t("bookingConfirmation.selectedBayUnavailableMessage")}
+                    actionLabel={t("bookingConfirmation.chooseAnotherBay")}
                     onAction={() => {
                         router.back();
                     }}
@@ -231,24 +234,30 @@ export default function ConfirmScreen() {
                     notes={notes}
                     onNotesChange={setNotes}
                     disabledReason={disabledReason}
-                    policies={POLICIES}
+                    policies={policies}
                 >
                     <ReservationDetailField
-                        label="Ticket"
+                        label={t("bookingConfirmation.ticketLabel")}
                         value={ticketName}
                     />
                     <Divider className="bg-border" />
 
                     <ReservationDetailField
-                        label="Reservation Name"
+                        label={t("bookingConfirmation.reservationNameLabel")}
                         value={reservationName}
                     />
                     <Divider className="bg-border" />
 
-                    <ReservationDetailField label="Date" value={dateValue} />
+                    <ReservationDetailField
+                        label={t("bookingConfirmation.dateLabel")}
+                        value={dateValue}
+                    />
                     <Divider className="bg-border" />
 
-                    <ReservationDetailField label="Time" value={timeValue} />
+                    <ReservationDetailField
+                        label={t("bookingConfirmation.timeLabel")}
+                        value={timeValue}
+                    />
                 </BookingConfirmationContent>
             )}
         </Screen>

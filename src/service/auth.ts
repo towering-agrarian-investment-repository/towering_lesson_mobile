@@ -1,7 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
-const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid username or password";
+const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid phone number or password";
 
 export type AuthSession = {
     session: {
@@ -27,9 +27,9 @@ export type AuthSession = {
     };
 };
 
-export const signIn = async ({ username, password }: { username: string; password: string }) => {
-    const result = await authClient.signIn.username({
-        username: username.trim(),
+export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; password: string }) => {
+    const result = await authClient.signIn.phoneNumber({
+        phoneNumber: phoneNumber.trim(),
         password,
     });
 

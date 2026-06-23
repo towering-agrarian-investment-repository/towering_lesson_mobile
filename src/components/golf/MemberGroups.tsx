@@ -2,8 +2,7 @@ import {
     AppText,
     Badge,
     Card,
-    EmptyState,
-    ErrorState,
+    InlineState,
     Skeleton,
     useThemeColors,
 } from "@/design-system";
@@ -20,13 +19,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Href, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export function MemberGroups() {
+    const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data, isLoading, isError, refetch } = useMemberGroups();
+    const { data, isLoading, isError } = useMemberGroups();
     const groups = data?.data ?? [];
 
     const renderGroup = useCallback(
@@ -56,18 +57,13 @@ export function MemberGroups() {
             {isLoading ? (
                 <GroupListSkeleton />
             ) : isError ? (
-                <ErrorState
-                    title="Failed to load groups"
-                    message="Please pull to refresh and try again."
-                    actionLabel="Try Again"
-                    onAction={() => {
-                        void refetch();
-                    }}
+                <InlineState
+                    title={t("groups.loadError")}
+                    tone="danger"
                 />
             ) : groups.length === 0 ? (
-                <EmptyState
-                    title="No lesson groups"
-                    message="Your lesson groups will appear here when they are assigned."
+                <InlineState
+                    title={t("groups.empty")}
                 />
             ) : (
                 <View className="gap-3">
@@ -93,9 +89,9 @@ function GroupCard({
     onPress: () => void;
     onPressIn: () => void;
 }) {
+    const { t } = useTranslation();
     const colors = useThemeColors();
     const groupName = getGroupName(group);
-    const ticketName = group.ticketName?.trim() || "No ticket";
     const statusLabel = group.groupStatus ? formatType(group.groupStatus) : null;
     const startDate = formatDateForDisplay(group.programStartDate ?? null);
     const endDate = formatDateForDisplay(group.programEndDate ?? null);
@@ -103,12 +99,14 @@ function GroupCard({
         startDate && endDate ? `${startDate} - ${endDate}` : startDate || "-";
     const timeRange = formatTimeRange(group.sessionStartTime, group.sessionEndTime);
     const lessonType = formatType(group.lessonType);
-    const capacity = group.capacity ? `Capacity ${group.capacity}` : "Capacity -";
+    const capacity = group.capacity
+        ? t("groups.capacity", { value: group.capacity })
+        : t("groups.capacityEmpty");
 
     return (
         <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Open ${groupName}`}
+            accessibilityLabel={t("groups.openGroup", { name: groupName })}
             disabled={disabled}
             className="active:opacity-80 disabled:opacity-60"
             onPress={onPress}
@@ -166,8 +164,8 @@ function GroupCard({
                 </View>
 
                 <View className="gap-2 rounded-xl bg-surface px-3 py-3">
-                    <GroupMetaRow label="Schedule" value={dateRange} />
-                    <GroupMetaRow label="Time" value={timeRange} />
+                    <GroupMetaRow label={t("common.schedule")} value={dateRange} />
+                    <GroupMetaRow label={t("common.time")} value={timeRange} />
                 </View>
             </Card>
         </Pressable>

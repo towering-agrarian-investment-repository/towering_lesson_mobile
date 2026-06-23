@@ -20,12 +20,25 @@ import type { HomeworkSubmissionFile } from "@/service/member-homework.service";
 import type { MemberHomeworkSubmissionResponse } from "@/types/member-homework";
 import { formatFileSize } from "@/utils/file";
 import { formatType } from "@/utils/format-enum";
+import {
+    getFileExtension,
+    getProfileImageMimeType,
+    HOMEWORK_SUBMISSION_EXTENSIONS,
+    HOMEWORK_SUBMISSION_MIME_TYPES,
+    isAllowedExtension,
+    isAllowedMimeType,
+} from "@/utils/media";
 import { getHomeworkTitle } from "@/utils/member-lesson";
+import {
+    getHomeworkReviewTone,
+    getHomeworkSubmissionTone,
+} from "@/utils/status-tone";
 import { formatDateForDisplay, fmtDateTime } from "@/utils/time-helper";
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
 type HomeworkParams = {
@@ -33,6 +46,7 @@ type HomeworkParams = {
 };
 
 export default function HomeworkDetailScreen() {
+    const { t } = useTranslation();
     const { homeworkId } = useLocalSearchParams<HomeworkParams>();
     const numericHomeworkId = Number(homeworkId);
     const [selectedFile, setSelectedFile] = useState<HomeworkSubmissionFile | null>(null);
@@ -64,6 +78,8 @@ export default function HomeworkDetailScreen() {
     );
     const latestReview =
         submissions.find((submission) => submission.review)?.review;
+    const submissionTone = getHomeworkSubmissionTone(homework?.currentSubmissionStatus);
+    const reviewTone = getHomeworkReviewTone(homework?.currentReviewStatus);
 
     const refreshControl = (
         <RefreshControl
@@ -83,14 +99,29 @@ export default function HomeworkDetailScreen() {
         const result = await DocumentPicker.getDocumentAsync({
             copyToCacheDirectory: true,
             multiple: false,
-            type: "*/*",
+            type: [
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "video/mp4",
+            ],
         });
 
         if (result.canceled || !result.assets?.[0]) {
             return;
         }
 
-        setSelectedFile(createFileFromDocument(result.assets[0]));
+        try {
+            setSelectedFile(createFileFromDocument(result.assets[0], t));
+        } catch (error) {
+            showAppToast({
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : t("homework.unsupportedFile"),
+                type: "error",
+            });
+        }
     };
 
     const handleSubmit = () => {
@@ -132,9 +163,9 @@ export default function HomeworkDetailScreen() {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <ErrorState
-                    title="Failed to load homework"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("homework.failedTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -147,8 +178,8 @@ export default function HomeworkDetailScreen() {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <EmptyState
-                    title="Homework not available"
-                    message="The requested homework could not be found."
+                    title={t("homework.notAvailableTitle")}
+                    message={t("homework.notFoundMessage")}
                 />
             </Screen>
         );
@@ -162,7 +193,7 @@ export default function HomeworkDetailScreen() {
             footer={
                 <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
                     <Button
-                        title="Choose File"
+                        title={t("homework.chooseFile")}
                         variant="secondary"
                         disabled={isSubmitting}
                         onPress={() => {
@@ -170,7 +201,7 @@ export default function HomeworkDetailScreen() {
                         }}
                     />
                     <Button
-                        title="Submit Homework"
+                        title={t("homework.submitHomework")}
                         loading={isSubmitting}
                         disabled={!selectedFile || isSubmitting}
                         onPress={handleSubmit}
@@ -194,8 +225,8 @@ export default function HomeworkDetailScreen() {
                             numberOfLines={1}
                         >
                             {homework.dueAt
-                                ? `Due ${formatDateForDisplay(homework.dueAt)}`
-                                : "No due date"}
+                                ? t("homework.dueDate", { date: formatDateForDisplay(homework.dueAt) })
+                                : t("homework.noDueDate")}
                         </AppText>
                     </View>
 
@@ -210,24 +241,24 @@ export default function HomeworkDetailScreen() {
                         {homework.currentSubmissionStatus ? (
                             <Badge
                                 label={formatType(homework.currentSubmissionStatus)}
-                                className="bg-muted"
-                                textClassName="text-muted-foreground"
+                                className={submissionTone.className}
+                                textClassName={submissionTone.textClassName}
                             />
                         ) : null}
                         {homework.currentReviewStatus ? (
                             <Badge
                                 label={formatType(homework.currentReviewStatus)}
-                                className="bg-muted"
-                                textClassName="text-muted-foreground"
+                                className={reviewTone.className}
+                                textClassName={reviewTone.textClassName}
                             />
                         ) : null}
                     </View>
                 </View>
 
                 <View className="px-4 py-4">
-                    <AppText variant="body" className="leading-6 text-foreground">
-                        {homework.description?.trim() || "No homework description has been added."}
-                    </AppText>
+                        <AppText variant="body" className="leading-6 text-foreground">
+                            {homework.description?.trim() || t("homework.noDescription")}
+                        </AppText>
                 </View>
             </Card>
 
@@ -238,19 +269,19 @@ export default function HomeworkDetailScreen() {
                     </View>
                     <View className="min-w-0 flex-1">
                         <AppText variant="label" className="font-semibold">
-                            Submission
+                            {t("homework.submission")}
                         </AppText>
                         <AppText variant="caption" className="leading-5" numberOfLines={1}>
                             {selectedFile
                                 ? `${selectedFile.name} / ${formatFileSize(selectedFile.size)}`
-                                : "Select one file."}
+                                : t("homework.selectOneFile")}
                         </AppText>
                     </View>
                 </View>
 
                 <Textarea
-                    label="Memo"
-                    placeholder="Add a note for your coach"
+                    label={t("homework.memo")}
+                    placeholder={t("homework.noteForCoach")}
                     value={memo}
                     onChangeText={setMemo}
                     editable={!isSubmitting}
@@ -265,29 +296,33 @@ export default function HomeworkDetailScreen() {
                                 <MessageSquare size={18} color="#6B7280" />
                             </View>
                             <AppText variant="h3" className="text-lg font-semibold">
-                                Coach Review
+                                {t("homework.coachReview")}
                             </AppText>
                         </View>
                         {latestReview.status ? (
-                            <Badge label={formatType(latestReview.status)} />
+                            <Badge
+                                label={formatType(latestReview.status)}
+                                className={getHomeworkReviewTone(latestReview.status).className}
+                                textClassName={getHomeworkReviewTone(latestReview.status).textClassName}
+                            />
                         ) : null}
                     </View>
 
                     {latestReview.score != null ? (
                         <AppText selectable variant="meta">
-                            Score: {latestReview.score}
+                            {t("homework.score", { score: latestReview.score })}
                         </AppText>
                     ) : null}
 
                     <View className="rounded-xl bg-surface px-3 py-3">
                         <AppText variant="body" className="leading-6 text-foreground">
-                            {latestReview.coachFeedback?.trim() || "No review comment yet."}
+                            {latestReview.coachFeedback?.trim() || t("homework.noReviewComment")}
                         </AppText>
                     </View>
 
                     {latestReview.reviewedAt ? (
                         <AppText selectable variant="caption">
-                            Reviewed {fmtDateTime(latestReview.reviewedAt)}
+                            {t("homework.reviewedAt", { date: fmtDateTime(latestReview.reviewedAt) })}
                         </AppText>
                     ) : null}
                 </Card>
@@ -295,15 +330,15 @@ export default function HomeworkDetailScreen() {
 
             <View className="flex-row items-center justify-between gap-4">
                 <AppText variant="h3" className="text-lg font-semibold">
-                    Submission History
+                    {t("homework.submissionHistory")}
                 </AppText>
                 <AppText variant="count">{submissions.length}</AppText>
             </View>
 
             {submissions.length === 0 ? (
                 <EmptyState
-                    title="No submissions"
-                    message="Your submitted homework files will appear here."
+                    title={t("homework.noSubmissionsTitle")}
+                    message={t("homework.noSubmissionsMessage")}
                 />
             ) : (
                 <View className="gap-3">
@@ -321,11 +356,30 @@ export default function HomeworkDetailScreen() {
 
 function createFileFromDocument(
     asset: DocumentPicker.DocumentPickerAsset,
+    t: (key: string) => string,
 ): HomeworkSubmissionFile {
+    const extension = getFileExtension(asset.name);
+    const hasSupportedExtension = isAllowedExtension(
+        asset.name,
+        HOMEWORK_SUBMISSION_EXTENSIONS,
+    );
+    const hasSupportedMimeType = isAllowedMimeType(
+        asset.mimeType,
+        HOMEWORK_SUBMISSION_MIME_TYPES,
+    );
+
+    if (!hasSupportedExtension && !hasSupportedMimeType) {
+        throw new Error(t("homework.supportedFilesOnly"));
+    }
+
+    const mimeType = asset.mimeType?.toLowerCase()
+        || (extension ? getProfileImageMimeType(extension) : null)
+        || (extension === "mp4" ? "video/mp4" : null);
+
     return {
         uri: asset.uri,
         name: asset.name || `homework-${Date.now()}`,
-        type: asset.mimeType || "application/octet-stream",
+        type: mimeType || "application/octet-stream",
         size: asset.size,
     };
 }
@@ -335,13 +389,14 @@ function SubmissionRow({
 }: {
     submission: MemberHomeworkSubmissionResponse;
 }) {
+    const { t } = useTranslation();
     return (
         <ListRow
             title={
                 submission.submittedByName?.trim() ||
                 submission.fileUrl?.split("/").pop() ||
                 submission.s3Key?.split("/").pop() ||
-                `Submission #${submission.id}`
+                t("homework.submissionWithId", { id: submission.id })
             }
             subtitle={[
                 submission.submittedAt ? fmtDateTime(submission.submittedAt) : null,

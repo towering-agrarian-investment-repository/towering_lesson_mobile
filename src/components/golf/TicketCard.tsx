@@ -4,6 +4,7 @@ import {
 } from "@/design-system/utils/ticket-type";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { formatType } from "@/utils/format-enum";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 type Props = {
@@ -24,26 +25,33 @@ function formatTicketDate(date?: string | null) {
     return `${yy}.${mm}.${dd}`;
 }
 
-function getUsageNote(item: TicketListItemResponse) {
+function getUsageNote(
+    item: TicketListItemResponse,
+    t: (key: string, options?: Record<string, unknown>) => string,
+) {
     if (item.isUnlimited) {
-        return "Unlimited Usage";
+        return t("tickets.unlimitedUsage");
     }
 
     if (item.totalCount != null) {
-        return `${item.remaining ?? 0} out of ${item.totalCount}`;
+        return t("tickets.usageRemaining", {
+            remaining: item.remaining ?? 0,
+            total: item.totalCount,
+        });
     }
 
-    return "Flexible Usage";
+    return t("tickets.flexibleUsage");
 }
 
 function TicketCard({ item, disabled = false, onPress }: Props) {
+    const { t } = useTranslation();
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketTone = getTicketTypeTone(item.type);
     const isBookingDisabled =
         disabled || isInactive;
 
     const badgeLabel = formatType(item.type);
-    const usageNote = getUsageNote(item);
+    const usageNote = getUsageNote(item, t);
 
     const handlePress = () => {
         if (isBookingDisabled) {
@@ -100,7 +108,7 @@ function TicketCard({ item, disabled = false, onPress }: Props) {
 
                     {!item.isUnlimited && item.onlyOnePerDay ? (
                         <Text variant="caption" className="text-foreground">
-                            Use once per day
+                            {t("tickets.useOncePerDay")}
                         </Text>
                     ) : null}
                 </View>

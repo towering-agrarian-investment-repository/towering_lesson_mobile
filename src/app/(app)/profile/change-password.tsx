@@ -6,30 +6,32 @@ import { changePassword } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { View } from 'react-native';
 import { z } from "zod";
+const createChangePasswordSchema = (t: (key: string) => string) =>
+    z
+        .object({
+            currentPassword: z.string().min(1, t("changePassword.currentPasswordRequired")),
+            newPassword: z.string().min(6, t("changePassword.newPasswordMin")),
+            confirmPassword: z.string().min(1, t("changePassword.confirmPasswordRequired")),
+        })
+        .refine((values) => values.newPassword !== values.currentPassword, {
+            message: t("changePassword.newPasswordDifferent"),
+            path: ["newPassword"],
+        })
+        .refine((values) => values.newPassword === values.confirmPassword, {
+            message: t("changePassword.passwordsDoNotMatch"),
+            path: ["confirmPassword"],
+        });
 
-
-const changePasswordSchema = z
-    .object({
-        currentPassword: z.string().min(1, "Current password is required."),
-        newPassword: z.string().min(6, "New password must be at least 6 characters."),
-        confirmPassword: z.string().min(1, "Please confirm your new password."),
-    })
-    .refine((values) => values.newPassword !== values.currentPassword, {
-        message: "New password must be different from current password.",
-        path: ["newPassword"],
-    })
-    .refine((values) => values.newPassword === values.confirmPassword, {
-        message: "Passwords do not match.",
-        path: ["confirmPassword"],
-    });
-
-type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+type ChangePasswordFormValues = z.infer<ReturnType<typeof createChangePasswordSchema>>;
 
 function ChangePasswordScreen() {
+    const { t } = useTranslation();
 
     const router = useRouter()
+    const changePasswordSchema = createChangePasswordSchema(t);
 
     const form = useForm<ChangePasswordFormValues>({
         defaultValues: {
@@ -48,7 +50,7 @@ function ChangePasswordScreen() {
                 newPassword: data.newPassword
             })
             showAppToast({
-                message: "Password updated.",
+                message: t("changePassword.passwordUpdated"),
                 type: "success",
             });
 
@@ -80,7 +82,7 @@ function ChangePasswordScreen() {
             if (code === "INVALID_PASSWORD") {
                 form.setError("currentPassword", {
                     type: "server",
-                    message: message || "Invalid password",
+                    message: message || t("changePassword.invalidPassword"),
                 });
 
                 return;
@@ -97,7 +99,7 @@ function ChangePasswordScreen() {
             footer={
                 <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                     <Button
-                        title={form.formState.isSubmitting ? "Saving..." : "Confirm"}
+                        title={form.formState.isSubmitting ? t("changePassword.saving") : t("changePassword.confirm")}
                         loading={form.formState.isSubmitting}
                         disabled={form.formState.isSubmitting}
                         className="rounded-xl"
@@ -108,40 +110,40 @@ function ChangePasswordScreen() {
         >
             <View className="flex-1 flex-col gap-6">
                 <Text selectable className="text-base">
-                    If you lose your password, ask the store manager to reset it.
+                    {t("changePassword.lostPasswordHelp")}
                 </Text>
 
                 <View className="flex-col gap-8">
                     <Text selectable className="text-lg">
-                        Please enter your old password
+                        {t("changePassword.enterOldPassword")}
                     </Text>
 
                     <FormPasswordInput
                         control={form.control}
                         name="currentPassword"
-                        label="Current Password"
-                        placeholder="******"
+                        label={t("changePassword.currentPassword")}
+                        placeholder={t("changePassword.passwordMask")}
                     />
                 </View>
 
                 <View className="flex-col gap-8">
                     <Text selectable className="text-lg">
-                        Please enter a new password
+                        {t("changePassword.enterNewPassword")}
                     </Text>
 
                     <View className="flex-col gap-6">
                         <FormPasswordInput
                             control={form.control}
                             name="newPassword"
-                            label="Password"
-                            placeholder="******"
+                            label={t("changePassword.password")}
+                            placeholder={t("changePassword.passwordMask")}
                         />
 
                         <FormPasswordInput
                             control={form.control}
                             name="confirmPassword"
-                            label="Confirm Password"
-                            placeholder="******"
+                            label={t("changePassword.confirmPassword")}
+                            placeholder={t("changePassword.passwordMask")}
                         />
                     </View>
                 </View>

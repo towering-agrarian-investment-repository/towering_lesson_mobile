@@ -1,5 +1,5 @@
 import { expoClient } from "@better-auth/expo/client";
-import { jwtClient, usernameClient } from "better-auth/client/plugins";
+import { jwtClient, phoneNumberClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import { env } from "./config/env";
@@ -13,7 +13,7 @@ export const authClient = createAuthClient({
             storage: SecureStore,
             cookiePrefix: "member",
         }),
-        usernameClient(),
+        phoneNumberClient(),
         jwtClient(),
     ]
 });

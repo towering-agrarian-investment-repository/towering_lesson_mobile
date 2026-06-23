@@ -17,20 +17,20 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Star } from "lucide-react-native";
 import { Pressable, RefreshControl, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 type LessonLogParams = {
     id: string;
 };
 
-const lessonLogCommentSchema = z.object({
-    ratings: z.number().min(1, "Please select a rating."),
-    comment: z.string().trim().min(1, "Please leave a comment."),
-});
-
-type LessonLogCommentFormValues = z.infer<typeof lessonLogCommentSchema>;
+type LessonLogCommentFormValues = {
+    ratings: number;
+    comment: string;
+};
 
 function LessonLogCommentScreen() {
+    const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
     const colors = useThemeColors();
@@ -45,6 +45,10 @@ function LessonLogCommentScreen() {
 
     const lessonLog = lessonLogResponse?.data;
     const canReview = lessonLog?.status !== "APPROVED";
+    const lessonLogCommentSchema = z.object({
+        ratings: z.number().min(1, t("lessonLog.ratingRequired")),
+        comment: z.string().trim().min(1, t("lessonLog.commentRequired")),
+    });
     const form = useForm<LessonLogCommentFormValues>({
         resolver: zodResolver(lessonLogCommentSchema),
         mode: "onSubmit",
@@ -93,9 +97,9 @@ function LessonLogCommentScreen() {
                 }
             >
                 <ErrorState
-                    title="Failed to load comment form"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("lessonLog.failedCommentFormTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -118,8 +122,8 @@ function LessonLogCommentScreen() {
                 }
             >
                 <EmptyState
-                    title="Lesson post not available"
-                    message="The requested lesson post could not be found."
+                    title={t("lessonLog.postNotAvailableTitle")}
+                    message={t("lessonLog.postNotFoundMessage")}
                 />
             </Screen>
         );
@@ -129,8 +133,8 @@ function LessonLogCommentScreen() {
         return (
             <Screen scroll={false} contentClassName="grow justify-center">
                 <EmptyState
-                    title="Review period ended"
-                    message="This lesson can no longer receive a rating or comment."
+                    title={t("lessonLog.reviewPeriodEndedTitle")}
+                    message={t("lessonLog.reviewPeriodEndedMessage")}
                 />
             </Screen>
         );
@@ -143,8 +147,8 @@ function LessonLogCommentScreen() {
             footer={
                 <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                     <Button
-                        title="Confirm"
-                        accessibilityLabel="Submit lesson rating and comment"
+                        title={t("changePassword.confirm")}
+                        accessibilityLabel={t("lessonLog.submitCommentAccessibility")}
                         loading={isPending}
                         disabled={isPending}
                         onPress={form.handleSubmit((values) => {
@@ -177,7 +181,7 @@ function LessonLogCommentScreen() {
                     {formatDateForDisplay(lessonLog.lessonDate)}
                 </AppText>
                 <AppText selectable variant="muted">
-                    Share a short rating and comment about this lesson.
+                    {t("lessonLog.shareRatingPrompt")}
                 </AppText>
             </View>
 
@@ -186,10 +190,10 @@ function LessonLogCommentScreen() {
             <View className="gap-4">
                 <View className="gap-2">
                     <AppText selectable variant="label">
-                        How was this lesson?
+                        {t("lessonLog.howWasLesson")}
                     </AppText>
                     <AppText selectable variant="meta" className="text-danger">
-                        Your rating will not be disclosed to the instructor.
+                        {t("lessonLog.ratingPrivateNotice")}
                     </AppText>
                 </View>
 
@@ -207,7 +211,9 @@ function LessonLogCommentScreen() {
                                         <Pressable
                                             key={starValue}
                                             accessibilityRole="button"
-                                            accessibilityLabel={`Rate this lesson ${starValue} star${starValue > 1 ? "s" : ""}`}
+                                            accessibilityLabel={t("lessonLog.rateStarsAccessibility", {
+                                                count: starValue,
+                                            })}
                                             className="h-12 w-12 items-center justify-center active:opacity-80"
                                             onPress={() => onChange(starValue)}
                                         >
@@ -236,7 +242,7 @@ function LessonLogCommentScreen() {
 
             <View className="gap-3">
                 <AppText selectable variant="label">
-                    Leave a Comment
+                    {t("lessonLog.leaveComment")}
                 </AppText>
 
                 <Controller
@@ -247,7 +253,7 @@ function LessonLogCommentScreen() {
                             value={value}
                             onChangeText={onChange}
                             onBlur={onBlur}
-                            placeholder="Please leave a comment"
+                            placeholder={t("lessonLog.commentPlaceholder")}
                             error={fieldState.error?.message}
                         />
                     )}

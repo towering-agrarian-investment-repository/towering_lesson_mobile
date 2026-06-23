@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeColors } from "@/design-system";
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {}
@@ -8,6 +9,7 @@ type Props = {}
 function TabLayout({ }: Props) {
     const colors = useThemeColors();
     const { resolvedScheme } = useTheme();
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     return (
         <Tabs
@@ -48,7 +50,7 @@ function TabLayout({ }: Props) {
             <Tabs.Screen
                 name='index'
                 options={{
-                    title: "Home",
+                    title: t("navigation.tabs.home"),
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons
                             name={focused ? 'home' : 'home-outline'}
@@ -61,7 +63,7 @@ function TabLayout({ }: Props) {
             <Tabs.Screen
                 name='notice'
                 options={{
-                    title: "Notifications",
+                    title: t("navigation.tabs.notifications"),
                     headerShown: true,
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons
@@ -75,7 +77,7 @@ function TabLayout({ }: Props) {
             <Tabs.Screen
                 name='lessons'
                 options={{
-                    title: "Lessons",
+                    title: t("navigation.tabs.lessons"),
                     headerShown: true,
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons
@@ -89,7 +91,7 @@ function TabLayout({ }: Props) {
             <Tabs.Screen
                 name='profile'
                 options={{
-                    title: 'Profile',
+                    title: t("navigation.tabs.profile"),
                     headerShown: true,
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons

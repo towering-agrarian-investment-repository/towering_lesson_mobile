@@ -6,6 +6,7 @@ import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import {
     Pressable,
     RefreshControl,
@@ -23,6 +24,7 @@ function chunkItems<T>(items: T[], size: number) {
 }
 
 export default function BayScreen() {
+    const { t } = useTranslation();
     const {
         date,
         ticketId,
@@ -106,7 +108,7 @@ export default function BayScreen() {
             }
         >
             <View className="gap-1">
-                <AppText variant="h3">Choose a bay</AppText>
+                <AppText variant="h3">{t("booking.chooseBay")}</AppText>
 
                 <AppText variant="meta" className="text-foreground/75">
                     {slotGroup
@@ -114,7 +116,7 @@ export default function BayScreen() {
                             slotGroup.startDateTime,
                             slotGroup.endDateTime,
                         )}${formatType(ticketType) !== "-"
-                            ? ` · ${formatType(ticketType)}`
+                            ? ` - ${formatType(ticketType)}`
                             : ""}`
                         : date}
                 </AppText>
@@ -152,9 +154,9 @@ export default function BayScreen() {
 
             {isError ? (
                 <ErrorState
-                    title="Failed to load bays"
-                    message="Pull to refresh and try again."
-                    actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                    title={t("booking.failedBaysTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={() => {
                         void refetch();
                     }}
@@ -163,9 +165,9 @@ export default function BayScreen() {
 
             {!isLoading && !isError && !slotGroup ? (
                 <EmptyState
-                    title="Time no longer available"
-                    message="Please go back and choose another time."
-                    actionLabel="Choose Another Time"
+                    title={t("booking.timeNoLongerAvailableTitle")}
+                    message={t("booking.timeNoLongerAvailableMessage")}
+                    actionLabel={t("booking.chooseAnotherTime")}
                     onAction={() => {
                         router.back();
                     }}
@@ -176,7 +178,7 @@ export default function BayScreen() {
                 <View className="gap-3">
                     {bayRows.map((row, rowIndex) => (
                         <View key={rowIndex} className="flex-row gap-3">
-                            {row.map((bay, index) => {
+                            {row.map((bay) => {
                                 const {
                                     isBlocked,
                                     isReserved,
@@ -184,19 +186,19 @@ export default function BayScreen() {
                                 } = getBaySlotAvailability(bay);
 
                                 const statusLabel = isBlocked
-                                    ? "Blocked"
+                                    ? t("booking.statusBlocked")
                                     : isReserved
-                                        ? "Booked"
+                                        ? t("booking.statusBooked")
                                         : isDisabled
-                                            ? "Unavailable"
-                                            : "Available";
+                                            ? t("booking.statusUnavailable")
+                                            : t("booking.statusAvailable");
 
                                 return (
                                     <View key={bay.id} className="flex-1">
                                         <Pressable
                                             className={`items-center gap-1.5 rounded-xl border px-3 py-4 ${!isDisabled
-                                                    ? "border-border bg-card active:bg-surface"
-                                                    : "border-muted bg-muted opacity-55"
+                                                ? "border-border bg-card active:bg-surface"
+                                                : "border-muted bg-muted opacity-55"
                                                 }`}
                                             onPress={() =>
                                                 !isDisabled && handleSelect(bay)
@@ -206,8 +208,8 @@ export default function BayScreen() {
                                             <AppText
                                                 variant="label"
                                                 className={`text-center ${!isDisabled
-                                                        ? "text-foreground"
-                                                        : "text-muted-foreground"
+                                                    ? "text-foreground"
+                                                    : "text-muted-foreground"
                                                     }`}
                                             >
                                                 {bay.bayName}
@@ -216,8 +218,8 @@ export default function BayScreen() {
                                             <AppText
                                                 variant="badge"
                                                 className={`text-center ${!isDisabled
-                                                        ? "text-primary"
-                                                        : "text-muted-foreground"
+                                                    ? "text-primary"
+                                                    : "text-muted-foreground"
                                                     }`}
                                             >
                                                 {statusLabel}

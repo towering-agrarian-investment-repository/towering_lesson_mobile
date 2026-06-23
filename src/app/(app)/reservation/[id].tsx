@@ -35,6 +35,7 @@ import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Pressable,
     RefreshControl,
@@ -45,31 +46,6 @@ type ReservationParams = {
     id: string;
     type?: string;
 };
-
-const RESERVATION_POLICIES = {
-    lesson: [
-        {
-            title: "Cancellation Policy",
-            description:
-                "Lesson reservations can only be cancelled up to 3 hours before the reservation time.",
-        },
-        {
-            title: "No-show Policy",
-            description: "A no-show will result in one lesson ticket deduction.",
-        },
-    ],
-    bay: [
-        {
-            title: "Cancellation Policy",
-            description:
-                "Bay reservations can only be cancelled up to 3 hours before the reservation time.",
-        },
-        {
-            title: "No-show Policy",
-            description: "A no-show will result in one bays ticket deduction.",
-        },
-    ],
-} as const;
 
 const BANNER_STYLE = {
     borderCurve: "continuous" as const,
@@ -94,16 +70,21 @@ function isLessonReservationDetail(
     return reservation.reservationType === "lesson";
 }
 
-function getReservationTitle(reservation: MemberReservationDetailResponse) {
+function getReservationTitle(
+    reservation: MemberReservationDetailResponse,
+    t: (key: string, options?: Record<string, unknown>) => string,
+) {
     if (isBayReservationDetail(reservation)) {
-        return reservation.bayName || `Bay Reservation #${reservation.id}`;
+        return reservation.bayName || t("reservations.bayReservationWithId", {
+            id: reservation.id,
+        });
     }
 
     return (
         reservation.lessonAvailability?.name ??
         reservation.lessonProgramGroupName ??
         reservation.lessonProgramName ??
-        `Reservation #${reservation.id}`
+        t("reservations.reservationFallbackWithId", { id: reservation.id })
     );
 }
 
@@ -158,25 +139,54 @@ function getReservationStatusTone(
     }
 }
 
-function getReservationStatusDescription(value?: string | null) {
+function getReservationStatusDescription(
+    value: string | null | undefined,
+    t: (key: string) => string,
+) {
     switch (value) {
         case "RESERVED":
-            return "Awaiting check-in";
+            return t("reservations.awaitingCheckIn");
         case "CHECKED_IN":
-            return "Checked in and active";
+            return t("reservations.checkedInActive");
         case "COMPLETED":
-            return "Session completed";
+            return t("reservations.sessionCompleted");
         case "CANCELLED":
         case "CANCELED":
-            return "Reservation cancelled";
+            return t("reservations.reservationCancelled");
         case "NO_SHOW":
-            return "Marked absent";
+            return t("reservations.markedAbsent");
         default:
-            return "Status unavailable";
+            return t("reservations.statusUnavailable");
     }
 }
 
+function getReservationPolicies(t: (key: string) => string) {
+    return {
+        lesson: [
+            {
+                title: t("bookingConfirmation.lessonCancellationPolicyTitle"),
+                description: t("bookingConfirmation.lessonCancellationPolicyDescription"),
+            },
+            {
+                title: t("bookingConfirmation.lessonNoShowPolicyTitle"),
+                description: t("bookingConfirmation.lessonNoShowPolicyDescription"),
+            },
+        ],
+        bay: [
+            {
+                title: t("bookingConfirmation.bayCancellationPolicyTitle"),
+                description: t("bookingConfirmation.bayCancellationPolicyDescription"),
+            },
+            {
+                title: t("bookingConfirmation.bayNoShowPolicyTitle"),
+                description: t("bookingConfirmation.bayNoShowPolicyDescription"),
+            },
+        ],
+    } as const;
+}
+
 export default function ReservationDetailScreen() {
+    const { t } = useTranslation();
     const { id, type } = useLocalSearchParams<ReservationParams>();
 
     const colors = useThemeColors();
@@ -203,12 +213,12 @@ export default function ReservationDetailScreen() {
         useCancelMemberBayReservation();
 
     const screenOptions = {
-        title: "Reservation Detail",
+        title: t("reservations.reservationDetailTitle"),
         headerLeft: () => (
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={
-                    canGoBack ? "Go back" : "Back to reservation list"
+                    canGoBack ? t("reservations.goBack") : t("reservations.backToList")
                 }
                 className="pr-3"
                 onPress={() => {
@@ -271,9 +281,9 @@ export default function ReservationDetailScreen() {
                     }
                 >
                     <ErrorState
-                        title="Failed to load reservation details"
-                        message="Pull to refresh and try again."
-                        actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                        title={t("reservations.failedDetailTitle")}
+                        message={t("common.pullToRefreshAndTryAgain")}
+                        actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                         onAction={() => {
                             void refetch();
                         }}
@@ -300,11 +310,11 @@ export default function ReservationDetailScreen() {
                     }
                 >
                     <EmptyState
-                        title="Reservation not available"
+                        title={t("reservations.notAvailableTitle")}
                         message={
                             reservationType
-                                ? "The requested reservation could not be found."
-                                : "Reservation type is missing for this detail view."
+                                ? t("reservations.notFoundMessage")
+                                : t("reservations.typeMissingMessage")
                         }
                     />
                 </Screen>
@@ -320,11 +330,11 @@ export default function ReservationDetailScreen() {
     const canCancelReservation = reservation.reservationStatus === "RESERVED";
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
 
-    const title = getReservationTitle(reservation);
+    const title = getReservationTitle(reservation, t);
     const dateValue = formatDateForDisplay(reservation.startTime) || "-";
     const timeValue = formatTimeRange(reservation.startTime, reservation.endTime);
     const reservationLocationValue = isBayReservation
-        ? reservation.bayName || `Bay #${reservation.baySlot.bayId}`
+        ? reservation.bayName || t("reservations.bayWithId", { id: reservation.baySlot.bayId })
         : lessonReservation?.lessonAvailability?.name ??
         lessonReservation?.lessonProgramGroupName ??
         lessonReservation?.lessonProgramName ??
@@ -346,9 +356,10 @@ export default function ReservationDetailScreen() {
 
     const noteValue = reservation.memberNotes?.trim() || "-";
 
+    const reservationPolicies = getReservationPolicies(t);
     const policies = isBayReservation
-        ? RESERVATION_POLICIES.bay
-        : RESERVATION_POLICIES.lesson;
+        ? reservationPolicies.bay
+        : reservationPolicies.lesson;
 
     const lessonDetailsHref =
         !isBayReservation &&
@@ -374,7 +385,7 @@ export default function ReservationDetailScreen() {
             : null;
     const lessonLogValue = isBayReservation
         ? ""
-        : lessonReservation?.lessonLog?.name?.trim() || "View lesson post";
+        : lessonReservation?.lessonLog?.name?.trim() || t("reservations.viewLessonPost");
 
     const handleCancelReservation = () => {
         if (!canCancelReservation || isCancelling) {
@@ -415,10 +426,10 @@ export default function ReservationDetailScreen() {
 
             <ConfirmSheet
                 visible={isCancelSheetVisible}
-                title="Cancel Reservation"
-                message="Are you sure you want to cancel this reservation? This action cannot be undone."
-                confirmLabel="Cancel Reservation"
-                cancelLabel="Keep Reservation"
+                title={t("reservations.cancelTitle")}
+                message={t("reservations.cancelMessage")}
+                confirmLabel={t("reservations.cancelTitle")}
+                cancelLabel={t("reservations.keepReservation")}
                 variant="danger"
                 loading={isCancelling}
                 onClose={() => {
@@ -443,7 +454,7 @@ export default function ReservationDetailScreen() {
                     canCancelReservation ? (
                         <View className="border-t border-border bg-background px-6 pb-8 pt-4">
                             <Button
-                                title="Cancel Reservation"
+                                title={t("reservations.cancelTitle")}
                                 variant="danger"
                                 loading={isCancelling}
                                 className="rounded-xl"
@@ -464,17 +475,17 @@ export default function ReservationDetailScreen() {
                     <View className="flex-col gap-2">
                         <View className="flex-col">
 
-                            <DetailRow label="Date" value={dateValue} />
+                            <DetailRow label={t("bookingConfirmation.dateLabel")} value={dateValue} />
 
                             <Divider className="bg-border" />
 
-                            <DetailRow label="Time" value={timeValue} />
+                            <DetailRow label={t("bookingConfirmation.timeLabel")} value={timeValue} />
 
                             {isBayReservation ? (
                                 <>
                                     <Divider className="bg-border" />
                                     <DetailRow
-                                        label="Bay"
+                                        label={t("reservations.bayLabel")}
                                         value={reservationLocationValue}
                                     />
                                 </>
@@ -483,7 +494,7 @@ export default function ReservationDetailScreen() {
                             {programValue !== "-" ? (
                                 <>
                                     <Divider className="bg-border" />
-                                    <DetailRow label="Program" value={programValue} />
+                                    <DetailRow label={t("reservations.programLabel")} value={programValue} />
                                 </>
                             ) : null}
 
@@ -491,7 +502,7 @@ export default function ReservationDetailScreen() {
                                 <>
                                     <Divider className="bg-border" />
                                     <CoachDetailRow
-                                        label="Coach"
+                                        label={t("reservations.coachLabel")}
                                         value={coachName}
                                         imageUrl={
                                             lessonReservation?.coach?.profileImage
@@ -504,7 +515,7 @@ export default function ReservationDetailScreen() {
                                 <>
                                     <Divider className="bg-border" />
                                     <DetailRow
-                                        label="Lesson"
+                                        label={t("reservations.lessonLabel")}
                                         value={lessonNameValue}
                                         href={lessonDetailsHref}
                                     />
@@ -515,7 +526,7 @@ export default function ReservationDetailScreen() {
                                 <>
                                     <Divider className="bg-border" />
                                     <DetailRow
-                                        label="Lesson Post"
+                                        label={t("reservations.lessonPostLabel")}
                                         value={lessonLogValue}
                                         href={lessonLogHref}
                                     />
@@ -525,7 +536,7 @@ export default function ReservationDetailScreen() {
                             <>
                                 <Divider className="bg-border" />
                                 <DetailRow
-                                    label="Notes"
+                                    label={t("reservations.notesLabel")}
                                     value={noteValue}
                                 />
                             </>
@@ -582,6 +593,7 @@ function ReservationStatusBanner({
 }: {
     reservationStatus?: string | null;
 }) {
+    const { t } = useTranslation();
     const colors = useThemeColors();
     const statusLabel = formatType(reservationStatus);
     const statusTone = getReservationStatusTone(colors, reservationStatus);
@@ -618,7 +630,7 @@ function ReservationStatusBanner({
                     variant="meta"
                     className={`font-medium ${statusTone.mutedClassName}`}
                 >
-                    {getReservationStatusDescription(reservationStatus)}
+                    {getReservationStatusDescription(reservationStatus, t)}
                 </AppText>
             </View>
         </View>

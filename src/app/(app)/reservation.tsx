@@ -1,5 +1,4 @@
 import {
-    RESERVATION_TAB_LABELS,
     RESERVATION_TABS,
     ReservationTabScene,
 } from "@/components/golf/reservation/ReservationTabScene";
@@ -8,8 +7,10 @@ import { cn } from "@/design-system";
 import { MemberReservationType } from "@/service/reservation.service";
 import { useState } from "react";
 import { Pressable, ScrollView } from "react-native";
+import { useTranslation } from "react-i18next";
 
 export default function ReservationScreen() {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<MemberReservationType>(
         RESERVATION_TABS[0],
     );
@@ -36,7 +37,9 @@ export default function ReservationScreen() {
                         <Pressable
                             key={tab}
                             accessibilityRole="button"
-                            accessibilityLabel={`Show ${RESERVATION_TAB_LABELS[tab]} reservations`}
+                            accessibilityLabel={t("reservations.showTabAccessibility", {
+                                label: t(`reservations.tabs.${tab}`),
+                            })}
                             accessibilityState={{ selected: isActive }}
                             className={cn(
                                 "h-9 items-center justify-center rounded-full border px-4 active:opacity-80",
@@ -56,7 +59,7 @@ export default function ReservationScreen() {
                                     isActive ? "text-primary" : "text-foreground",
                                 )}
                             >
-                                {RESERVATION_TAB_LABELS[tab]}
+                                {t(`reservations.tabs.${tab}`)}
                             </AppText>
                         </Pressable>
                     );

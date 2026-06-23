@@ -10,26 +10,25 @@ import {
     useThemeColors,
     useThemePreference,
 } from "@/design-system";
+import { setAppLanguage, type AppLanguage } from "@/i18n";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import { signOut } from "@/service/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
-import { Moon, Smartphone, Sun } from "lucide-react-native";
+import { Languages, Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
-
-const THEME_OPTIONS: { label: string; value: ThemePreference }[] = [
-    { label: "System", value: "system" },
-    { label: "Light", value: "light" },
-    { label: "Dark", value: "dark" },
-];
+const APP_VERSION = "v 1.0.0";
 
 export default function ProfileScreen() {
+    const { i18n, t } = useTranslation();
     const queryClient = useQueryClient();
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
+    const [isChangingLanguage, setIsChangingLanguage] = useState(false);
     const { isThemeReady, themePreference, setThemePreference } = useThemePreference();
 
     const {
@@ -57,7 +56,7 @@ export default function ProfileScreen() {
                 message:
                     error instanceof Error
                         ? error.message
-                        : "Could not sign out. Please try again.",
+                        : t("profile.signOutError"),
                 type: "error",
             });
         } finally {
@@ -74,15 +73,15 @@ export default function ProfileScreen() {
     };
 
     if (isLoading) {
-        return <CircleLoader fullScreen label="Loading your profile..." />;
+        return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
     }
 
     if (isError) {
         return (
             <ErrorState
-                title="Could not load profile"
-                message={error instanceof Error ? error.message : "Please try again."}
-                actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                title={t("home.couldNotLoadProfile")}
+                message={error instanceof Error ? error.message : t("common.refreshTryAgain")}
+                actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                 onAction={() => {
                     void refetch();
                 }}
@@ -103,9 +102,9 @@ export default function ProfileScreen() {
         >
             <ConfirmSheet
                 visible={isSignOutSheetVisible}
-                title="Log Out"
-                message="Are you sure you want to log out of this account?"
-                confirmLabel="Log Out"
+                title={t("profile.logOutTitle")}
+                message={t("profile.logOutMessage")}
+                confirmLabel={t("profile.logOutTitle")}
                 variant="danger"
                 loading={isSigningOut}
                 onClose={() => {
@@ -127,43 +126,38 @@ export default function ProfileScreen() {
                 />
 
                 <View className="flex-col gap-2">
-                    <SectionTitle title="Personal Record" />
-                    <LinkRow label="Lesson Log" href="/lesson-log" />
+                    <SectionTitle title={t("profile.personalRecord")} />
+                    <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
                 </View>
 
                 <View className="flex-col gap-2">
-                    <SectionTitle title="General Info" />
+                    <SectionTitle title={t("profile.generalInfo")} />
 
                     <View className="flex-col">
-                        <InfoRow label="Check-in No." value={member?.checkinNumber} />
-                        <InfoRow label="Phone" value={member?.phoneNumber} />
-                        <InfoRow label="Gender" value={member?.gender} />
-                        <InfoRow label="Date of Birth" value={member?.dateOfBirth} />
-                        <InfoRow label="Address" value={member?.address} />
-                        {member?.memo ? (
-                            <InfoRow label="Memo" value={member.memo} />
-                        ) : null}
+                        <InfoRow label={t("profile.checkInNo")} value={member?.checkinNumber} />
+                        <InfoRow label={t("profile.phone")} value={member?.phoneNumber} />
+                        <InfoRow label={t("profile.gender")} value={member?.gender} />
                     </View>
                 </View>
 
                 {member?.grade ? (
                     <View className="flex-col gap-2">
-                        <SectionTitle title="School Info" />
+                        <SectionTitle title={t("profile.schoolInfo")} />
 
                         <View className="flex-col">
-                            <InfoRow label="School" value={member.grade.schoolName} />
+                            <InfoRow label={t("profile.school")} value={member.grade.schoolName} />
                             <InfoRow
-                                label="School Code"
+                                label={t("profile.schoolCode")}
                                 value={member.grade.schoolCode}
                             />
-                            <InfoRow label="Grade" value={member.grade.name} />
+                            <InfoRow label={t("profile.grade")} value={member.grade.name} />
                         </View>
                     </View>
                 ) : null}
 
                 {member?.parents && member.parents.length > 0 ? (
                     <View className="flex-col gap-2">
-                        <SectionTitle title="Parents / Guardians" />
+                        <SectionTitle title={t("profile.parentsGuardians")} />
 
                         <View className="flex-col">
                             {member.parents.map((parent, index) => (
@@ -183,15 +177,40 @@ export default function ProfileScreen() {
 
 
                 <View className="flex-col gap-3">
-                    <SectionTitle title="Settings" />
+                    <SectionTitle title={t("profile.settings")} />
 
                     <LinkRow
-                        label="Edit Personal Information"
+                        label={t("profile.editPersonalInformation")}
                         href="/profile/edit"
                     />
                     <LinkRow
-                        label="Change Password"
+                        label={t("profile.changePassword")}
                         href="/profile/change-password"
+                    />
+                    <LanguagePreferenceRow
+                        currentLanguage={resolveProfileLanguage(i18n.resolvedLanguage || i18n.language)}
+                        disabled={isChangingLanguage}
+                        onChange={async (nextLanguage) => {
+                            if (isChangingLanguage) {
+                                return;
+                            }
+
+                            setIsChangingLanguage(true);
+
+                            try {
+                                await setAppLanguage(nextLanguage);
+                            } catch (error) {
+                                showAppToast({
+                                    message:
+                                        error instanceof Error
+                                            ? error.message
+                                            : t("common.refreshTryAgain"),
+                                    type: "error",
+                                });
+                            } finally {
+                                setIsChangingLanguage(false);
+                            }
+                        }}
                     />
 
                     <SignOutButton
@@ -201,7 +220,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View className="flex-col gap-3">
-                    <SectionTitle title="Appearance" />
+                    <SectionTitle title={t("profile.appearance")} />
 
                     <ThemePreferenceRow
                         preference={themePreference}
@@ -211,9 +230,20 @@ export default function ProfileScreen() {
                         }}
                     />
                 </View>
+
+                <AppText
+                    variant="caption"
+                    className="pb-2 text-center text-muted-foreground"
+                >
+                    {APP_VERSION}
+                </AppText>
             </View>
         </Screen>
     );
+}
+
+function resolveProfileLanguage(language: string | undefined): AppLanguage {
+    return language?.toLowerCase().startsWith("ko") ? "ko" : "en";
 }
 
 function ProfileHeader({
@@ -299,6 +329,7 @@ function ProfileAvatar({
 }
 
 function StatusBadge({ isActive }: { isActive?: boolean }) {
+    const { t } = useTranslation();
     return (
         <View
             className={`self-start rounded-md px-3.5 py-1 ${isActive ? "bg-success/10" : "bg-danger/10"
@@ -308,7 +339,7 @@ function StatusBadge({ isActive }: { isActive?: boolean }) {
                 variant="badge"
                 className={isActive ? "text-success" : "text-danger"}
             >
-                {isActive ? "Active" : "Inactive"}
+                {isActive ? t("profile.active") : t("profile.inactive")}
             </AppText>
         </View>
     );
@@ -372,6 +403,7 @@ function ParentRow({
     childrenCount: number;
     showDivider: boolean;
 }) {
+    const { t } = useTranslation();
     return (
         <View
             className={`flex-row items-center gap-4 py-4 ${showDivider ? "border-b border-border" : ""
@@ -409,7 +441,7 @@ function ParentRow({
                     className="text-foreground/75"
                     style={{ fontVariant: ["tabular-nums"] }}
                 >
-                    {childrenCount} child{childrenCount !== 1 ? "ren" : ""}
+                    {t("profile.childCount", { count: childrenCount })}
                 </AppText>
             </View>
         </View>
@@ -433,23 +465,29 @@ function ThemePreferenceRow({
     preference: ThemePreference;
     onChange: (preference: ThemePreference) => void;
 }) {
+    const { t } = useTranslation();
     const colors = useThemeColors();
     const [isThemeSheetVisible, setIsThemeSheetVisible] = useState(false);
+    const themeOptions: { label: string; value: ThemePreference }[] = [
+        { label: t("profile.system"), value: "system" },
+        { label: t("profile.light"), value: "light" },
+        { label: t("profile.dark"), value: "dark" },
+    ];
     const selectedLabel =
-        THEME_OPTIONS.find((option) => option.value === preference)?.label ?? "System";
+        themeOptions.find((option) => option.value === preference)?.label ?? t("profile.system");
 
     return (
         <>
             <ListRow
                 accessibilityRole="button"
-                accessibilityLabel="Choose app appearance"
+                accessibilityLabel={t("profile.chooseAppAppearance")}
                 disabled={disabled}
                 onPress={() => {
                     if (!disabled) {
                         setIsThemeSheetVisible(true);
                     }
                 }}
-                title="Theme"
+                title={t("profile.theme")}
                 meta={selectedLabel}
             />
 
@@ -457,6 +495,7 @@ function ThemePreferenceRow({
                 visible={isThemeSheetVisible}
                 preference={preference}
                 colors={colors}
+                t={t}
                 onClose={() => {
                     setIsThemeSheetVisible(false);
                 }}
@@ -468,30 +507,105 @@ function ThemePreferenceRow({
     );
 }
 
+function LanguagePreferenceRow({
+    currentLanguage,
+    disabled,
+    onChange,
+}: {
+    currentLanguage: AppLanguage;
+    disabled: boolean;
+    onChange: (language: AppLanguage) => Promise<void>;
+}) {
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+    const [isLanguageSheetVisible, setIsLanguageSheetVisible] = useState(false);
+    const languageOptions: { label: string; value: AppLanguage }[] = [
+        { label: t("profile.english"), value: "en" },
+        { label: t("profile.korean"), value: "ko" },
+    ];
+    const selectedLabel =
+        languageOptions.find((option) => option.value === currentLanguage)?.label ??
+        t("profile.english");
+
+    return (
+        <>
+            <ListRow
+                accessibilityRole="button"
+                accessibilityLabel={t("profile.chooseAppLanguage")}
+                disabled={disabled}
+                onPress={() => {
+                    if (!disabled) {
+                        setIsLanguageSheetVisible(true);
+                    }
+                }}
+                title={t("profile.language")}
+                meta={selectedLabel}
+            />
+
+            <ActionSheet
+                visible={isLanguageSheetVisible}
+                title={t("profile.language")}
+                description={t("profile.languageDescription")}
+                onClose={() => {
+                    if (!disabled) {
+                        setIsLanguageSheetVisible(false);
+                    }
+                }}
+                options={[
+                    {
+                        key: "en",
+                        title: t("profile.english"),
+                        description: t("profile.useEnglishLanguage"),
+                        icon: <Languages size={22} color={colors.foreground} />,
+                        selected: currentLanguage === "en",
+                        onPress: () => {
+                            void onChange("en");
+                            setIsLanguageSheetVisible(false);
+                        },
+                    },
+                    {
+                        key: "ko",
+                        title: t("profile.korean"),
+                        description: t("profile.useKoreanLanguage"),
+                        icon: <Languages size={22} color={colors.foreground} />,
+                        selected: currentLanguage === "ko",
+                        onPress: () => {
+                            void onChange("ko");
+                            setIsLanguageSheetVisible(false);
+                        },
+                    },
+                ]}
+            />
+        </>
+    );
+}
+
 function ThemePreferenceSheet({
     visible,
     preference,
     colors,
+    t,
     onClose,
     onSelect,
 }: {
     visible: boolean;
     preference: ThemePreference;
     colors: ReturnType<typeof useThemeColors>;
+    t: (key: string) => string;
     onClose: () => void;
     onSelect: (preference: ThemePreference) => void;
 }) {
     return (
         <ActionSheet
             visible={visible}
-            title="Appearance"
-            description="Choose how the app should look."
+            title={t("profile.appearance")}
+            description={t("profile.appearanceDescription")}
             onClose={onClose}
             options={[
                 {
                     key: "system",
-                    title: "System",
-                    description: "Follow your device setting",
+                    title: t("profile.system"),
+                    description: t("profile.followDeviceSetting"),
                     icon: <Smartphone size={22} color={colors.foreground} />,
                     selected: preference === "system",
                     onPress: () => {
@@ -500,8 +614,8 @@ function ThemePreferenceSheet({
                 },
                 {
                     key: "light",
-                    title: "Light",
-                    description: "Use the light appearance",
+                    title: t("profile.light"),
+                    description: t("profile.useLightAppearance"),
                     icon: <Sun size={22} color={colors.foreground} />,
                     selected: preference === "light",
                     onPress: () => {
@@ -510,8 +624,8 @@ function ThemePreferenceSheet({
                 },
                 {
                     key: "dark",
-                    title: "Dark",
-                    description: "Use the dark appearance",
+                    title: t("profile.dark"),
+                    description: t("profile.useDarkAppearance"),
                     icon: <Moon size={22} color={colors.foreground} />,
                     selected: preference === "dark",
                     onPress: () => {
@@ -530,6 +644,7 @@ function SignOutButton({
     isSigningOut: boolean;
     onPress: () => void;
 }) {
+    const { t } = useTranslation();
     return (
         <Pressable
             onPress={onPress}
@@ -539,7 +654,7 @@ function SignOutButton({
             }`}
         >
             <AppText variant="label" className="text-danger">
-                {isSigningOut ? "Logging Out..." : "Log Out"}
+                {isSigningOut ? t("profile.loggingOut") : t("profile.logOut")}
             </AppText>
         </Pressable>
     );

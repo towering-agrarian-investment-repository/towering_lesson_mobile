@@ -16,9 +16,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
 function LessonLogScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const {
@@ -77,9 +79,9 @@ function LessonLogScreen() {
                     refreshControl={refreshControl}
                     emptyComponent={
                         <ErrorState
-                            title="Failed to load lesson posts"
-                            message="Pull to refresh and try again."
-                            actionLabel={isRefetching ? "Refreshing..." : "Try Again"}
+                            title={t("lessonLog.failedPostsTitle")}
+                            message={t("common.pullToRefreshAndTryAgain")}
+                            actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                             onAction={() => {
                                 void refetch();
                             }}
@@ -91,9 +93,9 @@ function LessonLogScreen() {
                     refreshControl={refreshControl}
                     emptyComponent={
                         <EmptyState
-                            title="No lesson posts yet"
-                            message="Your lesson posts will appear here after each lesson."
-                            actionLabel="Refresh"
+                            title={t("lessonLog.noPostsTitle")}
+                            message={t("lessonLog.noPostsMessage")}
+                            actionLabel={t("lessonLog.refresh")}
                             onAction={() => {
                                 void refetch();
                             }}
@@ -129,13 +131,14 @@ function LessonLogRow({
     disabled: boolean;
     onPress: () => void;
 }) {
+    const { t } = useTranslation();
     const reservationName = item.reservation?.name?.trim();
     const reviewLabel =
-        item.status === "APPROVED" ? "Comment submitted" : "Leave a review";
+        item.status === "APPROVED" ? t("lessonLog.commentSubmitted") : t("lessonLog.leaveReview");
 
     return (
         <ListRow
-            title={`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? "Coach"}`}
+            title={`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
             subtitle={reservationName || reviewLabel}
             meta={reservationName ? reviewLabel : undefined}
             disabled={disabled}
