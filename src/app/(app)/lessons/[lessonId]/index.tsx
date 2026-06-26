@@ -1,9 +1,8 @@
 import {
     AppText,
     Badge,
-    EmptyState,
+    CompactEmptyState,
     ErrorState,
-    InlineState,
     ListRow,
     Screen,
     Skeleton,
@@ -99,8 +98,8 @@ export default function StandaloneLessonDetailScreen() {
 
     if (!detail || !lesson) {
         return (
-            <Screen contentClassName="grow" refreshControl={refreshControl}>
-                <EmptyState
+            <Screen contentClassName="gap-5" refreshControl={refreshControl}>
+                <CompactEmptyState
                     title={t("lessons.lessonNotAvailableTitle")}
                     message={t("lessons.lessonNotFoundMessage")}
                 />
@@ -161,7 +160,7 @@ export default function StandaloneLessonDetailScreen() {
 
             <SectionHeader title={t("lessons.sessionsTitle")} count={sessions.length} />
             {sessions.length === 0 ? (
-                <InlineState
+                <CompactEmptyState
                     title={t("lessons.noSessions")}
                 />
             ) : (
@@ -185,7 +184,7 @@ export default function StandaloneLessonDetailScreen() {
 
             <SectionHeader title={t("lessons.homeworkTitle")} count={homeworks.length} />
             {homeworks.length === 0 ? (
-                <InlineState
+                <CompactEmptyState
                     title={t("lessons.noHomework")}
                 />
             ) : (

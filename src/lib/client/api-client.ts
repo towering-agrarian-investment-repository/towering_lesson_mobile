@@ -1,5 +1,6 @@
 import { authClient } from "../auth-client";
 import { env } from "../config/env";
+import i18n from "../../i18n";
 
 const API_BASE_URL = env.apiBaseUrl;
 
@@ -45,6 +46,10 @@ export async function apiClient<T = unknown>(
 
     const headers = new Headers(options.headers);
     headers.set("Authorization", `Bearer ${jwtToken}`);
+
+    if (!headers.has("Accept-Language")) {
+        headers.set("Accept-Language", i18n.resolvedLanguage ?? i18n.language ?? "en");
+    }
 
     if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
         headers.set("Content-Type", "application/json");

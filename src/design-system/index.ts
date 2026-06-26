@@ -12,6 +12,7 @@ export * from "./components/CircleLoader";
 export * from "./components/Skeleton";
 export * from "./components/StateCard";
 export * from "./components/InlineState";
+export * from "./components/CompactEmptyState";
 export * from "./components/ActionSheet";
 export * from "./components/ConfirmSheet";
 

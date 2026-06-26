@@ -1,13 +1,14 @@
 export type GenderEnum = "MALE" | "FEMALE" | "OTHER";
-export type MemberResponse = {
+
+export type MemberSelfResponse = {
     id: number;
     authUserId: string;
     name: string;
     username: string;
-    phoneNumber: string | null;
+    phoneNumber: string;
     profileImage: string | null;
     gender: GenderEnum | null;
-    checkinNumber: string | null;
+    checkinNumber: string;
     isActive: boolean;
     grade: MemberGradeResponse | null;
     latestTicket: TicketResponse | null;

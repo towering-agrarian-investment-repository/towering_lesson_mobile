@@ -2,12 +2,12 @@ import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 import {
     UpdateMyProfileRequest,
-    MemberResponse,
+    MemberSelfResponse,
 } from "@/types/member.type";
 
 export const getMemberProfile = async (
     signal?: AbortSignal,
-): Promise<ApiResponse<MemberResponse>> => {
+): Promise<ApiResponse<MemberSelfResponse>> => {
     return apiClient("/member/me", {
         method: "GET",
         signal,
@@ -16,7 +16,7 @@ export const getMemberProfile = async (
 
 export const updateMemberProfile = async (
     payload: UpdateMyProfileRequest,
-): Promise<ApiResponse<MemberResponse>> => {
+): Promise<ApiResponse<MemberSelfResponse>> => {
     return apiClient("/member/me/mobile", {
         method: "PUT",
         body: JSON.stringify(payload),

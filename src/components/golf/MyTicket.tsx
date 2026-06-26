@@ -3,7 +3,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { showAppToast } from "@/lib/toast/toast";
-import { MemberResponse } from "@/types/member.type";
+import { MemberSelfResponse } from "@/types/member.type";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -14,7 +14,7 @@ import TicketCard from "./TicketCard";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 
 type Props = {
-    member: MemberResponse
+    member: MemberSelfResponse
 };
 
 function MyTicket({ member }: Props) {

@@ -2,12 +2,12 @@ import { ApiResponse, responseError, responseStatus } from "@/lib/api-response/a
 import { getMemberProfile, updateMemberProfile } from "@/service/user";
 import {
     UpdateMyProfileRequest,
-    MemberResponse,
+    MemberSelfResponse,
 } from "@/types/member.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useGetMemberProfile() {
-    return useQuery<ApiResponse<MemberResponse>>({
+    return useQuery<ApiResponse<MemberSelfResponse>>({
         queryKey: ["member", "profile"],
         queryFn: ({ signal }) => getMemberProfile(signal),
         staleTime: 5 * 60_000,
@@ -18,7 +18,7 @@ export function useUpdateMemberProfile() {
     const queryClient = useQueryClient();
 
     return useMutation<
-        ApiResponse<MemberResponse>,
+        ApiResponse<MemberSelfResponse>,
         unknown,
         UpdateMyProfileRequest
     >({

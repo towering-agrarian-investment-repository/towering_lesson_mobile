@@ -1,4 +1,4 @@
-import { EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import { CompactEmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { LessonSessionsView } from "@/components/golf/LessonSessionsView";
 import { useMemberLessonById } from "@/lib/hook/useMemberLessonFlow";
 import { useLocalSearchParams } from "expo-router";
@@ -38,7 +38,7 @@ export default function LessonSessionsScreen() {
     if (isError) {
         return (
             <Screen
-                contentClassName="grow"
+                contentClassName="gap-5"
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefetching}
@@ -73,7 +73,7 @@ export default function LessonSessionsScreen() {
                     />
                 }
             >
-                <EmptyState
+                <CompactEmptyState
                     title={t("lessonSessions.noSessionsTitle")}
                     message={t("lessonSessions.noSessionsMessage")}
                 />

@@ -1,9 +1,8 @@
 import {
     AppText,
     Badge,
-    EmptyState,
+    CompactEmptyState,
     ErrorState,
-    InlineState,
     ListRow,
     Screen,
     Skeleton,
@@ -120,8 +119,8 @@ export default function GroupDetailScreen() {
 
     if (!group) {
         return (
-            <Screen contentClassName="grow" refreshControl={refreshControl}>
-                <EmptyState
+            <Screen contentClassName="gap-5" refreshControl={refreshControl}>
+                <CompactEmptyState
                     title={t("groupsFlow.groupNotAvailableTitle")}
                     message={t("groupsFlow.groupNotFoundMessage")}
                 />
@@ -184,7 +183,7 @@ export default function GroupDetailScreen() {
 
             <SectionHeader title={t("groupsFlow.lessonsTitle")} count={lessons.length} />
             {lessons.length === 0 ? (
-                <InlineState
+                <CompactEmptyState
                     title={t("groupsFlow.noLessons")}
                 />
             ) : (
@@ -219,7 +218,7 @@ export default function GroupDetailScreen() {
 
             <SectionHeader title={t("groupsFlow.homeworkTitle")} count={groupHomeworks.length} />
             {groupHomeworks.length === 0 ? (
-                <InlineState
+                <CompactEmptyState
                     title={t("groupsFlow.noHomework")}
                 />
             ) : (

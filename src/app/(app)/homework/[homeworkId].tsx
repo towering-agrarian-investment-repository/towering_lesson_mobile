@@ -3,7 +3,7 @@ import {
     Badge,
     Button,
     Card,
-    EmptyState,
+    CompactEmptyState,
     ErrorState,
     ListRow,
     Screen,
@@ -176,8 +176,8 @@ export default function HomeworkDetailScreen() {
 
     if (!homework) {
         return (
-            <Screen contentClassName="grow" refreshControl={refreshControl}>
-                <EmptyState
+            <Screen contentClassName="gap-5" refreshControl={refreshControl}>
+                <CompactEmptyState
                     title={t("homework.notAvailableTitle")}
                     message={t("homework.notFoundMessage")}
                 />
@@ -336,7 +336,7 @@ export default function HomeworkDetailScreen() {
             </View>
 
             {submissions.length === 0 ? (
-                <EmptyState
+                <CompactEmptyState
                     title={t("homework.noSubmissionsTitle")}
                     message={t("homework.noSubmissionsMessage")}
                 />

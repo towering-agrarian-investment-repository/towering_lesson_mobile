@@ -2,6 +2,7 @@ import {
     AppText,
     Badge,
     Card,
+    CompactEmptyState,
     InlineState,
     Skeleton,
     useThemeColors,
@@ -62,7 +63,7 @@ export function MemberGroups() {
                     tone="danger"
                 />
             ) : groups.length === 0 ? (
-                <InlineState
+                <CompactEmptyState
                     title={t("groups.empty")}
                 />
             ) : (
