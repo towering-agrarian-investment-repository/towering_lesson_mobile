@@ -18,6 +18,7 @@ function TabLayout({ }: Props) {
                 headerTintColor: colors.foreground,
                 headerTitleStyle: {
                     color: colors.foreground,
+                    fontWeight: "700",
                 },
                 headerTitleAlign: "left",
                 headerLeftContainerStyle: {
@@ -34,15 +35,20 @@ function TabLayout({ }: Props) {
                     backgroundColor: colors.background,
                     borderTopColor: colors.border,
                     borderTopWidth: resolvedScheme === "dark" ? 1 : 0,
-                    height: 64 + insets.bottom,
+                    height: 68 + insets.bottom,
                     paddingBottom: Math.max(insets.bottom, 10),
-                    paddingTop: 6,
+                    paddingTop: 8,
                 },
                 tabBarItemStyle: {
-                    marginHorizontal: 6,
+                    marginHorizontal: 4,
                     marginVertical: 4,
-                    borderRadius: 12,
+                    borderRadius: 14,
                 },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: "700",
+                },
+                tabBarHideOnKeyboard: true,
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.mutedForeground,
             }}

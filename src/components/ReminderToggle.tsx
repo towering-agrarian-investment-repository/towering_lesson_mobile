@@ -1,50 +1,134 @@
-import { cancelMealReminders, requestPermission, scheduleMealReminders } from "@/utils/notification";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+    AppText as Text,
+    getPressedScaleStyle,
+    triggerSelectionHaptic,
+} from "@/design-system";
+import { registerForPushNotifications } from "@/lib/config/notification/registerPushNotification";
+import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
-import { AppText as Text, useThemeColors } from "@/design-system";
 import { useTranslation } from "react-i18next";
-import { Switch, View } from "react-native";
+import {
+    AppState,
+    Linking,
+    Pressable,
+    Switch,
+    View,
+} from "react-native";
 
-const REMINDERS_KEY = "remindersEnabled";
+type PermissionState = {
+    granted: boolean;
+    canAskAgain: boolean;
+};
+
+async function getPermissionState(): Promise<PermissionState> {
+    const settings = await Notifications.getPermissionsAsync();
+
+    return {
+        granted: settings.granted,
+        canAskAgain: settings.canAskAgain,
+    };
+}
 
 export default function ReminderToggle() {
     const { t } = useTranslation();
     const [enabled, setEnabled] = useState(false);
-    const colors = useThemeColors();
+    const [canAskAgain, setCanAskAgain] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const syncPermissionState = async () => {
+        const permissionState = await getPermissionState();
+
+        setEnabled(permissionState.granted);
+        setCanAskAgain(permissionState.canAskAgain);
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        const load = async () => {
-            const value = await AsyncStorage.getItem(REMINDERS_KEY);
-            setEnabled(value === "true");
-        };
+        void syncPermissionState();
 
-        void load();
+        const subscription = AppState.addEventListener("change", (nextState) => {
+            if (nextState === "active") {
+                void syncPermissionState();
+            }
+        });
+
+        return () => {
+            subscription.remove();
+        };
     }, []);
 
-    const toggle = async (value: boolean) => {
-        if (value) {
-            const granted = await requestPermission();
-            if (!granted) {
+    const handleOpenSettings = () => {
+        triggerSelectionHaptic();
+        void Linking.openSettings();
+    };
+
+    const handleToggle = async (value: boolean) => {
+        if (isUpdating) {
+            return;
+        }
+
+        if (!value) {
+            handleOpenSettings();
+            return;
+        }
+
+        setIsUpdating(true);
+
+        try {
+            const currentPermission = await getPermissionState();
+
+            if (currentPermission.granted) {
+                setEnabled(true);
+                setCanAskAgain(currentPermission.canAskAgain);
                 return;
             }
 
-            await scheduleMealReminders();
-        } else {
-            await cancelMealReminders();
-        }
+            if (currentPermission.canAskAgain) {
+                await registerForPushNotifications();
+            }
 
-        setEnabled(value);
-        await AsyncStorage.setItem(REMINDERS_KEY, value.toString());
+            await syncPermissionState();
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
+    const showSettingsHelper = !enabled && !canAskAgain && !isLoading;
+
     return (
-        <View className="mt-7 flex-row items-center justify-between">
-            <Text variant="body">{t("reminder.mealReminders")}</Text>
-            <Switch
-                value={enabled}
-                onValueChange={toggle}
-                trackColor={{ false: colors.border, true: colors.primary }}
-            />
+        <View className="gap-2 px-0 py-3">
+            <View className="flex-row items-center justify-between gap-3">
+                <Text variant="body" className="min-w-0 flex-1 text-foreground">
+                    {t("reminder.notifications")}
+                </Text>
+
+                <Switch
+                    value={enabled}
+                    onValueChange={handleToggle}
+                    disabled={isUpdating || isLoading}
+                />
+            </View>
+
+            {showSettingsHelper ? (
+                <View className="gap-2">
+                    <Text variant="meta" className="text-danger">
+                        {t("reminder.notificationsDenied")}
+                    </Text>
+
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("reminder.openSettings")}
+                        className="self-start rounded-full bg-muted px-3 py-2"
+                        style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.99)}
+                        onPress={handleOpenSettings}
+                    >
+                        <Text variant="label" className="text-foreground">
+                            {t("reminder.openSettings")}
+                        </Text>
+                    </Pressable>
+                </View>
+            ) : null}
         </View>
     );
 }

@@ -94,6 +94,9 @@ function MyTicket({ member }: Props) {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentInsetAdjustmentBehavior="automatic"
+                    snapToInterval={260}
+                    decelerationRate="fast"
+                    snapToAlignment="start"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
                     renderItem={({ item }) => (
@@ -105,6 +108,7 @@ function MyTicket({ member }: Props) {
                     )}
                 />
             )}
+
         </View>
     );
 }
@@ -113,6 +117,7 @@ const style = StyleSheet.create({
     listContent: {
         gap: 12,
         paddingVertical: 12,
+        paddingRight: 24,
     },
 });
 

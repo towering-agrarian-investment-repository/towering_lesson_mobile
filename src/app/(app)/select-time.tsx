@@ -1,4 +1,13 @@
-import { AppText, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import {
+    AppText,
+    EmptyState,
+    ErrorState,
+    MotionView,
+    Screen,
+    Skeleton,
+    triggerSelectionHaptic,
+} from "@/design-system";
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
@@ -44,8 +53,12 @@ export default function TimeScreen() {
     const slotGroups = (data?.data ?? []).filter(
         (group) => getAvailableBayCount(group) > 0,
     );
+    const bookingContext = formatType(ticketType) !== "-"
+        ? formatType(ticketType)
+        : ticketName;
 
     const handleSelect = (group: BaySlotGroupScheduleResponse) => {
+        triggerSelectionHaptic();
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/select-bay",
@@ -75,15 +88,11 @@ export default function TimeScreen() {
                 />
             }
         >
-            <View className="gap-1">
-                <AppText variant="h3">{t("booking.chooseTime")}</AppText>
-
-                <AppText variant="meta" className="text-foreground/75">
-                    {formatType(ticketType) !== "-"
-                        ? `${date} - ${formatType(ticketType)}`
-                        : date}
-                </AppText>
-            </View>
+            <BookingStepHeader
+                step={2}
+                totalSteps={4}
+                context={bookingContext}
+            />
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -119,11 +128,14 @@ export default function TimeScreen() {
             ) : null}
 
             {!isLoading && !isError && slotGroups.length > 0 ? (
-                <View className="gap-3">
+                <MotionView className="gap-3" delayMs={70}>
                     {slotGroups.map((group) => (
                         <Pressable
                             key={group.id}
-                            className="flex-row items-center justify-between rounded-xl border border-border bg-card px-4 py-4 active:bg-surface"
+                            className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
+                            style={({ pressed }) => ({
+                                transform: [{ scale: pressed && !isLocked ? 0.992 : 1 }],
+                            })}
                             onPress={() => handleSelect(group)}
                             disabled={isLocked}
                         >
@@ -142,12 +154,14 @@ export default function TimeScreen() {
                                 </AppText>
                             </View>
 
-                            <AppText variant="badge" className="text-primary">
-                                {t("booking.select")}
-                            </AppText>
+                            <View className="rounded-full bg-primary/10 px-3 py-1.5">
+                                <AppText variant="badge" className="text-primary">
+                                    {t("booking.select")}
+                                </AppText>
+                            </View>
                         </Pressable>
                     ))}
-                </View>
+                </MotionView>
             ) : null}
         </Screen>
     );

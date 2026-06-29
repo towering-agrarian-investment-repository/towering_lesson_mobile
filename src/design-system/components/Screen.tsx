@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MotionView } from "./MotionView";
 
 type ScreenProps = {
     children?: ReactNode;
@@ -41,6 +42,9 @@ export function Screen({
     keyboardShouldPersistTaps = "handled",
 }: ScreenProps) {
     const insets = useSafeAreaInsets();
+    const resolvedKeyboardShouldPersistTaps = keyboardAware
+        ? "always"
+        : keyboardShouldPersistTaps;
 
     const paddingTop = headerShown ? 16 : insets.top + 16;
     const paddingHorizontal = horizontalPadding ? 24 : 0;
@@ -66,7 +70,7 @@ export function Screen({
                     <KeyboardAwareScrollView
                         className={cn("flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
-                        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+                        keyboardShouldPersistTaps={resolvedKeyboardShouldPersistTaps}
                         bounces={bounces}
                         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
                         refreshControl={refreshControl}
@@ -74,23 +78,23 @@ export function Screen({
                         enableOnAndroid
                         extraScrollHeight={20}
                     >
-                        <View className={cn("flex-1", contentClassName)}>
+                        <MotionView className={cn("flex-1", contentClassName)}>
                             {children}
-                        </View>
+                        </MotionView>
                     </KeyboardAwareScrollView>
                 ) : (
                     <ScrollView
                         className={cn("flex-1 bg-background", scrollClassName)}
                         contentContainerStyle={scrollContentContainerStyle}
-                        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+                        keyboardShouldPersistTaps={resolvedKeyboardShouldPersistTaps}
                         bounces={bounces}
                         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
                         refreshControl={refreshControl}
                         contentInsetAdjustmentBehavior="automatic"
                     >
-                        <View className={cn("flex-1", contentClassName)}>
+                        <MotionView className={cn("flex-1", contentClassName)}>
                             {children}
-                        </View>
+                        </MotionView>
                     </ScrollView>
                 )
             ) : (
@@ -106,7 +110,9 @@ export function Screen({
                         className={cn("flex-1", contentClassName)}
                         style={fixedContentStyle}
                     >
-                        {children}
+                        <MotionView className="flex-1">
+                            {children}
+                        </MotionView>
                     </View>
                 </KeyboardAvoidingView>
             )}

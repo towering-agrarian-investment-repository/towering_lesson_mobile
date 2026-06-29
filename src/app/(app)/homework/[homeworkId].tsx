@@ -9,6 +9,7 @@ import {
     Screen,
     Skeleton,
     Textarea,
+    useThemeColors,
 } from "@/design-system";
 import {
     useMemberHomeworkById,
@@ -47,6 +48,7 @@ type HomeworkParams = {
 
 export default function HomeworkDetailScreen() {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const { homeworkId } = useLocalSearchParams<HomeworkParams>();
     const numericHomeworkId = Number(homeworkId);
     const [selectedFile, setSelectedFile] = useState<HomeworkSubmissionFile | null>(null);
@@ -80,6 +82,23 @@ export default function HomeworkDetailScreen() {
         submissions.find((submission) => submission.review)?.review;
     const submissionTone = getHomeworkSubmissionTone(homework?.currentSubmissionStatus);
     const reviewTone = getHomeworkReviewTone(homework?.currentReviewStatus);
+    const primaryStatusLabel = homework?.currentReviewStatus
+        ? formatType(homework.currentReviewStatus)
+        : homework?.currentSubmissionStatus
+            ? formatType(homework.currentSubmissionStatus)
+            : homework?.homeworkStatus
+                ? formatType(homework.homeworkStatus)
+                : null;
+    const primaryStatusTone = homework?.currentReviewStatus
+        ? reviewTone
+        : homework?.currentSubmissionStatus
+            ? submissionTone
+            : homework?.homeworkStatus
+                ? {
+                    className: "bg-primary/10",
+                    textClassName: "text-primary",
+                }
+                : null;
 
     const refreshControl = (
         <RefreshControl
@@ -231,25 +250,11 @@ export default function HomeworkDetailScreen() {
                     </View>
 
                     <View className="flex-row flex-wrap gap-2">
-                        {homework.homeworkStatus ? (
+                        {primaryStatusLabel && primaryStatusTone ? (
                             <Badge
-                                label={formatType(homework.homeworkStatus)}
-                                className="bg-primary/10"
-                                textClassName="text-primary"
-                            />
-                        ) : null}
-                        {homework.currentSubmissionStatus ? (
-                            <Badge
-                                label={formatType(homework.currentSubmissionStatus)}
-                                className={submissionTone.className}
-                                textClassName={submissionTone.textClassName}
-                            />
-                        ) : null}
-                        {homework.currentReviewStatus ? (
-                            <Badge
-                                label={formatType(homework.currentReviewStatus)}
-                                className={reviewTone.className}
-                                textClassName={reviewTone.textClassName}
+                                label={primaryStatusLabel}
+                                className={primaryStatusTone.className}
+                                textClassName={primaryStatusTone.textClassName}
                             />
                         ) : null}
                     </View>
@@ -265,7 +270,7 @@ export default function HomeworkDetailScreen() {
             <Card className="gap-4 border-border bg-card p-4">
                 <View className="flex-row items-center gap-3">
                     <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                        <FileUp size={20} color="#2563EB" />
+                        <FileUp size={20} color={colors.primary} />
                     </View>
                     <View className="min-w-0 flex-1">
                         <AppText variant="label" className="font-semibold">
@@ -290,22 +295,13 @@ export default function HomeworkDetailScreen() {
 
             {latestReview ? (
                 <Card className="gap-3 border-border bg-card p-4">
-                    <View className="flex-row items-center justify-between gap-4">
-                        <View className="flex-row items-center gap-3">
-                            <View className="h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                                <MessageSquare size={18} color="#6B7280" />
-                            </View>
-                            <AppText variant="h3" className="text-lg font-semibold">
-                                {t("homework.coachReview")}
-                            </AppText>
+                    <View className="flex-row items-center gap-3">
+                        <View className="h-10 w-10 items-center justify-center rounded-xl bg-muted">
+                            <MessageSquare size={18} color={colors.mutedForeground} />
                         </View>
-                        {latestReview.status ? (
-                            <Badge
-                                label={formatType(latestReview.status)}
-                                className={getHomeworkReviewTone(latestReview.status).className}
-                                textClassName={getHomeworkReviewTone(latestReview.status).textClassName}
-                            />
-                        ) : null}
+                        <AppText variant="h3" className="text-lg font-semibold">
+                            {t("homework.coachReview")}
+                        </AppText>
                     </View>
 
                     {latestReview.score != null ? (
@@ -346,6 +342,7 @@ export default function HomeworkDetailScreen() {
                         <SubmissionRow
                             key={`submission-${submission.id ?? index}`}
                             submission={submission}
+                            iconColor={colors.mutedForeground}
                         />
                     ))}
                 </View>
@@ -386,8 +383,10 @@ function createFileFromDocument(
 
 function SubmissionRow({
     submission,
+    iconColor,
 }: {
     submission: MemberHomeworkSubmissionResponse;
+    iconColor: string;
 }) {
     const { t } = useTranslation();
     return (
@@ -408,7 +407,7 @@ function SubmissionRow({
             meta={submission.status ? formatType(submission.status) : undefined}
             leading={
                 <View className="h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                    <FileCheck size={18} color="#6B7280" />
+                    <FileCheck size={18} color={iconColor} />
                 </View>
             }
             className="border-border bg-card px-4 py-3.5"

@@ -182,6 +182,7 @@ const en = {
         refresh: "Refresh",
         commentSubmitted: "Comment submitted",
         leaveReview: "Leave a review",
+        openLessonLog: "Open lesson post for {{coach}} on {{date}}",
         coachFallback: "Coach",
         videoLoadFailed: "Video failed to load. Try refreshing the page.",
         postNotAvailableTitle: "Lesson post not available",
@@ -318,8 +319,10 @@ const en = {
         capacityEmpty: "Capacity -",
     },
     booking: {
+        stepProgress: "Step {{step}} of {{total}}",
         chooseDate: "Choose a date",
         ticketSelectAvailableDay: "{{ticketType}} ticket - Select an available day to continue.",
+        ticketSelectAvailableDaySuffix: " ticket - Select an available day to continue.",
         selectAvailableDay: "Select an available day to continue your booking.",
         unavailableDate: "Unavailable: {{date}}",
         refreshingAvailability: "Refreshing availability...",
@@ -408,6 +411,11 @@ const en = {
     },
     reminder: {
         mealReminders: "Meal Reminders",
+        notifications: "Notifications & Reminders",
+        notificationsEnabled: "On",
+        notificationsDisabled: "Off",
+        notificationsDenied: "Notifications are off. Enable them in Settings.",
+        openSettings: "Open Settings",
     },
     navigation: {
         tabs: {

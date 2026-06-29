@@ -1,4 +1,8 @@
-import { useThemeColors } from "@/design-system";
+import {
+    getPressedScaleStyle,
+    triggerSelectionHaptic,
+    useThemeColors,
+} from "@/design-system";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type Href, Stack, useRouter } from "expo-router";
@@ -19,7 +23,7 @@ const queryClient = new QueryClient({
 });
 const bookingFlowScreenOptions = {
     animation: "slide_from_right" as const,
-    animationDuration: 80,
+    animationDuration: 180,
     fullScreenGestureEnabled: true,
     gestureEnabled: true,
 };
@@ -70,16 +74,21 @@ export default function AppLayout() {
                 <Stack
                     screenOptions={({ navigation }) => ({
                         animation: "slide_from_right",
-                        animationDuration: 80,
+                        animationDuration: 180,
                         headerBackButtonDisplayMode: "minimal",
                         contentStyle: { backgroundColor: colors.background },
                         headerStyle: { backgroundColor: colors.background },
                         headerTintColor: colors.foreground,
                         headerTitleStyle: {
                             color: colors.foreground,
+                            fontWeight: "700",
                         },
+                        headerTitleAlign: "left",
                         headerLeftContainerStyle: {
                             paddingLeft: 8,
+                        },
+                        headerLargeTitleStyle: {
+                            color: colors.foreground,
                         },
                         headerShadowVisible: false,
                         headerLeft: ({ canGoBack }) =>
@@ -87,9 +96,11 @@ export default function AppLayout() {
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel={t("common.goBack")}
-                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
+                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full"
                                     hitSlop={8}
+                                    style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.94)}
                                     onPress={() => {
+                                        triggerSelectionHaptic();
                                         navigation.goBack();
                                     }}
                                 >
@@ -117,9 +128,11 @@ export default function AppLayout() {
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel={t("common.goBack")}
-                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full active:opacity-70"
+                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full"
                                     hitSlop={8}
+                                    style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.94)}
                                     onPress={() => {
+                                        triggerSelectionHaptic();
                                         if (router.canGoBack()) {
                                             router.back();
                                             return;
@@ -202,6 +215,7 @@ export default function AppLayout() {
                         name="groups/[groupId]/index"
                         options={{
                             title: t("navigation.screens.groupDetail"),
+                            headerLargeTitle: true,
                         }}
                     />
 
@@ -223,6 +237,7 @@ export default function AppLayout() {
                         name="lessons/[lessonId]/index"
                         options={{
                             title: t("navigation.screens.lessonDetail"),
+                            headerLargeTitle: true,
                         }}
                     />
 
@@ -244,6 +259,7 @@ export default function AppLayout() {
                         name="lesson-log"
                         options={{
                             title: t("navigation.screens.lessonPostList"),
+                            headerLargeTitle: true,
                         }}
                     />
 
@@ -272,6 +288,7 @@ export default function AppLayout() {
                         name="profile/edit"
                         options={{
                             title: t("profile.editPersonalInformation"),
+                            headerLargeTitle: true,
                         }}
                     />
                 </Stack>

@@ -11,6 +11,7 @@ import {
     Divider,
     EmptyState,
     ErrorState,
+    getPressedScaleStyle,
     Screen,
     Skeleton,
     useThemeColors,
@@ -316,6 +317,10 @@ export default function ReservationDetailScreen() {
                                 ? t("reservations.notFoundMessage")
                                 : t("reservations.typeMissingMessage")
                         }
+                        actionLabel={t("navigation.screens.myReservations")}
+                        onAction={() => {
+                            router.replace("/reservation");
+                        }}
                     />
                 </Screen>
             </>
@@ -683,7 +688,7 @@ function DetailRow({
     return (
         <Link href={href as Href} asChild>
             <Pressable
-                className="active:opacity-80"
+                style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.994)}
                 onPressIn={() => {
                     if (process.env.EXPO_OS === "ios") {
                         void Haptics.selectionAsync();

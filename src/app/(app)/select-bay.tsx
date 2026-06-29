@@ -1,10 +1,18 @@
-import { AppText, EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import {
+    AppText,
+    EmptyState,
+    ErrorState,
+    MotionView,
+    Screen,
+    Skeleton,
+    triggerSelectionHaptic,
+} from "@/design-system";
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
-import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -63,6 +71,9 @@ export default function BayScreen() {
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
     );
+    const bookingContext = formatType(ticketType) !== "-"
+        ? formatType(ticketType)
+        : ticketName;
 
     const loadingRows = chunkItems(
         Array.from({ length: 6 }, (_, index) => index),
@@ -74,6 +85,7 @@ export default function BayScreen() {
     const handleSelect = (baySlot: BaySlotScheduleResponse) => {
         if (!slotGroup) return;
 
+        triggerSelectionHaptic();
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/booking-confirm",
@@ -107,20 +119,11 @@ export default function BayScreen() {
                 />
             }
         >
-            <View className="gap-1">
-                <AppText variant="h3">{t("booking.chooseBay")}</AppText>
-
-                <AppText variant="meta" className="text-foreground/75">
-                    {slotGroup
-                        ? `${formatTimeRange(
-                            slotGroup.startDateTime,
-                            slotGroup.endDateTime,
-                        )}${formatType(ticketType) !== "-"
-                            ? ` - ${formatType(ticketType)}`
-                            : ""}`
-                        : date}
-                </AppText>
-            </View>
+            <BookingStepHeader
+                step={3}
+                totalSteps={4}
+                context={bookingContext}
+            />
 
             {isLoading ? (
                 <View className="gap-3">
@@ -175,7 +178,7 @@ export default function BayScreen() {
             ) : null}
 
             {!isLoading && !isError && slotGroup ? (
-                <View className="gap-3">
+                <MotionView className="gap-3" delayMs={70}>
                     {bayRows.map((row, rowIndex) => (
                         <View key={rowIndex} className="flex-row gap-3">
                             {row.map((bay) => {
@@ -196,10 +199,13 @@ export default function BayScreen() {
                                 return (
                                     <View key={bay.id} className="flex-1">
                                         <Pressable
-                                            className={`items-center gap-1.5 rounded-xl border px-3 py-4 ${!isDisabled
-                                                ? "border-border bg-card active:bg-surface"
+                                            className={`items-center gap-2 rounded-2xl border px-3 py-4 ${!isDisabled
+                                                ? "border-border bg-card"
                                                 : "border-muted bg-muted opacity-55"
                                                 }`}
+                                            style={({ pressed }) => ({
+                                                transform: [{ scale: pressed && !isDisabled && !isLocked ? 0.975 : 1 }],
+                                            })}
                                             onPress={() =>
                                                 !isDisabled && handleSelect(bay)
                                             }
@@ -217,9 +223,9 @@ export default function BayScreen() {
 
                                             <AppText
                                                 variant="badge"
-                                                className={`text-center ${!isDisabled
-                                                    ? "text-primary"
-                                                    : "text-muted-foreground"
+                                                className={`rounded-full px-2.5 py-1 text-center ${!isDisabled
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "bg-muted text-muted-foreground"
                                                     }`}
                                             >
                                                 {statusLabel}
@@ -240,7 +246,7 @@ export default function BayScreen() {
                             )}
                         </View>
                     ))}
-                </View>
+                </MotionView>
             ) : null}
         </Screen>
     );

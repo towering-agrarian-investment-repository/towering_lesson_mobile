@@ -2,9 +2,10 @@ import {
     AppText,
     EmptyState,
     ErrorState,
-    ListRow,
     Screen,
     Skeleton,
+    triggerSelectionHaptic,
+    useThemeColors,
 } from "@/design-system";
 import type { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import {
@@ -17,7 +18,8 @@ import { formatDateForDisplay } from "@/utils/time-helper";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, RefreshControl, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { ChevronRight } from "lucide-react-native";
 
 function LessonLogScreen() {
     const { t } = useTranslation();
@@ -132,18 +134,71 @@ function LessonLogRow({
     onPress: () => void;
 }) {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const reservationName = item.reservation?.name?.trim();
-    const reviewLabel =
-        item.status === "APPROVED" ? t("lessonLog.commentSubmitted") : t("lessonLog.leaveReview");
+    const hasSubmittedReview = Boolean(item.comment?.trim()) || (item.ratings ?? 0) > 0;
+    const reviewLabel = hasSubmittedReview
+        ? t("lessonLog.commentSubmitted")
+        : t("lessonLog.leaveReview");
 
     return (
-        <ListRow
-            title={`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
-            subtitle={reservationName || reviewLabel}
-            meta={reservationName ? reviewLabel : undefined}
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("lessonLog.openLessonLog", {
+                coach: item.coachName ?? t("lessonLog.coachFallback"),
+                date: formatDateForDisplay(item.lessonDate),
+            })}
             disabled={disabled}
-            onPress={onPress}
-        />
+            className="min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60"
+            style={({ pressed }) => ({
+                transform: [{ scale: pressed && !disabled ? 0.992 : 1 }],
+            })}
+            onPress={() => {
+                if (disabled) {
+                    return;
+                }
+
+                triggerSelectionHaptic();
+                onPress();
+            }}
+        >
+            <View className="min-w-0 flex-1 gap-2">
+                <View
+                    className={`self-start rounded-full px-3 py-1.5 ${
+                        hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
+                    }`}
+                >
+                    <AppText
+                        variant="caption"
+                        className={hasSubmittedReview ? "text-success" : "text-warning"}
+                    >
+                        {reviewLabel}
+                    </AppText>
+                </View>
+
+                <AppText
+                    variant="body"
+                    className="text-base font-bold leading-snug text-foreground"
+                    numberOfLines={2}
+                >
+                    {`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
+                </AppText>
+
+                {reservationName ? (
+                    <AppText variant="caption" numberOfLines={2}>
+                        {reservationName}
+                    </AppText>
+                ) : null}
+            </View>
+
+            <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
+                <ChevronRight
+                    size={18}
+                    color={colors.mutedForeground}
+                    strokeWidth={2.25}
+                />
+            </View>
+        </Pressable>
     );
 }
 

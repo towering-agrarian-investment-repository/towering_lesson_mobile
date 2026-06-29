@@ -40,7 +40,7 @@ export function FormTextInput<TFieldValues extends FieldValues>({
                         numberOfLines={numberOfLines}
                         editable={editable}
                         textAlignVertical={multiline ? "top" : "center"}
-                        className="mt-2 border-b px-0 pb-3 pt-2 text-base text-foreground"
+                        className="mt-2 border-b pl-1.5 pr-0 pb-3 pt-2 text-base text-foreground"
                         style={{
                             borderBottomColor: fieldState.error
                                 ? colors.danger

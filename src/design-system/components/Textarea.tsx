@@ -28,7 +28,7 @@ export function Textarea({
                 multiline
                 textAlignVertical="top"
                 className={cn(
-                    "min-h-32 rounded-xl border border-border bg-surface px-4 py-3 text-base leading-6 text-foreground",
+                    "min-h-32 rounded-xl border border-border bg-surface pl-2 pr-2 py-3 text-base leading-6 text-foreground",
                     "focus:border-primary",
                     error && "border-danger",
                     className,

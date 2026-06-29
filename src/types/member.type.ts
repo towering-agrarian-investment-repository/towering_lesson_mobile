@@ -18,11 +18,9 @@ export type MemberSelfResponse = {
 export type ParentSummaryResponse = {
     id: number;
     name: string;
-    isActive: boolean;
-    childrenCount: number;
     phoneNumber: string | null;
     profileImage: string | null;
-    createdAt: string; // OffsetDateTime -> ISO string
+    gender: GenderEnum;
 };
 
 export type MemberGradeResponse = {

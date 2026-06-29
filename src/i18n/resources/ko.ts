@@ -180,6 +180,7 @@ const ko = {
         "refresh": "\uc0c8\ub85c\uace0\uce68",
         "commentSubmitted": "\ucf54\uba58\ud2b8 \uc81c\ucd9c\uc644\ub8cc",
         "leaveReview": "\ub9ac\ubdf0 \ub0a8\uae30\uae30",
+        "openLessonLog": "{{date}} {{coach}} \ub808\uc2a8 \ud3ec\uc2a4\ud2b8 \uc5f4\uae30",
         "coachFallback": "\ucf54\uce58",
         "videoLoadFailed": "\ub3d9\uc601\uc0c1\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. \ud654\uba74\uc744 \uc0c8\ub85c\uace0\uce68\ud574 \ubcf4\uc138\uc694.",
         "postNotAvailableTitle": "\ub808\uc2a8 \ud3ec\uc2a4\ud2b8\ub97c \ud655\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4",
@@ -314,8 +315,10 @@ const ko = {
         "capacityEmpty": "\uc815\uc6d0 -"
     },
     "booking": {
+        "stepProgress": "{{total}}\ub2e8\uacc4 \uc911 {{step}}\ub2e8\uacc4",
         "chooseDate": "\ub0a0\uc9dc \uc120\ud0dd",
         "ticketSelectAvailableDay": "{{ticketType}} \uc774\uc6a9\uad8c - \uac00\ub2a5\ud55c \ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574 \uacc4\uc18d\ud558\uc138\uc694.",
+        "ticketSelectAvailableDaySuffix": " \uc774\uc6a9\uad8c - \uac00\ub2a5\ud55c \ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574 \uacc4\uc18d\ud558\uc138\uc694.",
         "selectAvailableDay": "\uac00\ub2a5\ud55c \ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574 \uc608\uc57d\uc744 \uc9c4\ud589\ud558\uc138\uc694.",
         "unavailableDate": "\uc774\uc6a9 \ubd88\uac00: {{date}}",
         "refreshingAvailability": "\uc608\uc57d \uac00\ub2a5 \uc77c\uc815\uc744 \uc0c8\ub85c\uace0\uce68\ud558\ub294 \uc911...",
@@ -402,7 +405,12 @@ const ko = {
         "coachLabel": "\ucf54\uce58"
     },
     "reminder": {
-        "mealReminders": "\uc2dd\uc0ac \uc54c\ub9bc"
+        "mealReminders": "\uc2dd\uc0ac \uc54c\ub9bc",
+        "notifications": "\uc54c\ub9bc \ubc0f \ub9ac\ub9c8\uc778\ub354",
+        "notificationsEnabled": "\ucf1c\uc9d0",
+        "notificationsDisabled": "\uaebc\uc9d0",
+        "notificationsDenied": "\uc54c\ub9bc\uc774 \uaebc\uc838 \uc788\uc2b5\ub2c8\ub2e4. \uc124\uc815\uc5d0\uc11c \ucf1c \uc8fc\uc138\uc694.",
+        "openSettings": "\uc124\uc815 \uc5f4\uae30"
     },
     "navigation": {
         "tabs": {

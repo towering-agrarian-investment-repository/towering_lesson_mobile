@@ -3,10 +3,14 @@ import {
     Card,
     EmptyState,
     ErrorState,
+    getPressedScaleStyle,
+    MotionView,
     Screen,
     Skeleton,
+    triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
@@ -64,6 +68,7 @@ export default function SelectLessonSlotScreen() {
     );
 
     const handleSelect = (slot: MemberLessonSlotResponse) => {
+        triggerSelectionHaptic();
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/lesson-booking-confirm",
@@ -105,17 +110,15 @@ export default function SelectLessonSlotScreen() {
                 }}
             />
 
-            <View className="gap-1">
-                <AppText variant="h3">
-                    {isGroupTicket ? t("booking.chooseGroup") : t("booking.chooseSlot")}
-                </AppText>
-
-                <AppText variant="meta" className="text-foreground/75">
-                    {formatType(ticketType) !== "-"
-                        ? `${date} - ${formatType(ticketType)}`
-                        : date}
-                </AppText>
-            </View>
+            <BookingStepHeader
+                step={2}
+                totalSteps={3}
+                context={
+                    formatType(ticketType) !== "-"
+                        ? formatType(ticketType)
+                        : ticketName
+                }
+            />
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -156,7 +159,7 @@ export default function SelectLessonSlotScreen() {
             ) : null}
 
             {!isLoading && !isError && slots.length > 0 ? (
-                <View className="gap-3">
+                <MotionView className="gap-3" delayMs={70}>
                     {slots.map((slot) => {
                         const disabled = isLessonSlotFull(slot);
                         const isBookable = isLessonSlotBookable(slot);
@@ -174,7 +177,7 @@ export default function SelectLessonSlotScreen() {
                         return isGroupSlot ? (
                             <Pressable
                                 key={slot.id}
-                                className="active:opacity-95"
+                                style={({ pressed }) => getPressedScaleStyle(pressed, disabled || isLocked, 0.99)}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
                             >
@@ -297,8 +300,9 @@ export default function SelectLessonSlotScreen() {
                                 key={slot.id}
                                 className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${disabled
                                     ? "border-muted bg-muted opacity-55"
-                                    : "border-border bg-card active:bg-surface"
+                                    : "border-border bg-card"
                                     }`}
+                                style={({ pressed }) => getPressedScaleStyle(pressed, disabled || isLocked, 0.992)}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
                             >
@@ -353,7 +357,7 @@ export default function SelectLessonSlotScreen() {
                             </Pressable>
                         );
                     })}
-                </View>
+                </MotionView>
             ) : null}
         </Screen>
     );

@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { Modal, Platform, Pressable, View } from "react-native";
+import { Modal, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
@@ -53,10 +53,6 @@ export function ConfirmSheet({
                     <BlurView
                         tint={resolvedScheme === "dark" ? "dark" : "light"}
                         intensity={blurIntensity}
-                        blurMethod={
-                            Platform.OS === "android" ? "dimezisBlurViewSdk31Plus" : undefined
-                        }
-                        blurReductionFactor={Platform.OS === "android" ? 1 : undefined}
                         style={{
                             position: "absolute",
                             top: 0,

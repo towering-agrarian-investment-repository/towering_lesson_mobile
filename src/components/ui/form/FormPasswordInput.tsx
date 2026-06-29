@@ -28,7 +28,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                     errorMessage={fieldState.error?.message}
                 >
                     <View
-                        className="mt-2 flex-row items-center border-b pb-3 pt-2"
+                        className="mt-2 flex-row items-center border-b pl-1.5 pb-3 pt-2"
                         style={{
                             borderBottomColor: fieldState.error
                                 ? colors.danger

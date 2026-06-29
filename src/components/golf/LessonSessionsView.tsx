@@ -2,6 +2,7 @@ import {
     AppText,
     Badge,
     EmptyState,
+    getPressedScaleStyle,
 } from "@/design-system";
 import type { SessionInstanceResponse } from "@/types/member-session";
 import { formatType } from "@/utils/format-enum";
@@ -216,9 +217,10 @@ function SessionSwitcher({
                                 })}
                                 className={
                                     isSelected
-                                        ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3 active:opacity-80"
-                                        : "min-h-16 min-w-32 rounded-2xl border border-border bg-card px-4 py-3 active:opacity-80"
+                                        ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3"
+                                        : "min-h-16 min-w-32 rounded-2xl border border-border bg-card px-4 py-3"
                                 }
+                                style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
                                 onLayout={(event) => {
                                     onItemLayout(session.id, event);
                                 }}

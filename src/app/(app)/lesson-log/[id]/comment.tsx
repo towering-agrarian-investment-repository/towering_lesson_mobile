@@ -3,6 +3,7 @@ import {
     Button,
     EmptyState,
     ErrorState,
+    getPressedScaleStyle,
     Screen,
     Textarea,
     useThemeColors,
@@ -214,7 +215,8 @@ function LessonLogCommentScreen() {
                                             accessibilityLabel={t("lessonLog.rateStarsAccessibility", {
                                                 count: starValue,
                                             })}
-                                            className="h-12 w-12 items-center justify-center active:opacity-80"
+                                            className="h-12 w-12 items-center justify-center"
+                                            style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.92)}
                                             onPress={() => onChange(starValue)}
                                         >
                                             <Star

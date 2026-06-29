@@ -1,9 +1,15 @@
-import { AppText as Text, cn } from "@/design-system";
+import {
+    AppText as Text,
+    cn,
+    getPressedScaleStyle,
+    useThemeColors,
+} from "@/design-system";
 import {
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { formatType } from "@/utils/format-enum";
+import { ChevronRight } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
@@ -45,6 +51,7 @@ function getUsageNote(
 
 function TicketCard({ item, disabled = false, onPress }: Props) {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketTone = getTicketTypeTone(item.type);
     const isBookingDisabled =
@@ -65,27 +72,39 @@ function TicketCard({ item, disabled = false, onPress }: Props) {
         <Pressable
             disabled={isBookingDisabled}
             onPress={handlePress}
+            accessibilityRole="button"
+            accessibilityLabel={item.name}
+            className={isBookingDisabled ? "opacity-75" : undefined}
+            style={({ pressed }) => getPressedScaleStyle(pressed, isBookingDisabled, 0.988)}
         >
             <View
                 className={cn(
-                    "w-[220px] min-h-[114px]  flex-col gap-4 rounded-xl border p-5",
+                    "w-[220px] min-h-[114px] flex-col gap-4 rounded-xl border p-5",
                     !isInactive && ticketTone.borderClassName,
                     !isInactive && ticketTone.surfaceClassName,
                     isInactive && "border-border bg-muted",
                 )}
             >
                 <View className="flex-1 flex-col gap-3">
-                    <Text
-                        variant="badge"
-                        className={cn(
-                            "self-start rounded-md px-2 py-1",
-                            !isInactive && ticketTone.badgeSolidClassName,
-                            !isInactive && ticketTone.badgeSolidTextClassName,
-                            isInactive && "bg-border text-muted-foreground",
-                        )}
-                    >
-                        {badgeLabel}
-                    </Text>
+                    <View className="flex-row items-center justify-between gap-3">
+                        <Text
+                            variant="badge"
+                            className={cn(
+                                "self-start rounded-md px-2 py-1",
+                                !isInactive && ticketTone.badgeSolidClassName,
+                                !isInactive && ticketTone.badgeSolidTextClassName,
+                                isInactive && "bg-border text-muted-foreground",
+                            )}
+                        >
+                            {badgeLabel}
+                        </Text>
+
+                        <ChevronRight
+                            size={18}
+                            color={isInactive ? colors.mutedForeground : colors.foreground}
+                            strokeWidth={2.4}
+                        />
+                    </View>
 
                     <Text
                         variant="body"
@@ -101,7 +120,7 @@ function TicketCard({ item, disabled = false, onPress }: Props) {
                     </Text>
                 </View>
 
-                <View className="flex-row justify-between gap-3 items-center">
+                <View className="flex-row items-center justify-between gap-3">
                     <Text variant="caption" className="text-foreground">
                         {usageNote}
                     </Text>

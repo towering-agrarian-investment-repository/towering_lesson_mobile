@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { cn } from "../utils/cn";
+import { triggerSelectionHaptic } from "../utils/haptics";
+import { getPressedScaleStyle } from "../utils/pressable";
 import { useTheme, useThemeColors } from "../utils/theme";
 
 export type ActionSheetOption = {
@@ -39,7 +41,7 @@ export function ActionSheet({
     cancelLabel,
     closeDelayMs = 0,
     blurEnabled = true,
-    blurIntensity = 24,
+    blurIntensity = 60,
 }: ActionSheetProps) {
     const { t } = useTranslation();
     const colors = useThemeColors();
@@ -51,6 +53,7 @@ export function ActionSheet({
             return;
         }
 
+        triggerSelectionHaptic();
         onClose();
         setTimeout(option.onPress, closeDelayMs);
     };
@@ -76,7 +79,9 @@ export function ActionSheet({
                         }}
                     />
                 ) : null}
-                <View className="absolute inset-0 bg-black/35" />
+                <View
+                    className={blurEnabled ? "absolute inset-0 bg-black/18" : "absolute inset-0 bg-black/35"}
+                />
 
                 <Pressable
                     className="flex-1"
@@ -105,11 +110,14 @@ export function ActionSheet({
                                 }}
                                 disabled={option.disabled}
                                 className={cn(
-                                    "flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80 disabled:opacity-50",
+                                    "flex-row items-center gap-3 rounded-2xl border p-4 disabled:opacity-50",
                                     option.selected
                                         ? "border-primary bg-primary/10"
                                         : "border-border bg-surface",
                                 )}
+                                style={({ pressed }) =>
+                                    getPressedScaleStyle(pressed, option.disabled, 0.992)
+                                }
                                 onPress={() => {
                                     handleSelect(option);
                                 }}

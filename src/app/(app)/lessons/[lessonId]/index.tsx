@@ -1,6 +1,7 @@
 import {
     AppText,
     Badge,
+    Card,
     CompactEmptyState,
     ErrorState,
     ListRow,
@@ -109,8 +110,8 @@ export default function StandaloneLessonDetailScreen() {
 
     return (
         <Screen contentClassName="gap-5" refreshControl={refreshControl}>
-            <View className="overflow-hidden rounded-xl bg-card">
-                <View className="gap-4 bg-surface px-4 py-4">
+            <Card className="gap-0 overflow-hidden p-0">
+                <View className="gap-4 bg-surface px-5 py-5">
                     <View className="gap-2">
                         <AppText
                             variant="h3"
@@ -150,68 +151,72 @@ export default function StandaloneLessonDetailScreen() {
                 </View>
 
                 {lesson.description?.trim() ? (
-                    <View className="px-4 py-4">
+                    <View className="px-5 py-5">
                         <AppText variant="body" className="leading-6 text-foreground">
                             {lesson.description}
                         </AppText>
                     </View>
                 ) : null}
-            </View>
+            </Card>
 
-            <SectionHeader title={t("lessons.sessionsTitle")} count={sessions.length} />
-            {sessions.length === 0 ? (
-                <CompactEmptyState
-                    title={t("lessons.noSessions")}
-                />
-            ) : (
-                <View className="gap-3">
-                    {sessions.map((session) => (
-                        <SessionRow
-                            key={`session-${session.id}`}
-                            session={session}
-                            disabled={isLocked}
-                            onPress={() => {
-                                runWithNavigationLock(() => {
-                                    router.push(
-                                        `/lessons/${numericLessonId}/sessions?sessionId=${session.id}`,
-                                    );
-                                });
-                            }}
-                        />
-                    ))}
-                </View>
-            )}
-
-            <SectionHeader title={t("lessons.homeworkTitle")} count={homeworks.length} />
-            {homeworks.length === 0 ? (
-                <CompactEmptyState
-                    title={t("lessons.noHomework")}
-                />
-            ) : (
-                <View className="gap-3">
-                    {homeworks.map((homework) => (
-                        <HomeworkRow
-                            key={`homework-${homework.homeworkId}`}
-                            homework={homework}
-                            submissions={submissions}
-                            disabled={isLocked}
-                            onPress={() => {
-                                void queryClient.prefetchQuery(
-                                    getMemberHomeworkByIdQueryOptions(homework.homeworkId),
-                                );
-                                runWithNavigationLock(() => {
-                                    router.push({
-                                        pathname: "/homework/[homeworkId]",
-                                        params: {
-                                            homeworkId: String(homework.homeworkId),
-                                        },
+            <Card className="gap-4 p-5">
+                <SectionHeader title={t("lessons.sessionsTitle")} count={sessions.length} />
+                {sessions.length === 0 ? (
+                    <CompactEmptyState
+                        title={t("lessons.noSessions")}
+                    />
+                ) : (
+                    <View className="gap-3">
+                        {sessions.map((session) => (
+                            <SessionRow
+                                key={`session-${session.id}`}
+                                session={session}
+                                disabled={isLocked}
+                                onPress={() => {
+                                    runWithNavigationLock(() => {
+                                        router.push(
+                                            `/lessons/${numericLessonId}/sessions?sessionId=${session.id}`,
+                                        );
                                     });
-                                });
-                            }}
-                        />
-                    ))}
-                </View>
-            )}
+                                }}
+                            />
+                        ))}
+                    </View>
+                )}
+            </Card>
+
+            <Card className="gap-4 p-5">
+                <SectionHeader title={t("lessons.homeworkTitle")} count={homeworks.length} />
+                {homeworks.length === 0 ? (
+                    <CompactEmptyState
+                        title={t("lessons.noHomework")}
+                    />
+                ) : (
+                    <View className="gap-3">
+                        {homeworks.map((homework) => (
+                            <HomeworkRow
+                                key={`homework-${homework.homeworkId}`}
+                                homework={homework}
+                                submissions={submissions}
+                                disabled={isLocked}
+                                onPress={() => {
+                                    void queryClient.prefetchQuery(
+                                        getMemberHomeworkByIdQueryOptions(homework.homeworkId),
+                                    );
+                                    runWithNavigationLock(() => {
+                                        router.push({
+                                            pathname: "/homework/[homeworkId]",
+                                            params: {
+                                                homeworkId: String(homework.homeworkId),
+                                            },
+                                        });
+                                    });
+                                }}
+                            />
+                        ))}
+                    </View>
+                )}
+            </Card>
         </Screen>
     );
 }

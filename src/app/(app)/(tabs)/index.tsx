@@ -1,7 +1,14 @@
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
-import { AppText, CircleLoader, ErrorState, InlineState, Screen } from "@/design-system";
+import {
+  AppText,
+  CircleLoader,
+  ErrorState,
+  getPressedScaleStyle,
+  InlineState,
+  Screen,
+} from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
@@ -72,7 +79,10 @@ export default function HomeScreen() {
       contentClassName="flex-grow"
       footer={
         <Link href="/reservation" push asChild>
-          <Pressable className="mx-6 rounded-xl bg-primary py-4 active:opacity-80">
+          <Pressable
+            className="mx-6 rounded-xl bg-primary py-4"
+            style={({ pressed }) => getPressedScaleStyle(pressed, false)}
+          >
             <AppText
               variant="label"
               className="text-center text-base font-bold text-primary-foreground"

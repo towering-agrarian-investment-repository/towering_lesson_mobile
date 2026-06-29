@@ -43,6 +43,7 @@ type LessonParams = {
 
 export default function LessonDetailScreen() {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const { groupId, lessonId } = useLocalSearchParams<LessonParams>();
     const numericGroupId = Number(groupId);
     const numericLessonId = Number(lessonId);
@@ -222,7 +223,7 @@ export default function LessonDetailScreen() {
                                 key={`media-${media.id ?? index}`}
                                 title={media.description?.trim() || t("lessons.mediaFallback", { id: media.id ?? index + 1 })}
                                 subtitle={media.mediaType ?? undefined}
-                                leading={<RowIcon><FileText size={18} color="#6B7280" /></RowIcon>}
+                                leading={<RowIcon><FileText size={18} color={colors.mutedForeground} /></RowIcon>}
                                 className="border-border bg-card px-4 py-3.5"
                                 titleClassName="font-medium leading-6"
                                 showChevron={false}

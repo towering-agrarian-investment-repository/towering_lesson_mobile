@@ -8,12 +8,12 @@ type Props = {
 
 function TitleSectionWithBadge({ label, length }: Props) {
     return (
-        <View className="flex-row items-baseline gap-2">
+        <View className="flex-row items-center gap-2">
             <Text variant="h3" className="text-secondary-foreground">
                 {label}
             </Text>
 
-            <View className="h-[22px] w-[22px] items-center justify-center rounded-full -translate-y-0.5 bg-notification">
+            <View className="min-w-[24px] items-center justify-center rounded-full bg-notification px-1.5 py-1">
                 <Text
                     variant="count"
                     className="text-xs font-bold text-white"

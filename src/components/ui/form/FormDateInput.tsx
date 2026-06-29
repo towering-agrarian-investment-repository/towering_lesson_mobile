@@ -2,7 +2,11 @@ import { MaterialIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
-import { AppText as Text, useThemeColors } from "@/design-system";
+import {
+    AppText as Text,
+    getPressedScaleStyle,
+    useThemeColors,
+} from "@/design-system";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
@@ -112,7 +116,8 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                                             }
                                         }}
                                         disabled={!editable}
-                                        className="ml-3 rounded-full p-1 active:bg-muted"
+                                        className="ml-3 rounded-full p-1"
+                                        style={({ pressed }) => getPressedScaleStyle(pressed, !editable, 0.94)}
                                         accessibilityRole="button"
                                         accessibilityLabel={resolvedClearLabel}
                                     >

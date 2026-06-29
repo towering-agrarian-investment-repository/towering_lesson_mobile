@@ -115,6 +115,11 @@ function LessonLogDetailsScreen() {
     }
 
     const canReview = lessonLog.status !== "APPROVED";
+    const hasSubmittedReview =
+        Boolean(lessonLog.comment?.trim()) || (lessonLog.ratings ?? 0) > 0;
+    const reviewStateLabel = hasSubmittedReview
+        ? t("lessonLog.commentSubmitted")
+        : t("lessonLog.leaveReview");
 
     return (
         <Screen
@@ -205,7 +210,9 @@ function LessonLogDetailsScreen() {
                     </AppText>
                 ) : (
                     <AppText selectable variant="muted" className="leading-6">
-                        {canReview
+                        {hasSubmittedReview
+                            ? t("lessonLog.reviewSubmittedMessage")
+                            : canReview
                             ? t("lessonLog.canLeaveReviewMessage")
                             : t("lessonLog.reviewSubmittedMessage")}
                     </AppText>
@@ -215,9 +222,9 @@ function LessonLogDetailsScreen() {
                     <AppText
                         selectable
                         variant="caption"
-                        className={canReview ? "text-warning" : "text-success"}
+                        className={hasSubmittedReview ? "text-success" : "text-warning"}
                     >
-                        {canReview ? t("lessonLog.leaveReview") : t("lessonLog.commentSubmitted")}
+                        {reviewStateLabel}
                     </AppText>
                 </View>
             </View>

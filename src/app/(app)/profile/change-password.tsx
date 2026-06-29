@@ -40,7 +40,7 @@ function ChangePasswordScreen() {
             confirmPassword: "",
         },
         resolver: zodResolver(changePasswordSchema),
-        mode: "onSubmit"
+        mode: "onChange"
     })
 
     const onSubmit = async (data: ChangePasswordFormValues) => {
@@ -101,7 +101,11 @@ function ChangePasswordScreen() {
                     <Button
                         title={form.formState.isSubmitting ? t("changePassword.saving") : t("changePassword.confirm")}
                         loading={form.formState.isSubmitting}
-                        disabled={form.formState.isSubmitting}
+                        disabled={
+                            form.formState.isSubmitting
+                            || !form.formState.isDirty
+                            || !form.formState.isValid
+                        }
                         className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit)}
                     />

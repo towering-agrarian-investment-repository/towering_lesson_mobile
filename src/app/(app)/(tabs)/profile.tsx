@@ -3,9 +3,12 @@ import {
     AppText,
     CircleLoader,
     ConfirmSheet,
+    Divider,
     ErrorState,
+    getPressedScaleStyle,
     ListRow,
     Screen,
+    Card,
     type ThemePreference,
     useThemeColors,
     useThemePreference,
@@ -21,6 +24,7 @@ import { Languages, Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
+import ReminderToggle from "@/components/ReminderToggle";
 const APP_VERSION = "v 1.0.0";
 
 export default function ProfileScreen() {
@@ -117,119 +121,132 @@ export default function ProfileScreen() {
                 }}
             />
 
-            <View className="flex-col gap-8">
-                <ProfileHeader
-                    name={member?.name}
-                    username={member?.username}
-                    imageUrl={member?.profileImage}
-                    isActive={member?.isActive}
-                />
+            <View className="flex-col gap-6">
+                <Card className="gap-5 p-5">
+                    <ProfileHeader
+                        name={member?.name}
+                        username={member?.username}
+                        imageUrl={member?.profileImage}
+                        isActive={member?.isActive}
+                    />
 
-                <View className="flex-col gap-2">
-                    <SectionTitle title={t("profile.personalRecord")} />
+                    <Divider className="bg-border" />
+
                     <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
-                </View>
+                </Card>
 
-                <View className="flex-col gap-2">
+                <Card className="gap-4 p-5">
                     <SectionTitle title={t("profile.generalInfo")} />
 
                     <View className="flex-col">
                         <InfoRow label={t("profile.checkInNo")} value={member?.checkinNumber} />
+                        <Divider className="bg-border" />
                         <InfoRow label={t("profile.phone")} value={member?.phoneNumber} />
+                        <Divider className="bg-border" />
                         <InfoRow label={t("profile.gender")} value={member?.gender} />
                     </View>
-                </View>
+                </Card>
 
                 {member?.grade ? (
-                    <View className="flex-col gap-2">
+                    <Card className="gap-4 p-5">
                         <SectionTitle title={t("profile.schoolInfo")} />
 
                         <View className="flex-col">
                             <InfoRow label={t("profile.school")} value={member.grade.schoolName} />
+                            <Divider className="bg-border" />
                             <InfoRow
                                 label={t("profile.schoolCode")}
                                 value={member.grade.schoolCode}
                             />
+                            <Divider className="bg-border" />
                             <InfoRow label={t("profile.grade")} value={member.grade.name} />
                         </View>
-                    </View>
+                    </Card>
                 ) : null}
 
                 {member?.parents && member.parents.length > 0 ? (
-                    <View className="flex-col gap-2">
+                    <Card className="gap-4 p-5">
                         <SectionTitle title={t("profile.parentsGuardians")} />
 
                         <View className="flex-col">
                             {member.parents.map((parent, index) => (
-                                <ParentRow
-                                    key={parent.id}
-                                    name={parent.name}
-                                    phoneNumber={parent.phoneNumber}
-                                    imageUrl={parent.profileImage}
-                                    isActive={parent.isActive}
-                                    childrenCount={parent.childrenCount}
-                                    showDivider={index < member.parents.length - 1}
-                                />
+                                <View key={parent.id}>
+                                    {index > 0 ? <Divider className="bg-border" /> : null}
+                                    <ParentRow
+                                        name={parent.name}
+                                        gender={parent.gender}
+                                        phoneNumber={parent.phoneNumber}
+                                        imageUrl={parent.profileImage}
+                                    />
+                                </View>
                             ))}
                         </View>
-                    </View>
+                    </Card>
                 ) : null}
 
 
-                <View className="flex-col gap-3">
+                <Card className="gap-4 p-5">
                     <SectionTitle title={t("profile.settings")} />
 
-                    <LinkRow
-                        label={t("profile.editPersonalInformation")}
-                        href="/profile/edit"
-                    />
-                    <LinkRow
-                        label={t("profile.changePassword")}
-                        href="/profile/change-password"
-                    />
-                    <LanguagePreferenceRow
-                        currentLanguage={resolveProfileLanguage(i18n.resolvedLanguage || i18n.language)}
-                        disabled={isChangingLanguage}
-                        onChange={async (nextLanguage) => {
-                            if (isChangingLanguage) {
-                                return;
-                            }
+                    <View className="flex-col">
+                        <LinkRow
+                            label={t("profile.editPersonalInformation")}
+                            href="/profile/edit"
+                        />
+                        <Divider className="bg-border" />
+                        <LinkRow
+                            label={t("profile.changePassword")}
+                            href="/profile/change-password"
+                        />
+                        <Divider className="bg-border" />
+                        <LanguagePreferenceRow
+                            currentLanguage={resolveProfileLanguage(i18n.resolvedLanguage || i18n.language)}
+                            disabled={isChangingLanguage}
+                            onChange={async (nextLanguage) => {
+                                if (isChangingLanguage) {
+                                    return;
+                                }
 
-                            setIsChangingLanguage(true);
+                                setIsChangingLanguage(true);
 
-                            try {
-                                await setAppLanguage(nextLanguage);
-                            } catch (error) {
-                                showAppToast({
-                                    message:
-                                        error instanceof Error
-                                            ? error.message
-                                            : t("common.refreshTryAgain"),
-                                    type: "error",
-                                });
-                            } finally {
-                                setIsChangingLanguage(false);
-                            }
-                        }}
-                    />
+                                try {
+                                    await setAppLanguage(nextLanguage);
+                                } catch (error) {
+                                    showAppToast({
+                                        message:
+                                            error instanceof Error
+                                                ? error.message
+                                                : t("common.refreshTryAgain"),
+                                        type: "error",
+                                    });
+                                } finally {
+                                    setIsChangingLanguage(false);
+                                }
+                            }}
+                        />
+                        <Divider className="bg-border" />
+                        <ReminderToggle />
+                    </View>
+                </Card>
 
-                    <SignOutButton
-                        isSigningOut={isSigningOut}
-                        onPress={confirmSignOut}
-                    />
-                </View>
-
-                <View className="flex-col gap-3">
+                <Card className="gap-4 p-5">
                     <SectionTitle title={t("profile.appearance")} />
 
-                    <ThemePreferenceRow
-                        preference={themePreference}
-                        disabled={!isThemeReady}
-                        onChange={(nextPreference) => {
-                            void setThemePreference(nextPreference);
-                        }}
-                    />
-                </View>
+                    <View className="flex-col">
+                        <ThemePreferenceRow
+                            preference={themePreference}
+                            disabled={!isThemeReady}
+                            onChange={(nextPreference) => {
+                                void setThemePreference(nextPreference);
+                            }}
+                        />
+                    </View>
+                </Card>
+
+                <SignOutButton
+                    isSigningOut={isSigningOut}
+                    onPress={confirmSignOut}
+                />
 
                 <AppText
                     variant="caption"
@@ -349,7 +366,7 @@ function SectionTitle({ title }: { title: string }) {
     return (
         <AppText
             variant="label"
-            className="text-foreground"
+            className="text-lg font-semibold text-foreground"
         >
             {title}
         </AppText>
@@ -368,7 +385,7 @@ function InfoRow({
     }
 
     return (
-        <View className="flex-row items-start justify-between gap-4 border-b border-border py-4">
+        <View className="flex-row items-start justify-between gap-4 py-4">
             <AppText
                 selectable
                 variant="meta"
@@ -390,25 +407,17 @@ function InfoRow({
 
 function ParentRow({
     name,
+    gender,
     phoneNumber,
     imageUrl,
-    isActive,
-    childrenCount,
-    showDivider,
 }: {
+    gender: string;
     name: string;
     phoneNumber?: string | null;
     imageUrl?: string | null;
-    isActive?: boolean;
-    childrenCount: number;
-    showDivider: boolean;
 }) {
-    const { t } = useTranslation();
     return (
-        <View
-            className={`flex-row items-center gap-4 py-4 ${showDivider ? "border-b border-border" : ""
-                }`}
-        >
+        <View className="flex-row items-center gap-4 py-4">
             <ProfileAvatar name={name} imageUrl={imageUrl} />
 
             <View className="min-w-0 flex-1 flex-col gap-1">
@@ -421,8 +430,6 @@ function ParentRow({
                     >
                         {name}
                     </AppText>
-
-                    <StatusBadge isActive={isActive} />
                 </View>
 
                 {phoneNumber ? (
@@ -431,18 +438,18 @@ function ParentRow({
                         variant="subtext"
                         className="text-foreground/80"
                     >
-                        {phoneNumber}
+                        {phoneNumber}/{gender}
                     </AppText>
                 ) : null}
 
-                <AppText
+                {/* <AppText
                     selectable
                     variant="count"
                     className="text-foreground/75"
                     style={{ fontVariant: ["tabular-nums"] }}
                 >
                     {t("profile.childCount", { count: childrenCount })}
-                </AppText>
+                </AppText> */}
             </View>
         </View>
     );
@@ -451,7 +458,7 @@ function ParentRow({
 function LinkRow({ label, href }: { label: string; href: Href }) {
     return (
         <Link href={href} asChild>
-            <ListRow title={label} />
+            <ListRow title={label} className="px-0 py-3 border-0 bg-transparent" />
         </Link>
     );
 }
@@ -482,6 +489,7 @@ function ThemePreferenceRow({
                 accessibilityRole="button"
                 accessibilityLabel={t("profile.chooseAppAppearance")}
                 disabled={disabled}
+                className="border-0 bg-transparent px-0 py-3"
                 onPress={() => {
                     if (!disabled) {
                         setIsThemeSheetVisible(true);
@@ -533,6 +541,7 @@ function LanguagePreferenceRow({
                 accessibilityRole="button"
                 accessibilityLabel={t("profile.chooseAppLanguage")}
                 disabled={disabled}
+                className="border-0 bg-transparent px-0 py-3"
                 onPress={() => {
                     if (!disabled) {
                         setIsLanguageSheetVisible(true);
@@ -649,9 +658,8 @@ function SignOutButton({
         <Pressable
             onPress={onPress}
             disabled={isSigningOut}
-            className={`rounded-xl border border-danger/20 bg-danger/10 px-4 py-4 ${
-                isSigningOut ? "" : "active:opacity-80"
-            }`}
+            className="rounded-xl border border-danger/20 bg-danger/10 px-4 py-4"
+            style={({ pressed }) => getPressedScaleStyle(pressed, isSigningOut, 0.992)}
         >
             <AppText variant="label" className="text-danger">
                 {isSigningOut ? t("profile.loggingOut") : t("profile.logOut")}

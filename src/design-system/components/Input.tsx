@@ -26,7 +26,7 @@ export function Input({
             <TextInput
                 placeholderTextColor={colors.mutedForeground}
                 className={cn(
-                    "h-12 rounded-xl border border-border bg-surface px-5 text-base text-foreground",
+                    "h-12 rounded-xl border border-border bg-surface pl-2 pr-2 text-base text-foreground",
                     error && "border-danger",
                     className,
                 )}

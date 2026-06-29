@@ -1,4 +1,10 @@
-import { AppText, Card, Divider } from "@/design-system";
+import {
+    AppText,
+    Card,
+    Divider,
+    getPressedScaleStyle,
+    useThemeColors,
+} from "@/design-system";
 import {
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
@@ -11,6 +17,7 @@ import { format, isToday } from "date-fns";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+import { ChevronRight } from "lucide-react-native";
 
 type Props = {
     reservation: MemberReservationResponse | MemberReservationSummaryResponse;
@@ -22,6 +29,7 @@ type Props = {
 
 function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const startDate = new Date(reservation.startTime);
     const endDate = new Date(reservation.endTime);
     const tone = getTicketTypeTone(reservation.ticketType);
@@ -44,9 +52,15 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     };
 
     return (
-        <Pressable className="active:bg-muted" onPress={handlePress} disabled={disabled}>
+        <Pressable
+            onPress={handlePress}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel={title}
+            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.99)}
+        >
             <Card
-                className={`flex-col gap-3 overflow-hidden p-5 ${
+                className={`flex-col gap-3 overflow-hidden rounded-2xl p-5 ${
                     isTodayReservation
                         ? tone.emphasisBorderClassName
                         : tone.borderClassName
@@ -92,9 +106,13 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                         </AppText>
                     </View>
 
-                    <AppText className={`text-lg ${tone.iconClassName}`}>
-                        {">"}
-                    </AppText>
+                    <View className="h-9 w-9 items-center justify-center rounded-full bg-muted">
+                        <ChevronRight
+                            size={18}
+                            color={tone.name === "default" ? colors.mutedForeground : colors.foreground}
+                            strokeWidth={2.3}
+                        />
+                    </View>
                 </View>
             </Card>
         </Pressable>

@@ -4,6 +4,7 @@ import {
     cn,
     EmptyState,
     ErrorState,
+    getPressedScaleStyle,
     Screen,
     useThemeColors,
 } from "@/design-system";
@@ -57,8 +58,9 @@ function NoticeScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={t("notice.markAllAsRead")}
                         disabled={isMarkingAllAsRead}
-                        className={isMarkingAllAsRead ? "opacity-60" : "active:opacity-80"}
+                        className={isMarkingAllAsRead ? "opacity-60" : undefined}
                         hitSlop={10}
+                        style={({ pressed }) => getPressedScaleStyle(pressed, isMarkingAllAsRead, 0.99)}
                         onPress={() => {
                             markAllAsRead();
                         }}
@@ -184,6 +186,10 @@ function NoticeScreen() {
                 <EmptyState
                     title={t("notice.noNotificationsTitle")}
                     message={t("notice.noNotificationsMessage")}
+                    actionLabel={t("common.refreshTryAgain")}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : (
                 <FlatList
@@ -272,8 +278,9 @@ function NotificationRow({
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={item.title}
-                className={cn("py-3", disabled ? "opacity-60" : "active:opacity-80")}
+                className={cn("py-3", disabled && "opacity-60")}
                 disabled={disabled}
+                style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.995)}
                 onPress={onPress}
             >
                 <View className="flex-row items-start gap-3">

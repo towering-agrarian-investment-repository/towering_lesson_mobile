@@ -3,7 +3,8 @@ import {
     Badge,
     Card,
     CompactEmptyState,
-    InlineState,
+    ErrorState,
+    getPressedScaleStyle,
     Skeleton,
     useThemeColors,
 } from "@/design-system";
@@ -28,7 +29,7 @@ export function MemberGroups() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data, isLoading, isError } = useMemberGroups();
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberGroups();
     const groups = data?.data ?? [];
 
     const renderGroup = useCallback(
@@ -58,13 +59,18 @@ export function MemberGroups() {
             {isLoading ? (
                 <GroupListSkeleton />
             ) : isError ? (
-                <InlineState
+                <ErrorState
                     title={t("groups.loadError")}
-                    tone="danger"
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : groups.length === 0 ? (
                 <CompactEmptyState
                     title={t("groups.empty")}
+                    message={t("common.pullToRefreshAndTryAgain")}
                 />
             ) : (
                 <View className="gap-3">
@@ -109,7 +115,8 @@ function GroupCard({
             accessibilityRole="button"
             accessibilityLabel={t("groups.openGroup", { name: groupName })}
             disabled={disabled}
-            className="active:opacity-80 disabled:opacity-60"
+            className="disabled:opacity-60"
+            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.992)}
             onPress={onPress}
             onPressIn={onPressIn}
         >

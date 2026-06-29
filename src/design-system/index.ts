@@ -6,6 +6,7 @@ export * from "./components/Screen";
 export * from "./components/Card";
 export * from "./components/IconButton";
 export * from "./components/ListRow";
+export * from "./components/MotionView";
 export * from "./components/Divider";
 export * from "./components/Badge";
 export * from "./components/CircleLoader";
@@ -22,5 +23,7 @@ export * from "./layout/Container";
 
 export * from "./utils/cn";
 export * from "./utils/platform";
+export * from "./utils/haptics";
+export * from "./utils/pressable";
 export * from "./utils/theme";
 export * from "./utils/ticket-type";

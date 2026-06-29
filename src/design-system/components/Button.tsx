@@ -1,12 +1,16 @@
+import * as Haptics from "expo-haptics";
 import {
     ActivityIndicator,
     Pressable,
+    type GestureResponderEvent,
     type PressableProps,
     View,
 } from "react-native";
 import { AppText } from "./AppText";
 import { cn } from "../utils/cn";
 import { useThemeColors } from "../utils/theme";
+import { triggerImpactHaptic } from "../utils/haptics";
+import { getPressedScaleStyle } from "../utils/pressable";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
@@ -60,6 +64,7 @@ export function Button({
     disabled,
     className,
     textClassName,
+    onPress,
     ...props
 }: ButtonProps) {
     const isDisabled = disabled || loading;
@@ -67,12 +72,25 @@ export function Button({
     const textColorClassName = getButtonTextColorClass(variant);
     const spinnerColor = getButtonSpinnerColor(colors, variant);
 
+    const handlePress = (event: GestureResponderEvent) => {
+        if (isDisabled) {
+            return;
+        }
+
+        triggerImpactHaptic(
+            variant === "danger"
+                ? Haptics.ImpactFeedbackStyle.Heavy
+                : Haptics.ImpactFeedbackStyle.Light,
+        );
+        onPress?.(event);
+    };
+
     return (
         <Pressable
             accessibilityRole="button"
             disabled={isDisabled}
             className={cn(
-                "w-full items-center justify-center rounded-xl active:opacity-80",
+                "w-full items-center justify-center rounded-xl",
                 isDisabled && "opacity-50",
                 size === "sm" && "h-10 px-4",
                 size === "md" && "h-12 px-5",
@@ -83,7 +101,9 @@ export function Button({
                 variant === "danger" && "bg-danger",
                 className,
             )}
+            style={({ pressed }) => getPressedScaleStyle(pressed, isDisabled)}
             {...props}
+            onPress={handlePress}
         >
             <View className="flex-row items-center justify-center gap-2">
                 {loading ? (

@@ -63,7 +63,7 @@ export default function EditProfileScreen() {
             name: "",
         },
         resolver: zodResolver(editProfileSchema),
-        mode: "onSubmit",
+        mode: "onChange",
     });
 
     useEffect(() => {
@@ -230,6 +230,11 @@ export default function EditProfileScreen() {
                     <Button
                         title={isSubmitting ? t("profile.saving") : t("profile.saveChanges")}
                         loading={isSubmitting}
+                        disabled={
+                            isSubmitting
+                            || !form.formState.isDirty
+                            || !form.formState.isValid
+                        }
                         className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit)}
                     />

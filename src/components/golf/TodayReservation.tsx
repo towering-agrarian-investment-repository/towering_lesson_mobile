@@ -55,6 +55,9 @@ function TodayReservation() {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentInsetAdjustmentBehavior="automatic"
+                    snapToInterval={232}
+                    decelerationRate="fast"
+                    snapToAlignment="start"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
                     renderItem={renderReservationItem}
@@ -69,6 +72,7 @@ const style = StyleSheet.create({
         gap: 12,
         paddingVertical: 12,
         alignItems: "flex-start",
+        paddingRight: 24,
     },
 });
 

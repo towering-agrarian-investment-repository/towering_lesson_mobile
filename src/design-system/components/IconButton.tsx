@@ -1,6 +1,7 @@
 import { Pressable, type PressableProps } from "react-native";
 import type { ReactNode } from "react";
 import { cn } from "../utils/cn";
+import { getPressedScaleStyle } from "../utils/pressable";
 
 type IconButtonVariant = "primary" | "secondary" | "ghost";
 type IconButtonSize = "sm" | "md" | "lg";
@@ -22,14 +23,16 @@ export function IconButton({
     disabled,
     ...props
 }: IconButtonProps) {
+    const isDisabled = Boolean(disabled);
+
     return (
         <Pressable
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
-            disabled={disabled}
+            disabled={isDisabled}
             className={cn(
-                "items-center justify-center rounded-full active:opacity-80",
-                disabled && "opacity-50",
+                "items-center justify-center rounded-full",
+                isDisabled && "opacity-50",
                 size === "sm" && "h-9 w-9",
                 size === "md" && "h-11 w-11",
                 size === "lg" && "h-14 w-14",
@@ -38,6 +41,7 @@ export function IconButton({
                 variant === "ghost" && "bg-transparent",
                 className,
             )}
+            style={({ pressed }) => getPressedScaleStyle(pressed, isDisabled)}
             {...props}
         >
             {children}

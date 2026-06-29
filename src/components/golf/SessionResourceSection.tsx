@@ -1,4 +1,11 @@
-import { AppText, Card, InlineState, ListRow, useThemeColors } from "@/design-system";
+import {
+    AppText,
+    Card,
+    getPressedScaleStyle,
+    InlineState,
+    ListRow,
+    useThemeColors,
+} from "@/design-system";
 import type { SessionResourcesFilesResponse } from "@/types/member-session";
 import {
     getFileExtension,
@@ -112,7 +119,8 @@ function SessionResourceItem({
                 <Pressable
                     accessibilityRole="imagebutton"
                     accessibilityLabel={t("sessionResources.openImage", { title })}
-                    className="relative overflow-hidden active:opacity-95"
+                    className="relative overflow-hidden"
+                    style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
                     onPress={() => {
                         void Linking.openURL(url);
                     }}
