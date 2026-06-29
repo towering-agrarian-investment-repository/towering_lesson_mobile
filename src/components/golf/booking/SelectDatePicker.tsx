@@ -251,6 +251,10 @@ export default function DateScreen() {
         const isCurrentMonth = isSameMonth(day.dateString, visibleMonth);
         const isAvailable = availableDates.has(day.dateString);
 
+        if (isPast || !isAvailable && !isCurrentMonth) {
+            return;
+        }
+
         if (isAvailable) {
             triggerSelectionHaptic();
 
