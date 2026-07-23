@@ -64,6 +64,16 @@ export const usePushNotification = (isLoggedIn: boolean) => {
                 return;
             }
 
+            if (referenceType === "LESSON_LOG" && referenceId) {
+                router.push({
+                    pathname: "/lesson-log/[id]",
+                    params: {
+                        id: referenceId,
+                    },
+                });
+                return;
+            }
+
             if (referenceType === "BOOKING" && referenceId) {
                 router.push({
                     pathname: "/reservation/[id]",

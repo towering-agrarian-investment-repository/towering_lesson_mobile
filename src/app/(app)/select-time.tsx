@@ -132,6 +132,11 @@ export default function TimeScreen() {
                     {slotGroups.map((group) => (
                         <Pressable
                             key={group.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={formatTimeRange(
+                                group.startDateTime,
+                                group.endDateTime,
+                            )}
                             className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
                             style={({ pressed }) => ({
                                 transform: [{ scale: pressed && !isLocked ? 0.992 : 1 }],

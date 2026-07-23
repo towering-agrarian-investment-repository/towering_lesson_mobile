@@ -87,6 +87,12 @@ export function FormDateInput<TFieldValues extends FieldValues>({
                     >
                         <View className="mt-2 gap-3">
                             <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={label ?? resolvedPlaceholder}
+                                accessibilityState={{
+                                    disabled: !editable,
+                                    expanded: isOpen,
+                                }}
                                 onPress={() => {
                                     if (!editable) {
                                         return;

@@ -34,7 +34,7 @@ import {
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ClipboardCheck, PlayCircle } from "lucide-react-native";
+import { Check, ClipboardCheck, FileText, PlayCircle } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
@@ -45,6 +45,7 @@ type LessonParams = {
 
 export default function StandaloneLessonDetailScreen() {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const { lessonId } = useLocalSearchParams<LessonParams>();
     const numericLessonId = Number(lessonId);
     const router = useRouter();
@@ -217,6 +218,25 @@ export default function StandaloneLessonDetailScreen() {
                     </View>
                 )}
             </Card>
+
+            {detail.media?.length ? (
+                <Card className="gap-4 p-5">
+                    <SectionHeader title={t("lessons.mediaTitle")} count={detail.media.length} />
+                    <View className="gap-3">
+                        {detail.media.map((media, index) => (
+                            <ListRow
+                                key={`media-${media.id ?? index}`}
+                                title={media.description?.trim() || t("lessons.mediaFallback", { id: media.id ?? index + 1 })}
+                                subtitle={media.mediaType ?? undefined}
+                                leading={<RowIcon><FileText size={18} color={colors.mutedForeground} /></RowIcon>}
+                                className="border-border bg-card px-4 py-3.5"
+                                titleClassName="font-medium leading-6"
+                                showChevron={false}
+                            />
+                        ))}
+                    </View>
+                </Card>
+            ) : null}
         </Screen>
     );
 }

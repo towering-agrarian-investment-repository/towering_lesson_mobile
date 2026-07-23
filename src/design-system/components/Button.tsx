@@ -88,6 +88,10 @@ export function Button({
     return (
         <Pressable
             accessibilityRole="button"
+            accessibilityState={{
+                disabled: isDisabled,
+                busy: loading,
+            }}
             disabled={isDisabled}
             className={cn(
                 "w-full items-center justify-center rounded-xl",

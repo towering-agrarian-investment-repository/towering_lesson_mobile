@@ -94,7 +94,7 @@ function ThemedRoot({
             screenOptions={{
               headerShown: false,
               animation: "slide_from_right",
-              animationDuration: 80,
+              animationDuration: 180,
             }}
           >
             <Stack.Protected guard={!hasAuthorizedSession}>

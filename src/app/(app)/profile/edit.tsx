@@ -213,11 +213,7 @@ export default function EditProfileScreen() {
         return (
             <ErrorState
                 title={t("home.couldNotLoadProfile")}
-                message={
-                    error instanceof Error
-                        ? error.message
-                        : t("common.refreshTryAgain")
-                }
+                message={t("home.checkConnection")}
             />
         );
     }

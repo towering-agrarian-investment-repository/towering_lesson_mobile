@@ -1,12 +1,12 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 
-export type DeviceType = "IOS" | "ANDROID";
+export type PushTokenPlatform = "EXPO";
 
 export interface SavePushTokenRequest {
     deviceId?: string | null;
-    expoPushToken: string;
-    deviceType: DeviceType;
+    pushToken: string;
+    platform: PushTokenPlatform;
 }
 
 export const savePushToken = async (
@@ -19,10 +19,10 @@ export const savePushToken = async (
 };
 
 export const deactivatePushToken = async (
-    expoPushToken: string,
+    pushToken: string,
 ): Promise<ApiResponse<void>> => {
     const params = new URLSearchParams();
-    params.set("expoPushToken", expoPushToken);
+    params.set("pushToken", pushToken);
 
     return apiClient(`/push-tokens?${params.toString()}`, {
         method: "DELETE",

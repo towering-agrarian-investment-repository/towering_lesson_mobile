@@ -14,6 +14,7 @@ import {
     useMarkAsRead,
 } from "@/lib/hook/shared/useNotification";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { getMemberLessonLogByIdQueryOptions } from "@/lib/hook/useLessonLog";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import {
     NotificationResponse,
@@ -100,6 +101,24 @@ function NoticeScreen() {
                 params: {
                     id: referenceId,
                     type: "lesson",
+                },
+            });
+            return true;
+        }
+
+        if (referenceType === "LESSON_LOG") {
+            const lessonLogId = Number(referenceId);
+
+            if (Number.isFinite(lessonLogId)) {
+                void queryClient.prefetchQuery(
+                    getMemberLessonLogByIdQueryOptions(lessonLogId),
+                );
+            }
+
+            router.push({
+                pathname: "/lesson-log/[id]",
+                params: {
+                    id: referenceId,
                 },
             });
             return true;

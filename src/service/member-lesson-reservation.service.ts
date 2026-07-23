@@ -4,7 +4,6 @@ import {
     CreateLessonReservationRequest,
     MemberLessonReservationResponse,
     MemberLessonSlotResponse,
-    RescheduleLessonReservationRequest,
 } from "@/types/member-lesson";
 
 export async function getLessonReservationById(
@@ -48,15 +47,5 @@ export async function cancelLessonReservationById(
 ): Promise<ApiResponse<void>> {
     return apiClient(`/member/lesson-reservations/${id}/cancel`, {
         method: "PUT",
-    });
-}
-
-export async function rescheduleLessonReservationById(
-    id: number,
-    data: RescheduleLessonReservationRequest,
-): Promise<ApiResponse<MemberLessonReservationResponse>> {
-    return apiClient(`/member/lesson-reservations/${id}/reschedule`, {
-        method: "PUT",
-        body: JSON.stringify(data),
     });
 }

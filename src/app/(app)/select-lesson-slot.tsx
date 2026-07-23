@@ -36,13 +36,11 @@ function formatSlotTime(slot: MemberLessonSlotResponse) {
 export default function SelectLessonSlotScreen() {
     const { t } = useTranslation();
     const colors = useThemeColors();
-    const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
+    const { date, ticketId, ticketName, ticketType, notes } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
         ticketName: string;
         ticketType?: string;
-        mode?: string;
-        reservationId?: string;
         notes?: string;
     }>();
 
@@ -82,8 +80,6 @@ export default function SelectLessonSlotScreen() {
                     startTime: slot.startTime,
                     endTime: slot.endTime,
                     date,
-                    mode,
-                    reservationId,
                     notes,
                 },
             });
@@ -177,6 +173,8 @@ export default function SelectLessonSlotScreen() {
                         return isGroupSlot ? (
                             <Pressable
                                 key={slot.id}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
                                 style={({ pressed }) => getPressedScaleStyle(pressed, disabled || isLocked, 0.99)}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
@@ -298,6 +296,8 @@ export default function SelectLessonSlotScreen() {
                         ) : (
                             <Pressable
                                 key={slot.id}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
                                 className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${disabled
                                     ? "border-muted bg-muted opacity-55"
                                     : "border-border bg-card"

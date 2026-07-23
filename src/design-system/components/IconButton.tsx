@@ -29,6 +29,7 @@ export function IconButton({
         <Pressable
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ disabled: isDisabled }}
             disabled={isDisabled}
             className={cn(
                 "items-center justify-center rounded-full",

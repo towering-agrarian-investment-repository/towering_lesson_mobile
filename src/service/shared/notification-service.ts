@@ -14,6 +14,7 @@ export type NotificationReferenceType =
 	| "BOOKING"
 	| "BOOKING_LESSON"
 	| "BOOKING_BAY"
+	| "LESSON_LOG"
 	| "PAYMENT"
 	| "TOURNAMENT"
 	| "USER"

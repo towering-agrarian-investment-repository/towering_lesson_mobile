@@ -78,7 +78,7 @@ export function EmptyState({
 
 function StateCardShell({ children }: { children: React.ReactNode }) {
     return (
-        <View className="flex-1 px-6 py-5">
+        <View className="flex-1 bg-background px-6 py-5">
             <MotionView className="flex-1 items-center justify-center">
                 {children}
             </MotionView>

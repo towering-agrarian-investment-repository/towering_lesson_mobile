@@ -60,11 +60,7 @@ export default function HomeScreen() {
     return (
       <ErrorState
         title={t("home.couldNotLoadProfile")}
-        message={
-          error instanceof Error
-            ? error.message
-            : t("home.checkConnection")
-        }
+        message={t("home.checkConnection")}
         actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
         onAction={() => {
           void refetch();
@@ -80,6 +76,8 @@ export default function HomeScreen() {
       footer={
         <Link href="/reservation" push asChild>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("home.viewMyReservations")}
             className="mx-6 rounded-xl bg-primary py-4"
             style={({ pressed }) => getPressedScaleStyle(pressed, false)}
           >

@@ -65,6 +65,10 @@ export function FormSelect<
                                 } ${editable ? "" : "opacity-60"}`}
                                 accessibilityRole="button"
                                 accessibilityLabel={label ?? t("common.selectOption")}
+                                accessibilityState={{
+                                    disabled: !editable,
+                                    expanded: isOpen,
+                                }}
                             >
                                 <Text
                                     className={`flex-1 text-base ${
@@ -140,6 +144,8 @@ export function FormSelect<
                                                     onChange(emptyValue);
                                                     setIsOpen(false);
                                                 }}
+                                                accessibilityRole="radio"
+                                                accessibilityState={{ selected: !selectedValue }}
                                                 className={`mb-3 rounded-xl border px-5 py-4 ${
                                                     !selectedValue
                                                         ? "border-success bg-success/10"
@@ -168,6 +174,9 @@ export function FormSelect<
                                                             onChange(option.value);
                                                             setIsOpen(false);
                                                         }}
+                                                        accessibilityRole="radio"
+                                                        accessibilityLabel={option.label}
+                                                        accessibilityState={{ selected: isSelected }}
                                                         className={`mb-3 flex-row items-center rounded-xl border px-5 py-4 ${
                                                             isSelected
                                                                 ? "border-success bg-success/10"

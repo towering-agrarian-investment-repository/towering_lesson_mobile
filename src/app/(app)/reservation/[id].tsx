@@ -332,7 +332,10 @@ export default function ReservationDetailScreen() {
         ? reservation
         : null;
 
-    const canCancelReservation = reservation.reservationStatus === "RESERVED";
+    const canCancelReservation = reservation.reservationStatus === "RESERVED" && reservation.isCancellable;
+    const canRescheduleReservation =
+        isBayReservation &&
+        reservation.isCancellable;
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
 
     const title = getReservationTitle(reservation, t);
@@ -404,6 +407,24 @@ export default function ReservationDetailScreen() {
         setIsCancelSheetVisible(true);
     };
 
+    const handleRescheduleReservation = () => {
+        if (!canRescheduleReservation || !reservation.ticket?.id) {
+            return;
+        }
+
+        router.push({
+            pathname: "/select-date",
+            params: {
+                ticketId: String(reservation.ticket.id),
+                ticketName: reservation.ticket.name,
+                ticketType: reservation.ticket.type,
+                mode: "reschedule",
+                reservationId: String(reservation.id),
+                notes: reservation.memberNotes ?? "",
+            },
+        });
+    };
+
     const confirmCancelReservation = () => {
         if (!canCancelReservation || isCancelling) {
             return;
@@ -456,16 +477,27 @@ export default function ReservationDetailScreen() {
                     />
                 }
                 footer={
-                    canCancelReservation ? (
-                        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
-                            <Button
-                                title={t("reservations.cancelTitle")}
-                                variant="danger"
-                                loading={isCancelling}
-                                className="rounded-xl"
-                                onPress={handleCancelReservation}
-                                disabled={isCancelling}
-                            />
+                    canCancelReservation || canRescheduleReservation ? (
+                        <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
+                            {canRescheduleReservation ? (
+                                <Button
+                                    title={t("reservations.reschedule")}
+                                    variant="secondary"
+                                    className="rounded-xl"
+                                    onPress={handleRescheduleReservation}
+                                />
+                            ) : null}
+
+                            {canCancelReservation ? (
+                                <Button
+                                    title={t("reservations.cancelTitle")}
+                                    variant="danger"
+                                    loading={isCancelling}
+                                    className="rounded-xl"
+                                    onPress={handleCancelReservation}
+                                    disabled={isCancelling}
+                                />
+                            ) : null}
                         </View>
                     ) : null
                 }

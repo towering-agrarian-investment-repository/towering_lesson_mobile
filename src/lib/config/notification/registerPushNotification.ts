@@ -55,8 +55,8 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 
 	await savePushToken({
 		deviceId: getDeviceId(),
-		expoPushToken,
-		deviceType: process.env.EXPO_OS === "ios" ? "IOS" : "ANDROID",
+		pushToken: expoPushToken,
+		platform: "EXPO",
 	});
 
 	return expoPushToken;

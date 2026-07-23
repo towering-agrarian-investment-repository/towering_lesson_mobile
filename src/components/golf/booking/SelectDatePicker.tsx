@@ -267,15 +267,23 @@ export default function DateScreen() {
             runWithNavigationLock(() => {
                 router.push({
                     pathname: isLessonTicket ? "/select-lesson-slot" : "/select-time",
-                    params: {
-                        date: day.dateString,
-                        ticketId,
-                        ticketName,
-                        ticketType,
-                        mode,
-                        reservationId,
-                        notes,
-                    },
+                    params: isLessonTicket
+                        ? {
+                            date: day.dateString,
+                            ticketId,
+                            ticketName,
+                            ticketType,
+                            notes,
+                        }
+                        : {
+                            date: day.dateString,
+                            ticketId,
+                            ticketName,
+                            ticketType,
+                            mode,
+                            reservationId,
+                            notes,
+                        },
                 });
             });
 

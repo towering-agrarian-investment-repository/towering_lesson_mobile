@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Controller, FieldValues } from "react-hook-form";
 import { useThemeColors } from "@/design-system";
+import { useTranslation } from "react-i18next";
 import { Pressable, TextInput, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
@@ -16,6 +17,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
 }: FormInputBaseProps<TFieldValues>) {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const colors = useThemeColors();
+    const { t } = useTranslation();
 
     return (
         <Controller
@@ -45,10 +47,15 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                             autoCapitalize="none"
                             secureTextEntry={!isPasswordVisible}
                             editable={editable}
+                            accessibilityLabel={label}
+                            accessibilityState={{ disabled: !editable }}
                             className="flex-1 px-0 text-base text-foreground"
                         />
 
                         <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={isPasswordVisible ? t("common.hidePassword") : t("common.showPassword")}
+                            accessibilityState={{ disabled: !editable }}
                             onPress={() => {
                                 setIsPasswordVisible((current) => !current);
                             }}

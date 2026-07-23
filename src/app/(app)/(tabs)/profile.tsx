@@ -84,7 +84,7 @@ export default function ProfileScreen() {
         return (
             <ErrorState
                 title={t("home.couldNotLoadProfile")}
-                message={error instanceof Error ? error.message : t("common.refreshTryAgain")}
+                message={t("home.checkConnection")}
                 actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                 onAction={() => {
                     void refetch();

@@ -199,6 +199,8 @@ export default function BayScreen() {
                                 return (
                                     <View key={bay.id} className="flex-1">
                                         <Pressable
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`${bay.bayName}, ${statusLabel}`}
                                             className={`items-center gap-2 rounded-2xl border px-3 py-4 ${!isDisabled
                                                 ? "border-border bg-card"
                                                 : "border-muted bg-muted opacity-55"

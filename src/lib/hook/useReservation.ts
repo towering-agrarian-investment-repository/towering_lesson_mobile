@@ -10,7 +10,6 @@ import {
     createMemberLessonReservation,
     getLessonReservationById,
     getTicketLessonSlots,
-    rescheduleLessonReservationById,
 } from "@/service/member-lesson-reservation.service";
 import { getMemberReservations, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
 import {
@@ -23,7 +22,6 @@ import {
     CreateLessonReservationRequest,
     MemberLessonReservationResponse,
     MemberLessonSlotResponse,
-    RescheduleLessonReservationRequest,
 } from "@/types/member-lesson";
 import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -33,11 +31,6 @@ import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "
 export type MemberReservationDetailResponse =
     | MemberLessonReservationResponse
     | MemberBayReservationResponse;
-
-type RescheduleMemberLessonReservationVariables = {
-    reservationId: number;
-    data: RescheduleLessonReservationRequest;
-};
 
 type RescheduleMemberBayReservationVariables = {
     reservationId: number;
@@ -269,31 +262,6 @@ export function useCancelMemberBayReservation() {
             queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
             queryClient.invalidateQueries({
                 queryKey: ["member", "reservations", "detail", "bay", reservationId],
-            });
-        },
-        onError: (error) => {
-            responseError({ error });
-        },
-    });
-}
-
-export function useRescheduleMemberLessonReservation() {
-    const queryClient = useQueryClient();
-
-    return useMutation<
-        ApiResponse<MemberLessonReservationResponse>,
-        unknown,
-        RescheduleMemberLessonReservationVariables
-    >({
-        mutationFn: ({ reservationId, data }) =>
-            rescheduleLessonReservationById(reservationId, data),
-        onSuccess: (res, { reservationId }) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "ticket-lesson-slots"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
-            queryClient.invalidateQueries({
-                queryKey: ["member", "reservations", "detail", "lesson", reservationId],
             });
         },
         onError: (error) => {

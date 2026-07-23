@@ -75,6 +75,8 @@ export default function AppLayout() {
                     screenOptions={({ navigation }) => ({
                         animation: "slide_from_right",
                         animationDuration: 180,
+                        fullScreenGestureEnabled: true,
+                        gestureEnabled: true,
                         headerBackButtonDisplayMode: "minimal",
                         contentStyle: { backgroundColor: colors.background },
                         headerStyle: { backgroundColor: colors.background },
@@ -204,10 +206,10 @@ export default function AppLayout() {
                         options={{
                             title: t("reservations.reservationDetailTitle"),
                             animation: "slide_from_right",
-                            animationDuration: 80,
+                            animationDuration: 180,
                             animationTypeForReplace: "push",
-                            fullScreenGestureEnabled: true, 
-                            gestureEnabled: true,       
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -260,6 +262,10 @@ export default function AppLayout() {
                         options={{
                             title: t("navigation.screens.lessonPostList"),
                             headerLargeTitle: true,
+                            animation: "slide_from_right",
+                            animationDuration: 180,
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -267,6 +273,11 @@ export default function AppLayout() {
                         name="lesson-log/[id]"
                         options={{
                             title: t("navigation.screens.lessonPost"),
+                            animation: "slide_from_right",
+                            animationDuration: 180,
+                            animationTypeForReplace: "pop",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -274,6 +285,10 @@ export default function AppLayout() {
                         name="lesson-log/[id]/comment"
                         options={{
                             title: t("navigation.screens.lessonPost"),
+                            animation: "slide_from_right",
+                            animationDuration: 180,
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
