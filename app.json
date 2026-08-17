@@ -7,6 +7,14 @@
     "icon": "./assets/images/expo-icons/icon.png",
     "scheme": "golflessonsystemmobile",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/075f354d-9980-43e0-9ae5-07584735ab10",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "icon": "./assets/images/expo-icons/icon.png"
     },

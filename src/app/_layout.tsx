@@ -14,10 +14,17 @@ import { VariableContextProvider } from "@/lib/react-native-css-variable-context
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 import { usePushNotification } from "@/lib/hook/shared/usePushNotification";
+import {
+  AppUpdateGate,
+} from "@/components/update/AppUpdateGate";
+import { useAppUpdate } from "@/lib/update/use-app-update";
+import { AppUpdateProvider } from "@/lib/update/update-context";
+import { useWelcome, WelcomeProvider } from "@/lib/welcome/welcome-context";
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const update = useAppUpdate();
   const { data: session, isPending } = authClient.useSession();
   const authSession = session as AuthSession | null;
   const signedInRole = authSession?.user?.role?.toUpperCase?.() ?? null;
@@ -25,10 +32,10 @@ export default function RootLayout() {
   const hasUnauthorizedSession = !!session && signedInRole !== ALLOWED_APP_ROLE;
 
   useEffect(() => {
-    if (!isPending) {
+    if (!isPending && !update.isChecking) {
       void SplashScreen.hideAsync();
     }
-  }, [isPending]);
+  }, [isPending, update.isChecking]);
 
   useEffect(() => {
     if (!hasUnauthorizedSession) {
@@ -41,7 +48,14 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ThemedRoot hasAuthorizedSession={hasAuthorizedSession} />
+        <WelcomeProvider>
+          <AppUpdateProvider value={update}>
+            <ThemedRoot
+              hasAuthorizedSession={hasAuthorizedSession}
+              update={update}
+            />
+          </AppUpdateProvider>
+        </WelcomeProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -49,10 +63,13 @@ export default function RootLayout() {
 
 function ThemedRoot({
   hasAuthorizedSession,
+  update,
 }: {
   hasAuthorizedSession: boolean;
+  update: ReturnType<typeof useAppUpdate>;
 }) {
   const { colors, resolvedScheme } = useTheme();
+  const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
 
   usePushNotification(hasAuthorizedSession);
 
@@ -89,33 +106,32 @@ function ThemedRoot({
   return (
     <>
       <VariableContextProvider value={themeVariables}>
-        <View className="flex-1 bg-background">
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: "slide_from_right",
-              animationDuration: 180,
-            }}
-          >
-            <Stack.Protected guard={!hasAuthorizedSession}>
-              <Stack.Screen
-                name="login"
-                options={{
+        {!isWelcomeReady || update.isChecking ? <View className="flex-1 bg-background" /> : null}
+        {isWelcomeReady && !update.isChecking && update.isForceUpdateRequired && update.state ? (
+          <AppUpdateGate state={update.state} force />
+        ) : null}
+        {isWelcomeReady && !update.isChecking && !update.isForceUpdateRequired ? (
+          <View className="flex-1 bg-background">
+            <Stack
+                screenOptions={{
                   headerShown: false,
+                  animation: "default",
                 }}
-              />
-            </Stack.Protected>
+            >
+                <Stack.Protected guard={!hasCompletedWelcome}>
+                  <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                </Stack.Protected>
 
-            <Stack.Protected guard={hasAuthorizedSession}>
-              <Stack.Screen
-                name="(app)"
-                options={{
-                  headerShown: false,
-                }}
-              />
-            </Stack.Protected>
-          </Stack>
-        </View>
+                <Stack.Protected guard={hasCompletedWelcome && !hasAuthorizedSession}>
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                </Stack.Protected>
+
+                <Stack.Protected guard={hasCompletedWelcome && hasAuthorizedSession}>
+                  <Stack.Screen name="(app)" options={{ headerShown: false }} />
+                </Stack.Protected>
+            </Stack>
+          </View>
+        ) : null}
       </VariableContextProvider>
       <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
     </>

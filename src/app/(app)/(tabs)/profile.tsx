@@ -15,20 +15,24 @@ import {
 } from "@/design-system";
 import { setAppLanguage, type AppLanguage } from "@/i18n";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { useAppUpdateContext } from "@/lib/update/update-context";
+import { openStore } from "@/lib/update/app-update";
 import { showAppToast } from "@/lib/toast/toast";
 import { signOut } from "@/service/auth";
+import { formatType } from "@/utils/format-enum";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
-import { Languages, Moon, Smartphone, Sun } from "lucide-react-native";
+import { Download, Languages, Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
-import ReminderToggle from "@/components/ReminderToggle";
 const APP_VERSION = "v 1.0.0";
 
 export default function ProfileScreen() {
     const { i18n, t } = useTranslation();
+    const colors = useThemeColors();
+    const update = useAppUpdateContext();
     const queryClient = useQueryClient();
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
@@ -121,17 +125,15 @@ export default function ProfileScreen() {
                 }}
             />
 
-            <View className="flex-col gap-6">
-                <Card className="gap-5 p-5">
-                    <ProfileHeader
-                        name={member?.name}
-                        username={member?.username}
-                        imageUrl={member?.profileImage}
-                        isActive={member?.isActive}
-                    />
+            <View className="flex-col gap-4">
+                <ProfileHeader
+                    name={member?.name}
+                    checkinNumber={member?.checkinNumber}
+                    imageUrl={member?.profileImage}
+                />
 
-                    <Divider className="bg-border" />
-
+                <Card className="gap-3 p-5">
+                    <SectionTitle title={t("profile.personalRecord")} />
                     <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
                 </Card>
 
@@ -139,11 +141,9 @@ export default function ProfileScreen() {
                     <SectionTitle title={t("profile.generalInfo")} />
 
                     <View className="flex-col">
-                        <InfoRow label={t("profile.checkInNo")} value={member?.checkinNumber} />
-                        <Divider className="bg-border" />
                         <InfoRow label={t("profile.phone")} value={member?.phoneNumber} />
                         <Divider className="bg-border" />
-                        <InfoRow label={t("profile.gender")} value={member?.gender} />
+                        <InfoRow label={t("profile.gender")} value={formatType(member?.gender)} />
                     </View>
                 </Card>
 
@@ -189,6 +189,27 @@ export default function ProfileScreen() {
                     <SectionTitle title={t("profile.settings")} />
 
                     <View className="flex-col">
+                        {update.isOptionalUpdateAvailable && update.state ? (
+                            <>
+                                <ListRow
+                                    accessibilityLabel={t("appUpdate.updateAvailable")}
+                                    title={t("appUpdate.updateAvailable")}
+                                    subtitle={t("appUpdate.newVersion", {
+                                        version: update.state.latestVersion ?? "",
+                                    })}
+                                    leading={
+                                        <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                                            <Download size={20} color={colors.primary} />
+                                        </View>
+                                    }
+                                    className="border-0 bg-transparent px-0 py-3"
+                                    onPress={() => {
+                                        void openStore(update.state!);
+                                    }}
+                                />
+                                <Divider className="bg-border" />
+                            </>
+                        ) : null}
                         <LinkRow
                             label={t("profile.editPersonalInformation")}
                             href="/profile/edit"
@@ -224,8 +245,6 @@ export default function ProfileScreen() {
                                 }
                             }}
                         />
-                        <Divider className="bg-border" />
-                        <ReminderToggle />
                     </View>
                 </Card>
 
@@ -265,15 +284,15 @@ function resolveProfileLanguage(language: string | undefined): AppLanguage {
 
 function ProfileHeader({
     name,
-    username,
+    checkinNumber,
     imageUrl,
-    isActive,
 }: {
     name?: string | null;
-    username?: string | null;
+    checkinNumber?: string | null;
     imageUrl?: string | null;
-    isActive?: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <View className="flex-row items-center gap-5">
             <ProfileAvatar name={name} imageUrl={imageUrl} size="large" />
@@ -288,17 +307,20 @@ function ProfileHeader({
                         {name || "-"}
                     </AppText>
 
-                    <AppText
-                        selectable
-                        variant="subtext"
-                        className="text-foreground/80"
-                        numberOfLines={1}
-                    >
-                        @{username || "-"}
-                    </AppText>
+                    <View className="flex-row items-center gap-1">
+                        <AppText variant="caption" className="text-foreground/60">
+                            {t("profile.checkInNo")}:
+                        </AppText>
+                        <AppText
+                            selectable
+                            variant="subtext"
+                            className="text-foreground/80"
+                            numberOfLines={1}
+                        >
+                            {checkinNumber || "-"}
+                        </AppText>
+                    </View>
                 </View>
-
-                <StatusBadge isActive={isActive} />
             </View>
         </View>
     );
@@ -345,28 +367,11 @@ function ProfileAvatar({
     );
 }
 
-function StatusBadge({ isActive }: { isActive?: boolean }) {
-    const { t } = useTranslation();
-    return (
-        <View
-            className={`self-start rounded-md px-3.5 py-1 ${isActive ? "bg-success/10" : "bg-danger/10"
-                }`}
-        >
-            <AppText
-                variant="badge"
-                className={isActive ? "text-success" : "text-danger"}
-            >
-                {isActive ? t("profile.active") : t("profile.inactive")}
-            </AppText>
-        </View>
-    );
-}
-
 function SectionTitle({ title }: { title: string }) {
     return (
         <AppText
             variant="label"
-            className="text-lg font-semibold text-foreground"
+            className="text-sm font-semibold tracking-wide text-muted-foreground"
         >
             {title}
         </AppText>

@@ -16,9 +16,9 @@ import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     type LayoutChangeEvent,
+    FlatList,
     Platform,
     Pressable,
-    ScrollView,
     View,
 } from "react-native";
 import { SessionResourceSection } from "./SessionResourceSection";
@@ -40,7 +40,7 @@ export function LessonSessionsView({
     const [contentWidth, setContentWidth] = useState(0);
     const [scrollX, setScrollX] = useState(0);
     const lastAppliedInitialSessionId = useRef<number | null>(initialSessionId ?? null);
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useRef<FlatList<SessionInstanceResponse>>(null);
     const itemLayouts = useRef<Record<number, { width: number; x: number }>>({});
 
     useLayoutEffect(() => {
@@ -89,9 +89,9 @@ export function LessonSessionsView({
             ),
         );
 
-        scrollViewRef.current?.scrollTo({
+        scrollViewRef.current?.scrollToOffset({
             animated: true,
-            x: targetX,
+            offset: targetX,
         });
     }, [containerWidth, contentWidth, selectedSessionId]);
 
@@ -174,7 +174,7 @@ function SessionSwitcher({
     selectedSessionId: number;
     sessions: SessionInstanceResponse[];
     onSelect: (sessionId: number) => void;
-    scrollViewRef: RefObject<ScrollView | null>;
+    scrollViewRef: RefObject<FlatList<SessionInstanceResponse> | null>;
     showRightCue: boolean;
 }) {
     const { t } = useTranslation();
@@ -188,29 +188,17 @@ function SessionSwitcher({
             </View>
 
             <View className="relative" onLayout={onContainerLayout}>
-                <ScrollView
+                <FlatList
                     ref={scrollViewRef}
+                    data={sessions}
+                    keyExtractor={(session) => String(session.id)}
                     horizontal
-                    showsHorizontalScrollIndicator={Platform.OS === "android"}
-                    contentContainerStyle={{
-                        gap: 12,
-                        paddingRight: contentWidth > containerWidth ? 28 : 0,
-                    }}
-                    onContentSizeChange={(width) => {
-                        onContentSizeChange(width);
-                    }}
-                    onScroll={(event) => {
-                        onScroll(event.nativeEvent.contentOffset.x);
-                    }}
-                    scrollEventThrottle={16}
-                >
-                    {sessions.map((session, index) => {
+                    renderItem={({ item: session, index }) => {
                         const isSelected = session.id === selectedSessionId;
                         const statusTone = getSessionStatusTone(session.status);
 
                         return (
                             <Pressable
-                                key={session.id}
                                 accessibilityRole="button"
                                 accessibilityLabel={t("lessonSessions.openSession", {
                                     title: getSessionTitle(session),
@@ -258,8 +246,20 @@ function SessionSwitcher({
                                 </View>
                             </Pressable>
                         );
-                    })}
-                </ScrollView>
+                    }}
+                    showsHorizontalScrollIndicator={Platform.OS === "android"}
+                    ItemSeparatorComponent={() => <View className="w-3" />}
+                    contentContainerStyle={{
+                        paddingRight: contentWidth > containerWidth ? 28 : 0,
+                    }}
+                    onContentSizeChange={(width) => {
+                        onContentSizeChange(width);
+                    }}
+                    onScroll={(event) => {
+                        onScroll(event.nativeEvent.contentOffset.x);
+                    }}
+                    scrollEventThrottle={16}
+                />
 
                 {showRightCue ? (
                     <View

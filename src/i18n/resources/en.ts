@@ -1,4 +1,15 @@
 const en = {
+    appUpdate: {
+        updateRequired: "Update required",
+        updateAvailable: "Update available",
+        updateRequiredMessage: "Please update the app before continuing.",
+        updateAvailableMessage: "A newer version of the app is available.",
+        updateApp: "Update app",
+        continue: "Continue",
+        installedVersion: "Installed version: {{version}}",
+        newVersion: "New version: {{version}}",
+        checking: "Checking for updates...",
+    },
     login: {
         title: "Start HappyGolf",
         phoneNumberLabel: "Phone number",
@@ -12,6 +23,15 @@ const en = {
         phoneNumberRequired: "Phone number is required.",
         passwordRequired: "Password is required.",
         genericError: "Something went wrong. Please try again.",
+    },
+    welcome: {
+        title: "Welcome to HappyGolf Go",
+        description: "Your golf lessons, all in one place.",
+        featureBooking: "Book lessons and golf sessions easily",
+        featureLessons: "Keep track of your lessons and progress",
+        featureUpdates: "Stay up to date with important notifications",
+        getStarted: "Get Started",
+        starting: "Getting started...",
     },
     home: {
         loadingProfile: "Loading your profile...",

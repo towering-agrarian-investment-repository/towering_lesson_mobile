@@ -1,6 +1,9 @@
 import { authClient } from "../auth-client";
 import { env } from "../config/env";
 import i18n from "../../i18n";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+import { notifyUpdateRequired, type AppUpdateConfig } from "../update/app-update";
 
 const API_BASE_URL = env.apiBaseUrl;
 
@@ -46,6 +49,8 @@ export async function apiClient<T = unknown>(
 
     const headers = new Headers(options.headers);
     headers.set("Authorization", `Bearer ${jwtToken}`);
+    headers.set("X-App-Version", Constants.expoConfig?.version ?? "0.0.0");
+    headers.set("X-App-Platform", Platform.OS);
 
     if (!headers.has("Accept-Language")) {
         headers.set("Accept-Language", i18n.resolvedLanguage ?? i18n.language ?? "en");
@@ -73,6 +78,10 @@ export async function apiClient<T = unknown>(
     const isJson = contentType?.includes("application/json");
 
     const data = isJson ? await response.json() : await response.text();
+
+    if (isUpdateRequiredResponse(response.status, data)) {
+        notifyUpdateRequired(getUpdateConfig(data));
+    }
 
     if (!response.ok) {
         throw data;
@@ -109,6 +118,10 @@ function uploadFormDataWithXhr<T>(
                 }
             }
 
+            if (isUpdateRequiredResponse(request.status, data)) {
+                notifyUpdateRequired(getUpdateConfig(data));
+            }
+
             if (request.status >= 200 && request.status < 300) {
                 resolve(data as T);
                 return;
@@ -127,4 +140,46 @@ function uploadFormDataWithXhr<T>(
 
         request.send(body);
     });
+}
+
+function isUpdateRequiredResponse(status: number, data: unknown) {
+    if (status === 426) {
+        return true;
+    }
+
+    if (!data || typeof data !== "object") {
+        return false;
+    }
+
+    const payload = data as Record<string, unknown>;
+    const nestedPayload =
+        payload.data && typeof payload.data === "object"
+            ? (payload.data as Record<string, unknown>)
+            : null;
+    return (
+        status === 403 &&
+        (payload.code === "UPDATE_REQUIRED" ||
+            payload.errorCode === "UPDATE_REQUIRED" ||
+            payload.error === "UPDATE_REQUIRED" ||
+            nestedPayload?.code === "UPDATE_REQUIRED" ||
+            nestedPayload?.errorCode === "UPDATE_REQUIRED")
+    );
+}
+
+function getUpdateConfig(data: unknown): AppUpdateConfig | undefined {
+    if (!data || typeof data !== "object") {
+        return undefined;
+    }
+
+    const payload = data as Record<string, unknown>;
+    const updateInfo =
+        payload.data && typeof payload.data === "object"
+            ? (payload.data as Record<string, unknown>)
+            : payload;
+
+    if (typeof updateInfo.minimumSupportedVersion !== "string") {
+        return undefined;
+    }
+
+    return updateInfo as AppUpdateConfig;
 }

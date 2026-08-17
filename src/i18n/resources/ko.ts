@@ -1,4 +1,15 @@
 const ko = {
+    "appUpdate": {
+        "updateRequired": "업데이트가 필요합니다",
+        "updateAvailable": "업데이트 가능",
+        "updateRequiredMessage": "계속하려면 앱을 업데이트해 주세요.",
+        "updateAvailableMessage": "새로운 버전의 앱을 사용할 수 있습니다.",
+        "updateApp": "앱 업데이트",
+        "continue": "계속",
+        "installedVersion": "현재 버전: {{version}}",
+        "newVersion": "새 버전: {{version}}",
+        "checking": "업데이트 확인 중..."
+    },
     "login": {
         "title": "\ud574\ud53c\uace8\ud504 \uc2dc\uc791\ud558\uae30",
         "phoneNumberLabel": "\uc804\ud654\ubc88\ud638",
@@ -12,6 +23,15 @@ const ko = {
         "phoneNumberRequired": "\uc804\ud654\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",
         "passwordRequired": "\ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",
         "genericError": "\ubb38\uc81c\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694."
+    },
+    "welcome": {
+        "title": "HappyGolf Go\uc5d0 \uc624\uc2e0 \uac83\uc744 \ud658\uc601\ud569\ub2c8\ub2e4",
+        "description": "\ub808\uc2a8 \uc815\ubcf4\ub97c \ud55c \uacf3\uc5d0\uc11c \ud655\uc778\ud558\uc138\uc694.",
+        "featureBooking": "\ub808\uc2a8\uacfc \uace8\ud504 \uc608\uc57d\uc744 \uac04\ud3b8\ud558\uac8c \uad00\ub9ac\ud558\uc138\uc694",
+        "featureLessons": "\ub808\uc2a8 \uc77c\uc815\uacfc \uc9c4\ud589 \uc0c1\ud669\uc744 \ud655\uc778\ud558\uc138\uc694",
+        "featureUpdates": "\uc911\uc694\ud55c \uc54c\ub9bc\uacfc \uc5c5\ub370\uc774\ud2b8\ub97c \ubc1b\uc544\ubcf4\uc138\uc694",
+        "getStarted": "\uc2dc\uc791\ud558\uae30",
+        "starting": "\uc900\ube44 \uc911..."
     },
     "home": {
         "loadingProfile": "\ud504\ub85c\ud544\uc744 \ubd88\ub7ec\uc624\ub294 \uc911...",

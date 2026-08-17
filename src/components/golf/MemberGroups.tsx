@@ -2,7 +2,7 @@ import {
     AppText,
     Badge,
     Card,
-    CompactEmptyState,
+    EmptyState,
     ErrorState,
     getPressedScaleStyle,
     Skeleton,
@@ -22,9 +22,15 @@ import { Href, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 
-export function MemberGroups() {
+export function MemberGroups({
+    refreshing = false,
+    onRefresh,
+}: {
+    refreshing?: boolean;
+    onRefresh?: () => void;
+}) {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -55,7 +61,7 @@ export function MemberGroups() {
     );
 
     return (
-        <View className="gap-4">
+        <View className="flex-1 gap-4">
             {isLoading ? (
                 <GroupListSkeleton />
             ) : isError ? (
@@ -68,18 +74,26 @@ export function MemberGroups() {
                     }}
                 />
             ) : groups.length === 0 ? (
-                <CompactEmptyState
-                    title={t("groups.empty")}
-                    message={t("common.pullToRefreshAndTryAgain")}
+                <EmptyState
+                    title={t("lessonLog.noPostsTitle")}
+                    message={t("lessonLog.noPostsMessage")}
+                    actionLabel={isRefetching || refreshing ? t("common.refreshing") : t("lessonLog.refresh")}
+                    onAction={() => {
+                        void refetch();
+                    }}
                 />
             ) : (
-                <View className="gap-3">
-                    {groups.map((group) => (
-                        <View key={`group-${group.groupId}`}>
-                            {renderGroup({ item: group })}
-                        </View>
-                    ))}
-                </View>
+                <FlatList
+                    className="flex-1"
+                    data={groups}
+                    keyExtractor={(group) => `group-${group.groupId}`}
+                    renderItem={renderGroup}
+                    ItemSeparatorComponent={() => <View className="h-3" />}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                />
             )}
         </View>
     );

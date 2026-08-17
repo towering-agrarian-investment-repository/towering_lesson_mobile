@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MotionView } from "./MotionView";
 
 type ScreenProps = {
     children?: ReactNode;
@@ -47,7 +46,7 @@ export function Screen({
         : keyboardShouldPersistTaps;
 
     const paddingTop = headerShown ? 16 : insets.top + 16;
-    const paddingHorizontal = horizontalPadding ? 24 : 0;
+    const paddingHorizontal = horizontalPadding ? 20 : 0;
 
     const scrollContentContainerStyle = {
         flexGrow: 1,
@@ -78,9 +77,7 @@ export function Screen({
                         enableOnAndroid
                         extraScrollHeight={20}
                     >
-                        <MotionView className={cn("flex-1", contentClassName)}>
-                            {children}
-                        </MotionView>
+                        <View className={cn("flex-1", contentClassName)}>{children}</View>
                     </KeyboardAwareScrollView>
                 ) : (
                     <ScrollView
@@ -92,9 +89,7 @@ export function Screen({
                         refreshControl={refreshControl}
                         contentInsetAdjustmentBehavior="automatic"
                     >
-                        <MotionView className={cn("flex-1", contentClassName)}>
-                            {children}
-                        </MotionView>
+                        <View className={cn("flex-1", contentClassName)}>{children}</View>
                     </ScrollView>
                 )
             ) : (
@@ -110,9 +105,7 @@ export function Screen({
                         className={cn("flex-1", contentClassName)}
                         style={fixedContentStyle}
                     >
-                        <MotionView className="flex-1">
-                            {children}
-                        </MotionView>
+                        {children}
                     </View>
                 </KeyboardAvoidingView>
             )}

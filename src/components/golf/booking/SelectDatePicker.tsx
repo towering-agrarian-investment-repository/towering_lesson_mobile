@@ -1,16 +1,17 @@
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     ErrorState,
+    AppText,
     MotionView,
     Screen,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
-    useTheme,
     useThemeColors,
 } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberBaySlotGroupsQueryOptions,
+    getMemberTicketLessonSlotsQueryOptions,
     useMemberBaySlotGroups,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
@@ -21,9 +22,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Calendar, DateData, LocaleConfig } from "react-native-calendars";
 
 LocaleConfig.locales.en = {
@@ -81,25 +82,6 @@ function isSameMonth(dateString: string, monthDate: Date) {
     );
 }
 
-function getDatesForCalendarGrid(value: Date) {
-    const year = value.getFullYear();
-    const month = value.getMonth();
-    const firstDayOfMonth = new Date(year, month, 1);
-    const startOffset = firstDayOfMonth.getDay();
-    const gridStart = new Date(year, month, 1 - startOffset);
-
-    return Array.from({ length: 42 }, (_, i) => {
-        const date = new Date(gridStart);
-        date.setDate(gridStart.getDate() + i);
-
-        const d = String(date.getDate()).padStart(2, "0");
-        const m = String(date.getMonth() + 1).padStart(2, "0");
-        const y = date.getFullYear();
-
-        return `${y}-${m}-${d}`;
-    });
-}
-
 function CalendarLoadingSkeleton() {
     return (
         <View className="mx-6 rounded-xl border border-border bg-card px-4 py-5">
@@ -136,7 +118,6 @@ function CalendarLoadingSkeleton() {
 export default function DateScreen() {
     const { i18n, t } = useTranslation();
     const colors = useThemeColors();
-    const { resolvedScheme } = useTheme();
 
     const { ticketId, ticketName, ticketType, mode, reservationId, notes } =
         useLocalSearchParams<{
@@ -196,14 +177,55 @@ export default function DateScreen() {
         isLessonTicket,
     );
 
+    const previousVisibleMonth = useMemo(
+        () => new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1),
+        [visibleMonth],
+    );
+    const nextVisibleMonth = useMemo(
+        () => new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1),
+        [visibleMonth],
+    );
+
+    const { data: previousLessonSlotData } = useMemberTicketLessonSlots(
+        ticketIdNumber,
+        previousVisibleMonth.getFullYear(),
+        previousVisibleMonth.getMonth() + 1,
+        isLessonTicket,
+    );
+
+    const { data: nextLessonSlotData } = useMemberTicketLessonSlots(
+        ticketIdNumber,
+        nextVisibleMonth.getFullYear(),
+        nextVisibleMonth.getMonth() + 1,
+        isLessonTicket,
+    );
+
     const today = formatDateForAPI(new Date());
+    const currentMonthStart = useMemo(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    }, []);
+
+    const canGoToPreviousMonth =
+        visibleMonth.getFullYear() > currentMonthStart.getFullYear() ||
+        (visibleMonth.getFullYear() === currentMonthStart.getFullYear() &&
+            visibleMonth.getMonth() > currentMonthStart.getMonth());
 
     const availableDates = useMemo(() => {
         const dates = new Set<string>();
 
         if (isLessonTicket) {
-            for (const slot of lessonSlotData?.data ?? []) {
-                dates.add(slot.startTime.split("T")[0]);
+            for (const response of [
+                previousLessonSlotData,
+                lessonSlotData,
+                nextLessonSlotData,
+            ]) {
+                for (const slot of response?.data ?? []) {
+                    const date = formatDateForAPI(slot.startTime);
+                    if (date) {
+                        dates.add(date);
+                    }
+                }
             }
         } else {
             for (const group of baySlotGroupData?.data ?? []) {
@@ -212,39 +234,85 @@ export default function DateScreen() {
                 );
 
                 if (hasAvailableBay) {
-                    dates.add(group.startDateTime.split("T")[0]);
+                    const date = formatDateForAPI(group.startDateTime);
+                    if (date) {
+                        dates.add(date);
+                    }
                 }
             }
         }
 
         return dates;
-    }, [baySlotGroupData, isLessonTicket, lessonSlotData]);
+    }, [
+        baySlotGroupData,
+        isLessonTicket,
+        lessonSlotData,
+        nextLessonSlotData,
+        previousLessonSlotData,
+    ]);
 
-    const markedDates = useMemo(() => {
-        const gridDates = getDatesForCalendarGrid(visibleMonth);
+    useEffect(() => {
+        if (isLessonTicket && (isPendingLessonSlots || !lessonSlotData)) {
+            return;
+        }
 
-        return gridDates.reduce<Record<string, object>>((acc, dateString) => {
-            const isPast = dateString < today;
-            const isBookable = availableDates.has(dateString) && !isPast;
+        if (!isLessonTicket && (isPendingBaySlotGroups || !baySlotGroupData)) {
+            return;
+        }
 
-            if (isBookable) {
-                acc[dateString] = {
-                    customStyles: {
-                        container: {
-                            borderRadius: 999,
-                            backgroundColor: colors.primary + "1A",
-                        },
-                        text: {
-                            color: colors.primary,
-                            fontWeight: "700",
-                        },
-                    },
-                };
+        const adjacentMonths = [-1, 1].map(
+            (offset) =>
+                new Date(
+                    visibleMonth.getFullYear(),
+                    visibleMonth.getMonth() + offset,
+                    1,
+                ),
+        );
+
+        for (const month of adjacentMonths) {
+            if (isLessonTicket && ticketIdNumber) {
+                void queryClient.prefetchQuery({
+                    ...getMemberTicketLessonSlotsQueryOptions(
+                        ticketIdNumber,
+                        month.getFullYear(),
+                        month.getMonth() + 1,
+                    ),
+                    staleTime: 30_000,
+                });
+                continue;
             }
 
-            return acc;
-        }, {});
-    }, [availableDates, colors.primary, today, visibleMonth]);
+            if (!isLessonTicket) {
+                const previousMonth = new Date(
+                    month.getFullYear(),
+                    month.getMonth() - 1,
+                    1,
+                );
+                const nextMonth = new Date(
+                    month.getFullYear(),
+                    month.getMonth() + 1,
+                    1,
+                );
+
+                void queryClient.prefetchQuery({
+                    ...getMemberBaySlotGroupsQueryOptions(
+                        getMonthRange(previousMonth).startDate,
+                        getMonthRange(nextMonth).endDate,
+                    ),
+                    staleTime: 30_000,
+                });
+            }
+        }
+    }, [
+        baySlotGroupData,
+        isLessonTicket,
+        isPendingBaySlotGroups,
+        isPendingLessonSlots,
+        lessonSlotData,
+        queryClient,
+        ticketIdNumber,
+        visibleMonth,
+    ]);
 
     const handleDayPress = (day: DateData) => {
         const isPast = day.dateString < today;
@@ -360,7 +428,7 @@ export default function DateScreen() {
                     {isInitialLoading ? (
                         <CalendarLoadingSkeleton />
                     ) : isError ? (
-                        <View className="px-6">
+                        <View className="min-h-[520px] flex-1 px-6">
                             <ErrorState
                                 title={t("booking.failedAvailableDatesTitle")}
                                 message={t("booking.failedAvailableDatesMessage")}
@@ -380,11 +448,72 @@ export default function DateScreen() {
                         <Calendar
                             key={calendarLocale}
                             style={[s.calendar, { backgroundColor: colors.card }]}
-                            markedDates={markedDates}
-                            markingType="custom"
+                            minDate={today}
+                            disableArrowLeft={!canGoToPreviousMonth}
                             onDayPress={handleDayPress}
+                            dayComponent={({ date, state }) => {
+                                if (!date) {
+                                    return null;
+                                }
+
+                                const isPast = date.dateString < today;
+                                const isToday = date.dateString === today;
+                                const isAvailable = availableDates.has(date.dateString);
+                                const isOutsideMonth = state === "disabled";
+                                const isAvailableFutureDate = isAvailable && !isPast;
+
+                                return (
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel={date.dateString}
+                                        onPress={() => {
+                                            handleDayPress(date);
+                                        }}
+                                        className="h-10 w-10 items-center justify-center"
+                                    >
+                                        <View
+                                            className={`h-10 w-10 items-center justify-center rounded-full ${isToday
+                                                ? "bg-success/15"
+                                                : isAvailableFutureDate
+                                                    ? "bg-primary/10"
+                                                    : ""
+                                                }`}
+                                        >
+                                            <AppText
+                                                variant="body"
+                                                className={`${isToday
+                                                    ? "font-bold text-success"
+                                                    : isPast
+                                                    ? "text-muted-foreground opacity-40"
+                                                    : isAvailableFutureDate
+                                                        ? "font-bold text-primary"
+                                                        : isOutsideMonth
+                                                            ? "text-muted-foreground/70"
+                                                            : "text-foreground"
+                                                    }`}
+                                            >
+                                                {date.day}
+                                            </AppText>
+
+                                            {isAvailableFutureDate ? (
+                                                <View
+                                                    className={`absolute bottom-0.5 h-1.5 w-1.5 rounded-full ${isToday ? "bg-success" : "bg-primary"
+                                                        }`}
+                                                />
+                                            ) : null}
+                                        </View>
+                                    </Pressable>
+                                );
+                            }}
                             onMonthChange={(month) => {
-                                setVisibleMonth(new Date(month.year, month.month - 1, 1));
+                                const nextMonth = new Date(month.year, month.month - 1, 1);
+
+                                if (nextMonth < currentMonthStart) {
+                                    setVisibleMonth(currentMonthStart);
+                                    return;
+                                }
+
+                                setVisibleMonth(nextMonth);
                             }}
                             renderArrow={(dir) => (
                                 <Ionicons
@@ -395,10 +524,11 @@ export default function DateScreen() {
                             )}
                             theme={{
                                 calendarBackground: colors.card,
-                                monthTextColor:
-                                    resolvedScheme === "dark"
-                                        ? colors.primary
-                                        : colors.mutedForeground,
+                                monthTextColor: colors.foreground,
+                                // @ts-ignore react-native-calendars supports this theme property at runtime.
+                                monthTextFontWeight: "700",
+                                textSectionTitleColor: colors.foreground,
+                                textSectionTitleDisabledColor: colors.foreground,
                                 selectedDayBackgroundColor: colors.primary,
                                 selectedDayTextColor: colors.primaryForeground,
                                 todayTextColor: colors.primary,

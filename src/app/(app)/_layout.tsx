@@ -22,8 +22,7 @@ const queryClient = new QueryClient({
     },
 });
 const bookingFlowScreenOptions = {
-    animation: "slide_from_right" as const,
-    animationDuration: 180,
+    animation: "default" as const,
     fullScreenGestureEnabled: true,
     gestureEnabled: true,
 };
@@ -73,8 +72,7 @@ export default function AppLayout() {
                 <ToastBridge />
                 <Stack
                     screenOptions={({ navigation }) => ({
-                        animation: "slide_from_right",
-                        animationDuration: 180,
+                        animation: "default",
                         fullScreenGestureEnabled: true,
                         gestureEnabled: true,
                         headerBackButtonDisplayMode: "minimal",
@@ -205,8 +203,7 @@ export default function AppLayout() {
                         name="reservation/[id]"
                         options={{
                             title: t("reservations.reservationDetailTitle"),
-                            animation: "slide_from_right",
-                            animationDuration: 180,
+                            animation: "default",
                             animationTypeForReplace: "push",
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
@@ -262,8 +259,7 @@ export default function AppLayout() {
                         options={{
                             title: t("navigation.screens.lessonPostList"),
                             headerLargeTitle: true,
-                            animation: "slide_from_right",
-                            animationDuration: 180,
+                            animation: "default",
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
                         }}
@@ -273,8 +269,7 @@ export default function AppLayout() {
                         name="lesson-log/[id]"
                         options={{
                             title: t("navigation.screens.lessonPost"),
-                            animation: "slide_from_right",
-                            animationDuration: 180,
+                            animation: "default",
                             animationTypeForReplace: "pop",
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
@@ -285,8 +280,7 @@ export default function AppLayout() {
                         name="lesson-log/[id]/comment"
                         options={{
                             title: t("navigation.screens.lessonPost"),
-                            animation: "slide_from_right",
-                            animationDuration: 180,
+                            animation: "default",
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
                         }}
