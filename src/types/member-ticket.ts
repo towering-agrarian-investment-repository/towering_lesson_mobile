@@ -21,8 +21,8 @@ export type TicketListItemResponse = {
 	totalCount: number | null;
 	isUnlimited: boolean;
 	onlyOnePerDay: boolean;
-	used: number;
-	remaining: number;
+	usedCount: number;
+	remainingCount: number;
 	startDate: string | null;
 	endDate: string | null;
 	status: string;

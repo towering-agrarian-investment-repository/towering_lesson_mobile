@@ -31,7 +31,7 @@ export function ErrorState({
                 {title}
             </AppText>
 
-            <AppText variant="subtext" className="mt-3 text-center text-foreground/75">
+            <AppText variant="subtext" className="mt-3 text-center text-muted-foreground">
                 {message}
             </AppText>
 
@@ -65,7 +65,7 @@ export function EmptyState({
                 {title}
             </AppText>
 
-            <AppText variant="subtext" className="mt-3 text-center text-foreground/75">
+            <AppText variant="subtext" className="mt-3 text-center text-muted-foreground">
                 {message}
             </AppText>
 

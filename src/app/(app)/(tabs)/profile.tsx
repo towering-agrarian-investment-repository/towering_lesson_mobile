@@ -132,6 +132,27 @@ export default function ProfileScreen() {
                     imageUrl={member?.profileImage}
                 />
 
+                {update.isOptionalUpdateAvailable && update.state ? (
+                    <Card className="gap-3 border-warning/30 bg-warning/10 p-4">
+                        <ListRow
+                            accessibilityLabel={t("appUpdate.updateAvailable")}
+                            title={t("appUpdate.updateAvailable")}
+                            subtitle={t("appUpdate.newVersion", {
+                                version: update.state.latestVersion ?? "",
+                            })}
+                            leading={
+                                <View className="h-10 w-10 items-center justify-center rounded-xl bg-warning/20">
+                                    <Download size={20} color={colors.warning} />
+                                </View>
+                            }
+                            className="border-0 bg-transparent px-0"
+                            onPress={() => {
+                                void openStore(update.state!);
+                            }}
+                        />
+                    </Card>
+                ) : null}
+
                 <Card className="gap-3 p-5">
                     <SectionTitle title={t("profile.personalRecord")} />
                     <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
@@ -174,7 +195,7 @@ export default function ProfileScreen() {
                                     {index > 0 ? <Divider className="bg-border" /> : null}
                                     <ParentRow
                                         name={parent.name}
-                                        gender={parent.gender}
+                                        role={parent.role}
                                         phoneNumber={parent.phoneNumber}
                                         imageUrl={parent.profileImage}
                                     />
@@ -189,27 +210,6 @@ export default function ProfileScreen() {
                     <SectionTitle title={t("profile.settings")} />
 
                     <View className="flex-col">
-                        {update.isOptionalUpdateAvailable && update.state ? (
-                            <>
-                                <ListRow
-                                    accessibilityLabel={t("appUpdate.updateAvailable")}
-                                    title={t("appUpdate.updateAvailable")}
-                                    subtitle={t("appUpdate.newVersion", {
-                                        version: update.state.latestVersion ?? "",
-                                    })}
-                                    leading={
-                                        <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                            <Download size={20} color={colors.primary} />
-                                        </View>
-                                    }
-                                    className="border-0 bg-transparent px-0 py-3"
-                                    onPress={() => {
-                                        void openStore(update.state!);
-                                    }}
-                                />
-                                <Divider className="bg-border" />
-                            </>
-                        ) : null}
                         <LinkRow
                             label={t("profile.editPersonalInformation")}
                             href="/profile/edit"
@@ -338,8 +338,8 @@ function ProfileAvatar({
     const imageSize = size === "large" ? 112 : 48;
     const containerClassName =
         size === "large"
-            ? "h-28 w-28 bg-primary"
-            : "h-12 w-12 bg-secondary-foreground";
+            ? "h-28 w-28 bg-muted"
+            : "h-12 w-12 bg-muted";
     const textVariant = size === "large" ? "h1" : "h3";
 
     if (imageUrl) {
@@ -360,7 +360,7 @@ function ProfileAvatar({
         <View
             className={`shrink-0 items-center justify-center rounded-full ${containerClassName}`}
         >
-            <AppText variant={textVariant} className="text-primary-foreground">
+            <AppText variant={textVariant} className="font-bold text-foreground">
                 {name?.charAt(0).toUpperCase() || "?"}
             </AppText>
         </View>
@@ -412,12 +412,12 @@ function InfoRow({
 
 function ParentRow({
     name,
-    gender,
+    role,
     phoneNumber,
     imageUrl,
 }: {
-    gender: string;
     name: string;
+    role?: string | null;
     phoneNumber?: string | null;
     imageUrl?: string | null;
 }) {
@@ -426,7 +426,7 @@ function ParentRow({
             <ProfileAvatar name={name} imageUrl={imageUrl} />
 
             <View className="min-w-0 flex-1 flex-col gap-1">
-                <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center justify-between gap-2">
                     <AppText
                         selectable
                         variant="body"
@@ -435,6 +435,17 @@ function ParentRow({
                     >
                         {name}
                     </AppText>
+
+                    {role ? (
+                        <AppText
+                            selectable
+                            variant="caption"
+                            className="shrink-0 text-right text-muted-foreground"
+                            numberOfLines={1}
+                        >
+                            {formatType(role)}
+                        </AppText>
+                    ) : null}
                 </View>
 
                 {phoneNumber ? (
@@ -443,7 +454,7 @@ function ParentRow({
                         variant="subtext"
                         className="text-foreground/80"
                     >
-                        {phoneNumber}/{gender}
+                        {phoneNumber}
                     </AppText>
                 ) : null}
 

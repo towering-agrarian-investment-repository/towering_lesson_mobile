@@ -86,3 +86,17 @@ export const markAllNotificationsAsRead = async (): Promise<ApiResponse<void>> =
 		method: "PUT",
 	});
 };
+
+export const deleteNotification = async (
+	notificationId: number,
+): Promise<ApiResponse<void>> => {
+	return apiClient(`/notification/${notificationId}`, {
+		method: "DELETE",
+	});
+};
+
+export const deleteAllNotifications = async (): Promise<ApiResponse<void>> => {
+	return apiClient("/notification/all", {
+		method: "DELETE",
+	});
+};

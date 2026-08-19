@@ -56,20 +56,6 @@ export type MemberLessonLogResponse = {
     status: MemberLessonLogStatus;
 };
 
-export type MemberTodayLessonResponse = {
-    lessonId: number;
-    lessonAvailabilityId: number | null;
-    lessonProgramGroupId: number | null;
-    lessonProgramName: string | null;
-    groupName: string | null;
-    title: string;
-    orderIndex: number;
-    lessonStatus: string;
-    startTime: string | null;
-    endTime: string | null;
-    reservationStatus: LessonReservationStatus | null;
-};
-
 export type MemberLessonSummaryResponse = {
     lessonId: number;
     lessonAvailabilityId: number | null;

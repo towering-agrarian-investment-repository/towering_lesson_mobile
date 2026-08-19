@@ -4,6 +4,8 @@ import {
 	getUnreadNotificationCount,
 	markAllNotificationsAsRead,
 	markNotificationAsRead,
+	deleteNotification,
+	deleteAllNotifications,
 	NOTIFICATION_CURSOR_PAGE_SIZE,
 	type NotificationResponse,
 } from "@/service/shared/notification-service";
@@ -72,6 +74,36 @@ export const useMarkAllAsRead = () => {
 
 	return useMutation({
 		mutationFn: markAllNotificationsAsRead,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+		},
+		onError: (error) => {
+			responseError({ error });
+		},
+	});
+};
+
+export const useDeleteNotification = () => {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: deleteNotification,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+		},
+		onError: (error) => {
+			responseError({ error });
+		},
+	});
+};
+
+export const useDeleteAllNotifications = () => {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: deleteAllNotifications,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });

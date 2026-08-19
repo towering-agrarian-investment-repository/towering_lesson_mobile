@@ -34,7 +34,16 @@ import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import {
+    CalendarClock,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    CircleAlert,
+    UserCheck,
+    UserX,
+    XCircle,
+} from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -137,27 +146,6 @@ function getReservationStatusTone(
                 mutedClassName: "text-muted-foreground",
                 color: colors.foreground,
             };
-    }
-}
-
-function getReservationStatusDescription(
-    value: string | null | undefined,
-    t: (key: string) => string,
-) {
-    switch (value) {
-        case "RESERVED":
-            return t("reservations.awaitingCheckIn");
-        case "CHECKED_IN":
-            return t("reservations.checkedInActive");
-        case "COMPLETED":
-            return t("reservations.sessionCompleted");
-        case "CANCELLED":
-        case "CANCELED":
-            return t("reservations.reservationCancelled");
-        case "NO_SHOW":
-            return t("reservations.markedAbsent");
-        default:
-            return t("reservations.statusUnavailable");
     }
 }
 
@@ -630,7 +618,6 @@ function ReservationStatusBanner({
 }: {
     reservationStatus?: string | null;
 }) {
-    const { t } = useTranslation();
     const colors = useThemeColors();
     const statusLabel = formatType(reservationStatus);
     const statusTone = getReservationStatusTone(colors, reservationStatus);
@@ -648,11 +635,10 @@ function ReservationStatusBanner({
                 className="h-9 w-9 items-center justify-center rounded-full"
                 style={{ backgroundColor: `${statusTone.color}18` }}
             >
-                <AppText
-                    className={`text-lg font-bold ${statusTone.textClassName}`}
-                >
-                    !
-                </AppText>
+                <ReservationStatusIcon
+                    status={reservationStatus}
+                    color={statusTone.color}
+                />
             </View>
 
             <View className="min-w-0 flex-1 flex-col gap-0.5">
@@ -663,15 +649,35 @@ function ReservationStatusBanner({
                     {statusLabel}
                 </AppText>
 
-                <AppText
-                    variant="meta"
-                    className={`font-medium ${statusTone.mutedClassName}`}
-                >
-                    {getReservationStatusDescription(reservationStatus, t)}
-                </AppText>
             </View>
         </View>
     );
+}
+
+function ReservationStatusIcon({
+    status,
+    color,
+}: {
+    status?: string | null;
+    color: string;
+}) {
+    const iconProps = { size: 19, color, strokeWidth: 2.5 };
+
+    switch (status) {
+        case "RESERVED":
+            return <CalendarClock {...iconProps} />;
+        case "CHECKED_IN":
+            return <UserCheck {...iconProps} />;
+        case "COMPLETED":
+            return <CheckCircle2 {...iconProps} />;
+        case "CANCELLED":
+        case "CANCELED":
+            return <XCircle {...iconProps} />;
+        case "NO_SHOW":
+            return <UserX {...iconProps} />;
+        default:
+            return <CircleAlert {...iconProps} />;
+    }
 }
 
 function DetailRow({

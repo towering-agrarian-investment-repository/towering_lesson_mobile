@@ -30,6 +30,7 @@ import { z } from "zod";
 const createEditProfileSchema = (t: (key: string) => string) =>
     z.object({
         name: z.string().trim().min(1, t("profile.nameRequired")),
+        nickname: z.string().trim().max(50).optional(),
     });
 
 type EditProfileFormValues = z.infer<ReturnType<typeof createEditProfileSchema>>;
@@ -61,6 +62,7 @@ export default function EditProfileScreen() {
     const form = useForm<EditProfileFormValues>({
         defaultValues: {
             name: "",
+            nickname: "",
         },
         resolver: zodResolver(editProfileSchema),
         mode: "onChange",
@@ -73,6 +75,7 @@ export default function EditProfileScreen() {
 
         form.reset({
             name: member.name ?? "",
+            nickname: member.nickname ?? "",
         });
     }, [form, member]);
 
@@ -84,6 +87,7 @@ export default function EditProfileScreen() {
         updateProfile(
             {
                 name: values.name.trim(),
+                nickname: values.nickname?.trim() || null,
             },
             {
                 onSuccess: () => {
@@ -295,6 +299,13 @@ export default function EditProfileScreen() {
                         name="name"
                         label={t("profile.fullName")}
                         placeholder={t("profile.fullNamePlaceholder")}
+                    />
+
+                    <FormTextInput
+                        control={form.control}
+                        name="nickname"
+                        label={t("profile.nickname", { defaultValue: "Nickname" })}
+                        placeholder={t("profile.nicknamePlaceholder", { defaultValue: "Enter a nickname" })}
                     />
 
                     {/* <FormTextInput

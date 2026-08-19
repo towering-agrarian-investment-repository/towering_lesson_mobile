@@ -4,6 +4,7 @@ export type MemberSelfResponse = {
     id: number;
     authUserId: string;
     name: string;
+    nickname?: string | null;
     username: string;
     phoneNumber: string;
     profileImage: string | null;
@@ -21,6 +22,7 @@ export type ParentSummaryResponse = {
     phoneNumber: string | null;
     profileImage: string | null;
     gender: GenderEnum;
+    role?: string | null;
 };
 
 export type MemberGradeResponse = {
@@ -60,12 +62,6 @@ export type TicketType =
     | "LOCATION"
     | "OTHER";
 
-export interface UserMiniResponse {
-    id: number;
-    username: string;
-    fullName: string;
-}
-
 export type MemberStats = {
     total: number;
     active: number;
@@ -83,6 +79,7 @@ export type MemberRequest = {
 
 export interface UpdateMyProfileRequest {
     name?: string | null;
+    nickname?: string | null;
 }
 export interface UpdatePasswordRequest {
     currentPassword: string; // @NotBlank → required

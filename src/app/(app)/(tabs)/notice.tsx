@@ -10,6 +10,8 @@ import {
 } from "@/design-system";
 import {
     useGetNotifications,
+    useDeleteAllNotifications,
+    useDeleteNotification,
     useMarkAllAsRead,
     useMarkAsRead,
 } from "@/lib/hook/shared/useNotification";
@@ -23,16 +25,18 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { formatRelativeTime } from "@/utils/relative-time";
 import { useNavigation, useRouter } from "expo-router";
-import { Bell } from "lucide-react-native";
-import { memo, useCallback, useLayoutEffect } from "react";
+import { Bell, MoreVertical } from "lucide-react-native";
+import { memo, useCallback, useLayoutEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { FlatList, Modal, Pressable, RefreshControl, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 
 function NoticeScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const navigation = useNavigation();
+    const colors = useThemeColors();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
     const {
         data,
@@ -47,32 +51,82 @@ function NoticeScreen() {
     } = useGetNotifications();
     const { mutateAsync: markAsRead, isPending: isMarkingAsRead } = useMarkAsRead();
     const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } = useMarkAllAsRead();
+    const { mutate: deleteNotification, isPending: isDeletingNotification } = useDeleteNotification();
+    const { mutate: deleteAllNotifications, isPending: isDeletingAllNotifications } = useDeleteAllNotifications();
+    const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
     const notifications = data?.items ?? [];
     const hasUnread = notifications.some((item) => !item.isRead);
 
     useLayoutEffect(() => {
         navigation.setOptions({
-            headerRight: () =>
-                hasUnread ? (
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t("notice.markAllAsRead")}
-                        disabled={isMarkingAllAsRead}
-                        className={isMarkingAllAsRead ? "opacity-60" : undefined}
-                        hitSlop={10}
-                        style={({ pressed }) => getPressedScaleStyle(pressed, isMarkingAllAsRead, 0.99)}
-                        onPress={() => {
-                            markAllAsRead();
-                        }}
-                    >
-                        <AppText variant="meta" className="text-primary">
-                            {isMarkingAllAsRead ? t("notice.marking") : t("notice.markAllRead")}
-                        </AppText>
-                    </Pressable>
-                ) : null,
+            headerRight: () => (
+                <View className="flex-row items-center gap-4">
+                    {hasUnread ? (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t("notice.markAllAsRead")}
+                            disabled={isMarkingAllAsRead || isDeletingAllNotifications}
+                            className={isMarkingAllAsRead ? "opacity-60" : undefined}
+                            hitSlop={10}
+                            style={({ pressed }) => getPressedScaleStyle(pressed, isMarkingAllAsRead, 0.99)}
+                            onPress={() => {
+                                markAllAsRead();
+                            }}
+                        >
+                            <AppText variant="meta" className="text-primary">
+                                {isMarkingAllAsRead ? t("notice.marking") : t("notice.markAllRead")}
+                            </AppText>
+                        </Pressable>
+                    ) : null}
+                    {notifications.length > 0 ? (
+                        <View className="relative">
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={t("notice.moreActions", { defaultValue: "More actions" })}
+                                disabled={isDeletingAllNotifications || isMarkingAllAsRead}
+                                className={isDeletingAllNotifications ? "opacity-60" : undefined}
+                                hitSlop={10}
+                                style={({ pressed }) => getPressedScaleStyle(pressed, isDeletingAllNotifications, 0.99)}
+                                onPress={() => setIsActionsMenuOpen((open) => !open)}
+                            >
+                                <MoreVertical size={22} color={colors.foreground} />
+                            </Pressable>
+
+                            <Modal
+                                transparent
+                                visible={isActionsMenuOpen}
+                                animationType="fade"
+                                onRequestClose={() => setIsActionsMenuOpen(false)}
+                            >
+                                <Pressable
+                                    className="flex-1"
+                                    onPress={() => setIsActionsMenuOpen(false)}
+                                >
+                                    <View className="absolute right-4 top-16 w-44 rounded-xl border border-border bg-card p-1 shadow-lg">
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            accessibilityLabel={t("notice.deleteAll")}
+                                            disabled={isDeletingAllNotifications}
+                                            className="rounded-lg px-3 py-2 active:bg-muted"
+                                            onPress={() => {
+                                                setIsActionsMenuOpen(false);
+                                                deleteAllNotifications();
+                                            }}
+                                        >
+                                            <AppText variant="label" className="text-danger">
+                                                {isDeletingAllNotifications ? t("notice.deleting") : t("notice.deleteAll")}
+                                            </AppText>
+                                        </Pressable>
+                                    </View>
+                                </Pressable>
+                            </Modal>
+                        </View>
+                    ) : null}
+                </View>
+            ),
         });
-    }, [hasUnread, isMarkingAllAsRead, markAllAsRead, navigation]);
+    }, [deleteAllNotifications, hasUnread, isActionsMenuOpen, isDeletingAllNotifications, isMarkingAllAsRead, markAllAsRead, navigation, notifications.length, t]);
 
     const navigateFromNotification = useCallback((
         referenceType: NotificationReferenceType | null,
@@ -179,13 +233,15 @@ function NoticeScreen() {
             <MemoNotificationRow
                 item={item}
                 isLast={index === notifications.length - 1}
-                disabled={isMarkingAsRead || isLocked}
+                disabled={isMarkingAsRead || isLocked || isDeletingNotification || isDeletingAllNotifications}
+                isDeleting={isDeletingNotification}
+                onDelete={() => deleteNotification(item.id)}
                 onPress={() => {
                     void handleNotificationPress(item);
                 }}
             />
         ),
-        [handleNotificationPress, isLocked, isMarkingAsRead, notifications.length],
+        [deleteNotification, handleNotificationPress, isDeletingAllNotifications, isDeletingNotification, isLocked, isMarkingAsRead, notifications.length],
     );
 
     return (
@@ -205,7 +261,7 @@ function NoticeScreen() {
                 <EmptyState
                     title={t("notice.noNotificationsTitle")}
                     message={t("notice.noNotificationsMessage")}
-                    actionLabel={t("common.refreshTryAgain")}
+                    actionLabel={t("common.refresh", { defaultValue: "Refresh" })}
                     onAction={() => {
                         void refetch();
                     }}
@@ -276,11 +332,15 @@ function NotificationRow({
     item,
     isLast,
     disabled,
+    isDeleting,
+    onDelete,
     onPress,
 }: {
     item: NotificationResponse;
     isLast: boolean;
     disabled: boolean;
+    isDeleting: boolean;
+    onDelete: () => void;
     onPress: () => void;
 }) {
     const { t } = useTranslation();
@@ -293,16 +353,36 @@ function NotificationRow({
         : colors.primary;
 
     return (
-        <View className={cn(!isLast && "border-b border-border")}>
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={item.title}
-                className={cn("py-3", disabled && "opacity-60")}
-                disabled={disabled}
-                style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.995)}
-                onPress={onPress}
-            >
-                <View className="flex-row items-start gap-3">
+        <Swipeable
+            friction={2}
+            rightThreshold={32}
+            renderRightActions={() => (
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("notice.delete")}
+                    disabled={disabled}
+                    className={cn(
+                        "w-24 items-center justify-center bg-danger",
+                        disabled && "opacity-60",
+                    )}
+                    onPress={onDelete}
+                >
+                    <AppText variant="label" className="text-white">
+                        {isDeleting ? t("notice.deleting") : t("notice.delete")}
+                    </AppText>
+                </Pressable>
+            )}
+        >
+            <View className={cn("bg-background", !isLast && "border-b border-border")}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={item.title}
+                    className={cn("py-3 pr-4", disabled && "opacity-60")}
+                    disabled={disabled}
+                    style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.995)}
+                    onPress={onPress}
+                >
+                    <View className="flex-row items-start gap-3">
                     <View
                         className={cn(
                             "h-10 w-10 items-center justify-center rounded-xl",
@@ -316,24 +396,18 @@ function NotificationRow({
                     </View>
 
                     <View className="min-w-0 flex-1 gap-1.5">
-                        <View className="flex-row items-start justify-between gap-3">
-                            <AppText
-                                selectable
-                                variant="label"
-                                className={cn(
-                                    "min-w-0 flex-1 font-semibold leading-5",
-                                    item.isRead
-                                        ? "text-foreground/75"
-                                        : "text-foreground",
-                                )}
-                            >
-                                {item.title}
-                            </AppText>
-
-                            <AppText selectable variant="caption" className="shrink-0">
-                                {formatRelativeTime(item.createdAt)}
-                            </AppText>
-                        </View>
+                        <AppText
+                            selectable
+                            variant="label"
+                            className={cn(
+                                "w-full font-semibold leading-5",
+                                item.isRead
+                                    ? "text-foreground/75"
+                                    : "text-foreground",
+                            )}
+                        >
+                            {item.title}
+                        </AppText>
 
                         <AppText
                             selectable
@@ -353,10 +427,15 @@ function NotificationRow({
                                 {t("notice.unread")}
                             </AppText>
                         ) : null}
+
+                        <AppText selectable variant="caption" className="self-end">
+                            {formatRelativeTime(item.createdAt)}
+                        </AppText>
                     </View>
-                </View>
-            </Pressable>
-        </View>
+                    </View>
+                </Pressable>
+            </View>
+        </Swipeable>
     );
 }
 

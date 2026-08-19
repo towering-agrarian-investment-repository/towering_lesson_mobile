@@ -40,8 +40,8 @@ function getUsageNote(
     }
 
     if (item.totalCount != null) {
-        return t("tickets.usageRemaining", {
-            remaining: item.remaining ?? 0,
+        return t("tickets.usage", {
+            used: item.usedCount ?? 0,
             total: item.totalCount,
         });
     }

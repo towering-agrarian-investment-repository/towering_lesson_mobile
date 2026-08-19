@@ -6,6 +6,7 @@ import {
   type AuthSession,
 } from "@/service/auth";
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";
@@ -46,18 +47,20 @@ export default function RootLayout() {
   }, [hasUnauthorizedSession]);
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <WelcomeProvider>
-          <AppUpdateProvider value={update}>
-            <ThemedRoot
-              hasAuthorizedSession={hasAuthorizedSession}
-              update={update}
-            />
-          </AppUpdateProvider>
-        </WelcomeProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <WelcomeProvider>
+            <AppUpdateProvider value={update}>
+              <ThemedRoot
+                hasAuthorizedSession={hasAuthorizedSession}
+                update={update}
+              />
+            </AppUpdateProvider>
+          </WelcomeProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

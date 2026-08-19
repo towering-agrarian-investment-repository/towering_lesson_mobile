@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeColors } from "@/design-system";
 import { Tabs } from 'expo-router';
+import { useAppUpdateContext } from "@/lib/update/update-context";
 import { useTranslation } from 'react-i18next';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {}
@@ -10,6 +12,7 @@ function TabLayout({ }: Props) {
     const colors = useThemeColors();
     const { resolvedScheme } = useTheme();
     const { t } = useTranslation();
+    const update = useAppUpdateContext();
     const insets = useSafeAreaInsets();
     return (
         <Tabs
@@ -100,11 +103,16 @@ function TabLayout({ }: Props) {
                     title: t("navigation.tabs.profile"),
                     headerShown: true,
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons
-                            name={focused ? 'person' : 'person-outline'}
-                            size={size}
-                            color={color}
-                        />
+                        <View className="relative">
+                            <Ionicons
+                                name={focused ? 'person' : 'person-outline'}
+                                size={size}
+                                color={color}
+                            />
+                            {update.isOptionalUpdateAvailable ? (
+                                <View className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-danger" />
+                            ) : null}
+                        </View>
                     ),
                 }}
             />

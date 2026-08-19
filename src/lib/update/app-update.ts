@@ -2,6 +2,7 @@ import Constants from "expo-constants";
 import { Linking, Platform } from "react-native";
 import { env } from "../config/env";
 import i18n from "../../i18n";
+import { getAppRequestHeaders } from "../client/app-request-headers";
 
 export type AppUpdateConfig = {
     minimumSupportedVersion?: string | null;
@@ -22,6 +23,7 @@ export type AppUpdateState = {
 
 const installedVersion = Constants.expoConfig?.version ?? "0.0.0";
 const updateRequiredListeners = new Set<(config?: AppUpdateConfig) => void>();
+let appUpdateCheck: Promise<AppUpdateState | null> | null = null;
 
 export function subscribeToUpdateRequired(listener: (config?: AppUpdateConfig) => void) {
     updateRequiredListeners.add(listener);
@@ -32,7 +34,15 @@ export function notifyUpdateRequired(config?: AppUpdateConfig) {
     updateRequiredListeners.forEach((listener) => listener(config));
 }
 
-export async function fetchAppUpdateState(): Promise<AppUpdateState | null> {
+export function fetchAppUpdateState(): Promise<AppUpdateState | null> {
+    if (!appUpdateCheck) {
+        appUpdateCheck = fetchAppUpdateStateOnce();
+    }
+
+    return appUpdateCheck;
+}
+
+async function fetchAppUpdateStateOnce(): Promise<AppUpdateState | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5_000);
 
@@ -45,8 +55,7 @@ export async function fetchAppUpdateState(): Promise<AppUpdateState | null> {
             headers: {
                 Accept: "application/json",
                 "Accept-Language": i18n.resolvedLanguage ?? i18n.language ?? "en",
-                "X-App-Platform": Platform.OS,
-                "X-App-Version": installedVersion,
+                ...getAppRequestHeaders("MEMBER"),
             },
             signal: controller.signal,
         });

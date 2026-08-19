@@ -60,11 +60,6 @@ export type MemberBayReservationResponse = {
     isCancellable: boolean;
 };
 
-export type BayScheduleResponse = {
-    bayId: number;
-    bayName: string;
-};
-
 export type BaySlotScheduleResponse = {
     id: number;
     ruleId: number | null;

@@ -1,9 +1,8 @@
 import { authClient } from "../auth-client";
 import { env } from "../config/env";
 import i18n from "../../i18n";
-import Constants from "expo-constants";
-import { Platform } from "react-native";
 import { notifyUpdateRequired, type AppUpdateConfig } from "../update/app-update";
+import { getAppRequestHeaders } from "./app-request-headers";
 
 const API_BASE_URL = env.apiBaseUrl;
 
@@ -49,8 +48,7 @@ export async function apiClient<T = unknown>(
 
     const headers = new Headers(options.headers);
     headers.set("Authorization", `Bearer ${jwtToken}`);
-    headers.set("X-App-Version", Constants.expoConfig?.version ?? "0.0.0");
-    headers.set("X-App-Platform", Platform.OS);
+    Object.entries(getAppRequestHeaders()).forEach(([key, value]) => headers.set(key, value));
 
     if (!headers.has("Accept-Language")) {
         headers.set("Accept-Language", i18n.resolvedLanguage ?? i18n.language ?? "en");
