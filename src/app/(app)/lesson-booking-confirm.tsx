@@ -185,6 +185,7 @@ export default function LessonBookingConfirmScreen() {
 
     return (
         <Screen
+            keyboardAware
             contentClassName="flex-1"
             refreshControl={
                 <RefreshControl

@@ -39,6 +39,7 @@ export type ThemeColors = {
 };
 
 export type ThemePreference = "system" | "light" | "dark";
+export type PrimaryColorPreference = "blue" | "green";
 
 const lightThemeColors = {
     background: "#ffffff",
@@ -95,6 +96,7 @@ const darkThemeColors = {
 } satisfies ThemeColors;
 
 const THEME_PREFERENCE_STORAGE_KEY = "app-theme-preference";
+const PRIMARY_COLOR_PREFERENCE_STORAGE_KEY = "app-primary-color-preference";
 
 type ThemeContextValue = {
     colors: ThemeColors;
@@ -102,6 +104,8 @@ type ThemeContextValue = {
     preference: ThemePreference;
     resolvedScheme: "light" | "dark";
     setPreference: (preference: ThemePreference) => Promise<void>;
+    primaryColorPreference: PrimaryColorPreference;
+    setPrimaryColorPreference: (preference: PrimaryColorPreference) => Promise<void>;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -124,14 +128,27 @@ function applyThemePreference(
 
 export function getThemeColors(
     scheme?: "light" | "dark" | "unspecified" | null,
+    primaryColorPreference: PrimaryColorPreference = "blue",
 ): ThemeColors {
-    return scheme === "dark" ? darkThemeColors : lightThemeColors;
+    const colors = scheme === "dark" ? darkThemeColors : lightThemeColors;
+
+    if (primaryColorPreference === "green") {
+        return {
+            ...colors,
+            primary: "#00BC7D",
+            primaryForeground: "#ffffff",
+        };
+    }
+
+    return colors;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const { colorScheme, setColorScheme } = useColorScheme();
     const systemColorScheme = useSystemColorScheme();
     const [preference, setPreferenceState] = useState<ThemePreference>("system");
+    const [primaryColorPreference, setPrimaryColorPreferenceState] =
+        useState<PrimaryColorPreference>("blue");
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
@@ -141,6 +158,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             try {
                 const storedPreference = await AsyncStorage.getItem(
                     THEME_PREFERENCE_STORAGE_KEY,
+                );
+                const storedPrimaryColor = await AsyncStorage.getItem(
+                    PRIMARY_COLOR_PREFERENCE_STORAGE_KEY,
                 );
 
                 if (!isMounted) {
@@ -153,6 +173,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                         : "system";
 
                 setPreferenceState(nextPreference);
+                setPrimaryColorPreferenceState(
+                    storedPrimaryColor === "green" ? "green" : "blue",
+                );
                 applyThemePreference(setColorScheme, nextPreference);
             } finally {
                 if (isMounted) {
@@ -174,10 +197,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, nextPreference);
     };
 
+    const handleSetPrimaryColorPreference = async (
+        nextPreference: PrimaryColorPreference,
+    ) => {
+        setPrimaryColorPreferenceState(nextPreference);
+        await AsyncStorage.setItem(
+            PRIMARY_COLOR_PREFERENCE_STORAGE_KEY,
+            nextPreference,
+        );
+    };
+
     const effectiveColorScheme =
         preference === "system" ? systemColorScheme : colorScheme;
     const resolvedScheme = effectiveColorScheme === "dark" ? "dark" : "light";
-    const colors = getThemeColors(resolvedScheme);
+    const colors = getThemeColors(resolvedScheme, primaryColorPreference);
 
     useEffect(() => {
         void SystemUI.setBackgroundColorAsync(colors.background).catch(() => { });
@@ -189,6 +222,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         preference,
         resolvedScheme,
         setPreference: handleSetPreference,
+        primaryColorPreference,
+        setPrimaryColorPreference: handleSetPrimaryColorPreference,
     };
 
     return createElement(ThemeContext.Provider, { value }, children);
@@ -209,12 +244,21 @@ export function useThemeColors(): ThemeColors {
 }
 
 export function useThemePreference() {
-    const { isReady, preference, resolvedScheme, setPreference } = useTheme();
+    const {
+        isReady,
+        preference,
+        resolvedScheme,
+        setPreference,
+        primaryColorPreference,
+        setPrimaryColorPreference,
+    } = useTheme();
 
     return {
         isThemeReady: isReady,
         themePreference: preference,
         resolvedTheme: resolvedScheme,
         setThemePreference: setPreference,
+        primaryColorPreference,
+        setPrimaryColorPreference,
     };
 }

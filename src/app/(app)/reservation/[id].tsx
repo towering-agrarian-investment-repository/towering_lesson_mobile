@@ -35,14 +35,9 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
-    CalendarClock,
     CheckCircle2,
     ChevronLeft,
     ChevronRight,
-    CircleAlert,
-    UserCheck,
-    UserX,
-    XCircle,
 } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,11 +50,7 @@ import {
 type ReservationParams = {
     id: string;
     type?: string;
-};
-
-const BANNER_STYLE = {
-    borderCurve: "continuous" as const,
-    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+    success?: string;
 };
 
 function isReservationDomain(
@@ -176,7 +167,7 @@ function getReservationPolicies(t: (key: string) => string) {
 
 export default function ReservationDetailScreen() {
     const { t } = useTranslation();
-    const { id, type } = useLocalSearchParams<ReservationParams>();
+    const { id, type, success } = useLocalSearchParams<ReservationParams>();
 
     const colors = useThemeColors();
     const router = useRouter();
@@ -338,7 +329,9 @@ export default function ReservationDetailScreen() {
 
     const lessonNameValue = isBayReservation
         ? null
-        : lessonReservation?.lessonName?.trim() || "-";
+        : lessonReservation?.lessonProgramEnrollmentId != null
+            ? lessonReservation.lessonName?.trim() || "-"
+            : null;
 
     const programValue = isBayReservation
         ? "-"
@@ -495,7 +488,10 @@ export default function ReservationDetailScreen() {
                         title={title}
                         reservationStatus={reservation.reservationStatus}
                         ticketType={reservation.ticket?.type ?? null}
+                        showStatus={success !== "true"}
                     />
+
+                    {success === "true" ? <ReservationSuccessBanner /> : null}
 
                     <View className="flex-col gap-2">
                         <View className="flex-col">
@@ -577,19 +573,50 @@ export default function ReservationDetailScreen() {
     );
 }
 
+function ReservationSuccessBanner() {
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+
+    return (
+        <View className="flex-row items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-4">
+            <CheckCircle2 size={24} color={colors.success} strokeWidth={2.5} />
+            <View className="flex-1 gap-0.5">
+                <AppText variant="label" className="text-success">
+                    {t("reservations.confirmedTitle")}
+                </AppText>
+                <AppText variant="caption" className="text-success">
+                    {t("reservations.confirmedMessage")}
+                </AppText>
+            </View>
+        </View>
+    );
+}
+
 function HeaderSection({
     title,
     reservationStatus,
     ticketType,
+    showStatus = true,
 }: {
     title: string;
     reservationStatus?: string | null;
     ticketType?: string | null;
+    showStatus?: boolean;
 }) {
     const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
 
     return (
         <View className="flex-col gap-3">
+            {ticketType && ticketTone ? (
+                <View className="flex-row flex-wrap">
+                    <Badge
+                        label={formatTicketTypeLabel(ticketType)}
+                        className={`${ticketTone.badgeClassName} px-2 py-0.5`}
+                        textClassName={`${ticketTone.badgeTextClassName} text-xs font-semibold leading-4`}
+                    />
+                </View>
+            ) : null}
+
             <AppText
                 variant="h3"
                 selectable
@@ -598,17 +625,9 @@ function HeaderSection({
                 {title}
             </AppText>
 
-            {ticketType && ticketTone ? (
-                <View className="flex-row flex-wrap">
-                    <Badge
-                        label={formatTicketTypeLabel(ticketType)}
-                        className={`${ticketTone.badgeClassName} px-3 py-1.5`}
-                        textClassName={`${ticketTone.badgeTextClassName} text-sm font-semibold leading-5`}
-                    />
-                </View>
+            {showStatus ? (
+                <ReservationStatusBanner reservationStatus={reservationStatus} />
             ) : null}
-
-            <ReservationStatusBanner reservationStatus={reservationStatus} />
         </View>
     );
 }
@@ -618,6 +637,7 @@ function ReservationStatusBanner({
 }: {
     reservationStatus?: string | null;
 }) {
+    const { t } = useTranslation();
     const colors = useThemeColors();
     const statusLabel = formatType(reservationStatus);
     const statusTone = getReservationStatusTone(colors, reservationStatus);
@@ -627,57 +647,19 @@ function ReservationStatusBanner({
     }
 
     return (
-        <View
-            className={`flex-row items-center gap-3 rounded-xl px-4 py-3.5 ${statusTone.backgroundClassName}`}
-            style={BANNER_STYLE}
-        >
-            <View
-                className="h-9 w-9 items-center justify-center rounded-full"
-                style={{ backgroundColor: `${statusTone.color}18` }}
+        <View className="flex-row items-center gap-2">
+            <AppText variant="label" className="text-muted-foreground">
+                {t("reservations.statusLabel")}
+                {":"}
+            </AppText>
+            <AppText
+                variant="h3"
+                className={`text-lg font-bold leading-7 ${statusTone.textClassName}`}
             >
-                <ReservationStatusIcon
-                    status={reservationStatus}
-                    color={statusTone.color}
-                />
-            </View>
-
-            <View className="min-w-0 flex-1 flex-col gap-0.5">
-                <AppText
-                    variant="badge"
-                    className={`font-bold ${statusTone.textClassName}`}
-                >
-                    {statusLabel}
-                </AppText>
-
-            </View>
+                {statusLabel}
+            </AppText>
         </View>
     );
-}
-
-function ReservationStatusIcon({
-    status,
-    color,
-}: {
-    status?: string | null;
-    color: string;
-}) {
-    const iconProps = { size: 19, color, strokeWidth: 2.5 };
-
-    switch (status) {
-        case "RESERVED":
-            return <CalendarClock {...iconProps} />;
-        case "CHECKED_IN":
-            return <UserCheck {...iconProps} />;
-        case "COMPLETED":
-            return <CheckCircle2 {...iconProps} />;
-        case "CANCELLED":
-        case "CANCELED":
-            return <XCircle {...iconProps} />;
-        case "NO_SHOW":
-            return <UserX {...iconProps} />;
-        default:
-            return <CircleAlert {...iconProps} />;
-    }
 }
 
 function DetailRow({

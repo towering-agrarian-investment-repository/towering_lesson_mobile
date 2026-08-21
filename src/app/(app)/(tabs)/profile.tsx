@@ -9,6 +9,7 @@ import {
     ListRow,
     Screen,
     Card,
+    type PrimaryColorPreference,
     type ThemePreference,
     useThemeColors,
     useThemePreference,
@@ -37,7 +38,13 @@ export default function ProfileScreen() {
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
     const [isChangingLanguage, setIsChangingLanguage] = useState(false);
-    const { isThemeReady, themePreference, setThemePreference } = useThemePreference();
+    const {
+        isThemeReady,
+        themePreference,
+        setThemePreference,
+        primaryColorPreference,
+        setPrimaryColorPreference,
+    } = useThemePreference();
 
     const {
         data: memberResponse,
@@ -252,6 +259,14 @@ export default function ProfileScreen() {
                     <SectionTitle title={t("profile.appearance")} />
 
                     <View className="flex-col">
+                        <PrimaryColorPreferenceRow
+                            preference={primaryColorPreference}
+                            disabled={!isThemeReady}
+                            onChange={(nextPreference) => {
+                                void setPrimaryColorPreference(nextPreference);
+                            }}
+                        />
+                        <Divider className="bg-border" />
                         <ThemePreferenceRow
                             preference={themePreference}
                             disabled={!isThemeReady}
@@ -526,6 +541,71 @@ function ThemePreferenceRow({
                 onSelect={(nextPreference) => {
                     onChange(nextPreference);
                 }}
+            />
+        </>
+    );
+}
+
+function PrimaryColorPreferenceRow({
+    disabled,
+    preference,
+    onChange,
+}: {
+    disabled: boolean;
+    preference: PrimaryColorPreference;
+    onChange: (preference: PrimaryColorPreference) => void;
+}) {
+    const { t } = useTranslation();
+    const [isSheetVisible, setIsSheetVisible] = useState(false);
+    const selectedLabel = preference === "green"
+        ? t("profile.greenPrimaryColorLabel")
+        : t("profile.bluePrimaryColorLabel");
+
+    return (
+        <>
+            <ListRow
+                accessibilityRole="button"
+                accessibilityLabel={t("profile.choosePrimaryColorLabel")}
+                disabled={disabled}
+                className="border-0 bg-transparent px-0 py-3"
+                onPress={() => {
+                    if (!disabled) {
+                        setIsSheetVisible(true);
+                    }
+                }}
+                title={t("profile.primaryColorLabel")}
+                meta={selectedLabel}
+            />
+
+            <ActionSheet
+                visible={isSheetVisible}
+                title={t("profile.primaryColorLabel")}
+                description={t("profile.primaryColorDescriptionLabel")}
+                onClose={() => setIsSheetVisible(false)}
+                options={[
+                    {
+                        key: "blue",
+                        title: t("profile.bluePrimaryColorLabel"),
+                        description: "#00AEEF",
+                        icon: <View className="h-6 w-6 rounded-full bg-[#00AEEF]" />,
+                        selected: preference === "blue",
+                        onPress: () => {
+                            onChange("blue");
+                            setIsSheetVisible(false);
+                        },
+                    },
+                    {
+                        key: "green",
+                        title: t("profile.greenPrimaryColorLabel"),
+                        description: "#00BC7D",
+                        icon: <View className="h-6 w-6 rounded-full bg-[#00BC7D]" />,
+                        selected: preference === "green",
+                        onPress: () => {
+                            onChange("green");
+                            setIsSheetVisible(false);
+                        },
+                    },
+                ]}
             />
         </>
     );

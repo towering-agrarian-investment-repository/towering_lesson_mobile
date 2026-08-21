@@ -118,23 +118,27 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
 
     if (isError) {
         return (
-            <ErrorState
-                title={t("reservations.failedListTitle")}
-                message={t("common.pullToRefreshAndTryAgain")}
-                actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
-                onAction={handleRefetch}
-            />
+            <View className="min-h-0 flex-1 overflow-hidden">
+                <ErrorState
+                    title={t("reservations.failedListTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    onAction={handleRefetch}
+                />
+            </View>
         );
     }
 
     if (reservations.length === 0) {
         return (
-            <EmptyState
-                title={t("reservations.noReservationsTitle")}
-                message={t("reservations.noReservationsMessage")}
-                actionLabel={t("lessonLog.refresh")}
-                onAction={handleRefetch}
-            />
+            <View className="min-h-0 flex-1 overflow-hidden">
+                <EmptyState
+                    title={t("reservations.noReservationsTitle")}
+                    message={t("reservations.noReservationsMessage")}
+                    actionLabel={t("lessonLog.refresh")}
+                    onAction={handleRefetch}
+                />
+            </View>
         );
     }
 

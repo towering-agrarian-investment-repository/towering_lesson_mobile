@@ -4,6 +4,7 @@ import {
     useThemeColors,
 } from "@/design-system";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
+import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ function TodayReservationCard({ reservation }: Props) {
     const queryClient = useQueryClient();
     const { t } = useTranslation();
     const colors = useThemeColors();
+    const ticketTone = getTicketTypeTone(reservation.ticketType);
     const isBayReservation = reservation.reservationType === "bay";
     const title = isBayReservation
         ? reservation.bayName ?? t("reservations.bayFallback")
@@ -41,7 +43,7 @@ function TodayReservationCard({ reservation }: Props) {
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={title}
-                className="self-start rounded-xl border border-border bg-muted px-5 py-4"
+                className={`self-start rounded-xl border px-5 py-4 ${ticketTone.borderClassName} ${ticketTone.surfaceClassName}`}
                 style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
                 onPressIn={() => {
                     void queryClient.prefetchQuery(

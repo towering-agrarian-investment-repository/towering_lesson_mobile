@@ -76,7 +76,7 @@ export function MemberGroups({
             ) : groups.length === 0 ? (
                 <EmptyState
                     title={t("lessonLog.noPostsTitle")}
-                    message={t("lessonLog.noPostsMessage")}
+                    message={t("groups.joinProgramMessage")}
                     actionLabel={isRefetching || refreshing ? t("common.refreshing") : t("lessonLog.refresh")}
                     onAction={() => {
                         void refetch();

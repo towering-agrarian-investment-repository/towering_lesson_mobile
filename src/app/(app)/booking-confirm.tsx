@@ -187,6 +187,7 @@ export default function ConfirmScreen() {
 
     return (
         <Screen
+            keyboardAware
             contentClassName="grow"
             refreshControl={
                 <RefreshControl

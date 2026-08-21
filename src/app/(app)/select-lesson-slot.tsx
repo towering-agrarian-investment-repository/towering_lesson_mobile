@@ -1,6 +1,7 @@
 import {
     AppText,
     Card,
+    cn,
     EmptyState,
     ErrorState,
     getPressedScaleStyle,
@@ -25,12 +26,26 @@ import {
 import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
-import { ChevronRight, UserRound } from "lucide-react-native";
+import { UserRound } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
 
 function formatSlotTime(slot: MemberLessonSlotResponse) {
     return formatTimeRange(slot.startTime, slot.endTime);
+}
+
+function isStartingSoon(slot: MemberLessonSlotResponse) {
+    const startTime = new Date(slot.startTime).getTime();
+    const minutesUntilStart = (startTime - Date.now()) / 60000;
+
+    return minutesUntilStart >= 0 && minutesUntilStart <= 60;
+}
+
+function getMinutesUntilStart(slot: MemberLessonSlotResponse) {
+    const minutesUntilStart =
+        (new Date(slot.startTime).getTime() - Date.now()) / 60000;
+
+    return minutesUntilStart >= 0 ? Math.ceil(minutesUntilStart) : null;
 }
 
 export default function SelectLessonSlotScreen() {
@@ -159,6 +174,10 @@ export default function SelectLessonSlotScreen() {
                     {slots.map((slot) => {
                         const disabled = isLessonSlotFull(slot);
                         const isBookable = isLessonSlotBookable(slot);
+                        const startingSoon = !disabled && isStartingSoon(slot);
+                        const minutesUntilStart = !disabled
+                            ? getMinutesUntilStart(slot)
+                            : null;
                         const lessonTitle = getLessonSlotDisplayName(slot);
                         const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
                         const spotsLeft = getLessonSpotsLeft(slot);
@@ -169,6 +188,18 @@ export default function SelectLessonSlotScreen() {
                             : isGroupSlot
                                 ? t("booking.spotsLeft", { count: spotsLeft })
                                 : t("booking.statusAvailable");
+                        const countdownLabel =
+                            minutesUntilStart == null
+                                ? null
+                                : minutesUntilStart < 60
+                                    ? t("booking.startsInMinutes", { count: minutesUntilStart })
+                                    : minutesUntilStart < 1440
+                                        ? t("booking.startsInHours", {
+                                            count: Math.ceil(minutesUntilStart / 60),
+                                        })
+                                        : t("booking.startsInDays", {
+                                            count: Math.ceil(minutesUntilStart / 1440),
+                                        });
 
                         return isGroupSlot ? (
                             <Pressable
@@ -185,8 +216,8 @@ export default function SelectLessonSlotScreen() {
                                         : "border-border bg-card"
                                         }`}
                                 >
-                                    <View className="flex-row items-center justify-between gap-3">
-                                        <View className="min-w-0 flex-1">
+                                    <View className="flex-row items-start justify-between gap-3">
+                                        <View className="min-w-0 flex-1 gap-2">
                                             <AppText
                                                 variant="h3"
                                                 className={
@@ -194,43 +225,41 @@ export default function SelectLessonSlotScreen() {
                                                         ? "text-muted-foreground"
                                                         : "text-foreground"
                                                 }
-                                                numberOfLines={1}
                                             >
                                                 {formatSlotTime(slot)}
                                             </AppText>
-                                        </View>
 
-                                        <View
-                                            className={`shrink-0 rounded-full px-2.5 py-1 ${disabled
-                                                ? "bg-danger/10"
-                                                : "bg-ticket-group/10"
-                                                }`}
-                                        >
                                             <AppText
-                                                variant="badge"
+                                                variant="meta"
                                                 className={
                                                     disabled
-                                                        ? "text-danger"
-                                                        : "text-ticket-group"
+                                                        ? "text-muted-foreground"
+                                                        : "text-foreground/75"
                                                 }
+                                                numberOfLines={1}
                                             >
-                                                {statusLabel}
+                                                {lessonTitle}
                                             </AppText>
                                         </View>
-                                    </View>
 
-                                    <View className="gap-2">
-                                        <AppText
-                                            variant="meta"
-                                            className={
-                                                disabled
-                                                    ? "text-muted-foreground"
-                                                    : "text-foreground/75"
-                                            }
-                                            numberOfLines={1}
-                                        >
-                                            {lessonTitle}
-                                        </AppText>
+                                        <View className="shrink-0 items-end">
+                                            <AppText
+                                                variant="caption"
+                                                className="text-foreground/60"
+                                            >
+                                                {t("booking.spots")}
+                                            </AppText>
+                                            <AppText
+                                                variant="meta"
+                                                className={
+                                                    disabled
+                                                        ? "text-muted-foreground"
+                                                        : "text-foreground"
+                                                }
+                                            >
+                                                {slot.bookedCount}/{slot.capacity}
+                                            </AppText>
+                                        </View>
                                     </View>
 
                                     <View className="flex-row items-center gap-3">
@@ -251,33 +280,19 @@ export default function SelectLessonSlotScreen() {
                                         </View>
 
                                         <View className="shrink-0 flex-row items-center gap-2">
-                                            <View className="items-end">
-                                                <AppText
-                                                    variant="caption"
-                                                    className="text-foreground/60"
-                                                >
-                                                    {t("booking.spots")}
-                                                </AppText>
-                                                <AppText
-                                                    variant="meta"
-                                                    className={
-                                                        disabled
-                                                            ? "text-muted-foreground"
-                                                            : "text-foreground"
-                                                    }
-                                                >
-                                                    {slot.bookedCount}/{slot.capacity}
-                                                </AppText>
-                                            </View>
-
-                                            <ChevronRight
-                                                size={16}
-                                                color={
+                                            <AppText
+                                                variant="badge"
+                                                className={
                                                     disabled
-                                                        ? colors.mutedForeground
-                                                        : colors.primary
+                                                        ? "text-danger"
+                                                        : startingSoon
+                                                            ? "text-warning"
+                                                            : "text-ticket-group"
                                                 }
-                                            />
+                                            >
+                                                {countdownLabel ?? statusLabel}
+                                            </AppText>
+
                                         </View>
                                     </View>
 
@@ -291,6 +306,7 @@ export default function SelectLessonSlotScreen() {
                                                 : t("booking.unavailableViewOnly")}
                                         </AppText>
                                     ) : null}
+
                                 </Card>
                             </Pressable>
                         ) : (
@@ -328,32 +344,42 @@ export default function SelectLessonSlotScreen() {
                                         {lessonTitle}
                                     </AppText>
 
-                                    {slot.coachName ? (
+                                    <View className="flex-row items-center justify-between gap-3">
+                                        {slot.coachName ? (
+                                            <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                                                <UserRound
+                                                    size={13}
+                                                    color={colors.mutedForeground}
+                                                />
+                                                <AppText
+                                                    variant="meta"
+                                                    className={cn(
+                                                        "min-w-0 flex-1",
+                                                        disabled
+                                                            ? "text-muted-foreground"
+                                                            : "text-foreground/75",
+                                                    )}
+                                                    numberOfLines={1}
+                                                >
+                                                    {slot.coachName}
+                                                </AppText>
+                                            </View>
+                                        ) : <View className="flex-1" />}
+
                                         <AppText
-                                            variant="meta"
+                                            variant="badge"
                                             className={
                                                 disabled
                                                     ? "text-muted-foreground"
-                                                    : "text-foreground/75"
+                                                    : startingSoon
+                                                        ? "text-warning"
+                                                        : "text-primary"
                                             }
                                         >
-                                            {t("booking.coachLabel", {
-                                                name: slot.coachName,
-                                            })}
+                                            {countdownLabel ?? statusLabel}
                                         </AppText>
-                                    ) : null}
+                                    </View>
                                 </View>
-
-                                <AppText
-                                    variant="badge"
-                                    className={
-                                        disabled
-                                            ? "text-muted-foreground"
-                                            : "text-primary"
-                                    }
-                                >
-                                    {statusLabel}
-                                </AppText>
                             </Pressable>
                         );
                     })}

@@ -4,14 +4,28 @@ import {
 } from "@/components/golf/reservation/ReservationTabScene";
 import { AppText, cn, getPressedScaleStyle, Screen } from "@/design-system";
 import { MemberReservationType } from "@/service/reservation.service";
-import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, View } from "react-native";
+import { TabView } from "react-native-tab-view";
 import { useTranslation } from "react-i18next";
 
 export default function ReservationScreen() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<MemberReservationType>(
-        RESERVATION_TABS[0],
+    const [activeIndex, setActiveIndex] = useState(0);
+    const routes = useMemo(
+        () => RESERVATION_TABS.map((key) => ({
+            key,
+            title: t(`reservations.tabs.${key}`),
+        })),
+        [t],
+    );
+    const renderScene = useCallback(
+        ({ route }: { route: { key: string } }) => (
+            <ReservationTabScene
+                type={route.key as MemberReservationType}
+            />
+        ),
+        [],
     );
 
     return (
@@ -21,16 +35,10 @@ export default function ReservationScreen() {
             contentClassName="px-6"
         >
             <View className="rounded-2xl bg-surface p-1">
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={{ flexGrow: 0 }}
-                    contentContainerStyle={{
-                        gap: 8,
-                    }}
-                >
+                <View className="flex-row gap-1">
                     {RESERVATION_TABS.map((tab) => {
-                        const isActive = tab === activeTab;
+                                const tabIndex = RESERVATION_TABS.indexOf(tab);
+                                const isActive = tabIndex === activeIndex;
 
                         return (
                             <Pressable
@@ -41,7 +49,7 @@ export default function ReservationScreen() {
                                 })}
                                 accessibilityState={{ selected: isActive }}
                                 className={cn(
-                                    "min-h-11 items-center justify-center rounded-2xl px-4",
+                                    "min-h-11 flex-1 items-center justify-center rounded-2xl px-1",
                                     isActive
                                         ? "bg-card"
                                         : "bg-transparent",
@@ -49,13 +57,13 @@ export default function ReservationScreen() {
                                 style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
                                 onPress={() => {
                                     if (!isActive) {
-                                        setActiveTab(tab);
+                                        setActiveIndex(tabIndex);
                                     }
                                 }}
                             >
                                 <AppText
                                     className={cn(
-                                        "text-sm font-semibold",
+                                        "text-xs font-semibold",
                                         isActive ? "text-primary" : "text-foreground/75",
                                     )}
                                 >
@@ -64,9 +72,16 @@ export default function ReservationScreen() {
                             </Pressable>
                         );
                     })}
-                </ScrollView>
+                </View>
             </View>
-            <ReservationTabScene key={activeTab} type={activeTab} />
+            <TabView
+                navigationState={{ index: activeIndex, routes }}
+                onIndexChange={setActiveIndex}
+                renderScene={renderScene}
+                renderTabBar={() => null}
+                lazy
+                style={{ flex: 1 }}
+            />
         </Screen>
     );
 }

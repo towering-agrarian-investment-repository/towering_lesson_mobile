@@ -48,11 +48,13 @@ export function handleBookingConfirmationSuccess(
     router.dismissAll();
 
     if (reservation) {
-        router.replace({
+        router.replace("/reservation");
+        router.push({
             pathname: "/reservation/[id]",
             params: {
                 id: String(reservation.id),
                 type: reservation.reservationType,
+                success: "true",
             },
         });
         return;
