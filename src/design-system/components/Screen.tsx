@@ -20,6 +20,7 @@ type ScreenProps = {
     headerShown?: boolean;
     horizontalPadding?: boolean;
     keyboardAware?: boolean;
+    keyboardDismissOnTap?: boolean;
     scroll?: boolean;
     refreshControl?: ReactElement<RefreshControlProps>;
     bounces?: boolean;
@@ -36,6 +37,7 @@ export function Screen({
     headerShown = true,
     horizontalPadding = true,
     keyboardAware = true,
+    keyboardDismissOnTap = true,
     scroll = true,
     refreshControl,
     bounces = false,
@@ -62,60 +64,66 @@ export function Screen({
         paddingHorizontal,
     } as const;
 
+    const screenContent = (
+        scroll ? (
+            keyboardAware ? (
+                <KeyboardAwareScrollView
+                    className={cn("flex-1 bg-background", scrollClassName)}
+                    contentContainerStyle={scrollContentContainerStyle}
+                    keyboardShouldPersistTaps={resolvedKeyboardShouldPersistTaps}
+                    keyboardDismissMode={process.env.EXPO_OS === "ios" ? "interactive" : "on-drag"}
+                    bounces={bounces}
+                    showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+                    refreshControl={refreshControl}
+                    contentInsetAdjustmentBehavior="automatic"
+                    enableOnAndroid
+                    extraScrollHeight={20}
+                >
+                    <View className={cn("flex-1", contentClassName)}>{children}</View>
+                </KeyboardAwareScrollView>
+            ) : (
+                <ScrollView
+                    className={cn("flex-1 bg-background", scrollClassName)}
+                    contentContainerStyle={scrollContentContainerStyle}
+                    keyboardShouldPersistTaps={resolvedKeyboardShouldPersistTaps}
+                    keyboardDismissMode={process.env.EXPO_OS === "ios" ? "interactive" : "on-drag"}
+                    bounces={bounces}
+                    showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+                    refreshControl={refreshControl}
+                    contentInsetAdjustmentBehavior="automatic"
+                >
+                    <View className={cn("flex-1", contentClassName)}>{children}</View>
+                </ScrollView>
+            )
+        ) : (
+            <KeyboardAvoidingView
+                className="flex-1"
+                behavior={
+                    keyboardAware && process.env.EXPO_OS === "ios"
+                        ? "padding"
+                        : undefined
+                }
+            >
+                <View
+                    className={cn("flex-1", contentClassName)}
+                    style={fixedContentStyle}
+                >
+                    {children}
+                </View>
+            </KeyboardAvoidingView>
+        )
+    );
+
     return (
         <View className={cn("flex-1 bg-background", className)}>
-            <TouchableWithoutFeedback
-                accessible={false}
-                onPress={Keyboard.dismiss}
-            >
-                {scroll ? (
-                    keyboardAware ? (
-                        <KeyboardAwareScrollView
-                        className={cn("flex-1 bg-background", scrollClassName)}
-                        contentContainerStyle={scrollContentContainerStyle}
-                        keyboardShouldPersistTaps={resolvedKeyboardShouldPersistTaps}
-                        keyboardDismissMode={process.env.EXPO_OS === "ios" ? "interactive" : "on-drag"}
-                        bounces={bounces}
-                        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-                        refreshControl={refreshControl}
-                        contentInsetAdjustmentBehavior="automatic"
-                        enableOnAndroid
-                        extraScrollHeight={20}
-                        >
-                            <View className={cn("flex-1", contentClassName)}>{children}</View>
-                        </KeyboardAwareScrollView>
-                    ) : (
-                        <ScrollView
-                        className={cn("flex-1 bg-background", scrollClassName)}
-                        contentContainerStyle={scrollContentContainerStyle}
-                        keyboardShouldPersistTaps={resolvedKeyboardShouldPersistTaps}
-                        keyboardDismissMode={process.env.EXPO_OS === "ios" ? "interactive" : "on-drag"}
-                        bounces={bounces}
-                        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-                        refreshControl={refreshControl}
-                        contentInsetAdjustmentBehavior="automatic"
-                        >
-                            <View className={cn("flex-1", contentClassName)}>{children}</View>
-                        </ScrollView>
-                    )
-                ) : (
-                    <KeyboardAvoidingView
-                        className="flex-1"
-                        behavior={
-                            keyboardAware && process.env.EXPO_OS === "ios"
-                                ? "padding"
-                                : undefined
-                        }
-                    >
-                        <View
-                            className={cn("flex-1", contentClassName)}
-                            style={fixedContentStyle}
-                        >
-                            {children}
-                        </View>
-                    </KeyboardAvoidingView>
-                )}
-            </TouchableWithoutFeedback>
+            {keyboardDismissOnTap ? (
+                <TouchableWithoutFeedback
+                    accessible={false}
+                    onPress={Keyboard.dismiss}
+                >
+                    {screenContent}
+                </TouchableWithoutFeedback>
+            ) : screenContent}
 
             {footer ? (
                 <View

@@ -31,6 +31,7 @@ export default function ReservationScreen() {
     return (
         <Screen
             scroll={false}
+            keyboardDismissOnTap={false}
             horizontalPadding={false}
             contentClassName="px-6"
         >
