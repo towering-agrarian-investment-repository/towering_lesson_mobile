@@ -4,7 +4,6 @@ import {
     cn,
     EmptyState,
     ErrorState,
-    getPressedScaleStyle,
     Screen,
     Skeleton,
     triggerSelectionHaptic,
@@ -222,7 +221,6 @@ export default function SelectLessonSlotScreen() {
                                 key={slot.id}
                                 accessibilityRole="button"
                                 accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
-                                style={({ pressed }) => getPressedScaleStyle(pressed, disabled || isLocked, 0.99)}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
                             >
@@ -334,7 +332,6 @@ export default function SelectLessonSlotScreen() {
                                     ? "border-muted bg-muted opacity-55"
                                     : "border-border bg-card"
                                     }`}
-                                style={({ pressed }) => getPressedScaleStyle(pressed, disabled || isLocked, 0.992)}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
                             >

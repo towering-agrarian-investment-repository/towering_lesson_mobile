@@ -6,17 +6,26 @@ import { ApiResponse } from "../api-response/api-response";
 const DEFAULT_TICKET_STATUSES = ["ACTIVE", "IN_USE"];
 
 
-export function useMemberTickets(
+export function getMemberTicketsQueryOptions(
     memberId?: number,
     statuses?: string[],
-
 ) {
     const resolvedStatuses = statuses ?? DEFAULT_TICKET_STATUSES;
 
-    return useQuery<ApiResponse<TicketListItemResponse[]>>({
+    return {
         queryKey: ["member", "tickets", memberId, resolvedStatuses],
-        queryFn: ({ signal }) => getMemberTickets(memberId!, resolvedStatuses, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) =>
+            getMemberTickets(memberId!, resolvedStatuses, signal),
         enabled: Boolean(memberId),
         staleTime: 60_000,
-    });
+    };
+}
+
+export function useMemberTickets(
+    memberId?: number,
+    statuses?: string[],
+) {
+    return useQuery<ApiResponse<TicketListItemResponse[]>>(
+        getMemberTicketsQueryOptions(memberId, statuses),
+    );
 }

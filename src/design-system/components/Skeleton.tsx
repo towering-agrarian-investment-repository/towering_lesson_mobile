@@ -1,4 +1,5 @@
 import { MotiView } from "moti";
+import { useReducedMotion } from "react-native-reanimated";
 import { View } from "react-native";
 import { cn } from "../utils/cn";
 
@@ -7,11 +8,13 @@ type SkeletonProps = {
 };
 
 export function Skeleton({ className }: SkeletonProps) {
+    const reduceMotion = useReducedMotion();
+
     return (
         <MotiView
-            from={{ opacity: 0.45 }}
+            from={{ opacity: reduceMotion ? 1 : 0.45 }}
             animate={{ opacity: 1 }}
-            transition={{
+            transition={reduceMotion ? { duration: 0 } : {
                 type: "timing",
                 duration: 520,
                 loop: true,

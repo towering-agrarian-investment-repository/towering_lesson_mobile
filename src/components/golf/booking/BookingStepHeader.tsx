@@ -6,7 +6,6 @@ import { View } from "react-native";
 type BookingStepHeaderProps = {
     step: number;
     totalSteps: number;
-    title?: string;
     context: string;
     selectionTrail?: string[];
 };
@@ -14,7 +13,6 @@ type BookingStepHeaderProps = {
 export function BookingStepHeader({
     step,
     totalSteps,
-    title,
     context,
     selectionTrail,
 }: BookingStepHeaderProps) {
@@ -38,26 +36,23 @@ export function BookingStepHeader({
                     </AppText>
 
                     <View className="flex-row flex-wrap items-center gap-x-1 gap-y-1">
-                        {trail.map((label, index) => (
-                            <View key={label} className="flex-row items-center gap-1">
-                                {(() => {
-                                    const StepIcon = stepIcons[index] ?? Ticket;
-                                    const isActive = index === activeTrailIndex;
+                        {trail.map((label, index) => {
+                            const StepIcon = stepIcons[index] ?? Ticket;
+                            const isActive = index === activeTrailIndex;
 
-                                    return (
-                                        <StepIcon
-                                            size={13}
-                                            color={
-                                                isActive
-                                                    ? colors.primary
-                                                    : index < activeTrailIndex
-                                                        ? colors.foreground
-                                                        : colors.mutedForeground
-                                            }
-                                            strokeWidth={2.2}
-                                        />
-                                    );
-                                })()}
+                            return (
+                                <View key={label} className="flex-row items-center gap-1">
+                                    <StepIcon
+                                        size={13}
+                                        color={
+                                            isActive
+                                                ? colors.primary
+                                                : index < activeTrailIndex
+                                                    ? colors.foreground
+                                                    : colors.mutedForeground
+                                        }
+                                        strokeWidth={2.2}
+                                    />
                                 <AppText
                                     variant="caption"
                                     className={
@@ -78,13 +73,13 @@ export function BookingStepHeader({
                                         strokeWidth={2}
                                     />
                                 ) : null}
-                            </View>
-                        ))}
+                                </View>
+                            );
+                        })}
                     </View>
 
             </View>
 
-            {title ? <AppText variant="h3">{title}</AppText> : null}
         </View>
     );
 }

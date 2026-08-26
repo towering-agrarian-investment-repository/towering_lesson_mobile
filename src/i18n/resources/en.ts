@@ -313,6 +313,8 @@ const en = {
         },
     },
     common: {
+        offlineTitle: "You're offline",
+        offlineMessage: "Check your internet connection and try again.",
         cancel: "Cancel",
         goBack: "Go back",
         closeTitle: "Close {{title}}",

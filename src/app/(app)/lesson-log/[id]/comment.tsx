@@ -6,6 +6,8 @@ import {
     getPressedScaleStyle,
     Screen,
     Textarea,
+    triggerNotificationHaptic,
+    triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
 import {
@@ -15,6 +17,7 @@ import {
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { Controller, useForm } from "react-hook-form";
 import { Star } from "lucide-react-native";
 import { Pressable, RefreshControl, View } from "react-native";
@@ -163,6 +166,7 @@ function LessonLogCommentScreen() {
                                 },
                                 {
                                     onSuccess: () => {
+                                        triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
                                         router.replace({
                                             pathname: "/lesson-log/[id]",
                                             params: {
@@ -217,7 +221,10 @@ function LessonLogCommentScreen() {
                                             })}
                                             className="h-12 w-12 items-center justify-center"
                                             style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.92)}
-                                            onPress={() => onChange(starValue)}
+                                            onPress={() => {
+                                                triggerSelectionHaptic();
+                                                onChange(starValue);
+                                            }}
                                         >
                                             <Star
                                                 size={34}

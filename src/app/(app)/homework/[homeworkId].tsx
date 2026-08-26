@@ -9,6 +9,7 @@ import {
     Screen,
     Skeleton,
     Textarea,
+    triggerNotificationHaptic,
     useThemeColors,
 } from "@/design-system";
 import {
@@ -36,6 +37,7 @@ import {
 } from "@/utils/status-tone";
 import { formatDateForDisplay, fmtDateTime } from "@/utils/time-helper";
 import * as DocumentPicker from "expo-document-picker";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
 import { useState } from "react";
@@ -161,6 +163,7 @@ export default function HomeworkDetailScreen() {
             },
             {
                 onSuccess: () => {
+                    triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
                     setSelectedFile(null);
                     setMemo("");
                 },

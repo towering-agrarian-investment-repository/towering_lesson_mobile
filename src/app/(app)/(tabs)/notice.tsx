@@ -31,6 +31,12 @@ import { memo, useCallback, useLayoutEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Modal, Pressable, RefreshControl, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
+import Animated, {
+    FadeIn,
+    FadeOut,
+    LinearTransition,
+    useReducedMotion,
+} from "react-native-reanimated";
 
 function NoticeScreen() {
     const { t } = useTranslation();
@@ -39,6 +45,7 @@ function NoticeScreen() {
     const navigation = useNavigation();
     const colors = useThemeColors();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
+    const reduceMotion = useReducedMotion();
     const {
         data,
         isLoading,
@@ -223,18 +230,24 @@ function NoticeScreen() {
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
     const renderNotificationItem = useCallback(
         ({ item, index }: { item: NotificationResponse; index: number }) => (
-            <MemoNotificationRow
-                item={item}
-                isLast={index === notifications.length - 1}
-                disabled={isLocked || isDeletingNotification || isDeletingAllNotifications}
-                isDeleting={isDeletingNotification}
-                onDelete={() => deleteNotification(item.id)}
-                onPress={() => {
-                    void handleNotificationPress(item);
-                }}
-            />
+            <Animated.View
+                entering={reduceMotion ? undefined : FadeIn.duration(180)}
+                exiting={reduceMotion ? undefined : FadeOut.duration(140)}
+                layout={reduceMotion ? undefined : LinearTransition.duration(180)}
+            >
+                <MemoNotificationRow
+                    item={item}
+                    isLast={index === notifications.length - 1}
+                    disabled={isLocked || isDeletingNotification || isDeletingAllNotifications}
+                    isDeleting={isDeletingNotification}
+                    onDelete={() => deleteNotification(item.id)}
+                    onPress={() => {
+                        void handleNotificationPress(item);
+                    }}
+                />
+            </Animated.View>
         ),
-        [deleteNotification, handleNotificationPress, isDeletingAllNotifications, isDeletingNotification, isLocked, notifications.length],
+        [deleteNotification, handleNotificationPress, isDeletingAllNotifications, isDeletingNotification, isLocked, notifications.length, reduceMotion],
     );
 
     return (

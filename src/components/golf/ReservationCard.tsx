@@ -2,6 +2,7 @@ import {
     AppText,
     Card,
     getPressedScaleStyle,
+    triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
 import {
@@ -99,6 +100,7 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
             return;
         }
 
+        triggerSelectionHaptic();
         onPress?.(reservation);
     };
 

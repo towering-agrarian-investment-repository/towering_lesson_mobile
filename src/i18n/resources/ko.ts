@@ -309,6 +309,8 @@ const ko = {
         }
     },
     "common": {
+        offlineTitle: "오프라인 상태입니다",
+        offlineMessage: "인터넷 연결을 확인한 후 다시 시도해 주세요.",
         "refresh": "새로고침",
         "cancel": "\ucde8\uc18c",
         "goBack": "\ub4a4\ub85c \uac00\uae30",

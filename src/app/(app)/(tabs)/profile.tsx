@@ -9,6 +9,7 @@ import {
     ListRow,
     Screen,
     Card,
+    triggerSelectionHaptic,
     type PrimaryColorPreference,
     type ThemePreference,
     useThemeColors,
@@ -132,7 +133,7 @@ export default function ProfileScreen() {
                 }}
             />
 
-            <View className="flex-col gap-4">
+            <View className="flex-col gap-0">
                 <ProfileHeader
                     name={member?.name}
                     checkinNumber={member?.checkinNumber}
@@ -160,12 +161,12 @@ export default function ProfileScreen() {
                     </Card>
                 ) : null}
 
-                <Card className="gap-3 p-5">
+                <Card className="gap-3 rounded-none border-0 bg-transparent p-0 pt-5 pb-3">
                     <SectionTitle title={t("profile.personalRecord")} />
                     <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
                 </Card>
 
-                <Card className="gap-4 p-5">
+                <Card className="gap-4 rounded-none border-0 bg-transparent p-0 py-3">
                     <SectionTitle title={t("profile.generalInfo")} />
 
                     <View className="flex-col">
@@ -176,7 +177,7 @@ export default function ProfileScreen() {
                 </Card>
 
                 {member?.grade ? (
-                    <Card className="gap-4 p-5">
+                    <Card className="gap-4 rounded-none border-0 bg-transparent p-0 py-3">
                         <SectionTitle title={t("profile.schoolInfo")} />
 
                         <View className="flex-col">
@@ -193,7 +194,7 @@ export default function ProfileScreen() {
                 ) : null}
 
                 {member?.parents && member.parents.length > 0 ? (
-                    <Card className="gap-4 p-5">
+                    <Card className="gap-4 rounded-none border-0 bg-transparent p-0 py-3">
                         <SectionTitle title={t("profile.parentsGuardians")} />
 
                         <View className="flex-col">
@@ -213,7 +214,7 @@ export default function ProfileScreen() {
                 ) : null}
 
 
-                <Card className="gap-4 p-5">
+                <Card className="gap-4 rounded-none border-0 bg-transparent p-0 py-3">
                     <SectionTitle title={t("profile.settings")} />
 
                     <View className="flex-col">
@@ -255,7 +256,7 @@ export default function ProfileScreen() {
                     </View>
                 </Card>
 
-                <Card className="gap-4 p-5">
+                <Card className="gap-4 rounded-none border-0 bg-transparent p-0 py-3">
                     <SectionTitle title={t("profile.appearance")} />
 
                     <View className="flex-col">
@@ -282,12 +283,15 @@ export default function ProfileScreen() {
                     onPress={confirmSignOut}
                 />
 
-                <AppText
-                    variant="caption"
-                    className="pb-2 text-center text-muted-foreground"
-                >
-                    {APP_VERSION ? `v ${APP_VERSION}` : null}
-                </AppText>
+                {APP_VERSION ? (
+                    <AppText
+                        selectable
+                        variant="caption"
+                        className="mt-4 pb-4 text-center text-muted-foreground"
+                    >
+                        v {APP_VERSION}
+                    </AppText>
+                ) : null}
             </View>
         </Screen>
     );
@@ -370,9 +374,9 @@ function ProfileAvatar({
 }) {
     const imageSize = size === "large" ? 112 : 48;
     const containerClassName =
-        size === "large"
-            ? "h-28 w-28 bg-muted"
-            : "h-12 w-12 bg-muted";
+    size === "large"
+            ? "h-28 w-28 bg-primary"
+            : "h-12 w-12 bg-primary";
     const textVariant = size === "large" ? "h1" : "h3";
 
     if (imageUrl) {
@@ -393,7 +397,7 @@ function ProfileAvatar({
         <View
             className={`shrink-0 items-center justify-center rounded-full ${containerClassName}`}
         >
-            <AppText variant={textVariant} className="font-bold text-foreground">
+            <AppText variant={textVariant} className="font-bold text-primary-foreground">
                 {name?.charAt(0).toUpperCase() || "?"}
             </AppText>
         </View>
@@ -608,6 +612,7 @@ function PrimaryColorPreferenceRow({
                         icon: <View className="h-6 w-6 rounded-full bg-[#00AEEF]" />,
                         selected: preference === "blue",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             onChange("blue");
                             setIsSheetVisible(false);
                         },
@@ -619,6 +624,7 @@ function PrimaryColorPreferenceRow({
                         icon: <View className="h-6 w-6 rounded-full bg-[#00BC7D]" />,
                         selected: preference === "green",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             onChange("green");
                             setIsSheetVisible(false);
                         },
@@ -685,6 +691,7 @@ function LanguagePreferenceRow({
                         icon: <AppText className="text-2xl">🇬🇧</AppText>,
                         selected: currentLanguage === "en",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             void onChange("en");
                             setIsLanguageSheetVisible(false);
                         },
@@ -696,6 +703,7 @@ function LanguagePreferenceRow({
                         icon: <AppText className="text-2xl">🇰🇷</AppText>,
                         selected: currentLanguage === "ko",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             void onChange("ko");
                             setIsLanguageSheetVisible(false);
                         },
@@ -707,6 +715,7 @@ function LanguagePreferenceRow({
                         icon: <AppText className="text-2xl">🇯🇵</AppText>,
                         selected: currentLanguage === "ja",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             void onChange("ja");
                             setIsLanguageSheetVisible(false);
                         },
@@ -718,6 +727,7 @@ function LanguagePreferenceRow({
                         icon: <AppText className="text-2xl">🇨🇳</AppText>,
                         selected: currentLanguage === "zh",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             void onChange("zh");
                             setIsLanguageSheetVisible(false);
                         },
@@ -729,6 +739,7 @@ function LanguagePreferenceRow({
                         icon: <AppText className="text-2xl">🇰🇭</AppText>,
                         selected: currentLanguage === "km",
                         onPress: () => {
+                            triggerSelectionHaptic();
                             void onChange("km");
                             setIsLanguageSheetVisible(false);
                         },
@@ -768,6 +779,7 @@ function ThemePreferenceSheet({
                     icon: <Smartphone size={22} color={colors.foreground} />,
                     selected: preference === "system",
                     onPress: () => {
+                        triggerSelectionHaptic();
                         onSelect("system");
                     },
                 },
@@ -778,6 +790,7 @@ function ThemePreferenceSheet({
                     icon: <Sun size={22} color={colors.foreground} />,
                     selected: preference === "light",
                     onPress: () => {
+                        triggerSelectionHaptic();
                         onSelect("light");
                     },
                 },
@@ -788,6 +801,7 @@ function ThemePreferenceSheet({
                     icon: <Moon size={22} color={colors.foreground} />,
                     selected: preference === "dark",
                     onPress: () => {
+                        triggerSelectionHaptic();
                         onSelect("dark");
                     },
                 },
@@ -808,7 +822,7 @@ function SignOutButton({
         <Pressable
             onPress={onPress}
             disabled={isSigningOut}
-            className="rounded-xl border border-danger/20 bg-danger/10 px-4 py-4"
+            className="mt-5 rounded-xl border border-danger/20 bg-danger/10 px-4 py-4"
             style={({ pressed }) => getPressedScaleStyle(pressed, isSigningOut, 0.992)}
         >
             <AppText variant="label" className="text-danger">

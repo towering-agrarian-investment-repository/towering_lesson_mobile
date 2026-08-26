@@ -11,6 +11,8 @@ export type FormInputBaseProps<TFieldValues extends FieldValues> = {
     placeholder?: string;
     rules?: RegisterOptions<TFieldValues, Path<TFieldValues>>;
     autoCapitalize?: TextInputProps["autoCapitalize"];
+    autoComplete?: TextInputProps["autoComplete"];
+    textContentType?: TextInputProps["textContentType"];
     keyboardType?: KeyboardTypeOptions;
     multiline?: boolean;
     numberOfLines?: number;

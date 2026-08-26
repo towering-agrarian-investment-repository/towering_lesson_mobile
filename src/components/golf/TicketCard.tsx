@@ -9,7 +9,9 @@ import {
 } from "@/design-system/utils/ticket-type";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { formatType } from "@/utils/format-enum";
+import * as Haptics from "expo-haptics";
 import { ChevronRight } from "lucide-react-native";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
@@ -66,6 +68,10 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
             return;
         }
 
+        if (process.env.EXPO_OS !== "web") {
+            void Haptics.selectionAsync();
+        }
+
         onPress?.(item);
     };
 
@@ -103,11 +109,13 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
                             {badgeLabel}
                         </Text>
 
-                        <ChevronRight
-                            size={18}
-                            color={isInactive ? colors.mutedForeground : colors.foreground}
-                            strokeWidth={2.4}
-                        />
+                        {item.type !== "LESSON_PROGRAM" ? (
+                            <ChevronRight
+                                size={18}
+                                color={isInactive ? colors.mutedForeground : colors.foreground}
+                                strokeWidth={2.4}
+                            />
+                        ) : null}
                     </View>
 
                     <Text
@@ -154,4 +162,4 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
     );
 }
 
-export default TicketCard;
+export default memo(TicketCard);

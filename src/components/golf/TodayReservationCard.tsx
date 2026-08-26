@@ -1,6 +1,7 @@
 import {
     AppText as Text,
     getPressedScaleStyle,
+    triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
@@ -52,6 +53,9 @@ function TodayReservationCard({ reservation }: Props) {
                             reservation.reservationType,
                         ),
                     );
+                }}
+                onPress={() => {
+                    triggerSelectionHaptic();
                 }}
             >
                 <View className="min-w-0 flex-row items-center gap-2">

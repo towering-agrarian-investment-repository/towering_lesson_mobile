@@ -55,7 +55,49 @@ LocaleConfig.locales.ko = {
     today: "오늘",
 };
 
-const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"];
+LocaleConfig.locales.ja = {
+    monthNames: [
+        "1月", "2月", "3月", "4月", "5月", "6月",
+        "7月", "8月", "9月", "10月", "11月", "12月",
+    ],
+    monthNamesShort: [
+        "1月", "2月", "3月", "4月", "5月", "6月",
+        "7月", "8月", "9月", "10月", "11月", "12月",
+    ],
+    dayNames: ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"],
+    dayNamesShort: ["日", "月", "火", "水", "木", "金", "土"],
+    today: "今日",
+};
+
+LocaleConfig.locales.zh = {
+    monthNames: [
+        "一月", "二月", "三月", "四月", "五月", "六月",
+        "七月", "八月", "九月", "十月", "十一月", "十二月",
+    ],
+    monthNamesShort: [
+        "1月", "2月", "3月", "4月", "5月", "6月",
+        "7月", "8月", "9月", "10月", "11月", "12月",
+    ],
+    dayNames: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+    dayNamesShort: ["日", "一", "二", "三", "四", "五", "六"],
+    today: "今天",
+};
+
+LocaleConfig.locales.km = {
+    monthNames: [
+        "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
+        "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
+    ],
+    monthNamesShort: [
+        "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
+        "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
+    ],
+    dayNames: ["អាទិត្យ", "ចន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"],
+    dayNamesShort: ["អា", "ច", "អ", "ព", "ព្រ", "សុ", "ស"],
+    today: "ថ្ងៃនេះ",
+};
+
+const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON"];
 const CALENDAR_WEEKDAY_PLACEHOLDERS = Array.from({ length: 7 }, (_, i) => i);
 const CALENDAR_WEEK_PLACEHOLDERS = Array.from({ length: 6 }, (_, i) => i);
 
@@ -278,9 +320,16 @@ export default function DateScreen() {
         formattedTicketType !== "-"
             ? formattedTicketType
             : ticketName || t("common.noTicket");
-    const calendarLocale = i18n.resolvedLanguage?.toLowerCase().startsWith("ko")
+    const language = i18n.resolvedLanguage?.toLowerCase() ?? "en";
+    const calendarLocale = language.startsWith("ko")
         ? "ko"
-        : "en";
+        : language.startsWith("ja")
+            ? "ja"
+            : language.startsWith("zh")
+                ? "zh"
+                : language.startsWith("km")
+                    ? "km"
+                    : "en";
 
     useEffect(() => {
         LocaleConfig.defaultLocale = calendarLocale;
@@ -316,7 +365,6 @@ export default function DateScreen() {
             </View>
 
             <View>
-                <View>
                     {isInitialLoading ? (
                         <CalendarLoadingSkeleton />
                     ) : isError ? (
@@ -438,7 +486,6 @@ export default function DateScreen() {
                             }}
                         />
                     )}
-                </View>
             </View>
         </Screen>
     );

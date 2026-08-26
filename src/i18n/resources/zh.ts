@@ -312,6 +312,8 @@ const zh: TranslationResource<typeof en> = {
         },
     },
     common: {
+        offlineTitle: "您已离线",
+        offlineMessage: "请检查网络连接后重试。",
         cancel: "取消",
         goBack: "返回",
         closeTitle: "关闭 {{title}}",

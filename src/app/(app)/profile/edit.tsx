@@ -1,4 +1,4 @@
-import { ActionSheet, AppText as Text, Button, CircleLoader, ErrorState, Screen, useThemeColors } from "@/design-system";
+import { ActionSheet, AppText as Text, Button, CircleLoader, ErrorState, Screen, triggerNotificationHaptic, useThemeColors } from "@/design-system";
 import {
     FormTextInput,
 } from "@/components/ui/form";
@@ -18,11 +18,12 @@ import {
 } from "@/utils/media";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, ImageIcon } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { z } from "zod";
@@ -91,10 +92,15 @@ export default function EditProfileScreen() {
             },
             {
                 onSuccess: () => {
+                    triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
                     router.back();
                 },
             },
         );
+    };
+
+    const handleInvalidSubmit = (errors: FieldErrors<EditProfileFormValues>) => {
+        form.setFocus(errors.name ? "name" : "nickname");
     };
 
     const uploadSelectedProfileImage = (
@@ -110,6 +116,7 @@ export default function EditProfileScreen() {
             },
             {
                 onSuccess: () => {
+                    triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
                     showAppToast({
                         message: t("profile.profileImageUpdated"),
                         type: "success",
@@ -245,7 +252,7 @@ export default function EditProfileScreen() {
                             || !form.formState.isValid
                         }
                         className="rounded-xl"
-                        onPress={form.handleSubmit(onSubmit)}
+                        onPress={form.handleSubmit(onSubmit, handleInvalidSubmit)}
                     />
                 </View>
             }
@@ -308,6 +315,8 @@ export default function EditProfileScreen() {
                         name="name"
                         label={t("profile.fullName")}
                         placeholder={t("profile.fullNamePlaceholder")}
+                        autoComplete="name"
+                        textContentType="name"
                     />
 
                     <FormTextInput
@@ -315,6 +324,8 @@ export default function EditProfileScreen() {
                         name="nickname"
                         label={t("profile.nickname", { defaultValue: "Nickname" })}
                         placeholder={t("profile.nicknamePlaceholder", { defaultValue: "Enter a nickname" })}
+                        autoComplete="nickname"
+                        textContentType="nickname"
                     />
 
                 </View>

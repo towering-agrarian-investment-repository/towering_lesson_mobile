@@ -57,11 +57,8 @@ export default function LessonBookingConfirmScreen() {
     const router = useRouter();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const [notes, setNotes] = useState(initialNotes ?? "");
-    const {
-        mutate: createReservation,
-        isPending: isCreating,
-    } = useCreateMemberLessonReservation();
-    const isSubmitting = isCreating;
+    const { mutate: createReservation, isPending: isCreating } =
+        useCreateMemberLessonReservation();
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
@@ -121,16 +118,16 @@ export default function LessonBookingConfirmScreen() {
                 type: "warning",
             });
 
-                        router.replace({
-                            pathname: "/select-lesson-slot",
-                            params: {
-                                date,
-                                ticketId,
-                                ticketName,
-                                ticketType,
-                                notes,
-                            },
-                        });
+            router.replace({
+                pathname: "/select-lesson-slot",
+                params: {
+                    date,
+                    ticketId,
+                    ticketName,
+                    ticketType,
+                    notes,
+                },
+            });
 
             return;
         }
@@ -161,7 +158,7 @@ export default function LessonBookingConfirmScreen() {
     );
     const coachNameValue = selectedSlot?.coachName ?? coachName;
     const isDisabled =
-        isSubmitting ||
+        isCreating ||
         isMissingRequiredData ||
         !selectedSlot ||
         isSelectedSlotFull;
@@ -202,7 +199,7 @@ export default function LessonBookingConfirmScreen() {
                                 ? t("bookingConfirmation.agreeJoinGroup")
                                 : t("bookingConfirmation.agreeBook")
                         }
-                        loading={isSubmitting}
+                        loading={isCreating}
                         disabled={isDisabled}
                         onPress={handleConfirm}
                     />

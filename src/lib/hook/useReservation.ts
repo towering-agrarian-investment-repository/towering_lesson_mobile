@@ -55,6 +55,7 @@ export function getMemberReservationsQueryOptions(type: MemberReservationType) {
     return {
         queryKey,
         initialPageParam: null as string | null,
+        staleTime: 30_000,
         queryFn: ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) =>
             getMemberReservations({
                 type,

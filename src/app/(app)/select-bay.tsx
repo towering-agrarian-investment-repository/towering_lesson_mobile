@@ -217,9 +217,6 @@ export default function BayScreen() {
                                                 ? "border-border bg-card"
                                                 : "border-muted bg-muted opacity-55"
                                                 }`}
-                                            style={({ pressed }) => ({
-                                                transform: [{ scale: pressed && !isDisabled && !isLocked ? 0.975 : 1 }],
-                                            })}
                                             onPress={() =>
                                                 !isDisabled && handleSelect(bay)
                                             }

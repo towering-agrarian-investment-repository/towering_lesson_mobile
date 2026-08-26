@@ -312,6 +312,8 @@ const km: TranslationResource<typeof en> = {
         },
     },
     common: {
+        offlineTitle: "អ្នកកំពុងប្រើក្រៅបណ្តាញ",
+        offlineMessage: "សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត ហើយព្យាយាមម្តងទៀត។",
         cancel: "បោះបង់",
         goBack: "ត្រឡប់ក្រោយ",
         closeTitle: "បិទ {{title}}",

@@ -10,6 +10,7 @@ import {
     Textarea,
 } from "@/design-system";
 import { useTranslation } from "react-i18next";
+import * as Haptics from "expo-haptics";
 import { View } from "react-native";
 
 export type BookingConfirmationSuccessResponse = {
@@ -45,6 +46,12 @@ export function handleBookingConfirmationSuccess(
     response: BookingConfirmationSuccessResponse,
 ) {
     const reservation = response.data;
+
+    if (process.env.EXPO_OS === "android") {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else if (process.env.EXPO_OS === "ios") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
 
     router.dismissAll();
 

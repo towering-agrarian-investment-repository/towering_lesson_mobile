@@ -7,6 +7,7 @@ import {
     Skeleton,
 } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import {
     getMemberReservationDetailQueryOptions,
     useMemberReservations,
@@ -18,6 +19,12 @@ import type {
 } from "@/types/member-reservation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import Animated, {
+    FadeIn,
+    FadeOut,
+    LinearTransition,
+    useReducedMotion,
+} from "react-native-reanimated";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
@@ -46,6 +53,8 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { isOnline } = useNetworkStatus();
+    const reduceMotion = useReducedMotion();
 
     const {
         data,
@@ -98,13 +107,19 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
 
     const renderReservationItem = useCallback(
         ({ item }: { item: ReservationItem }) => (
-            <ReservationCard
-                reservation={item}
-                disabled={isLocked}
-                onPress={handleReservationPress}
-            />
+            <Animated.View
+                entering={reduceMotion ? undefined : FadeIn.duration(180)}
+                exiting={reduceMotion ? undefined : FadeOut.duration(140)}
+                layout={reduceMotion ? undefined : LinearTransition.duration(180)}
+            >
+                <ReservationCard
+                    reservation={item}
+                    disabled={isLocked}
+                    onPress={handleReservationPress}
+                />
+            </Animated.View>
         ),
-        [handleReservationPress, isLocked],
+        [handleReservationPress, isLocked, reduceMotion],
     );
 
     const handleEndReached = useCallback(() => {
@@ -123,27 +138,35 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
 
     if (isError) {
         return (
-            <View className="min-h-0 flex-1 overflow-hidden">
+            <ReservationStateList
+                refreshing={isRefetching}
+                onRefresh={handleRefetch}
+            >
                 <ErrorState
-                    title={t("reservations.failedListTitle")}
-                    message={t("common.pullToRefreshAndTryAgain")}
+                    title={isOnline === false ? t("common.offlineTitle") : t("reservations.failedListTitle")}
+                    message={isOnline === false
+                        ? t("common.offlineMessage")
+                        : t("common.pullToRefreshAndTryAgain")}
                     actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     onAction={handleRefetch}
                 />
-            </View>
+            </ReservationStateList>
         );
     }
 
     if (reservations.length === 0) {
         return (
-            <View className="min-h-0 flex-1 overflow-hidden">
+            <ReservationStateList
+                refreshing={isRefetching}
+                onRefresh={handleRefetch}
+            >
                 <EmptyState
                     title={t("reservations.noReservationsTitle")}
                     message={t("reservations.noReservationsMessage")}
-                    actionLabel={t("lessonLog.refresh")}
+                    actionLabel={t("common.refresh")}
                     onAction={handleRefetch}
                 />
-            </View>
+            </ReservationStateList>
         );
     }
 
@@ -275,5 +298,33 @@ function ReservationListFooter() {
         <View className="py-5">
             <CircleLoader />
         </View>
+    );
+}
+
+function ReservationStateList({
+    children,
+    refreshing,
+    onRefresh,
+}: {
+    children: React.ReactElement;
+    refreshing: boolean;
+    onRefresh: () => void;
+}) {
+    return (
+        <FlatList
+            className="flex-1"
+            data={[]}
+            renderItem={null}
+            contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: "center",
+                paddingBottom: 40,
+            }}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={children}
+            showsVerticalScrollIndicator={false}
+        />
     );
 }

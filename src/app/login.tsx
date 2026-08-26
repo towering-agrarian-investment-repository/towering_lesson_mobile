@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { z } from "zod";
@@ -39,8 +39,12 @@ export default function LoginScreen() {
             password: "",
         },
         resolver: zodResolver(loginSchema),
-        mode: "onSubmit",
+        mode: "onChange",
     });
+
+    const handleInvalidLogin = (errors: FieldErrors<LoginFormValues>) => {
+        form.setFocus(errors.phoneNumber ? "phoneNumber" : "password");
+    };
 
     async function handleLogin(values: LoginFormValues) {
         form.clearErrors();
@@ -99,6 +103,8 @@ export default function LoginScreen() {
                                 label={t("login.phoneNumberLabel")}
                                 placeholder={t("login.phoneNumberPlaceholder")}
                                 numericMode="phone-pad"
+                                autoComplete="tel"
+                                textContentType="telephoneNumber"
                                 editable={!isLoggingIn}
                             />
 
@@ -107,6 +113,8 @@ export default function LoginScreen() {
                                 name="password"
                                 label={t("login.passwordLabel")}
                                 placeholder={t("login.passwordPlaceholder")}
+                                autoComplete="current-password"
+                                textContentType="password"
                                 editable={!isLoggingIn}
                             />
                         </View>
@@ -120,7 +128,7 @@ export default function LoginScreen() {
                             }
                             disabled={isLoggingIn}
                             className={isLoggingIn ? "overflow-hidden rounded-xl opacity-50" : "overflow-hidden rounded-xl"}
-                            onPress={form.handleSubmit(handleLogin)}
+                            onPress={form.handleSubmit(handleLogin, handleInvalidLogin)}
                             onPressIn={() => setIsLoginPressed(true)}
                             onPressOut={() => setIsLoginPressed(false)}
                         >

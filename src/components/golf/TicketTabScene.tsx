@@ -1,13 +1,20 @@
 import TicketCard from "@/components/golf/TicketCard";
+import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
+import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import Animated, {
+    FadeIn,
+    FadeOut,
+    LinearTransition,
+    useReducedMotion,
+} from "react-native-reanimated";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
@@ -24,6 +31,8 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { isOnline } = useNetworkStatus();
+    const reduceMotion = useReducedMotion();
     const { data: memberResponse, isLoading: isLoadingMember } =
         useGetMemberProfile();
     const member = memberResponse?.data;
@@ -53,17 +62,7 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                 return;
             }
 
-            if (item.type === "PRIVATE_LESSON" || item.type === "GROUP_LESSON") {
-                const today = new Date();
-
-                void queryClient.prefetchQuery(
-                    getMemberTicketLessonSlotsQueryOptions(
-                        item.id,
-                        today.getFullYear(),
-                        today.getMonth() + 1,
-                    ),
-                );
-            }
+            prefetchTicketAvailability(queryClient, item);
 
             runWithNavigationLock(() => {
                 router.push({
@@ -100,8 +99,10 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                 }}
             >
                 <ErrorState
-                    title={t("tickets.loadError")}
-                    message={t("common.pullToRefreshAndTryAgain")}
+                    title={isOnline === false ? t("common.offlineTitle") : t("tickets.loadError")}
+                    message={isOnline === false
+                        ? t("common.offlineMessage")
+                        : t("common.pullToRefreshAndTryAgain")}
                     actionLabel={
                         isRefetching
                             ? t("common.refreshing")
@@ -125,7 +126,6 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
             >
                 <EmptyState
                     title={t("tickets.empty")}
-                    message={t("tickets.empty")}
                     actionLabel={t("common.refresh")}
                     onAction={() => {
                         void refetch();
@@ -141,13 +141,21 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
             data={filteredTickets}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => (
-                <TicketCard
-                    item={item}
-                    fullWidth
-                    disabled={isLocked}
-                    onPress={handleTicketPress}
-                />
+                <Animated.View
+                    entering={reduceMotion ? undefined : FadeIn.duration(180)}
+                    exiting={reduceMotion ? undefined : FadeOut.duration(140)}
+                    layout={reduceMotion ? undefined : LinearTransition.duration(180)}
+                >
+                    <TicketCard
+                        item={item}
+                        fullWidth
+                        disabled={isLocked}
+                        onPress={handleTicketPress}
+                    />
+                </Animated.View>
             )}
+            decelerationRate="normal"
+            nestedScrollEnabled
             ItemSeparatorComponent={() => <View className="h-3" />}
             contentContainerStyle={{
                 paddingTop: 20,

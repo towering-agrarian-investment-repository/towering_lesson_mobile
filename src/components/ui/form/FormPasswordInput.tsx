@@ -13,6 +13,8 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     label,
     placeholder,
     rules,
+    autoComplete,
+    textContentType,
     editable = true,
 }: FormInputBaseProps<TFieldValues>) {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -24,7 +26,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
             control={control}
             name={name}
             rules={rules}
-            render={({ field: { value, onChange, onBlur }, fieldState }) => (
+            render={({ field: { value, onChange, onBlur, ref }, fieldState }) => (
                 <FormFieldShell
                     label={label}
                     errorMessage={fieldState.error?.message}
@@ -42,10 +44,13 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                             value={typeof value === "string" ? value : value == null ? "" : String(value)}
                             onChangeText={onChange}
                             onBlur={onBlur}
+                            ref={ref}
                             placeholder={placeholder}
                             placeholderTextColor={colors.mutedForeground}
                             autoCapitalize="none"
+                            autoComplete={autoComplete}
                             secureTextEntry={!isPasswordVisible}
+                            textContentType={textContentType}
                             editable={editable}
                             accessibilityLabel={label}
                             accessibilityState={{ disabled: !editable }}

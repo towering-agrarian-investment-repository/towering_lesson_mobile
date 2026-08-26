@@ -1,5 +1,6 @@
 import happyGolfToolbarLogo from "@/assets/images/happygolf_toolbar_logo.png";
 import { MotiView } from "moti";
+import { useReducedMotion } from "react-native-reanimated";
 import { Image, View } from "react-native";
 import { AppText } from "./AppText";
 import { useThemeColors } from "../utils/theme";
@@ -16,6 +17,7 @@ export function CircleLoader({
     logoOnly = false,
 }: CircleLoaderProps) {
     const colors = useThemeColors();
+    const reduceMotion = useReducedMotion();
     const dotSize = fullScreen ? 12 : 8;
 
     return (
@@ -28,9 +30,9 @@ export function CircleLoader({
         >
             {logoOnly ? (
                 <MotiView
-                    from={{ opacity: 0.75, scale: 0.98 }}
+                    from={{ opacity: reduceMotion ? 1 : 0.75, scale: reduceMotion ? 1 : 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{
+                    transition={reduceMotion ? { duration: 0 } : {
                         type: "timing",
                         duration: 560,
                         loop: true,
@@ -48,9 +50,11 @@ export function CircleLoader({
                     {[0, 1, 2].map((index) => (
                         <MotiView
                             key={index}
-                            from={{ opacity: 0.35, scale: 0.9, translateY: 0 }}
-                            animate={{ opacity: 1, scale: 1.15, translateY: -2 }}
-                            transition={{
+                            from={{ opacity: reduceMotion ? 1 : 0.35, scale: reduceMotion ? 1 : 0.9, translateY: 0 }}
+                            animate={reduceMotion
+                                ? { opacity: 1, scale: 1, translateY: 0 }
+                                : { opacity: 1, scale: 1.15, translateY: -2 }}
+                            transition={reduceMotion ? { duration: 0 } : {
                                 type: "timing",
                                 duration: 360,
                                 delay: index * 50,

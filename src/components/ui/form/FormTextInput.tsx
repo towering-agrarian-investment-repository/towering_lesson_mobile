@@ -11,9 +11,11 @@ export function FormTextInput<TFieldValues extends FieldValues>({
     placeholder,
     rules,
     autoCapitalize = "sentences",
+    autoComplete,
     keyboardType = "default",
     multiline = false,
     numberOfLines,
+    textContentType,
     editable = true,
 }: FormInputBaseProps<TFieldValues>) {
     const colors = useThemeColors();
@@ -23,7 +25,7 @@ export function FormTextInput<TFieldValues extends FieldValues>({
             control={control}
             name={name}
             rules={rules}
-            render={({ field: { value, onChange, onBlur }, fieldState }) => (
+            render={({ field: { value, onChange, onBlur, ref }, fieldState }) => (
                 <FormFieldShell
                     label={label}
                     errorMessage={fieldState.error?.message}
@@ -32,12 +34,15 @@ export function FormTextInput<TFieldValues extends FieldValues>({
                         value={typeof value === "string" ? value : value == null ? "" : String(value)}
                         onChangeText={onChange}
                         onBlur={onBlur}
+                        ref={ref}
                         placeholder={placeholder}
                         placeholderTextColor={colors.mutedForeground}
                         autoCapitalize={autoCapitalize}
+                        autoComplete={autoComplete}
                         keyboardType={keyboardType}
                         multiline={multiline}
                         numberOfLines={numberOfLines}
+                        textContentType={textContentType}
                         editable={editable}
                         accessibilityLabel={label}
                         accessibilityState={{ disabled: !editable }}

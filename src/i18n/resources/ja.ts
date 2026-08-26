@@ -312,6 +312,8 @@ const ja: TranslationResource<typeof en> = {
         },
     },
     common: {
+        offlineTitle: "オフラインです",
+        offlineMessage: "インターネット接続を確認して、もう一度お試しください。",
         cancel: "キャンセル",
         goBack: "戻る",
         closeTitle: "{{title}} を閉じる",

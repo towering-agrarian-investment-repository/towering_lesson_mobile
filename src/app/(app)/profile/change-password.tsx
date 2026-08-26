@@ -1,11 +1,12 @@
-import { AppText as Text, Button, Screen } from "@/design-system";
+import { AppText as Text, Button, Screen, triggerNotificationHaptic } from "@/design-system";
 import { FormPasswordInput } from "@/components/ui/form";
 import { responseError } from "@/lib/api-response/api-response";
 import { showAppToast } from "@/lib/toast/toast";
 import { changePassword } from "@/service/auth";
+import * as Haptics from "expo-haptics";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
-import { useForm } from "react-hook-form";
+import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { View } from 'react-native';
 import { z } from "zod";
@@ -53,6 +54,7 @@ function ChangePasswordScreen() {
                 message: t("changePassword.passwordUpdated"),
                 type: "success",
             });
+            triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
 
             if (router.canGoBack()) {
                 router.back();
@@ -92,6 +94,16 @@ function ChangePasswordScreen() {
         }
     }
 
+    const handleInvalidSubmit = (errors: FieldErrors<ChangePasswordFormValues>) => {
+        if (errors.currentPassword) {
+            form.setFocus("currentPassword");
+        } else if (errors.newPassword) {
+            form.setFocus("newPassword");
+        } else {
+            form.setFocus("confirmPassword");
+        }
+    };
+
     return (
         <Screen
             keyboardAware
@@ -107,7 +119,7 @@ function ChangePasswordScreen() {
                             || !form.formState.isValid
                         }
                         className="rounded-xl"
-                        onPress={form.handleSubmit(onSubmit)}
+                        onPress={form.handleSubmit(onSubmit, handleInvalidSubmit)}
                     />
                 </View>
             }
@@ -127,6 +139,8 @@ function ChangePasswordScreen() {
                         name="currentPassword"
                         label={t("changePassword.currentPassword")}
                         placeholder={t("changePassword.passwordMask")}
+                        autoComplete="current-password"
+                        textContentType="password"
                     />
                 </View>
 
@@ -141,6 +155,8 @@ function ChangePasswordScreen() {
                             name="newPassword"
                             label={t("changePassword.password")}
                             placeholder={t("changePassword.passwordMask")}
+                            autoComplete="new-password"
+                            textContentType="newPassword"
                         />
 
                         <FormPasswordInput
@@ -148,6 +164,8 @@ function ChangePasswordScreen() {
                             name="confirmPassword"
                             label={t("changePassword.confirmPassword")}
                             placeholder={t("changePassword.passwordMask")}
+                            autoComplete="new-password"
+                            textContentType="newPassword"
                         />
                     </View>
                 </View>

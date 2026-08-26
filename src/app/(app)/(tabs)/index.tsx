@@ -8,9 +8,11 @@ import {
   getPressedScaleStyle,
   InlineState,
   Screen,
+  triggerImpactHaptic,
 } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { getMemberReservationsQueryOptions } from "@/lib/hook/useReservation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -81,8 +83,23 @@ export default function HomeScreen() {
           accessibilityLabel={t("home.viewMyReservations")}
           disabled={isLocked}
           className="mx-6 rounded-xl bg-primary py-4 disabled:opacity-60"
-          style={({ pressed }) => getPressedScaleStyle(pressed, isLocked)}
+          style={({ pressed }) => ({
+            opacity: pressed && !isLocked ? 0.86 : 1,
+            ...getPressedScaleStyle(pressed, isLocked),
+          })}
+          onPressIn={() => {
+            if (!isLocked) {
+              void queryClient.prefetchInfiniteQuery(
+                getMemberReservationsQueryOptions("all"),
+              );
+            }
+          }}
           onPress={() => {
+            if (isLocked) {
+              return;
+            }
+
+            triggerImpactHaptic();
             runWithNavigationLock(() => {
               router.push("/reservation");
             });

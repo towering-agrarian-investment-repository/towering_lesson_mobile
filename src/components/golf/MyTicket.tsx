@@ -1,13 +1,21 @@
-import { AppText, InlineState, Skeleton } from "@/design-system";
+import {
+    AppText,
+    InlineState,
+    Skeleton,
+    triggerSelectionHaptic,
+} from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
-import { useMemberTickets } from "@/lib/hook/useTicket";
+import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
+import {
+    getMemberTicketsQueryOptions,
+    useMemberTickets,
+} from "@/lib/hook/useTicket";
 import { showAppToast } from "@/lib/toast/toast";
 import { MemberSelfResponse } from "@/types/member.type";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Animated, {
     interpolate,
     type SharedValue,
@@ -17,6 +25,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import {
+    FlatList,
     ScrollView,
     StyleSheet,
     Pressable,
@@ -40,6 +49,7 @@ function MyTicket({ member }: Props) {
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data, isLoading, isError } = useMemberTickets(member.id);
     const tickets = data?.data ?? [];
+    const carouselRef = useRef<FlatList<TicketListItemResponse>>(null);
     const [activeTicketIndex, setActiveTicketIndex] = useState(0);
     const carouselProgress = useSharedValue(0);
     const handleTicketScroll = useAnimatedScrollHandler({
@@ -58,18 +68,7 @@ function MyTicket({ member }: Props) {
                 return;
             }
 
-            if (
-                item.type === "PRIVATE_LESSON" ||
-                item.type === "GROUP_LESSON"
-            ) {
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = today.getMonth() + 1;
-
-                void queryClient.prefetchQuery(
-                    getMemberTicketLessonSlotsQueryOptions(item.id, year, month),
-                );
-            }
+            prefetchTicketAvailability(queryClient, item);
 
             runWithNavigationLock(() => {
                 router.push({
@@ -99,6 +98,13 @@ function MyTicket({ member }: Props) {
                         accessibilityLabel={t("tickets.viewAll")}
                         disabled={isLocked}
                         className="rounded-lg px-1 py-2 active:opacity-70"
+                        onPressIn={() => {
+                            if (!isLocked) {
+                                void queryClient.prefetchQuery(
+                                    getMemberTicketsQueryOptions(member.id),
+                                );
+                            }
+                        }}
                         onPress={() => {
                             runWithNavigationLock(() => {
                                 router.push("/tickets");
@@ -136,13 +142,13 @@ function MyTicket({ member }: Props) {
                 />
             ) : (
                 <Animated.FlatList
+                    ref={carouselRef}
                     data={tickets}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentInsetAdjustmentBehavior="automatic"
                     snapToInterval={CARD_SNAP_INTERVAL}
                     decelerationRate="fast"
-                    disableIntervalMomentum
                     snapToAlignment="start"
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={style.listContent}
@@ -181,6 +187,14 @@ function MyTicket({ member }: Props) {
                             key={ticket.id}
                             index={index}
                             progress={carouselProgress}
+                            onPress={() => {
+                                triggerSelectionHaptic();
+                                carouselRef.current?.scrollToOffset({
+                                    offset: index * CARD_SNAP_INTERVAL,
+                                    animated: true,
+                                });
+                            }}
+                            accessibilityLabel={`${t("tickets.sectionTitle")} ${index + 1}`}
                         />
                     ))}
                 </View>
@@ -193,9 +207,13 @@ function MyTicket({ member }: Props) {
 function PaginationDot({
     index,
     progress,
+    onPress,
+    accessibilityLabel,
 }: {
     index: number;
     progress: SharedValue<number>;
+    onPress: () => void;
+    accessibilityLabel: string;
 }) {
     const animatedStyle = useAnimatedStyle(() => {
         const distance = Math.abs(progress.value - index);
@@ -207,10 +225,17 @@ function PaginationDot({
     });
 
     return (
-        <Animated.View
-            className="h-2 rounded-full bg-primary"
-            style={animatedStyle}
-        />
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+            className="min-h-6 min-w-6 items-center justify-center"
+            onPress={onPress}
+        >
+            <Animated.View
+                className="h-2 rounded-full bg-primary"
+                style={animatedStyle}
+            />
+        </Pressable>
     );
 }
 

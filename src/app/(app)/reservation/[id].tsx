@@ -31,6 +31,7 @@ import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
+import { showAppToast } from "@/lib/toast/toast";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -191,6 +192,7 @@ export default function ReservationDetailScreen() {
 
     const { mutate: cancelBayReservation, isPending: isCancellingBay } =
         useCancelMemberBayReservation();
+
 
     const screenOptions = {
         title: t("reservations.reservationDetailTitle"),
@@ -413,18 +415,29 @@ export default function ReservationDetailScreen() {
 
         if (isBayReservation) {
             cancelBayReservation(reservation.id, {
-                onSuccess: () => {
-                    router.replace("/reservation");
-                },
+                onSuccess: handleCancellationSuccess,
             });
             return;
         }
 
         cancelLessonReservation(reservation.id, {
-            onSuccess: () => {
-                router.replace("/reservation");
-            },
+            onSuccess: handleCancellationSuccess,
         });
+    };
+
+    const handleCancellationSuccess = () => {
+        if (process.env.EXPO_OS === "android") {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } else if (process.env.EXPO_OS === "ios") {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+
+        setIsCancelSheetVisible(false);
+        showAppToast({
+            message: t("reservations.reservationCancelled"),
+            type: "success",
+        });
+        router.replace("/reservation");
     };
 
     return (
@@ -491,7 +504,12 @@ export default function ReservationDetailScreen() {
                         showStatus={success !== "true"}
                     />
 
-                    {success === "true" ? <ReservationSuccessBanner /> : null}
+                    {success === "true" ? (
+                        <ReservationSuccessBanner
+                            title={t("reservations.confirmedTitle")}
+                            message={t("reservations.confirmedMessage")}
+                        />
+                    ) : null}
 
                     <View className="flex-col gap-2">
                         <View className="flex-col">
@@ -573,8 +591,13 @@ export default function ReservationDetailScreen() {
     );
 }
 
-function ReservationSuccessBanner() {
-    const { t } = useTranslation();
+function ReservationSuccessBanner({
+    title,
+    message,
+}: {
+    title: string;
+    message: string;
+}) {
     const colors = useThemeColors();
 
     return (
@@ -582,11 +605,13 @@ function ReservationSuccessBanner() {
             <CheckCircle2 size={24} color={colors.success} strokeWidth={2.5} />
             <View className="flex-1 gap-0.5">
                 <AppText variant="label" className="text-success">
-                    {t("reservations.confirmedTitle")}
+                    {title}
                 </AppText>
-                <AppText variant="caption" className="text-success">
-                    {t("reservations.confirmedMessage")}
-                </AppText>
+                {message ? (
+                    <AppText variant="caption" className="text-success">
+                        {message}
+                    </AppText>
+                ) : null}
             </View>
         </View>
     );
