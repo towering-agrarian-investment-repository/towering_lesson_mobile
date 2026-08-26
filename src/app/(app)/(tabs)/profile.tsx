@@ -23,12 +23,13 @@ import { signOut } from "@/service/auth";
 import { formatType } from "@/utils/format-enum";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import Constants from "expo-constants";
 import { Href, Link } from "expo-router";
 import { Download, Languages, Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
-const APP_VERSION = "v 1.0.0";
+const APP_VERSION = Constants.expoConfig?.version;
 
 export default function ProfileScreen() {
     const { i18n, t } = useTranslation();
@@ -50,7 +51,6 @@ export default function ProfileScreen() {
         data: memberResponse,
         isLoading,
         isError,
-        error,
         refetch,
         isRefetching,
     } = useGetMemberProfile();
@@ -286,7 +286,7 @@ export default function ProfileScreen() {
                     variant="caption"
                     className="pb-2 text-center text-muted-foreground"
                 >
-                    {APP_VERSION}
+                    {APP_VERSION ? `v ${APP_VERSION}` : null}
                 </AppText>
             </View>
         </Screen>
@@ -294,7 +294,25 @@ export default function ProfileScreen() {
 }
 
 function resolveProfileLanguage(language: string | undefined): AppLanguage {
-    return language?.toLowerCase().startsWith("ko") ? "ko" : "en";
+    const normalizedLanguage = language?.toLowerCase();
+
+    if (normalizedLanguage?.startsWith("ko")) {
+        return "ko";
+    }
+
+    if (normalizedLanguage?.startsWith("ja")) {
+        return "ja";
+    }
+
+    if (normalizedLanguage?.startsWith("zh")) {
+        return "zh";
+    }
+
+    if (normalizedLanguage?.startsWith("km")) {
+        return "km";
+    }
+
+    return "en";
 }
 
 function ProfileHeader({
@@ -626,6 +644,9 @@ function LanguagePreferenceRow({
     const languageOptions: { label: string; value: AppLanguage }[] = [
         { label: t("profile.english"), value: "en" },
         { label: t("profile.korean"), value: "ko" },
+        { label: t("profile.japanese"), value: "ja" },
+        { label: t("profile.chinese"), value: "zh" },
+        { label: t("profile.khmer"), value: "km" },
     ];
     const selectedLabel =
         languageOptions.find((option) => option.value === currentLanguage)?.label ??
@@ -661,7 +682,7 @@ function LanguagePreferenceRow({
                         key: "en",
                         title: t("profile.english"),
                         description: t("profile.useEnglishLanguage"),
-                        icon: <Languages size={22} color={colors.foreground} />,
+                        icon: <AppText className="text-2xl">🇬🇧</AppText>,
                         selected: currentLanguage === "en",
                         onPress: () => {
                             void onChange("en");
@@ -672,10 +693,43 @@ function LanguagePreferenceRow({
                         key: "ko",
                         title: t("profile.korean"),
                         description: t("profile.useKoreanLanguage"),
-                        icon: <Languages size={22} color={colors.foreground} />,
+                        icon: <AppText className="text-2xl">🇰🇷</AppText>,
                         selected: currentLanguage === "ko",
                         onPress: () => {
                             void onChange("ko");
+                            setIsLanguageSheetVisible(false);
+                        },
+                    },
+                    {
+                        key: "ja",
+                        title: t("profile.japanese"),
+                        description: t("profile.useJapaneseLanguage"),
+                        icon: <AppText className="text-2xl">🇯🇵</AppText>,
+                        selected: currentLanguage === "ja",
+                        onPress: () => {
+                            void onChange("ja");
+                            setIsLanguageSheetVisible(false);
+                        },
+                    },
+                    {
+                        key: "zh",
+                        title: t("profile.chinese"),
+                        description: t("profile.useChineseLanguage"),
+                        icon: <AppText className="text-2xl">🇨🇳</AppText>,
+                        selected: currentLanguage === "zh",
+                        onPress: () => {
+                            void onChange("zh");
+                            setIsLanguageSheetVisible(false);
+                        },
+                    },
+                    {
+                        key: "km",
+                        title: t("profile.khmer"),
+                        description: t("profile.useKhmerLanguage"),
+                        icon: <AppText className="text-2xl">🇰🇭</AppText>,
+                        selected: currentLanguage === "km",
+                        onPress: () => {
+                            void onChange("km");
                             setIsLanguageSheetVisible(false);
                         },
                     },

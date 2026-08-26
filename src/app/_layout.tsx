@@ -13,6 +13,7 @@ import { useEffect, useMemo } from "react";
 import { View } from "react-native";
 import { VariableContextProvider } from "@/lib/react-native-css-variable-context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import "../global.css";
 import { usePushNotification } from "@/lib/hook/shared/usePushNotification";
 import {
@@ -48,18 +49,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <WelcomeProvider>
-            <AppUpdateProvider value={update}>
-              <ThemedRoot
-                hasAuthorizedSession={hasAuthorizedSession}
-                update={update}
-              />
-            </AppUpdateProvider>
-          </WelcomeProvider>
-        </ThemeProvider>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <WelcomeProvider>
+              <AppUpdateProvider value={update}>
+                <ThemedRoot
+                  hasAuthorizedSession={hasAuthorizedSession}
+                  update={update}
+                />
+              </AppUpdateProvider>
+            </WelcomeProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

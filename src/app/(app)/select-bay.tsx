@@ -2,7 +2,6 @@ import {
     AppText,
     EmptyState,
     ErrorState,
-    MotionView,
     Screen,
     Skeleton,
     triggerSelectionHaptic,
@@ -13,6 +12,7 @@ import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
+import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -39,6 +39,8 @@ export default function BayScreen() {
         ticketName,
         ticketType,
         slotGroupId,
+        startTime,
+        endTime,
         mode,
         reservationId,
         notes,
@@ -48,6 +50,8 @@ export default function BayScreen() {
         ticketName: string;
         ticketType?: string;
         slotGroupId?: string;
+        startTime?: string;
+        endTime?: string;
         mode?: string;
         reservationId?: string;
         notes?: string;
@@ -123,6 +127,14 @@ export default function BayScreen() {
                 step={3}
                 totalSteps={4}
                 context={bookingContext}
+                selectionTrail={[
+                    bookingContext,
+                    formatDateValue(date, "M.d"),
+                    formatTimeRange(
+                        startTime ?? slotGroup?.startDateTime,
+                        endTime ?? slotGroup?.endDateTime,
+                    ),
+                ]}
             />
 
             {isLoading ? (
@@ -178,7 +190,7 @@ export default function BayScreen() {
             ) : null}
 
             {!isLoading && !isError && slotGroup ? (
-                <MotionView className="gap-3" delayMs={70}>
+                <View className="gap-3">
                     {bayRows.map((row, rowIndex) => (
                         <View key={rowIndex} className="flex-row gap-3">
                             {row.map((bay) => {
@@ -248,7 +260,7 @@ export default function BayScreen() {
                             )}
                         </View>
                     ))}
-                </MotionView>
+                </View>
             ) : null}
         </Screen>
     );

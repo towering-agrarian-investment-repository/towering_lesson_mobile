@@ -11,8 +11,10 @@ import {
     submitHomework,
     uploadHomeworkSubmissionFile,
 } from "@/service/member-homework.service";
-import { getMemberLessonByIdAndGroupId } from "@/service/member-lesson.service";
-import { getMemberLessonById } from "@/service/member-lesson.service";
+import {
+    getMemberLessonById,
+    getMemberLessonByIdAndGroupId,
+} from "@/service/member-lesson.service";
 import { getMemberSessionInstancesByLessonId } from "@/service/member-session.service";
 import {
     MemberHomeworkDetailResponse,

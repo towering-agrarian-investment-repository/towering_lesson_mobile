@@ -3,7 +3,6 @@ import { View } from "react-native";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { useThemeColors } from "../utils/theme";
-import { MotionView } from "./MotionView";
 
 const CircleAlertIcon = CircleAlert as React.ComponentType<any>;
 const InboxIcon = Inbox as React.ComponentType<any>;
@@ -79,9 +78,9 @@ export function EmptyState({
 function StateCardShell({ children }: { children: React.ReactNode }) {
     return (
         <View className="flex-1 bg-background px-6 py-5">
-            <MotionView className="flex-1 items-center justify-center">
+            <View className="flex-1 items-center justify-center">
                 {children}
-            </MotionView>
+            </View>
         </View>
     );
 }

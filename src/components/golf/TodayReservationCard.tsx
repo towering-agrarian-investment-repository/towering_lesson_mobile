@@ -43,7 +43,7 @@ function TodayReservationCard({ reservation }: Props) {
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={title}
-                className={`self-start rounded-xl border px-5 py-4 ${ticketTone.borderClassName} ${ticketTone.surfaceClassName}`}
+                className={`max-w-full self-start rounded-xl border px-4 py-3 ${ticketTone.borderClassName} ${ticketTone.surfaceClassName}`}
                 style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
                 onPressIn={() => {
                     void queryClient.prefetchQuery(
@@ -54,25 +54,26 @@ function TodayReservationCard({ reservation }: Props) {
                     );
                 }}
             >
-                <View className="gap-1">
-                    <Text
-                        variant="label"
-                        className="text-base font-semibold text-foreground"
-                        numberOfLines={1}
-                    >
-                        {title}
-                    </Text>
-
-                    <View className="flex-row items-center justify-between gap-3">
+                <View className="min-w-0 flex-row items-center gap-2">
+                    <View className="min-w-0 shrink gap-0.5">
                         <Text
-                            className="text-sm text-muted-foreground"
+                            variant="label"
+                            className="font-semibold text-foreground"
+                            numberOfLines={1}
+                        >
+                            {title}
+                        </Text>
+
+                        <Text
+                            variant="meta"
+                            className="text-muted-foreground"
                             numberOfLines={1}
                         >
                             {timeLabel}
                         </Text>
-
-                        <ChevronRight size={16} color={colors.mutedForeground} />
                     </View>
+
+                    <ChevronRight size={15} color={colors.mutedForeground} />
                 </View>
             </Pressable>
         </Link>

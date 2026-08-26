@@ -6,7 +6,6 @@ export * from "./components/Screen";
 export * from "./components/Card";
 export * from "./components/IconButton";
 export * from "./components/ListRow";
-export * from "./components/MotionView";
 export * from "./components/Divider";
 export * from "./components/Badge";
 export * from "./components/CircleLoader";

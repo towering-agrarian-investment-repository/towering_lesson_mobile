@@ -5,7 +5,6 @@ import {
     EmptyState,
     ErrorState,
     getPressedScaleStyle,
-    MotionView,
     Screen,
     Skeleton,
     triggerSelectionHaptic,
@@ -16,6 +15,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
 import { formatType } from "@/utils/format-enum";
+import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import {
     getLessonSlotDisplayName,
     getLessonSpotsLeft,
@@ -23,12 +23,11 @@ import {
     isLessonSlotBookable,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
-import { formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { UserRound } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 function formatSlotTime(slot: MemberLessonSlotResponse) {
     return formatTimeRange(slot.startTime, slot.endTime);
@@ -102,17 +101,7 @@ export default function SelectLessonSlotScreen() {
     };
 
     return (
-        <Screen
-            contentClassName="gap-6"
-            refreshControl={
-                <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
-                />
-            }
-        >
+        <>
             <Stack.Screen
                 options={{
                     title: isGroupTicket
@@ -121,15 +110,25 @@ export default function SelectLessonSlotScreen() {
                 }}
             />
 
-            <BookingStepHeader
-                step={2}
-                totalSteps={3}
-                context={
-                    formatType(ticketType) !== "-"
-                        ? formatType(ticketType)
-                        : ticketName
-                }
-            />
+            <Screen
+                scroll={false}
+                contentClassName="min-h-0 gap-6"
+            >
+                <BookingStepHeader
+                    step={2}
+                    totalSteps={3}
+                    context={
+                        formatType(ticketType) !== "-"
+                            ? formatType(ticketType)
+                            : ticketName
+                    }
+                    selectionTrail={[
+                        formatType(ticketType) !== "-"
+                            ? formatType(ticketType)
+                            : ticketName,
+                        formatDateValue(date, "M.d"),
+                    ]}
+                />
 
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
@@ -170,8 +169,25 @@ export default function SelectLessonSlotScreen() {
             ) : null}
 
             {!isLoading && !isError && slots.length > 0 ? (
-                <MotionView className="gap-3" delayMs={70}>
-                    {slots.map((slot) => {
+                <FlatList
+                    className="min-h-0 flex-1"
+                    data={slots}
+                    keyExtractor={(slot) => String(slot.id)}
+                    ItemSeparatorComponent={() => <View className="h-3" />}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefetching}
+                            onRefresh={() => {
+                                void refetch();
+                            }}
+                        />
+                    }
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                    showsVerticalScrollIndicator={false}
+                    initialNumToRender={6}
+                    maxToRenderPerBatch={8}
+                    windowSize={7}
+                    renderItem={({ item: slot }) => {
                         const disabled = isLessonSlotFull(slot);
                         const isBookable = isLessonSlotBookable(slot);
                         const startingSoon = !disabled && isStartingSoon(slot);
@@ -382,9 +398,10 @@ export default function SelectLessonSlotScreen() {
                                 </View>
                             </Pressable>
                         );
-                    })}
-                </MotionView>
+                    }}
+                />
             ) : null}
-        </Screen>
+            </Screen>
+        </>
     );
 }

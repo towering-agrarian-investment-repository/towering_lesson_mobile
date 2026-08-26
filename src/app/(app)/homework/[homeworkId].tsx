@@ -40,7 +40,7 @@ import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, View } from "react-native";
+import { FlatList, RefreshControl, View } from "react-native";
 
 type HomeworkParams = {
     homeworkId: string;
@@ -63,6 +63,7 @@ export default function HomeworkDetailScreen() {
     const {
         data: submissionsResponse,
         refetch: refetchSubmissions,
+        isRefetching: isRefetchingSubmissions,
     } = useMemberHomeworkSubmissions(numericHomeworkId);
     const {
         mutate: submitHomework,
@@ -102,10 +103,9 @@ export default function HomeworkDetailScreen() {
 
     const refreshControl = (
         <RefreshControl
-            refreshing={isRefetching}
+            refreshing={isRefetching || isRefetchingSubmissions}
             onRefresh={() => {
-                void refetch();
-                void refetchSubmissions();
+                void Promise.all([refetch(), refetchSubmissions()]);
             }}
         />
     );
@@ -207,8 +207,9 @@ export default function HomeworkDetailScreen() {
     return (
         <Screen
             keyboardAware
-            contentClassName="gap-5"
-            refreshControl={refreshControl}
+            scroll={false}
+            horizontalPadding={false}
+            contentClassName="min-h-0"
             footer={
                 <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
                     <Button
@@ -228,6 +229,26 @@ export default function HomeworkDetailScreen() {
                 </View>
             }
         >
+            <FlatList
+                data={submissions}
+                keyExtractor={(submission, index) =>
+                    `submission-${submission.id ?? index}`
+                }
+                renderItem={({ item: submission }) => (
+                    <SubmissionRow
+                        submission={submission}
+                        iconColor={colors.mutedForeground}
+                    />
+                )}
+                ItemSeparatorComponent={() => <View className="h-3" />}
+                refreshControl={refreshControl}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 24,
+                }}
+                ListHeaderComponent={
+                    <View className="gap-5 pb-3">
             <Card className="overflow-hidden border-border bg-card p-0">
                 <View className="gap-4 bg-surface px-4 py-4">
                     <View className="gap-2">
@@ -336,17 +357,13 @@ export default function HomeworkDetailScreen() {
                     title={t("homework.noSubmissionsTitle")}
                     message={t("homework.noSubmissionsMessage")}
                 />
-            ) : (
-                <View className="gap-3">
-                    {submissions.map((submission, index) => (
-                        <SubmissionRow
-                            key={`submission-${submission.id ?? index}`}
-                            submission={submission}
-                            iconColor={colors.mutedForeground}
-                        />
-                    ))}
-                </View>
-            )}
+            ) : null}
+                    </View>
+                }
+                initialNumToRender={6}
+                maxToRenderPerBatch={8}
+                windowSize={7}
+            />
         </Screen>
     );
 }

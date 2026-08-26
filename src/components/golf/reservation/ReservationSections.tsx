@@ -1,6 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { AppText } from "@/design-system";
-import { cn } from "@/design-system";
+import { AppText, cn } from "@/design-system";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 

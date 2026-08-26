@@ -5,8 +5,6 @@ const DOCUMENT_EXTENSIONS = ["pdf"] as const;
 
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const VIDEO_MIME_TYPES = ["video/mp4"] as const;
-const DOCUMENT_MIME_TYPES = ["application/pdf"] as const;
-
 export const PROFILE_IMAGE_EXTENSIONS = new Set(IMAGE_EXTENSIONS);
 export const PROFILE_IMAGE_MIME_TYPES = new Set(IMAGE_MIME_TYPES);
 

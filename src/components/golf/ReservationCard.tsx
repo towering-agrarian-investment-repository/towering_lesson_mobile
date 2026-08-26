@@ -13,7 +13,7 @@ import type {
 } from "@/types/member-reservation";
 import { fmtTime } from "@/utils/time-helper";
 import { format } from "date-fns";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
@@ -31,15 +31,16 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     const colors = useThemeColors();
     const startDate = new Date(reservation.startTime);
     const endDate = new Date(reservation.endTime);
+    const [referenceTime] = useState(() => Date.now());
     const tone = getTicketTypeTone(reservation.ticketType);
     const minutesUntilStart = Math.ceil(
-        (startDate.getTime() - Date.now()) / 60000,
+        (startDate.getTime() - referenceTime) / 60000,
     );
     const reservationStatus = String(reservation.reservationStatus).toUpperCase();
     const isReservedUpcoming = reservationStatus === "RESERVED" && minutesUntilStart >= 0;
-    const isStartingSoon = minutesUntilStart >= 0 && minutesUntilStart <= 60;
+    const isStartingSoon = isReservedUpcoming && minutesUntilStart <= 60;
     const countdownLabel =
-        minutesUntilStart >= 0
+        reservationStatus === "RESERVED" && minutesUntilStart >= 0
             ? minutesUntilStart < 60
                 ? t("booking.startsInMinutes", { count: minutesUntilStart })
                 : minutesUntilStart < 1440
@@ -77,11 +78,11 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     // Keep the card surface calm. Status and ticket type are communicated by
     // the small dot and the supporting label instead of coloring the whole card.
     const cardBackgroundClassName =
-        reservationStatus === "RESERVED" && minutesUntilStart < 0
+        reservationStatus !== "RESERVED"
             ? "bg-muted/80"
-            : isReservedUpcoming
-                ? "bg-primary/20"
-                : "bg-card";
+            : minutesUntilStart < 0
+                ? "bg-muted/80"
+                : "bg-primary/20";
     const arrowBackgroundClassName = "bg-muted";
     const arrowColor = colors.mutedForeground;
     const cardTextClassName = "text-foreground";
@@ -126,7 +127,7 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                 </View>
 
                 <View className="flex-row items-center gap-3">
-                    <ReservationDateBadge date={startDate} isReservedUpcoming={isReservedUpcoming} />
+                    <ReservationDateBadge date={startDate} />
 
                     <View className="min-w-0 flex-1 flex-col justify-center gap-3">
                         <AppText
@@ -169,6 +170,7 @@ function areReservationCardsEqual(prev: Props, next: Props) {
         prev.onPress === next.onPress &&
         previousReservation.id === nextReservation.id &&
         previousReservation.reservationType === nextReservation.reservationType &&
+        previousReservation.reservationStatus === nextReservation.reservationStatus &&
         previousReservation.ticketType === nextReservation.ticketType &&
         previousReservation.startTime === nextReservation.startTime &&
         previousReservation.endTime === nextReservation.endTime &&
@@ -183,10 +185,8 @@ function areReservationCardsEqual(prev: Props, next: Props) {
 
 function ReservationDateBadge({
     date,
-    isReservedUpcoming,
 }: {
     date: Date;
-    isReservedUpcoming: boolean;
 }) {
     return (
         <View

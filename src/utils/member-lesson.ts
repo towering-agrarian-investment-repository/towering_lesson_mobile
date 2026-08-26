@@ -1,4 +1,3 @@
-import type { MemberGroupSummaryResponse } from "@/types/member-group";
 import type {
     MemberHomeworkDetailResponse,
     MemberHomeworkSummaryResponse,

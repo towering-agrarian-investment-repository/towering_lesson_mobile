@@ -21,6 +21,7 @@ export type BookingConfirmationSuccessResponse = {
 
 type BookingConfirmationRouter = {
     dismissAll: () => void;
+    push: (...args: any[]) => void;
     replace: (...args: any[]) => void;
 };
 

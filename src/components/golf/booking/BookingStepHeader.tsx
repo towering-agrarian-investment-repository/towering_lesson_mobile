@@ -1,4 +1,5 @@
-import { AppText, Card, MotionView } from "@/design-system";
+import { AppText, useThemeColors } from "@/design-system";
+import { CalendarDays, Clock3, MapPin, Ticket, ChevronRight } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
@@ -7,6 +8,7 @@ type BookingStepHeaderProps = {
     totalSteps: number;
     title?: string;
     context: string;
+    selectionTrail?: string[];
 };
 
 export function BookingStepHeader({
@@ -14,16 +16,20 @@ export function BookingStepHeader({
     totalSteps,
     title,
     context,
+    selectionTrail,
 }: BookingStepHeaderProps) {
     const { t } = useTranslation();
+    const colors = useThemeColors();
+    const trail = selectionTrail?.filter(Boolean) ?? [context];
+    const activeTrailIndex = Math.min(step, trail.length - 1);
+    const stepIcons = [Ticket, CalendarDays, Clock3, MapPin];
 
     return (
-        <MotionView delayMs={40}>
-            <Card className="gap-2.5 rounded-3xl px-4 py-4">
-                <View className="flex-row items-center justify-between gap-3">
+        <View>
+            <View className="flex-col gap-3">
                     <AppText
                         variant="eyebrow"
-                        className="flex-1 text-primary"
+                        className="text-primary"
                     >
                         {t("booking.stepProgress", {
                             step,
@@ -31,19 +37,54 @@ export function BookingStepHeader({
                         })}
                     </AppText>
 
-                    <View className="max-w-[58%] rounded-full bg-primary/10 px-3 py-1">
-                        <AppText
-                            variant="caption"
-                            className="font-semibold text-primary"
-                            numberOfLines={1}
-                        >
-                            {context}
-                        </AppText>
-                    </View>
-                </View>
+                    <View className="flex-row flex-wrap items-center gap-x-1 gap-y-1">
+                        {trail.map((label, index) => (
+                            <View key={label} className="flex-row items-center gap-1">
+                                {(() => {
+                                    const StepIcon = stepIcons[index] ?? Ticket;
+                                    const isActive = index === activeTrailIndex;
 
-                {title ? <AppText variant="h3">{title}</AppText> : null}
-            </Card>
-        </MotionView>
+                                    return (
+                                        <StepIcon
+                                            size={13}
+                                            color={
+                                                isActive
+                                                    ? colors.primary
+                                                    : index < activeTrailIndex
+                                                        ? colors.foreground
+                                                        : colors.mutedForeground
+                                            }
+                                            strokeWidth={2.2}
+                                        />
+                                    );
+                                })()}
+                                <AppText
+                                    variant="caption"
+                                    className={
+                                        index === activeTrailIndex
+                                            ? "font-bold text-primary"
+                                            : index < activeTrailIndex
+                                                ? "font-semibold text-foreground/80"
+                                                : "text-muted-foreground"
+                                    }
+                                >
+                                    {label}
+                                </AppText>
+
+                                {index < trail.length - 1 ? (
+                                    <ChevronRight
+                                        size={13}
+                                        color={colors.mutedForeground}
+                                        strokeWidth={2}
+                                    />
+                                ) : null}
+                            </View>
+                        ))}
+                    </View>
+
+            </View>
+
+            {title ? <AppText variant="h3">{title}</AppText> : null}
+        </View>
     );
 }

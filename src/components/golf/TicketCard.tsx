@@ -17,6 +17,7 @@ type Props = {
     item: TicketListItemResponse;
     disabled?: boolean;
     onPress?: (item: TicketListItemResponse) => void;
+    fullWidth?: boolean;
 };
 
 function formatTicketDate(date?: string | null) {
@@ -49,7 +50,7 @@ function getUsageNote(
     return t("tickets.flexibleUsage");
 }
 
-function TicketCard({ item, disabled = false, onPress }: Props) {
+function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Props) {
     const { t } = useTranslation();
     const colors = useThemeColors();
     const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
@@ -79,13 +80,16 @@ function TicketCard({ item, disabled = false, onPress }: Props) {
         >
             <View
                 className={cn(
-                    "w-[220px] min-h-[114px] flex-col gap-4 rounded-xl border p-5",
+                    cn(
+                        "min-h-[148px] flex-col gap-3 rounded-xl border p-5",
+                        fullWidth ? "w-full" : "w-[220px]",
+                    ),
                     !isInactive && ticketTone.borderClassName,
                     !isInactive && ticketTone.surfaceClassName,
                     isInactive && "border-border bg-muted",
                 )}
             >
-                <View className="flex-1 flex-col gap-3">
+                <View className="flex-col gap-3">
                     <View className="flex-row items-center justify-between gap-3">
                         <Text
                             variant="badge"
@@ -115,18 +119,32 @@ function TicketCard({ item, disabled = false, onPress }: Props) {
                         {item.name}
                     </Text>
 
-                    <Text variant="count" className="text-lg font-extrabold text-foreground">
+                    <Text
+                        variant="count"
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        className="text-lg font-extrabold text-foreground"
+                    >
                         {formatTicketDate(item.startDate)} ~ {formatTicketDate(item.endDate)}
                     </Text>
                 </View>
 
-                <View className="flex-row items-center justify-between gap-3">
-                    <Text variant="caption" className="text-foreground">
+                <View className="flex-row items-center justify-between gap-2">
+                    <Text
+                        variant="caption"
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        className="min-w-0 flex-1 text-foreground"
+                    >
                         {usageNote}
                     </Text>
 
                     {!item.isUnlimited && item.onlyOnePerDay ? (
-                        <Text variant="caption" className="text-foreground">
+                        <Text
+                            variant="caption"
+                            numberOfLines={1}
+                            className="shrink-0 text-foreground"
+                        >
                             {t("tickets.useOncePerDay")}
                         </Text>
                     ) : null}

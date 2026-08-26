@@ -1,9 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getLocales } from "expo-localization";
-import i18n from "i18next";
+import { createInstance } from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "./resources/en";
+import ja from "./resources/ja";
+import km from "./resources/km";
 import ko from "./resources/ko";
+import zh from "./resources/zh";
 
 const resources = {
     en: {
@@ -12,9 +15,19 @@ const resources = {
     ko: {
         translation: ko,
     },
+    ja: {
+        translation: ja,
+    },
+    zh: {
+        translation: zh,
+    },
+    km: {
+        translation: km,
+    },
 } as const;
 
 const LANGUAGE_STORAGE_KEY = "app-language";
+const i18n = createInstance();
 
 export type AppLanguage = keyof typeof resources;
 
@@ -30,6 +43,18 @@ function resolveLanguage(languageCode?: string | null): AppLanguage {
         return "ko";
     }
 
+    if (normalizedLanguageCode === "ja") {
+        return "ja";
+    }
+
+    if (normalizedLanguageCode === "zh") {
+        return "zh";
+    }
+
+    if (normalizedLanguageCode === "km") {
+        return "km";
+    }
+
     return "en";
 }
 
@@ -39,7 +64,7 @@ if (!i18n.isInitialized) {
         resources,
         lng: detectLanguage(),
         fallbackLng: "en",
-        supportedLngs: ["en", "ko"],
+        supportedLngs: ["en", "ko", "ja", "zh", "km"],
         interpolation: {
             escapeValue: false,
         },

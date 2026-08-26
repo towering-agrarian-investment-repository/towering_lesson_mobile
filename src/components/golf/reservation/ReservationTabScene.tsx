@@ -9,7 +9,6 @@ import {
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberReservationDetailQueryOptions,
-    getMemberReservationsQueryOptions,
     useMemberReservations,
 } from "@/lib/hook/useReservation";
 import type { MemberReservationType } from "@/service/reservation.service";
@@ -19,7 +18,7 @@ import type {
 } from "@/types/member-reservation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
@@ -35,7 +34,8 @@ type ReservationItem =
     | MemberReservationResponse
     | MemberReservationSummaryResponse;
 
-const reservationKeyExtractor = (item: ReservationItem) => String(item.id);
+const reservationKeyExtractor = (item: ReservationItem) =>
+    `${item.reservationType}:${item.id}`;
 
 type ReservationTabSceneProps = {
     type: MemberReservationType;
@@ -59,15 +59,20 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
         isFetchingNextPage,
     } = useMemberReservations(type);
 
-    const reservations = data?.items ?? [];
+    const reservations = useMemo(() => {
+        const seenKeys = new Set<string>();
 
-    useEffect(() => {
-        void Promise.all(
-            RESERVATION_TABS.filter((tab) => tab !== type).map((tab) =>
-                queryClient.prefetchInfiniteQuery(getMemberReservationsQueryOptions(tab)),
-            ),
-        );
-    }, [queryClient, type]);
+        return (data?.items ?? []).filter((reservation) => {
+            const key = reservationKeyExtractor(reservation);
+
+            if (seenKeys.has(key)) {
+                return false;
+            }
+
+            seenKeys.add(key);
+            return true;
+        });
+    }, [data?.items]);
 
     const handleReservationPress = useCallback(
         (reservation: ReservationItem) => {

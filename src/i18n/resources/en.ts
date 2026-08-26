@@ -1,3 +1,7 @@
+export type TranslationResource<T> = {
+    [K in keyof T]: T[K] extends object ? TranslationResource<T[K]> : string;
+};
+
 const en = {
     appUpdate: {
         updateRequired: "Update required",
@@ -67,8 +71,14 @@ const en = {
         languageDescription: "Choose the language used throughout the app.",
         english: "English",
         korean: "Korean",
+        japanese: "Japanese",
+        chinese: "Chinese",
+        khmer: "Khmer",
         useEnglishLanguage: "Use English throughout the app",
         useKoreanLanguage: "Use Korean throughout the app",
+        useJapaneseLanguage: "Use Japanese throughout the app",
+        useChineseLanguage: "Use Chinese throughout the app",
+        useKhmerLanguage: "Use Khmer throughout the app",
         signOutError: "Could not sign out. Please try again.",
         logOutTitle: "Log Out",
         logOutMessage: "Are you sure you want to log out of this account?",
@@ -350,6 +360,13 @@ const en = {
     },
     tickets: {
         sectionTitle: "My Tickets",
+        viewAll: "View all",
+        showTabAccessibility: "Show {{label}} tickets",
+        filters: {
+            all: "All",
+            bay: "Bay",
+            lesson: "Lesson",
+        },
         loadError: "Couldn't load tickets",
         empty: "No tickets",
         unlimitedUsage: "Unlimited Usage",
@@ -367,6 +384,12 @@ const en = {
         joinProgramMessage: "Join a program to see lesson content",
     },
     booking: {
+        steps: {
+            ticket: "Ticket",
+            selectDate: "Select date",
+            selectTime: "Select time",
+            selectBay: "Select bay",
+        },
         stepProgress: "Step {{step}} of {{total}}",
         chooseDate: "Choose a date",
         ticketSelectAvailableDay: "{{ticketType}} ticket - Select an available day to continue.",

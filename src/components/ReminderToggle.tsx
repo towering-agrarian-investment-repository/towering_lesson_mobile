@@ -45,15 +45,30 @@ export default function ReminderToggle() {
     };
 
     useEffect(() => {
-        void syncPermissionState();
+        let mounted = true;
+
+        const refreshPermissionState = () => {
+            void getPermissionState().then((permissionState) => {
+                if (!mounted) {
+                    return;
+                }
+
+                setEnabled(permissionState.granted);
+                setCanAskAgain(permissionState.canAskAgain);
+                setIsLoading(false);
+            });
+        };
+
+        refreshPermissionState();
 
         const subscription = AppState.addEventListener("change", (nextState) => {
             if (nextState === "active") {
-                void syncPermissionState();
+                refreshPermissionState();
             }
         });
 
         return () => {
+            mounted = false;
             subscription.remove();
         };
     }, []);

@@ -1,29 +1,28 @@
 import {
-    RESERVATION_TABS,
-    ReservationTabScene,
-} from "@/components/golf/reservation/ReservationTabScene";
+    TICKET_TABS,
+    TicketTabScene,
+} from "@/components/golf/TicketTabScene";
 import { AppText, cn, getPressedScaleStyle, Screen } from "@/design-system";
-import { MemberReservationType } from "@/service/reservation.service";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { TabView } from "react-native-tab-view";
-import { useTranslation } from "react-i18next";
 
-export default function ReservationScreen() {
+export default function TicketsScreen() {
     const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const routes = useMemo(
-        () => RESERVATION_TABS.map((key) => ({
-            key,
-            title: t(`reservations.tabs.${key}`),
-        })),
+        () =>
+            TICKET_TABS.map((key) => ({
+                key,
+                title: t(`tickets.filters.${key}`),
+            })),
         [t],
     );
+
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
-            <ReservationTabScene
-                type={route.key as MemberReservationType}
-            />
+            <TicketTabScene type={route.key as (typeof TICKET_TABS)[number]} />
         ),
         [],
     );
@@ -36,25 +35,26 @@ export default function ReservationScreen() {
         >
             <View className="rounded-2xl bg-surface p-1">
                 <View className="flex-row gap-1">
-                    {RESERVATION_TABS.map((tab) => {
-                                const tabIndex = RESERVATION_TABS.indexOf(tab);
-                                const isActive = tabIndex === activeIndex;
+                    {TICKET_TABS.map((tab) => {
+                        const tabIndex = TICKET_TABS.indexOf(tab);
+                        const isActive = tabIndex === activeIndex;
 
                         return (
                             <Pressable
                                 key={tab}
                                 accessibilityRole="button"
-                                accessibilityLabel={t("reservations.showTabAccessibility", {
-                                    label: t(`reservations.tabs.${tab}`),
-                                })}
+                                accessibilityLabel={t(
+                                    "tickets.showTabAccessibility",
+                                    { label: t(`tickets.filters.${tab}`) },
+                                )}
                                 accessibilityState={{ selected: isActive }}
                                 className={cn(
                                     "min-h-11 flex-1 items-center justify-center rounded-2xl px-1",
-                                    isActive
-                                        ? "bg-card"
-                                        : "bg-transparent",
+                                    isActive ? "bg-card" : "bg-transparent",
                                 )}
-                                style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
+                                style={({ pressed }) =>
+                                    getPressedScaleStyle(pressed, false, 0.992)
+                                }
                                 onPress={() => {
                                     if (!isActive) {
                                         setActiveIndex(tabIndex);
@@ -64,16 +64,19 @@ export default function ReservationScreen() {
                                 <AppText
                                     className={cn(
                                         "text-xs font-semibold",
-                                        isActive ? "text-primary" : "text-foreground/75",
+                                        isActive
+                                            ? "text-primary"
+                                            : "text-foreground/75",
                                     )}
                                 >
-                                    {t(`reservations.tabs.${tab}`)}
+                                    {t(`tickets.filters.${tab}`)}
                                 </AppText>
                             </Pressable>
                         );
                     })}
                 </View>
             </View>
+
             <TabView
                 navigationState={{ index: activeIndex, routes }}
                 onIndexChange={setActiveIndex}

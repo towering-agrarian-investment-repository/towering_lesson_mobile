@@ -53,10 +53,6 @@ export default function LoginScreen() {
                 password: values.password,
             });
 
-            // await authClient.getSession();
-
-            // router.replace("/(app)/(tabs)" as Href);
-
         } catch (error) {
             form.setError("password", {
                 type: "server",
@@ -74,7 +70,6 @@ export default function LoginScreen() {
         <Screen
             headerShown={false}
             keyboardAware
-            scroll={false}
             horizontalPadding={false}
             contentClassName="justify-start"
         >

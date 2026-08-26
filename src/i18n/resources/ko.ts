@@ -41,9 +41,15 @@ const ko = {
         "viewMyReservations": "\ub0b4 \uc608\uc57d \ubcf4\uae30"
     },
     "notice": {
+        "notificationsCount_other": "알림 {{count}}개",
         "markAllAsRead": "\ubaa8\ub4e0 \uc54c\ub9bc \uc77d\uc74c \ucc98\ub9ac",
         "marking": "\ucc98\ub9ac \uc911...",
         "markAllRead": "\ubaa8\ub450 \uc77d\uc74c",
+        "delete": "\uc0ad\uc81c",
+        "deleteAll": "\ubaa8\ub450 \uc0ad\uc81c",
+        "deleteAllTitle": "\ubaa8\ub4e0 \uc54c\ub9bc\uc744 \uc0ad\uc81c\ud560\uae4c\uc694?",
+        "deleteAllMessage": "\uc0ad\uc81c\ud55c \uc54c\ub9bc\uc740 \ubcf5\uad6c\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
+        "deleting": "\uc0ad\uc81c \uc911...",
         "loadingNotifications": "\uc54c\ub9bc\uc744 \ubd88\ub7ec\uc624\ub294 \uc911...",
         "failedNotificationsTitle": "\uc54c\ub9bc\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "noNotificationsTitle": "\uc544\uc9c1 \uc54c\ub9bc\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
@@ -53,6 +59,9 @@ const ko = {
         "unread": "\uc548 \uc77d\uc74c"
     },
     "profile": {
+        "childCount_other": "자녀 {{count}}명",
+        "nickname": "별명",
+        "nicknamePlaceholder": "별명을 입력하세요",
         "system": "\uc2dc\uc2a4\ud15c",
         "light": "\ub77c\uc774\ud2b8",
         "dark": "\ub2e4\ud06c",
@@ -61,8 +70,14 @@ const ko = {
         "languageDescription": "\uc571 \uc804\uccb4\uc5d0\uc11c \uc0ac\uc6a9\ud560 \uc5b8\uc5b4\ub97c \uc120\ud0dd\ud558\uc138\uc694.",
         "english": "\uc601\uc5b4",
         "korean": "\ud55c\uad6d\uc5b4",
+        "japanese": "\uc77c\ubcf8\uc5b4",
+        "chinese": "\uc911\uad6d\uc5b4",
+        "khmer": "\ud06c\uba54\ub974\uc5b4",
         "useEnglishLanguage": "\uc571 \uc804\uccb4\ub97c \uc601\uc5b4\ub85c \uc0ac\uc6a9\ud569\ub2c8\ub2e4",
         "useKoreanLanguage": "\uc571 \uc804\uccb4\ub97c \ud55c\uad6d\uc5b4\ub85c \uc0ac\uc6a9\ud569\ub2c8\ub2e4",
+        "useJapaneseLanguage": "\uc571 \uc804\uccb4\ub97c \uc77c\ubcf8\uc5b4\ub85c \uc0ac\uc6a9\ud569\ub2c8\ub2e4",
+        "useChineseLanguage": "\uc571 \uc804\uccb4\ub97c \uc911\uad6d\uc5b4\ub85c \uc0ac\uc6a9\ud569\ub2c8\ub2e4",
+        "useKhmerLanguage": "\uc571 \uc804\uccb4\ub97c \ud06c\uba54\ub974\uc5b4\ub85c \uc0ac\uc6a9\ud569\ub2c8\ub2e4",
         "signOutError": "\ub85c\uadf8\uc544\uc6c3\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
         "logOutTitle": "\ub85c\uadf8\uc544\uc6c3",
         "logOutMessage": "\uc774 \uacc4\uc815\uc5d0\uc11c \ub85c\uadf8\uc544\uc6c3\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?",
@@ -202,6 +217,7 @@ const ko = {
         "submissionWithId": "\uc81c\ucd9c #{{id}}"
     },
     "lessonLog": {
+        "rateStarsAccessibility_other": "이 레슨에 {{count}}점 평점 주기",
         "failedPostsTitle": "\ub808\uc2a8 \ud3ec\uc2a4\ud2b8\ub97c \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "failedPostTitle": "\ub808\uc2a8 \ud3ec\uc2a4\ud2b8\ub97c \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "failedCommentFormTitle": "\ucf54\uba58\ud2b8 \uc791\uc131 \ud654\uba74\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
@@ -237,6 +253,7 @@ const ko = {
         "commentPlaceholder": "\ucf54\uba58\ud2b8\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694"
     },
     "reservations": {
+        "count_other": "예약 {{count}}건",
         "todayTitle": "\uc624\ub298\uc758 \uc608\uc57d",
         "loadError": "\uc608\uc57d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "empty": "\uc624\ub298 \uc608\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
@@ -292,6 +309,7 @@ const ko = {
         }
     },
     "common": {
+        "refresh": "새로고침",
         "cancel": "\ucde8\uc18c",
         "goBack": "\ub4a4\ub85c \uac00\uae30",
         "closeTitle": "{{title}} \ub2eb\uae30",
@@ -337,6 +355,14 @@ const ko = {
         "openImage": "\uc774\ubbf8\uc9c0 {{title}} \uc5f4\uae30"
     },
     "tickets": {
+        "viewAll": "모두 보기",
+        "showTabAccessibility": "{{label}} 이용권 보기",
+        "filters": {
+            "all": "전체",
+            "bay": "타석",
+            "lesson": "레슨"
+        },
+        "usage": "{{used}}/{{total}} 사용",
         "sectionTitle": "\ub0b4 \uc774\uc6a9\uad8c",
         "loadError": "\uc774\uc6a9\uad8c\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "empty": "\uc774\uc6a9\uad8c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
@@ -354,6 +380,16 @@ const ko = {
         "joinProgramMessage": "\ub808\uc2a8 \ucf58\ud150\uce20\ub97c \ubcf4\ub824\uba74 \ud504\ub85c\uadf8\ub7a8\uc5d0 \ucc38\uc5ec\ud574 \uc8fc\uc138\uc694"
     },
     "booking": {
+        "steps": {
+            "ticket": "이용권",
+            "selectDate": "날짜 선택",
+            "selectTime": "시간 선택",
+            "selectBay": "타석 선택"
+        },
+        "spotsLeft_other": "{{count}}자리 남음",
+        "startsInMinutes_other": "{{count}}분 후 시작",
+        "startsInHours_other": "{{count}}시간 후 시작",
+        "startsInDays_other": "{{count}}일 후 시작",
         "stepProgress": "{{total}}\ub2e8\uacc4 \uc911 {{step}}\ub2e8\uacc4",
         "chooseDate": "\ub0a0\uc9dc \uc120\ud0dd",
         "ticketSelectAvailableDay": "{{ticketType}} \uc774\uc6a9\uad8c - \uac00\ub2a5\ud55c \ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574 \uacc4\uc18d\ud558\uc138\uc694.",

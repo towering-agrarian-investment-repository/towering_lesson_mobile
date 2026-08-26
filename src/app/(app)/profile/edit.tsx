@@ -10,7 +10,6 @@ import {
 import { showAppToast } from "@/lib/toast/toast";
 import { type UploadFormFile } from "@/service/user";
 import {
-    getFileExtension,
     getProfileImageMimeType,
     isAllowedExtension,
     isAllowedMimeType,
@@ -43,7 +42,8 @@ export default function EditProfileScreen() {
         data: memberResponse,
         isLoading,
         isError,
-        error,
+        refetch,
+        isRefetching,
     } = useGetMemberProfile();
     const {
         mutate: updateProfile,
@@ -218,6 +218,14 @@ export default function EditProfileScreen() {
             <ErrorState
                 title={t("home.couldNotLoadProfile")}
                 message={t("home.checkConnection")}
+                actionLabel={
+                    isRefetching
+                        ? t("common.refreshing")
+                        : t("common.refreshTryAgain")
+                }
+                onAction={() => {
+                    void refetch();
+                }}
             />
         );
     }
@@ -232,6 +240,7 @@ export default function EditProfileScreen() {
                         loading={isSubmitting}
                         disabled={
                             isSubmitting
+                            || isUploadingImage
                             || !form.formState.isDirty
                             || !form.formState.isValid
                         }
@@ -282,7 +291,7 @@ export default function EditProfileScreen() {
                         title={isUploadingImage ? t("profile.uploading") : t("profile.changePhoto")}
                         variant="secondary"
                         loading={isUploadingImage}
-                        disabled={isUploadingImage}
+                        disabled={isUploadingImage || isSubmitting}
                         onPress={() => {
                             handleChangeProfileImage();
                         }}
@@ -308,108 +317,7 @@ export default function EditProfileScreen() {
                         placeholder={t("profile.nicknamePlaceholder", { defaultValue: "Enter a nickname" })}
                     />
 
-                    {/* <FormTextInput
-                        control={form.control}
-                        name="username"
-                        label="Username"
-                        placeholder="jane.member"
-                        autoCapitalize="none"
-                    />
-
-                    <FormNumberInput
-                        control={form.control}
-                        name="phoneNumber"
-                        label="Phone Number"
-                        placeholder="+66812345678"
-                        numericMode="phone-pad"
-                    /> */}
                 </View>
-
-                {/* <View className="gap-6">
-                    <Text className="text-lg font-semibold text-foreground">
-                        Personal Details
-                    </Text>
-
-                    <Controller
-                        control={form.control}
-                        name="gender"
-                        render={({ field: { onChange, value }, fieldState }) => {
-                            const selectedValue =
-                                typeof value === "string" && value.length > 0 ? value : "";
-                            const selectedLabel =
-                                GENDER_OPTIONS.find((option) => option.value === selectedValue)
-                                    ?.label ?? "Select an option";
-
-                            return (
-                                <>
-                                    <ActionSheet
-                                        visible={isGenderSheetVisible}
-                                        title="Gender"
-                                        description="Choose the gender value for this member profile."
-                                        onClose={() => {
-                                            setIsGenderSheetVisible(false);
-                                        }}
-                                        options={[
-                                            {
-                                                key: "clear",
-                                                title: "Clear selection",
-                                                selected: selectedValue === "",
-                                                onPress: () => {
-                                                    onChange("");
-                                                },
-                                            },
-                                            ...GENDER_OPTIONS.map((option) => ({
-                                                key: option.value,
-                                                title: option.label,
-                                                selected: option.value === selectedValue,
-                                                onPress: () => {
-                                                    onChange(option.value);
-                                                },
-                                            })),
-                                        ]}
-                                    />
-
-                                    <FormFieldShell
-                                        label="Gender"
-                                        errorMessage={fieldState.error?.message}
-                                    >
-                                        <View className="mt-2">
-                                            <Pressable
-                                                className={`flex-row items-center border-b px-0 pb-3 pt-2 ${
-                                                    fieldState.error
-                                                        ? "border-danger"
-                                                        : "border-border"
-                                                }`}
-                                                accessibilityRole="button"
-                                                accessibilityLabel="Select gender"
-                                                onPress={() => {
-                                                    setIsGenderSheetVisible(true);
-                                                }}
-                                            >
-                                                <Text
-                                                    className={`flex-1 text-base ${
-                                                        selectedValue
-                                                            ? "text-foreground"
-                                                            : "text-muted-foreground"
-                                                    }`}
-                                                >
-                                                    {selectedLabel}
-                                                </Text>
-
-                                                <ChevronRight
-                                                    size={20}
-                                                    color={colors.mutedForeground}
-                                                    strokeWidth={2.25}
-                                                />
-                                            </Pressable>
-                                        </View>
-                                    </FormFieldShell>
-                                </>
-                            );
-                        }}
-                    />
-
-                </View> */}
             </View>
         </Screen>
     );

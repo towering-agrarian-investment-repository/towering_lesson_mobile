@@ -10,8 +10,9 @@ import {
   Screen,
 } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,13 +23,14 @@ import {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const { isLocked, runWithNavigationLock } = useNavigationLock();
   const [refreshing, setRefreshing] = useState(false);
   const {
     data: memberResponse,
     isLoading,
     isError,
-    error,
     refetch,
     isRefetching,
   } = useGetMemberProfile();
@@ -74,21 +76,25 @@ export default function HomeScreen() {
       headerShown={false}
       contentClassName="flex-grow"
       footer={
-        <Link href="/reservation" push asChild>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("home.viewMyReservations")}
-            className="mx-6 rounded-xl bg-primary py-4"
-            style={({ pressed }) => getPressedScaleStyle(pressed, false)}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("home.viewMyReservations")}
+          disabled={isLocked}
+          className="mx-6 rounded-xl bg-primary py-4 disabled:opacity-60"
+          style={({ pressed }) => getPressedScaleStyle(pressed, isLocked)}
+          onPress={() => {
+            runWithNavigationLock(() => {
+              router.push("/reservation");
+            });
+          }}
+        >
+          <AppText
+            variant="label"
+            className="text-center text-base font-bold text-primary-foreground"
           >
-            <AppText
-              variant="label"
-              className="text-center text-base font-bold text-primary-foreground"
-            >
-              {t("home.viewMyReservations")}
-            </AppText>
-          </Pressable>
-        </Link>
+            {t("home.viewMyReservations")}
+          </AppText>
+        </Pressable>
       }
       refreshControl={
         <RefreshControl

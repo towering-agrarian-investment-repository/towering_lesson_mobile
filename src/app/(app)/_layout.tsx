@@ -152,6 +152,13 @@ export default function AppLayout() {
                     />
 
                     <Stack.Screen
+                        name="tickets"
+                        options={{
+                            title: t("tickets.sectionTitle"),
+                        }}
+                    />
+
+                    <Stack.Screen
                         name="select-date"
                         options={{
                             title: t("navigation.screens.selectDate"),

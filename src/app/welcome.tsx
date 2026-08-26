@@ -40,7 +40,6 @@ export default function WelcomeScreen() {
 
     return (
         <Screen
-            scroll={false}
             headerShown={false}
             horizontalPadding={false}
             contentClassName="px-6 pb-6 pt-8"

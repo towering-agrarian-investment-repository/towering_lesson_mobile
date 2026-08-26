@@ -265,7 +265,6 @@ function SessionRow({
     disabled: boolean;
     onPress: () => void;
 }) {
-    const { t } = useTranslation();
     const colors = useThemeColors();
     const isCompleted = session.status === "COMPLETED" || !!session.completedAt;
     const rowClassName = isCompleted

@@ -6,9 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Props = {}
-
-function TabLayout({ }: Props) {
+function TabLayout() {
     const colors = useThemeColors();
     const { resolvedScheme } = useTheme();
     const { t } = useTranslation();

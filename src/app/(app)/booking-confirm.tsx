@@ -21,7 +21,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
     RefreshControl,
-    View,
 } from "react-native";
 import { useState } from "react";
 

@@ -9,15 +9,16 @@ import {
 } from "./app-update";
 
 export function useAppUpdate() {
+    const skipUpdateCheck =
+        __DEV__ && process.env.EXPO_PUBLIC_SKIP_APP_UPDATE_CHECK === "true";
     const [state, setState] = useState<AppUpdateState | null>(null);
-    const [isChecking, setIsChecking] = useState(true);
+    const [isChecking, setIsChecking] = useState(!skipUpdateCheck);
     const [isOptionalUpdateDismissed, setIsOptionalUpdateDismissed] = useState(false);
 
     useEffect(() => {
         let mounted = true;
 
-        if (__DEV__ && process.env.EXPO_PUBLIC_SKIP_APP_UPDATE_CHECK === "true") {
-            setIsChecking(false);
+        if (skipUpdateCheck) {
             return;
         }
 
@@ -52,7 +53,7 @@ export function useAppUpdate() {
             mounted = false;
             unsubscribe();
         };
-    }, []);
+    }, [skipUpdateCheck]);
 
     return {
         state,

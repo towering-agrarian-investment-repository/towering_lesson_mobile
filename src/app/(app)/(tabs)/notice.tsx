@@ -2,6 +2,7 @@ import {
     AppText,
     CircleLoader,
     cn,
+    ConfirmSheet,
     EmptyState,
     ErrorState,
     getPressedScaleStyle,
@@ -49,11 +50,13 @@ function NoticeScreen() {
         hasNextPage,
         isFetchingNextPage,
     } = useGetNotifications();
-    const { mutateAsync: markAsRead, isPending: isMarkingAsRead } = useMarkAsRead();
+    const { mutateAsync: markAsRead } = useMarkAsRead();
     const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } = useMarkAllAsRead();
     const { mutate: deleteNotification, isPending: isDeletingNotification } = useDeleteNotification();
     const { mutate: deleteAllNotifications, isPending: isDeletingAllNotifications } = useDeleteAllNotifications();
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+    const [isDeleteAllConfirmationOpen, setIsDeleteAllConfirmationOpen] =
+        useState(false);
 
     const notifications = data?.items ?? [];
     const hasUnread = notifications.some((item) => !item.isRead);
@@ -111,7 +114,7 @@ function NoticeScreen() {
                                             className="rounded-lg px-3 py-2 active:bg-muted"
                                             onPress={() => {
                                                 setIsActionsMenuOpen(false);
-                                                deleteAllNotifications();
+                                                setIsDeleteAllConfirmationOpen(true);
                                             }}
                                         >
                                             <AppText variant="label" className="text-danger">
@@ -126,7 +129,7 @@ function NoticeScreen() {
                 </View>
             ),
         });
-    }, [deleteAllNotifications, hasUnread, isActionsMenuOpen, isDeletingAllNotifications, isMarkingAllAsRead, markAllAsRead, navigation, notifications.length, t]);
+    }, [colors.foreground, deleteAllNotifications, hasUnread, isActionsMenuOpen, isDeletingAllNotifications, isMarkingAllAsRead, markAllAsRead, navigation, notifications.length, t]);
 
     const navigateFromNotification = useCallback((
         referenceType: NotificationReferenceType | null,
@@ -181,7 +184,7 @@ function NoticeScreen() {
         return false;
     }, [queryClient, router]);
 
-    const handleNotificationPress = useCallback(async (item: NotificationResponse) => {
+    const handleNotificationPress = useCallback((item: NotificationResponse) => {
         const referenceId =
             item.referenceId != null ? String(item.referenceId) : null;
         const didLock = runWithNavigationLock(() => { });
@@ -190,13 +193,8 @@ function NoticeScreen() {
             return;
         }
 
-        try {
-            if (!item.isRead) {
-                await markAsRead(item.id);
-            }
-        } catch {
-            unlock();
-            return;
+        if (!item.isRead) {
+            void markAsRead(item.id).catch(() => { });
         }
 
         if (!referenceId) {
@@ -204,18 +202,13 @@ function NoticeScreen() {
             return;
         }
 
-        try {
-            const didNavigate = navigateFromNotification(
-                item.referenceType,
-                referenceId,
-            );
+        const didNavigate = navigateFromNotification(
+            item.referenceType,
+            referenceId,
+        );
 
-            if (!didNavigate) {
-                unlock();
-            }
-        } catch (error) {
+        if (!didNavigate) {
             unlock();
-            throw error;
         }
     }, [markAsRead, navigateFromNotification, runWithNavigationLock, unlock]);
 
@@ -233,7 +226,7 @@ function NoticeScreen() {
             <MemoNotificationRow
                 item={item}
                 isLast={index === notifications.length - 1}
-                disabled={isMarkingAsRead || isLocked || isDeletingNotification || isDeletingAllNotifications}
+                disabled={isLocked || isDeletingNotification || isDeletingAllNotifications}
                 isDeleting={isDeletingNotification}
                 onDelete={() => deleteNotification(item.id)}
                 onPress={() => {
@@ -241,11 +234,33 @@ function NoticeScreen() {
                 }}
             />
         ),
-        [deleteNotification, handleNotificationPress, isDeletingAllNotifications, isDeletingNotification, isLocked, isMarkingAsRead, notifications.length],
+        [deleteNotification, handleNotificationPress, isDeletingAllNotifications, isDeletingNotification, isLocked, notifications.length],
     );
 
     return (
-        <Screen scroll={false}>
+        <>
+            <ConfirmSheet
+                visible={isDeleteAllConfirmationOpen}
+                title={t("notice.deleteAllTitle")}
+                message={t("notice.deleteAllMessage")}
+                confirmLabel={t("notice.deleteAll")}
+                variant="danger"
+                loading={isDeletingAllNotifications}
+                onClose={() => {
+                    if (!isDeletingAllNotifications) {
+                        setIsDeleteAllConfirmationOpen(false);
+                    }
+                }}
+                onConfirm={() => {
+                    deleteAllNotifications(undefined, {
+                        onSuccess: () => {
+                            setIsDeleteAllConfirmationOpen(false);
+                        },
+                    });
+                }}
+            />
+
+            <Screen scroll={false}>
             {isLoading ? (
                 <CircleLoader fullScreen label={t("notice.loadingNotifications")} />
             ) : isError ? (
@@ -298,7 +313,8 @@ function NoticeScreen() {
                     }
                 />
             )}
-        </Screen>
+            </Screen>
+        </>
     );
 }
 

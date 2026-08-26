@@ -1,8 +1,7 @@
 import { InlineState, Skeleton } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
-import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 import TodayReservationCard from "./TodayReservationCard";
 
@@ -10,25 +9,16 @@ function TodayReservation() {
     const { t } = useTranslation();
 
     const { data: todayReservations = [], isLoading: todayReservationsLoading, isError: todayReservationError } = useTodayMemberReservations();
-    const renderReservationItem = useCallback(
-        ({ item }: { item: (typeof todayReservations)[number] }) => (
-            <TodayReservationCard reservation={item} />
-        ),
-        [],
-    );
 
     return (
-        <View className="flex-1 gap-4">
+        <View className="gap-4">
             <TitleSectionWithBadge
                 label={t("reservations.todayTitle")}
                 length={todayReservations.length}
             />
 
             {todayReservationsLoading ? (
-                <View
-                    className="flex-1 flex-row items-start justify-start"
-                    style={style.listContent}
-                >
+                <View className="flex-row flex-wrap items-start gap-3 py-3">
                     {["w-48", "w-56", "w-44"].map((widthClassName, index) => (
                         <Skeleton
                             key={index}
@@ -37,43 +27,30 @@ function TodayReservation() {
                     ))}
                 </View>
             ) : todayReservationError ? (
-                <View className="flex-1 justify-center">
+                <View className="justify-center">
                     <InlineState
                         title={t("reservations.loadError")}
                         tone="danger"
                     />
                 </View>
             ) : todayReservations.length === 0 ? (
-                <View className="flex-1 justify-center">
+                <View className="justify-center">
                     <InlineState
                         title={t("reservations.empty")}
                     />
                 </View>
             ) : (
-                <FlatList
-                    data={todayReservations}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentInsetAdjustmentBehavior="automatic"
-                    snapToInterval={232}
-                    decelerationRate="fast"
-                    snapToAlignment="start"
-                    keyExtractor={(item) => String(item.id)}
-                    contentContainerStyle={style.listContent}
-                    renderItem={renderReservationItem}
-                />
+                <View className="flex-row flex-wrap items-start gap-3 py-3">
+                    {todayReservations.map((reservation) => (
+                        <TodayReservationCard
+                            key={`${reservation.reservationType}:${reservation.id}`}
+                            reservation={reservation}
+                        />
+                    ))}
+                </View>
             )}
         </View>
     );
 }
-
-const style = StyleSheet.create({
-    listContent: {
-        gap: 12,
-        paddingVertical: 12,
-        alignItems: "flex-start",
-        paddingRight: 24,
-    },
-});
 
 export default TodayReservation;

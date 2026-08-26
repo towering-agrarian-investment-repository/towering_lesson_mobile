@@ -39,43 +39,21 @@ export function LessonSessionsView({
     const [containerWidth, setContainerWidth] = useState(0);
     const [contentWidth, setContentWidth] = useState(0);
     const [scrollX, setScrollX] = useState(0);
-    const lastAppliedInitialSessionId = useRef<number | null>(initialSessionId ?? null);
     const scrollViewRef = useRef<FlatList<SessionInstanceResponse>>(null);
     const itemLayouts = useRef<Record<number, { width: number; x: number }>>({});
+    const selectedSession =
+        sessions.find((session) => session.id === selectedSessionId) ??
+        sessions.find((session) => session.id === initialSessionId) ??
+        sessions[0] ??
+        null;
+    const activeSessionId = selectedSession?.id ?? null;
 
     useLayoutEffect(() => {
-        if (sessions.length === 0) {
-            setSelectedSessionId(null);
+        if (activeSessionId == null || containerWidth === 0) {
             return;
         }
 
-        if (initialSessionId !== lastAppliedInitialSessionId.current) {
-            lastAppliedInitialSessionId.current = initialSessionId ?? null;
-
-            const requestedSession = initialSessionId != null
-                ? sessions.find((session) => session.id === initialSessionId)
-                : null;
-
-            if (requestedSession) {
-                setSelectedSessionId(requestedSession.id);
-                return;
-            }
-        }
-
-        const hasSelectedSession = selectedSessionId != null
-            && sessions.some((session) => session.id === selectedSessionId);
-
-        if (!hasSelectedSession) {
-            setSelectedSessionId(sessions[0].id);
-        }
-    }, [initialSessionId, selectedSessionId, sessions]);
-
-    useLayoutEffect(() => {
-        if (selectedSessionId == null || containerWidth === 0) {
-            return;
-        }
-
-        const layout = itemLayouts.current[selectedSessionId];
+        const layout = itemLayouts.current[activeSessionId];
 
         if (!layout) {
             return;
@@ -93,7 +71,7 @@ export function LessonSessionsView({
             animated: true,
             offset: targetX,
         });
-    }, [containerWidth, contentWidth, selectedSessionId]);
+    }, [activeSessionId, containerWidth, contentWidth]);
 
     if (sessions.length === 0) {
         return (
@@ -103,10 +81,6 @@ export function LessonSessionsView({
             />
         );
     }
-
-    const selectedSession = sessions.find(
-        (session) => session.id === selectedSessionId,
-    );
 
     if (!selectedSession) {
         return null;
@@ -301,7 +275,7 @@ function SessionDetailCard({
         session.completedAt
             ? { label: t("lessonSessions.completed"), value: fmtDateTime(session.completedAt) }
             : null,
-    ].filter(Boolean) as Array<{ label: string; value: string }>;
+    ].filter(Boolean) as { label: string; value: string }[];
 
     return (
         <View className="overflow-hidden rounded-xl bg-card">

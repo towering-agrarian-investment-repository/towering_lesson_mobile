@@ -2,7 +2,6 @@ import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     ErrorState,
     AppText,
-    MotionView,
     Screen,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
@@ -10,8 +9,6 @@ import {
 } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
-    getMemberBaySlotGroupsQueryOptions,
-    getMemberTicketLessonSlotsQueryOptions,
     useMemberBaySlotGroups,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
@@ -19,7 +16,6 @@ import { showAppToast } from "@/lib/toast/toast";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -130,7 +126,6 @@ export default function DateScreen() {
         }>();
 
     const router = useRouter();
-    const queryClient = useQueryClient();
     const { runWithNavigationLock } = useNavigationLock();
 
     const [visibleMonth, setVisibleMonth] = useState(() => {
@@ -146,13 +141,7 @@ export default function DateScreen() {
     );
 
     const { startDate, endDate } = useMemo(() => {
-        const prevMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
-        const nextMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
-
-        return {
-            startDate: getMonthRange(prevMonth).startDate,
-            endDate: getMonthRange(nextMonth).endDate,
-        };
+        return getMonthRange(visibleMonth);
     }, [visibleMonth]);
 
 
@@ -177,29 +166,6 @@ export default function DateScreen() {
         isLessonTicket,
     );
 
-    const previousVisibleMonth = useMemo(
-        () => new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1),
-        [visibleMonth],
-    );
-    const nextVisibleMonth = useMemo(
-        () => new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1),
-        [visibleMonth],
-    );
-
-    const { data: previousLessonSlotData } = useMemberTicketLessonSlots(
-        ticketIdNumber,
-        previousVisibleMonth.getFullYear(),
-        previousVisibleMonth.getMonth() + 1,
-        isLessonTicket,
-    );
-
-    const { data: nextLessonSlotData } = useMemberTicketLessonSlots(
-        ticketIdNumber,
-        nextVisibleMonth.getFullYear(),
-        nextVisibleMonth.getMonth() + 1,
-        isLessonTicket,
-    );
-
     const today = formatDateForAPI(new Date());
     const currentMonthStart = useMemo(() => {
         const now = new Date();
@@ -215,16 +181,10 @@ export default function DateScreen() {
         const dates = new Set<string>();
 
         if (isLessonTicket) {
-            for (const response of [
-                previousLessonSlotData,
-                lessonSlotData,
-                nextLessonSlotData,
-            ]) {
-                for (const slot of response?.data ?? []) {
-                    const date = formatDateForAPI(slot.startTime);
-                    if (date) {
-                        dates.add(date);
-                    }
+            for (const slot of lessonSlotData?.data ?? []) {
+                const date = formatDateForAPI(slot.startTime);
+                if (date) {
+                    dates.add(date);
                 }
             }
         } else {
@@ -247,71 +207,6 @@ export default function DateScreen() {
         baySlotGroupData,
         isLessonTicket,
         lessonSlotData,
-        nextLessonSlotData,
-        previousLessonSlotData,
-    ]);
-
-    useEffect(() => {
-        if (isLessonTicket && (isPendingLessonSlots || !lessonSlotData)) {
-            return;
-        }
-
-        if (!isLessonTicket && (isPendingBaySlotGroups || !baySlotGroupData)) {
-            return;
-        }
-
-        const adjacentMonths = [-1, 1].map(
-            (offset) =>
-                new Date(
-                    visibleMonth.getFullYear(),
-                    visibleMonth.getMonth() + offset,
-                    1,
-                ),
-        );
-
-        for (const month of adjacentMonths) {
-            if (isLessonTicket && ticketIdNumber) {
-                void queryClient.prefetchQuery({
-                    ...getMemberTicketLessonSlotsQueryOptions(
-                        ticketIdNumber,
-                        month.getFullYear(),
-                        month.getMonth() + 1,
-                    ),
-                    staleTime: 30_000,
-                });
-                continue;
-            }
-
-            if (!isLessonTicket) {
-                const previousMonth = new Date(
-                    month.getFullYear(),
-                    month.getMonth() - 1,
-                    1,
-                );
-                const nextMonth = new Date(
-                    month.getFullYear(),
-                    month.getMonth() + 1,
-                    1,
-                );
-
-                void queryClient.prefetchQuery({
-                    ...getMemberBaySlotGroupsQueryOptions(
-                        getMonthRange(previousMonth).startDate,
-                        getMonthRange(nextMonth).endDate,
-                    ),
-                    staleTime: 30_000,
-                });
-            }
-        }
-    }, [
-        baySlotGroupData,
-        isLessonTicket,
-        isPendingBaySlotGroups,
-        isPendingLessonSlots,
-        lessonSlotData,
-        queryClient,
-        ticketIdNumber,
-        visibleMonth,
     ]);
 
     const handleDayPress = (day: DateData) => {
@@ -325,12 +220,6 @@ export default function DateScreen() {
 
         if (isAvailable) {
             triggerSelectionHaptic();
-
-            if (!isLessonTicket) {
-                void queryClient.prefetchQuery(
-                    getMemberBaySlotGroupsQueryOptions(day.dateString, day.dateString),
-                );
-            }
 
             runWithNavigationLock(() => {
                 router.push({
@@ -393,7 +282,9 @@ export default function DateScreen() {
         ? "ko"
         : "en";
 
-    LocaleConfig.defaultLocale = calendarLocale;
+    useEffect(() => {
+        LocaleConfig.defaultLocale = calendarLocale;
+    }, [calendarLocale]);
 
     return (
         <Screen
@@ -420,10 +311,11 @@ export default function DateScreen() {
                     step={1}
                     totalSteps={isLessonTicket ? 3 : 4}
                     context={bookingContext}
+                    selectionTrail={[bookingContext]}
                 />
             </View>
 
-            <MotionView delayMs={90}>
+            <View>
                 <View>
                     {isInitialLoading ? (
                         <CalendarLoadingSkeleton />
@@ -547,7 +439,7 @@ export default function DateScreen() {
                         />
                     )}
                 </View>
-            </MotionView>
+            </View>
         </Screen>
     );
 }

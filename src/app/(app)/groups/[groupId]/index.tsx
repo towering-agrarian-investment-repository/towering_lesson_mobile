@@ -6,6 +6,7 @@ import {
     ListRow,
     Screen,
     Skeleton,
+    useThemeColors,
 } from "@/design-system";
 import {
     getMemberHomeworkByIdQueryOptions,
@@ -20,7 +21,6 @@ import { BookOpen, Check, ClipboardCheck } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
-import { useThemeColors } from "@/design-system";
 import type { MemberHomeworkSummaryResponse } from "@/types/member-homework";
 import type { MemberLessonSummaryResponse } from "@/types/member-lesson";
 import { formatType } from "@/utils/format-enum";

@@ -1,22 +1,22 @@
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     AppText,
     EmptyState,
     ErrorState,
-    MotionView,
     Screen,
     Skeleton,
     triggerSelectionHaptic,
 } from "@/design-system";
-import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatType } from "@/utils/format-enum";
-import { formatTimeRange } from "@/utils/time-helper";
+import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
+    FlatList,
     Pressable,
     RefreshControl,
     View,
@@ -68,6 +68,8 @@ export default function TimeScreen() {
                     ticketName,
                     ticketType,
                     slotGroupId: String(group.id),
+                    startTime: group.startDateTime,
+                    endTime: group.endDateTime,
                     mode,
                     reservationId,
                     notes,
@@ -78,22 +80,15 @@ export default function TimeScreen() {
 
     return (
         <Screen
-            contentClassName="gap-6"
-            refreshControl={
-                <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
-                />
-            }
+            scroll={false}
+            contentClassName="min-h-0 gap-6"
         >
             <BookingStepHeader
                 step={2}
                 totalSteps={4}
                 context={bookingContext}
+                selectionTrail={[bookingContext, formatDateValue(date, "M.d")]}
             />
-
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
                     {Array.from({ length: 4 }, (_, index) => (
@@ -128,10 +123,12 @@ export default function TimeScreen() {
             ) : null}
 
             {!isLoading && !isError && slotGroups.length > 0 ? (
-                <MotionView className="gap-3" delayMs={70}>
-                    {slotGroups.map((group) => (
+                <FlatList
+                    className="min-h-0 flex-1"
+                    data={slotGroups}
+                    keyExtractor={(group) => String(group.id)}
+                    renderItem={({ item: group }) => (
                         <Pressable
-                            key={group.id}
                             accessibilityRole="button"
                             accessibilityLabel={formatTimeRange(
                                 group.startDateTime,
@@ -165,8 +162,22 @@ export default function TimeScreen() {
                                 </AppText>
                             </View>
                         </Pressable>
-                    ))}
-                </MotionView>
+                    )}
+                    ItemSeparatorComponent={() => <View className="h-3" />}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefetching}
+                            onRefresh={() => {
+                                void refetch();
+                            }}
+                        />
+                    }
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                    showsVerticalScrollIndicator={false}
+                    initialNumToRender={8}
+                    maxToRenderPerBatch={8}
+                    windowSize={7}
+                />
             ) : null}
         </Screen>
     );
