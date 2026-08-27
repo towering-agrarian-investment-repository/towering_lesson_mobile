@@ -21,12 +21,6 @@ const queryClient = new QueryClient({
         },
     },
 });
-const bookingFlowScreenOptions = {
-    animation: "default" as const,
-    fullScreenGestureEnabled: true,
-    gestureEnabled: true,
-};
-
 function getToastStyles(
     colors: ReturnType<typeof useThemeColors>,
     type: "success" | "error" | "warning" | "info",
@@ -70,9 +64,9 @@ export default function AppLayout() {
         <QueryClientProvider client={queryClient}>
             <ToastProvider>
                 <ToastBridge />
-                <Stack
+                    <Stack
                     screenOptions={({ navigation }) => ({
-                        animation: "default",
+                        animation: "none",
                         fullScreenGestureEnabled: true,
                         gestureEnabled: true,
                         headerBackButtonDisplayMode: "minimal",
@@ -117,6 +111,7 @@ export default function AppLayout() {
                         name="(tabs)"
                         options={{
                             headerShown: false,
+                            animation: "none",
                         }}
                     />
 
@@ -124,6 +119,8 @@ export default function AppLayout() {
                         name="reservation"
                         options={{
                             title: t("navigation.screens.myReservations"),
+                            animation: "fade",
+                            animationDuration: 150,
                             headerLeft: () => (
                                 <Pressable
                                     accessibilityRole="button"
@@ -155,6 +152,8 @@ export default function AppLayout() {
                         name="tickets"
                         options={{
                             title: t("tickets.sectionTitle"),
+                            animation: "fade",
+                            animationDuration: 150,
                         }}
                     />
 
@@ -162,7 +161,9 @@ export default function AppLayout() {
                         name="select-date"
                         options={{
                             title: t("navigation.screens.selectDate"),
-                            ...bookingFlowScreenOptions,
+                            animation: "none",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -170,7 +171,9 @@ export default function AppLayout() {
                         name="select-bay"
                         options={{
                             title: t("navigation.screens.selectBay"),
-                            ...bookingFlowScreenOptions,
+                            animation: "none",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -178,7 +181,9 @@ export default function AppLayout() {
                         name="select-time"
                         options={{
                             title: t("navigation.screens.selectTime"),
-                            ...bookingFlowScreenOptions,
+                            animation: "none",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -186,7 +191,9 @@ export default function AppLayout() {
                         name="select-lesson-slot"
                         options={{
                             title: t("navigation.screens.selectSlot"),
-                            ...bookingFlowScreenOptions,
+                            animation: "none",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -194,7 +201,9 @@ export default function AppLayout() {
                         name="booking-confirm"
                         options={{
                             title: t("navigation.screens.bookingConfirmation"),
-                            ...bookingFlowScreenOptions,
+                            animation: "none",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -202,7 +211,9 @@ export default function AppLayout() {
                         name="lesson-booking-confirm"
                         options={{
                             title: t("navigation.screens.bookingConfirmation"),
-                            ...bookingFlowScreenOptions,
+                            animation: "none",
+                            fullScreenGestureEnabled: true,
+                            gestureEnabled: true,
                         }}
                     />
 
@@ -210,7 +221,8 @@ export default function AppLayout() {
                         name="reservation/[id]"
                         options={{
                             title: t("reservations.reservationDetailTitle"),
-                            animation: "default",
+                            animation: "fade",
+                            animationDuration: 150,
                             animationTypeForReplace: "push",
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
@@ -221,6 +233,8 @@ export default function AppLayout() {
                         name="groups/[groupId]/index"
                         options={{
                             title: t("navigation.screens.groupDetail"),
+                            animation: "fade",
+                            animationDuration: 150,
                             headerLargeTitle: true,
                         }}
                     />
@@ -229,6 +243,8 @@ export default function AppLayout() {
                         name="groups/[groupId]/lessons/[lessonId]/index"
                         options={{
                             title: t("navigation.screens.groupLesson"),
+                            animation: "fade",
+                            animationDuration: 150,
                         }}
                     />
 
@@ -236,6 +252,8 @@ export default function AppLayout() {
                         name="groups/[groupId]/lessons/[lessonId]/sessions/index"
                         options={{
                             title: t("lessons.sessionsTitle"),
+                            animation: "fade",
+                            animationDuration: 150,
                         }}
                     />
 
@@ -243,6 +261,8 @@ export default function AppLayout() {
                         name="lessons/[lessonId]/index"
                         options={{
                             title: t("navigation.screens.lessonDetail"),
+                            animation: "fade",
+                            animationDuration: 150,
                             headerLargeTitle: true,
                         }}
                     />
@@ -251,6 +271,8 @@ export default function AppLayout() {
                         name="lessons/[lessonId]/sessions/index"
                         options={{
                             title: t("lessons.sessionsTitle"),
+                            animation: "fade",
+                            animationDuration: 150,
                         }}
                     />
 
@@ -258,6 +280,8 @@ export default function AppLayout() {
                         name="homework/[homeworkId]"
                         options={{
                             title: t("navigation.screens.homeworkDetail"),
+                            animation: "fade",
+                            animationDuration: 150,
                         }}
                     />
 
@@ -266,7 +290,8 @@ export default function AppLayout() {
                         options={{
                             title: t("navigation.screens.lessonPostList"),
                             headerLargeTitle: true,
-                            animation: "default",
+                            animation: "fade",
+                            animationDuration: 150,
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
                         }}
@@ -276,7 +301,8 @@ export default function AppLayout() {
                         name="lesson-log/[id]"
                         options={{
                             title: t("navigation.screens.lessonPost"),
-                            animation: "default",
+                            animation: "fade",
+                            animationDuration: 150,
                             animationTypeForReplace: "pop",
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
@@ -287,7 +313,8 @@ export default function AppLayout() {
                         name="lesson-log/[id]/comment"
                         options={{
                             title: t("navigation.screens.lessonPost"),
-                            animation: "default",
+                            animation: "fade",
+                            animationDuration: 150,
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
                         }}
@@ -297,6 +324,8 @@ export default function AppLayout() {
                         name="profile/change-password"
                         options={{
                             title: t("navigation.screens.resetPassword"),
+                            animation: "fade",
+                            animationDuration: 150,
                         }}
                     />
 
@@ -304,6 +333,8 @@ export default function AppLayout() {
                         name="profile/edit"
                         options={{
                             title: t("profile.editPersonalInformation"),
+                            animation: "fade",
+                            animationDuration: 150,
                             headerLargeTitle: true,
                         }}
                     />

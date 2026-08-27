@@ -1,7 +1,6 @@
 import {
     BookingConfirmationContent,
     BookingConfirmationFooter,
-    BookingConfirmationLoadingState,
     type BookingConfirmationSuccessResponse,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
@@ -192,7 +191,7 @@ export default function LessonBookingConfirmScreen() {
                 />
             }
             footer={
-                !isLoading && !isError && !isMissingRequiredData ? (
+                !isError && !isMissingRequiredData ? (
                     <BookingConfirmationFooter
                         title={
                             isGroupSelection
@@ -213,9 +212,7 @@ export default function LessonBookingConfirmScreen() {
                         : t("bookingConfirmation.bookingConfirmationTitle"),
                 }}
             />
-            {isLoading ? (
-                <BookingConfirmationLoadingState fieldCount={4} />
-            ) : isError ? (
+            {isError ? (
                 <ErrorState
                     title={t("bookingConfirmation.failedReservationDetailsTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
@@ -224,7 +221,7 @@ export default function LessonBookingConfirmScreen() {
                         void refetch();
                     }}
                 />
-            ) : isMissingRequiredData || !selectedSlot ? (
+            ) : isMissingRequiredData ? (
                 <EmptyState
                     title={
                         isGroupSelection

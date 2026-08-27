@@ -275,7 +275,7 @@ function NoticeScreen() {
 
             <Screen scroll={false}>
             {isLoading ? (
-                <CircleLoader fullScreen label={t("notice.loadingNotifications")} />
+                <CircleLoader fullScreen />
             ) : isError ? (
                 <ErrorState
                     title={t("notice.failedNotificationsTitle")}

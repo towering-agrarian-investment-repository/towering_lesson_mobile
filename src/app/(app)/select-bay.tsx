@@ -4,14 +4,13 @@ import {
     ErrorState,
     Screen,
     Skeleton,
-    triggerSelectionHaptic,
 } from "@/design-system";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
-import { formatType } from "@/utils/format-enum";
+import { formatTypeOrNull } from "@/utils/format-enum";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -75,9 +74,7 @@ export default function BayScreen() {
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
     );
-    const bookingContext = formatType(ticketType) !== "-"
-        ? formatType(ticketType)
-        : ticketName;
+    const bookingContext = formatTypeOrNull(ticketType) ?? ticketName;
 
     const loadingRows = chunkItems(
         Array.from({ length: 6 }, (_, index) => index),
@@ -89,7 +86,6 @@ export default function BayScreen() {
     const handleSelect = (baySlot: BaySlotScheduleResponse) => {
         if (!slotGroup) return;
 
-        triggerSelectionHaptic();
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/booking-confirm",
@@ -209,7 +205,10 @@ export default function BayScreen() {
                                             : t("booking.statusAvailable");
 
                                 return (
-                                    <View key={bay.id} className="flex-1">
+                                    <View
+                                        key={bay.id}
+                                        className="flex-1"
+                                    >
                                         <Pressable
                                             accessibilityRole="button"
                                             accessibilityLabel={`${bay.bayName}, ${statusLabel}`}

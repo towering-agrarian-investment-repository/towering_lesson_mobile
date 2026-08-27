@@ -121,19 +121,28 @@ function ThemedRoot({
             <Stack
                 screenOptions={{
                   headerShown: false,
-                  animation: "default",
+                  animation: "none",
                 }}
             >
                 <Stack.Protected guard={!hasCompletedWelcome}>
-                  <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="welcome"
+                    options={{ headerShown: false, animation: "none" }}
+                  />
                 </Stack.Protected>
 
                 <Stack.Protected guard={hasCompletedWelcome && !hasAuthorizedSession}>
-                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="login"
+                    options={{ headerShown: false, animation: "none" }}
+                  />
                 </Stack.Protected>
 
                 <Stack.Protected guard={hasCompletedWelcome && hasAuthorizedSession}>
-                  <Stack.Screen name="(app)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="(app)"
+                    options={{ headerShown: false, animation: "none" }}
+                  />
                 </Stack.Protected>
             </Stack>
           </View>

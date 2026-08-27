@@ -89,7 +89,7 @@ export default function ProfileScreen() {
     };
 
     if (isLoading) {
-        return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
+        return <CircleLoader fullScreen />;
     }
 
     if (isError) {

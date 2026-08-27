@@ -1,5 +1,10 @@
 export function formatType(value?: string | null) {
-    if (!value) return "-";
+    return formatTypeOrNull(value) ?? "-";
+}
+
+export function formatTypeOrNull(value?: string | null): string | null {
+    if (!value) return null;
+
     return String(value)
         .toLowerCase()
         .split("_")

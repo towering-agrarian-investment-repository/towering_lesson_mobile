@@ -5,16 +5,16 @@ import {
     ErrorState,
     Screen,
     Skeleton,
-    triggerSelectionHaptic,
 } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
-import { formatType } from "@/utils/format-enum";
+import { formatTypeOrNull } from "@/utils/format-enum";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useMemo } from "react";
 import {
     FlatList,
     Pressable,
@@ -50,15 +50,19 @@ export default function TimeScreen() {
             Boolean(date),
         );
 
-    const slotGroups = (data?.data ?? []).filter(
-        (group) => getAvailableBayCount(group) > 0,
+    const slotGroups = useMemo(
+        () =>
+            (data?.data ?? [])
+                .map((group) => ({
+                    group,
+                    availableBayCount: getAvailableBayCount(group),
+                }))
+                .filter((item) => item.availableBayCount > 0),
+        [data?.data],
     );
-    const bookingContext = formatType(ticketType) !== "-"
-        ? formatType(ticketType)
-        : ticketName;
+    const bookingContext = formatTypeOrNull(ticketType) ?? ticketName;
 
     const handleSelect = (group: BaySlotGroupScheduleResponse) => {
-        triggerSelectionHaptic();
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/select-bay",
@@ -126,40 +130,44 @@ export default function TimeScreen() {
                 <FlatList
                     className="min-h-0 flex-1"
                     data={slotGroups}
-                    keyExtractor={(group) => String(group.id)}
-                    renderItem={({ item: group }) => (
+                    keyExtractor={({ group }) => String(group.id)}
+                    renderItem={({ item }) => {
+                        const { group, availableBayCount } = item;
+
+                        return (
                         <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={formatTimeRange(
-                                group.startDateTime,
-                                group.endDateTime,
-                            )}
+                                accessibilityRole="button"
+                                accessibilityLabel={formatTimeRange(
+                                    group.startDateTime,
+                                    group.endDateTime,
+                                )}
                             className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
-                            onPress={() => handleSelect(group)}
-                            disabled={isLocked}
-                        >
-                            <View className="min-w-0 flex-1 gap-1">
-                                <AppText variant="h3" className="text-foreground">
-                                    {formatTimeRange(
-                                        group.startDateTime,
-                                        group.endDateTime,
-                                    )}
-                                </AppText>
+                                onPress={() => handleSelect(group)}
+                                disabled={isLocked}
+                            >
+                                <View className="min-w-0 flex-1 gap-1">
+                                    <AppText variant="h3" className="text-foreground">
+                                        {formatTimeRange(
+                                            group.startDateTime,
+                                            group.endDateTime,
+                                        )}
+                                    </AppText>
 
-                                <AppText variant="meta" className="text-foreground/75">
-                                    {t("booking.baysAvailable", {
-                                        count: getAvailableBayCount(group),
-                                    })}
-                                </AppText>
-                            </View>
+                                    <AppText variant="meta" className="text-foreground/75">
+                                        {t("booking.baysAvailable", {
+                                            count: availableBayCount,
+                                        })}
+                                    </AppText>
+                                </View>
 
-                            <View className="rounded-full bg-primary/10 px-3 py-1.5">
-                                <AppText variant="badge" className="text-primary">
-                                    {t("booking.select")}
-                                </AppText>
-                            </View>
+                                <View className="rounded-full bg-primary/10 px-3 py-1.5">
+                                    <AppText variant="badge" className="text-primary">
+                                        {t("booking.select")}
+                                    </AppText>
+                                </View>
                         </Pressable>
-                    )}
+                        );
+                    }}
                     ItemSeparatorComponent={() => <View className="h-3" />}
                     refreshControl={
                         <RefreshControl

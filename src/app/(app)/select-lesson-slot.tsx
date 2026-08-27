@@ -1,19 +1,17 @@
 import {
     AppText,
-    Card,
     cn,
     EmptyState,
     ErrorState,
     Screen,
     Skeleton,
-    triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
-import { formatType } from "@/utils/format-enum";
+import { formatTypeOrNull } from "@/utils/format-enum";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import {
     getLessonSlotDisplayName,
@@ -79,7 +77,6 @@ export default function SelectLessonSlotScreen() {
     );
 
     const handleSelect = (slot: MemberLessonSlotResponse) => {
-        triggerSelectionHaptic();
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/lesson-booking-confirm",
@@ -117,14 +114,10 @@ export default function SelectLessonSlotScreen() {
                     step={2}
                     totalSteps={3}
                     context={
-                        formatType(ticketType) !== "-"
-                            ? formatType(ticketType)
-                            : ticketName
+                        formatTypeOrNull(ticketType) ?? ticketName
                     }
                     selectionTrail={[
-                        formatType(ticketType) !== "-"
-                            ? formatType(ticketType)
-                            : ticketName,
+                        formatTypeOrNull(ticketType) ?? ticketName,
                         formatDateValue(date, "M.d"),
                     ]}
                 />
@@ -221,15 +214,13 @@ export default function SelectLessonSlotScreen() {
                                 key={slot.id}
                                 accessibilityRole="button"
                                 accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
-                                onPress={() => !disabled && handleSelect(slot)}
-                                disabled={disabled || isLocked}
-                            >
-                                <Card
-                                    className={`gap-2.5 rounded-2xl border p-3.5 ${disabled
+                                className={`gap-2.5 rounded-2xl border p-3.5 ${disabled
                                         ? "border-border bg-muted/70 opacity-70"
                                         : "border-border bg-card"
                                         }`}
-                                >
+                                onPress={() => !disabled && handleSelect(slot)}
+                                disabled={disabled || isLocked}
+                            >
                                     <View className="flex-row items-start justify-between gap-3">
                                         <View className="min-w-0 flex-1 gap-2">
                                             <AppText
@@ -321,8 +312,7 @@ export default function SelectLessonSlotScreen() {
                                         </AppText>
                                     ) : null}
 
-                                </Card>
-                            </Pressable>
+                                </Pressable>
                         ) : (
                             <Pressable
                                 key={slot.id}
@@ -393,7 +383,7 @@ export default function SelectLessonSlotScreen() {
                                         </AppText>
                                     </View>
                                 </View>
-                            </Pressable>
+                                </Pressable>
                         );
                     }}
                 />
