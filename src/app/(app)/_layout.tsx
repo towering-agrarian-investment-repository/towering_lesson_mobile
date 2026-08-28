@@ -119,7 +119,7 @@ export default function AppLayout() {
                         name="reservation"
                         options={{
                             title: t("navigation.screens.myReservations"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             headerLeft: () => (
                                 <Pressable
@@ -152,7 +152,7 @@ export default function AppLayout() {
                         name="tickets"
                         options={{
                             title: t("tickets.sectionTitle"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                         }}
                     />
@@ -221,7 +221,7 @@ export default function AppLayout() {
                         name="reservation/[id]"
                         options={{
                             title: t("reservations.reservationDetailTitle"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             animationTypeForReplace: "push",
                             fullScreenGestureEnabled: true,
@@ -233,7 +233,7 @@ export default function AppLayout() {
                         name="groups/[groupId]/index"
                         options={{
                             title: t("navigation.screens.groupDetail"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             headerLargeTitle: true,
                         }}
@@ -243,7 +243,7 @@ export default function AppLayout() {
                         name="groups/[groupId]/lessons/[lessonId]/index"
                         options={{
                             title: t("navigation.screens.groupLesson"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                         }}
                     />
@@ -252,7 +252,7 @@ export default function AppLayout() {
                         name="groups/[groupId]/lessons/[lessonId]/sessions/index"
                         options={{
                             title: t("lessons.sessionsTitle"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                         }}
                     />
@@ -261,7 +261,7 @@ export default function AppLayout() {
                         name="lessons/[lessonId]/index"
                         options={{
                             title: t("navigation.screens.lessonDetail"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             headerLargeTitle: true,
                         }}
@@ -271,7 +271,7 @@ export default function AppLayout() {
                         name="lessons/[lessonId]/sessions/index"
                         options={{
                             title: t("lessons.sessionsTitle"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                         }}
                     />
@@ -280,7 +280,7 @@ export default function AppLayout() {
                         name="homework/[homeworkId]"
                         options={{
                             title: t("navigation.screens.homeworkDetail"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                         }}
                     />
@@ -290,7 +290,7 @@ export default function AppLayout() {
                         options={{
                             title: t("navigation.screens.lessonPostList"),
                             headerLargeTitle: true,
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
@@ -301,7 +301,7 @@ export default function AppLayout() {
                         name="lesson-log/[id]"
                         options={{
                             title: t("navigation.screens.lessonPost"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             animationTypeForReplace: "pop",
                             fullScreenGestureEnabled: true,
@@ -313,7 +313,7 @@ export default function AppLayout() {
                         name="lesson-log/[id]/comment"
                         options={{
                             title: t("navigation.screens.lessonPost"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             fullScreenGestureEnabled: true,
                             gestureEnabled: true,
@@ -324,7 +324,7 @@ export default function AppLayout() {
                         name="profile/change-password"
                         options={{
                             title: t("navigation.screens.resetPassword"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                         }}
                     />
@@ -333,7 +333,7 @@ export default function AppLayout() {
                         name="profile/edit"
                         options={{
                             title: t("profile.editPersonalInformation"),
-                            animation: "fade",
+                            animation: "none",
                             animationDuration: 150,
                             headerLargeTitle: true,
                         }}

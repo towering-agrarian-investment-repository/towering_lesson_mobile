@@ -82,17 +82,25 @@ function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name='lessons'
+                name='activity'
                 options={{
-                    title: t("navigation.tabs.lessons"),
+                    title: "Your Activity",
                     headerShown: true,
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons
-                            name={focused ? 'golf' : 'golf-outline'}
+                            name={focused ? 'stats-chart' : 'stats-chart-outline'}
                             size={size}
                             color={color}
                         />
-                    ),
+                    )
+                }}
+            />
+            <Tabs.Screen
+                name='lessons'
+                options={{
+                    href: null,
+                    title: t("navigation.tabs.lessons"),
+                    headerShown: true,
                 }}
             />
             <Tabs.Screen

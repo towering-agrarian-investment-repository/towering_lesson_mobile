@@ -9,6 +9,7 @@ import {
   InlineState,
   Screen,
   triggerImpactHaptic,
+  useThemeColors,
 } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -27,6 +28,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const colors = useThemeColors();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
   const [refreshing, setRefreshing] = useState(false);
   const {
@@ -123,7 +125,12 @@ export default function HomeScreen() {
       }
     >
       <View className="flex-1 gap-8">
-        <HappyGolfLogo width={148} height={35} />
+        <HappyGolfLogo
+          width={148}
+          height={35}
+          primaryColor={colors.primary}
+          accentColor={colors.warning}
+        />
 
         {member ? (
           <MyTicket member={member} />

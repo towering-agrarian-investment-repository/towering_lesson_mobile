@@ -15,6 +15,7 @@ export * from "./components/CompactEmptyState";
 export * from "./components/StateCard";
 export * from "./components/ActionSheet";
 export * from "./components/ConfirmSheet";
+export * from "./components/charts";
 
 export * from "./layout/Row";
 export * from "./layout/Stack";

@@ -9,6 +9,7 @@ import {
     ListRow,
     Screen,
     Card,
+    Button,
     triggerSelectionHaptic,
     type PrimaryColorPreference,
     type ThemePreference,
@@ -163,6 +164,7 @@ export default function ProfileScreen() {
 
                 <Card className="gap-3 rounded-none border-0 bg-transparent p-0 pt-5 pb-3">
                     <SectionTitle title={t("profile.personalRecord")} />
+                    <LinkRow label={t("navigation.tabs.lessons")} href="/(app)/(tabs)/lessons" />
                     <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
                 </Card>
 
