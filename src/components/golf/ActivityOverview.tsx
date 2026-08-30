@@ -18,7 +18,7 @@ import * as MediaLibrary from "expo-media-library";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Alert, Modal, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
 type ActivityFilter = number | "all";
@@ -113,9 +113,22 @@ export function ActivityOverview() {
 
         setIsSavingShareCard(true);
         try {
-            const permission = await MediaLibrary.requestPermissionsAsync();
+            // Saving a generated card only needs add/write access. Requesting full
+            // library access can be denied even though the platform permits saves.
+            const permission = await MediaLibrary.requestPermissionsAsync(true);
             if (!permission.granted) {
-                Alert.alert("Permission needed", "Allow photo access to save your activity card.");
+                const actions = permission.canAskAgain
+                    ? [{ text: "OK" }]
+                    : [
+                          { text: "Cancel", style: "cancel" as const },
+                          { text: "Open settings", onPress: () => void Linking.openSettings() },
+                      ];
+
+                Alert.alert(
+                    "Permission needed",
+                    "Allow photo-saving access to save your activity card.",
+                    actions,
+                );
                 return;
             }
 
@@ -123,9 +136,12 @@ export function ActivityOverview() {
                 format: "png",
                 quality: 1,
             });
-            await MediaLibrary.saveToLibraryAsync(uri);
+            await MediaLibrary.Asset.create(uri);
             Alert.alert("Saved", "Your activity card was saved to your photos.");
-        } catch {
+        } catch (error) {
+            if (__DEV__) {
+                console.error("Failed to save activity card", error);
+            }
             Alert.alert("Couldn’t save", "Your activity card could not be saved. Please try again.");
         } finally {
             setIsSavingShareCard(false);

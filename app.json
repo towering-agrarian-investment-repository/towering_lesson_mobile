@@ -67,6 +67,13 @@
           "photosPermission": "Allow Golf Lesson System to access your photos to choose a profile photo."
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Allow Golf Lesson System to save activity cards to your photos.",
+          "granularPermissions": []
+        }
+      ],
       "expo-video",
       "@react-native-community/datetimepicker",
       "expo-font",
