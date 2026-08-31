@@ -311,6 +311,7 @@ const ja: TranslationResource<typeof en> = {
             program: "プログラム",
         },
     },
+    activity: { title: "アクティビティ", description: "年間のゴルフアクティビティ", reservationDays: "予約日数", reservationHours: "予約時間", totalReservations: "予約合計", golfActivity: "ゴルフアクティビティ", weeklyReservations: "週間予約", preview: "プレビュー", save: "保存", saving: "保存中…", savedTitle: "保存しました", savedMessage: "アクティビティカードを写真に保存しました。", permissionTitle: "許可が必要です", permissionMessage: "アクティビティカードを保存するには写真へのアクセスを許可してください。", openSettings: "設定を開く", couldNotSaveTitle: "保存できませんでした", couldNotSaveMessage: "アクティビティカードを保存できませんでした。もう一度お試しください。", all: "すべて", allTime: "全期間", myGolfActivity: "{{period}}のゴルフアクティビティ", reservations: "予約", daysPlayed: "プレー日数", hoursOnCourse: "コース滞在時間", golfer: "ゴルファー", done: "完了", absent: "欠席", booked: "予約済み", mixed: "混在", activityCount: "{{count}}件のアクティビティ", activityOnDate: "{{date}}のアクティビティ {{count}}件", onDate: "{{date}}", overall: "全体", weekOf: "{{date}}の週", noRecorded: "この期間に記録された{{unit}}はありません。", currentWeek: "今週", horizontalScroll: "横スクロール領域", today: "今日", bay: "ベイ", lesson: "レッスン", other: "その他", cancelled: "キャンセル" },
     common: {
         offlineTitle: "オフラインです",
         offlineMessage: "インターネット接続を確認して、もう一度お試しください。",

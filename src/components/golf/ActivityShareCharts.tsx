@@ -2,19 +2,22 @@ import { AppText, useTheme } from "@/design-system";
 import type { ActivityHeatmapStatus, ActivityHeatmapValue } from "@/design-system/components/charts/activity-heatmap";
 import { useState } from "react";
 import { useWindowDimensions, View, type LayoutChangeEvent } from "react-native";
+import { useTranslation } from "react-i18next";
 
 type ActivityShareChartsProps = {
     dailyValues: ActivityHeatmapValue[];
     startDate: Date;
     endDate: Date;
     numDays: number;
+    showDayNumbers?: boolean;
 };
 
 const CELL_GAP = 4;
 const MIN_WEEKS = 8;
 
-export function ActivityShareCharts({ dailyValues, startDate, endDate, numDays }: ActivityShareChartsProps) {
+export function ActivityShareCharts({ dailyValues, startDate, endDate, numDays, showDayNumbers = true }: ActivityShareChartsProps) {
     const { colors } = useTheme();
+    const { i18n } = useTranslation();
     const { width: screenWidth } = useWindowDimensions();
     const [measuredWidth, setMeasuredWidth] = useState(0);
     const chartWidth = measuredWidth || Math.max(180, screenWidth - 96);
@@ -22,7 +25,7 @@ export function ActivityShareCharts({ dailyValues, startDate, endDate, numDays }
     const weeks = padWeeks(buildWeeks(dailyValues, startDate, endDate, numDays), MIN_WEEKS);
     const cellGap = Math.max(1, Math.min(CELL_GAP, Math.floor(gridWidth / Math.max(1, weeks.length * 10))));
     const cellSize = Math.max(3, Math.min(32, Math.floor((gridWidth - Math.max(0, weeks.length - 1) * cellGap) / Math.max(1, weeks.length))));
-    const monthLabels = getMonthLabels(weeks);
+    const monthLabels = getMonthLabels(weeks, i18n.language);
 
     return (
         <View className="gap-5" onLayout={(event: LayoutChangeEvent) => setMeasuredWidth(event.nativeEvent.layout.width)}>
@@ -32,7 +35,7 @@ export function ActivityShareCharts({ dailyValues, startDate, endDate, numDays }
                         <View key={weekIndex} style={{ gap: cellGap }}>
                                 {week.map((day) => (
                                     <View key={day.date} style={{ width: cellSize, height: cellSize, alignItems: "center", justifyContent: "center", borderRadius: cellSize / 3, backgroundColor: getDayColor(day, colors) }}>
-                                    {cellSize >= 14 ? (
+                                    {showDayNumbers && cellSize >= 14 ? (
                                         <AppText
                                             variant="caption"
                                             style={{ fontSize: Math.max(6, Math.floor(cellSize * 0.32)), lineHeight: Math.max(7, Math.floor(cellSize * 0.38)), color: day.count === 0 ? colors.mutedForeground : colors.primaryForeground }}
@@ -95,9 +98,9 @@ function padWeeks(weeks: ShareDay[][], minimumWeeks: number) {
     return [...leadingWeeks, ...weeks, ...trailingWeeks];
 }
 
-function getMonthLabels(weeks: ShareDay[][]) {
+function getMonthLabels(weeks: ShareDay[][], locale: string) {
     const labels: string[] = [];
-    for (const week of weeks) { const month = new Date(`${week[0].date}T00:00:00`).toLocaleDateString(undefined, { month: "short" }); if (labels[labels.length - 1] !== month) labels.push(month); }
+    for (const week of weeks) { const month = new Date(`${week[0].date}T00:00:00`).toLocaleDateString(locale, { month: "short" }); if (labels[labels.length - 1] !== month) labels.push(month); }
     const selected = labels.length > 1 ? [labels[0], labels[Math.floor(labels.length / 2)], labels[labels.length - 1]] : labels;
     return selected.filter((label, index) => selected.indexOf(label) === index);
 }

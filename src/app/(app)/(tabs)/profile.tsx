@@ -374,10 +374,10 @@ function ProfileAvatar({
     imageUrl?: string | null;
     size?: "small" | "large";
 }) {
-    const imageSize = size === "large" ? 112 : 48;
+    const imageSize = size === "large" ? 96 : 48;
     const containerClassName =
     size === "large"
-            ? "h-28 w-28 bg-primary"
+            ? "h-24 w-24 bg-primary"
             : "h-12 w-12 bg-primary";
     const textVariant = size === "large" ? "h1" : "h3";
 

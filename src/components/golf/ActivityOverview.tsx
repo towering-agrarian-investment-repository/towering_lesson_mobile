@@ -2,6 +2,7 @@ import {
     ActivityHeatmap,
     ActivityStatusLegend,
     AppText,
+    CircleLoader,
     ErrorState,
     Screen,
     Skeleton,
@@ -12,13 +13,12 @@ import { ActivityShareCard } from "@/components/golf/ActivityShareCard";
 import { useMemberActivity } from "@/lib/hook/useMemberActivity";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import type { MemberActivityStatusCounts } from "@/types/member-activity";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library";
 import { Stack } from "expo-router";
-import { useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, Switch, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
 type ActivityFilter = number | "all";
@@ -29,16 +29,16 @@ export function ActivityOverview() {
     const currentYear = new Date().getFullYear();
     const firstActivityYear = 2025;
     const [selectedYear, setSelectedYear] = useState<ActivityFilter>(currentYear);
-    const [focusVersion, setFocusVersion] = useState(0);
     const [showShareCard, setShowShareCard] = useState(false);
+    const [showDayNumbers, setShowDayNumbers] = useState(true);
     const [isSavingShareCard, setIsSavingShareCard] = useState(false);
     const shareCardRef = useRef<View>(null);
     const { data: memberProfile } = useGetMemberProfile();
-    useFocusEffect(useCallback(() => {
-        setFocusVersion((version) => version + 1);
-    }, []));
-    const { data: activity, isLoading, isError, refetch, isRefetching } = useMemberActivity(selectedYear);
-    const { data: allActivity, refetch: refetchAll, isRefetching: isRefetchingAll } = useMemberActivity("all");
+    const activityQuery = useMemberActivity(selectedYear);
+    const allActivityQuery = useMemberActivity("all", Boolean(activityQuery.data));
+    const { data: activity, isLoading, isError, refetch, isRefetching } = activityQuery;
+    const { data: allActivity, refetch: refetchAll, isRefetching: isRefetchingAll } = allActivityQuery;
+
     const availableYears = useMemo(() => {
         if (!allActivity) {
             return Array.from(
@@ -58,6 +58,7 @@ export function ActivityOverview() {
         }
     }, [allActivity, availableYears, selectedYear]);
 
+
     const activityValues = useMemo(() => (activity?.daily ?? []).map((day) => ({
         date: day.date,
         count: day.count,
@@ -74,7 +75,7 @@ export function ActivityOverview() {
     })), [activity?.weekly]);
 
     if (isLoading) {
-        return <ActivityLoadingState />;
+        return <CircleLoader fullScreen />;
     }
 
     if (isError && !activity) {
@@ -91,7 +92,7 @@ export function ActivityOverview() {
     }
 
     if (!activity) {
-        return <ActivityLoadingState />;
+        return <CircleLoader fullScreen />;
     }
 
     const firstDate = getActivityDate(activity.daily[0]?.date) ?? getActivityDate(activity.weekly[0]?.weekStart) ?? new Date();
@@ -104,7 +105,7 @@ export function ActivityOverview() {
     const daysInYear = isAllActivity ? daysBetween(firstDate, lastDate) : isLeapYear(activityYear) ? 366 : 365;
     const heatmapEndDate = isAllActivity ? lastDate : new Date(activityYear, 11, 31);
     const weeklyEndDate = isAllActivity ? lastDate : activityYear === currentYear ? new Date() : heatmapEndDate;
-    const activityLabel = isAllActivity ? "All time" : String(activityYear);
+    const activityLabel = isAllActivity ? t("activity.allTime") : String(activityYear);
     const shareFirstDate = getActivityDate(activity.daily[0]?.date) ?? firstDate;
     const shareLastDate = getActivityDate(activity.daily.at(-1)?.date) ?? lastDate;
 
@@ -121,12 +122,12 @@ export function ActivityOverview() {
                     ? [{ text: "OK" }]
                     : [
                           { text: "Cancel", style: "cancel" as const },
-                          { text: "Open settings", onPress: () => void Linking.openSettings() },
+                          { text: t("activity.openSettings"), onPress: () => void Linking.openSettings() },
                       ];
 
                 Alert.alert(
-                    "Permission needed",
-                    "Allow photo-saving access to save your activity card.",
+                    t("activity.permissionTitle"),
+                    t("activity.permissionMessage"),
                     actions,
                 );
                 return;
@@ -137,12 +138,12 @@ export function ActivityOverview() {
                 quality: 1,
             });
             await MediaLibrary.Asset.create(uri);
-            Alert.alert("Saved", "Your activity card was saved to your photos.");
+            Alert.alert(t("activity.savedTitle"), t("activity.savedMessage"));
         } catch (error) {
             if (__DEV__) {
                 console.error("Failed to save activity card", error);
             }
-            Alert.alert("Couldn’t save", "Your activity card could not be saved. Please try again.");
+            Alert.alert(t("activity.couldNotSaveTitle"), t("activity.couldNotSaveMessage"));
         } finally {
             setIsSavingShareCard(false);
         }
@@ -156,7 +157,7 @@ export function ActivityOverview() {
                     headerRight: () => (
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Open activity screenshot preview"
+                            accessibilityLabel={t("activity.preview")}
                             hitSlop={10}
                             onPress={() => setShowShareCard(true)}
                         >
@@ -206,7 +207,7 @@ export function ActivityOverview() {
                                 variant="caption"
                                 className={selectedYear === "all" ? "font-semibold text-primary-foreground" : "font-semibold text-muted-foreground"}
                             >
-                                All
+                                {t("activity.all")}
                             </AppText>
                         </Pressable>
                     </View>
@@ -214,18 +215,18 @@ export function ActivityOverview() {
 
                 <View className="gap-1">
                     <AppText variant="h3" className="text-lg leading-6">
-                        Your activity across the full calendar year
+                        {t("activity.description")}
                     </AppText>
                 </View>
 
                 <View className="flex-row gap-3">
-                    <ActivityStat value={String(activeDays)} label="Reservation days" />
-                    <ActivityStat value={`${totalHours.toFixed(1)}h`} label="Reservation hours" divided />
-                    <ActivityStat value={String(totalReservations)} label="Total reservations" divided />
+                    <ActivityStat value={String(activeDays)} label={t("activity.reservationDays")} />
+                    <ActivityStat value={`${totalHours.toFixed(1)}h`} label={t("activity.reservationHours")} divided />
+                    <ActivityStat value={String(totalReservations)} label={t("activity.totalReservations")} divided />
                 </View>
 
                 <View className="gap-4">
-                    <AppText variant="h3">Golf Activity</AppText>
+                    <AppText variant="h3">{t("activity.golfActivity")}</AppText>
                     <ActivityHeatmap
                         values={activityValues}
                         endDate={heatmapEndDate}
@@ -233,12 +234,11 @@ export function ActivityOverview() {
                         yearLabel={activityLabel}
                         overallCount={totalReservations}
                         overallUnitLabel="reservations"
-                        scrollResetKey={focusVersion}
                     />
                 </View>
 
                 <View className="gap-4">
-                    <AppText variant="h3">Weekly reservations</AppText>
+                    <AppText variant="h3">{t("activity.weeklyReservations")}</AppText>
                     <View className="flex-row items-center justify-between gap-2">
                         <AppText variant="caption" className="font-semibold text-muted-foreground">
                             {activityLabel}
@@ -251,14 +251,12 @@ export function ActivityOverview() {
                         endDate={weeklyEndDate}
                         initialScrollToEnd={activityYear === currentYear}
                         overallCount={totalReservations}
-                        scrollResetKey={focusVersion}
                         values={weeklySessionValues}
                     />
                 </View>
             </View>
             </Screen>
-            <Modal
-                visible={showShareCard}
+            {showShareCard ? <Modal
                 animationType="slide"
                 presentationStyle="fullScreen"
                 onRequestClose={() => setShowShareCard(false)}
@@ -271,20 +269,20 @@ export function ActivityOverview() {
                         <View className="border-t border-border bg-background px-5 pb-3 pt-3">
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel="Save activity screenshot"
+                                accessibilityLabel={t("activity.save")}
                                 accessibilityState={{ busy: isSavingShareCard, disabled: isSavingShareCard }}
                                 disabled={isSavingShareCard}
                                 className="h-12 flex-row items-center justify-center gap-2 rounded-xl bg-primary active:opacity-80 disabled:opacity-60"
                                 onPress={() => void handleSaveShareCard()}
                             >
                                 <Ionicons name="download-outline" size={20} color={colors.primaryForeground} />
-                                <AppText variant="body" className="font-semibold text-primary-foreground">{isSavingShareCard ? "Saving…" : "Save"}</AppText>
+                                <AppText variant="body" className="font-semibold text-primary-foreground">{isSavingShareCard ? t("activity.saving") : t("activity.save")}</AppText>
                             </Pressable>
                         </View>
                     }
                 >
                     <View className="mb-4 w-full flex-row items-center justify-between">
-                            <AppText variant="h3">Preview</AppText>
+                            <AppText variant="h3">{t("activity.preview")}</AppText>
                             <Pressable
                                 accessibilityRole="button"
                                 accessibilityLabel="Close screenshot preview"
@@ -305,6 +303,7 @@ export function ActivityOverview() {
                                 heatmapStartDate={shareFirstDate}
                                 heatmapEndDate={shareLastDate}
                                 numDays={daysBetween(shareFirstDate, shareLastDate)}
+                                showDayNumbers={showDayNumbers}
                                 memberName={memberProfile?.data?.name}
                                 memberImage={memberProfile?.data?.profileImage}
                             />
@@ -317,12 +316,24 @@ export function ActivityOverview() {
                                     </Pressable>
                                 ))}
                                 <Pressable accessibilityRole="button" accessibilityState={{ selected: selectedYear === "all" }} className={`rounded-full px-3 py-2 ${selectedYear === "all" ? "bg-primary" : "bg-muted"}`} onPress={() => setSelectedYear("all")}>
-                                    <AppText variant="caption" className={selectedYear === "all" ? "font-semibold text-primary-foreground" : "font-semibold text-muted-foreground"}>All</AppText>
+                                    <AppText variant="caption" className={selectedYear === "all" ? "font-semibold text-primary-foreground" : "font-semibold text-muted-foreground"}>{t("activity.all")}</AppText>
                                 </Pressable>
+                            </View>
+                            <View className="flex-row items-center justify-between">
+                                <AppText variant="label">
+                                    {t("activity.showDayNumbers", { defaultValue: "Show day numbers" })}
+                                </AppText>
+                                <Switch
+                                    accessibilityLabel={t("activity.showDayNumbers", { defaultValue: "Show day numbers" })}
+                                    value={showDayNumbers}
+                                    onValueChange={setShowDayNumbers}
+                                    trackColor={{ false: colors.muted, true: colors.primary }}
+                                    thumbColor={colors.card}
+                                />
                             </View>
                         </View>
                 </Screen>
-            </Modal>
+            </Modal> : null}
         </>
     );
 }
@@ -400,6 +411,19 @@ function ActivityLoadingState() {
                     </View>
                     <WeeklySummarySkeleton />
                 </View>
+            </View>
+        </Screen>
+    );
+}
+
+function ActivityInitialLoadingState() {
+    return (
+        <Screen>
+            <View className="gap-6">
+                <View className="h-6 w-32 rounded bg-muted" />
+                <View className="h-6 w-64 rounded bg-muted" />
+                <View className="h-24 w-full rounded-2xl bg-muted" />
+                <View className="h-40 w-full rounded-2xl bg-muted" />
             </View>
         </Screen>
     );

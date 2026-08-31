@@ -311,6 +311,7 @@ const zh: TranslationResource<typeof en> = {
             program: "训练营/项目",
         },
     },
+    activity: { title: "活动", description: "全年高尔夫活动", reservationDays: "预约天数", reservationHours: "预约时长", totalReservations: "预约总数", golfActivity: "高尔夫活动", weeklyReservations: "每周预约", preview: "预览", save: "保存", saving: "保存中…", savedTitle: "已保存", savedMessage: "您的活动卡片已保存到照片中。", permissionTitle: "需要权限", permissionMessage: "请允许保存照片的权限，以保存您的活动卡片。", openSettings: "打开设置", couldNotSaveTitle: "无法保存", couldNotSaveMessage: "无法保存活动卡片，请重试。", all: "全部", allTime: "全部时间", myGolfActivity: "我的{{period}}高尔夫活动", reservations: "次预约", daysPlayed: "打球天数", hoursOnCourse: "球场时长", golfer: "球手", done: "已完成", absent: "缺席", booked: "已预约", mixed: "混合", activityCount: "{{count}}项活动", activityOnDate: "{{date}}有{{count}}项活动", onDate: "{{date}}", overall: "总计", weekOf: "{{date}}所在周", noRecorded: "此期间没有记录{{unit}}。", currentWeek: "本周", horizontalScroll: "水平滚动区域", today: "今天", bay: "球位", lesson: "课程", other: "其他", cancelled: "已取消" },
     common: {
         offlineTitle: "您已离线",
         offlineMessage: "请检查网络连接后重试。",

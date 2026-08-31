@@ -1,6 +1,7 @@
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
+import { HomeBanner } from "@/components/golf/HomeBanner";
 import {
   AppText,
   CircleLoader,
@@ -12,6 +13,7 @@ import {
   useThemeColors,
 } from "@/design-system";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { usePublishedBanners } from "@/lib/hook/useBanner";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { getMemberReservationsQueryOptions } from "@/lib/hook/useReservation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,6 +32,7 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const colors = useThemeColors();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
+  const { data: publishedBanners, refetch: refetchBanners } = usePublishedBanners();
   const [refreshing, setRefreshing] = useState(false);
   const {
     data: memberResponse,
@@ -47,6 +50,7 @@ export default function HomeScreen() {
     try {
       await Promise.all([
         refetch(),
+        refetchBanners(),
         queryClient.refetchQueries({ queryKey: ["member", "tickets"], type: "active" }),
         queryClient.refetchQueries({
           queryKey: ["member", "reservations", "today"],
@@ -124,7 +128,7 @@ export default function HomeScreen() {
         />
       }
     >
-      <View className="flex-1 gap-8">
+      <View className="flex-1 gap-4">
         <HappyGolfLogo
           width={148}
           height={35}
@@ -132,15 +136,21 @@ export default function HomeScreen() {
           accentColor={colors.warning}
         />
 
-        {member ? (
-          <MyTicket member={member} />
-        ) : (
-          <InlineState
-            title={t("home.noMemberProfile")}
-          />
-        )}
+        <View className="gap-6">
+          <HomeBanner banners={publishedBanners} />
 
-        <TodayReservation />
+          <View className="gap-4">
+            {member ? (
+              <MyTicket member={member} />
+            ) : (
+              <InlineState
+                title={t("home.noMemberProfile")}
+              />
+            )}
+
+            <TodayReservation />
+          </View>
+        </View>
       </View>
     </Screen>
   );

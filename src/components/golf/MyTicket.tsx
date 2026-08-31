@@ -85,7 +85,7 @@ function MyTicket({ member }: Props) {
     );
 
     return (
-        <View className="gap-4">
+        <View className="gap-2">
             <View className="flex-row items-center justify-between gap-3">
                 <TitleSectionWithBadge
                     label={t("tickets.sectionTitle")}
@@ -121,6 +121,7 @@ function MyTicket({ member }: Props) {
                 ) : null}
             </View>
 
+            <View className="gap-1">
             {isLoading ? (
                 <ScrollView
                     horizontal
@@ -199,6 +200,7 @@ function MyTicket({ member }: Props) {
                     ))}
                 </View>
             ) : null}
+            </View>
 
         </View>
     );

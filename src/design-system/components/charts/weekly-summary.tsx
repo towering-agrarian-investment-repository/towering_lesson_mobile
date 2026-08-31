@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Pressable, View, type LayoutChangeEvent, type ViewProps } from "react-native";
+import { FlatList, Pressable, View, type LayoutChangeEvent, type ViewProps } from "react-native";
 import { cn } from "../../utils/cn";
 import { useTheme } from "../../utils/theme";
 import { AppText } from "../AppText";
 import type { ActivityHeatmapStatus } from "./activity-heatmap";
+import i18n from "@/i18n";
 
 export type WeeklySummaryValue = {
     weekStart: string | number | Date;
@@ -28,7 +29,6 @@ type WeeklySummaryProps = Omit<ViewProps, "children"> & {
     numWeeks?: number;
     initialScrollToEnd?: boolean;
     overallCount?: number;
-    scrollResetKey?: string | number;
     title?: string;
     unitLabel?: string; // e.g. "activities", "min"
     className?: string;
@@ -46,10 +46,9 @@ const CHART_GAP = 8;
 const SCROLL_TRACK_WIDTH = 64;
 const MIN_SCROLL_THUMB_WIDTH = 14;
 
-export function WeeklySummary({ values, startDate, endDate = new Date(), numWeeks = 12, initialScrollToEnd = false, overallCount, scrollResetKey, title, unitLabel = "activities", className, onWeekPress, ...props }: WeeklySummaryProps) {
+export function WeeklySummary({ values, startDate, endDate = new Date(), numWeeks = 12, initialScrollToEnd = false, overallCount, title, unitLabel = "activities", className, onWeekPress, ...props }: WeeklySummaryProps) {
     const { colors } = useTheme();
     const [containerWidth, setContainerWidth] = useState(0);
-    const scrollOffset = useRef(new Animated.Value(0)).current;
     const startDateKey = startDate ? weekKey(startDate) : "";
     const endDateKey = weekKey(endDate);
     const weeks = useMemo(() => buildWeekSummaries(values, startDate, endDate, numWeeks), [values, startDateKey, endDateKey, numWeeks]);
@@ -75,7 +74,6 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
     const scrollThumbWidth = needsScroll
         ? Math.max(MIN_SCROLL_THUMB_WIDTH, (chartViewportWidth / gridWidth) * SCROLL_TRACK_WIDTH)
         : SCROLL_TRACK_WIDTH;
-    const scrollThumbTravel = Math.max(0, SCROLL_TRACK_WIDTH - scrollThumbWidth);
 
     const handleLayout = (event: LayoutChangeEvent) => setContainerWidth(event.nativeEvent.layout.width);
 
@@ -85,15 +83,11 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
         ? `${weekKey(weeks[0].weekStart)}-${weekKey(weeks[weeks.length - 1].weekStart)}`
         : "empty";
     useEffect(() => {
-        autoScrolledRange.current = null;
-    }, [scrollResetKey]);
-
-    useEffect(() => {
         if (autoScrolledRange.current === rangeKey || containerWidth === 0) return;
         const initialScrollX = initialScrollToEnd ? maxScrollX : 0;
         scrollRef.current?.scrollToOffset({ offset: initialScrollX, animated: false });
         autoScrolledRange.current = rangeKey;
-    }, [containerWidth, gridWidth, initialScrollToEnd, rangeKey, scrollResetKey]);
+    }, [containerWidth, gridWidth, initialScrollToEnd, rangeKey]);
 
     const handleBarPress = useCallback((weekStart: Date, total: number, key: string) => {
         setSelectedWeek(key);
@@ -129,7 +123,7 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
                             0
                         </AppText>
                     </View>
-                    <Animated.FlatList
+                    <FlatList
                         ref={scrollRef}
                         data={weeks}
                         renderItem={renderBar}
@@ -139,11 +133,6 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
                         getItemLayout={(_, index) => ({ length: barWidth + BAR_GAP, offset: index * (barWidth + BAR_GAP), index })}
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        onScroll={Animated.event(
-                            [{ nativeEvent: { contentOffset: { x: scrollOffset } } }],
-                            { useNativeDriver: true },
-                        )}
-                        scrollEventThrottle={16}
                         contentContainerStyle={{ gap: BAR_GAP, paddingRight: BAR_GAP }}
                     />
                 </View>
@@ -152,21 +141,14 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
                 <View
                     accessible
                     accessibilityRole="adjustable"
-                    accessibilityLabel="Horizontal scroll area"
+                    accessibilityLabel={i18n.t("activity.horizontalScroll")}
                     className="self-center rounded-full bg-muted"
                     style={{ width: SCROLL_TRACK_WIDTH, height: 4 }}
                 >
-                    <Animated.View
+                    <View
                         className="h-1 rounded-full bg-primary"
                         style={{
                             width: scrollThumbWidth,
-                            transform: [{
-                                translateX: scrollOffset.interpolate({
-                                    inputRange: [0, Math.max(1, maxScrollX)],
-                                    outputRange: [0, scrollThumbTravel],
-                                    extrapolate: "clamp",
-                                }),
-                            }],
                         }}
                     />
                 </View>
@@ -174,7 +156,7 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
             {selectedSummary ? (
                 <View className="gap-0.5">
                     <AppText variant="caption" className="text-left">
-                        Week of {selectedSummary.label} · {selectedSummary.total} {unitLabel}{formatStatusBreakdown(selectedSummary.statusBreakdown)}
+                        {i18n.t("activity.weekOf", { date: selectedSummary.label })} · {selectedSummary.total} {unitLabel}{formatStatusBreakdown(selectedSummary.statusBreakdown)}
                     </AppText>
                     <AppText variant="caption" className="text-left">
                         {formatTypeBreakdown(selectedSummary.typeCounts) || "-"}
@@ -182,12 +164,12 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
                 </View>
             ) : (
                 <AppText variant="caption" className="text-left">
-                    Overall · {overallCount !== undefined ? `${overallCount} ${unitLabel}` : "-"}
+                    {i18n.t("activity.overall")} · {overallCount !== undefined ? `${overallCount} ${unitLabel}` : "-"}
                 </AppText>
             )}
             {!hasData ? (
                 <AppText variant="caption" className="text-center text-muted-foreground">
-                    No {unitLabel} recorded in this period.
+                    {i18n.t("activity.noRecorded", { unit: unitLabel })}
                 </AppText>
             ) : null}
         </View>
@@ -222,7 +204,7 @@ const WeeklyBar = memo(function WeeklyBar({
     return (
         <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${week.total} ${unitLabel} for week of ${key}${isCurrent ? " (current week)" : ""}`}
+            accessibilityLabel={`${week.total} ${unitLabel} · ${i18n.t("activity.weekOf", { date: key })}${isCurrent ? ` (${i18n.t("activity.currentWeek")})` : ""}`}
             onPress={() => onPress(week.weekStart, week.total, key)}
             style={{ width: barWidth, alignItems: "center", gap: 4 }}
         >
@@ -298,7 +280,7 @@ function buildWeekSummaries(values: WeeklySummaryValue[], startDate: Date | unde
         const weekStart = new Date(firstWeekStart); weekStart.setDate(firstWeekStart.getDate() + i * 7);
         const key = weekKey(weekStart);
         const value = totals.get(key);
-        weeks.push({ weekStart, total: value?.total ?? 0, status: value?.status, statusBreakdown: value?.statusBreakdown, typeCounts: value?.typeCounts, label: weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" }) });
+        weeks.push({ weekStart, total: value?.total ?? 0, status: value?.status, statusBreakdown: value?.statusBreakdown, typeCounts: value?.typeCounts, label: weekStart.toLocaleDateString(i18n.language, { month: "short", day: "numeric" }) });
     }
     return weeks;
 }
@@ -326,12 +308,7 @@ function formatStatusBreakdown(breakdown?: Partial<Record<ActivityHeatmapStatus,
     if (!breakdown) return "";
 
     const labels: Record<ActivityHeatmapStatus, string> = {
-        completed: "done",
-        "no-show": "absent",
-        cancelled: "cancelled",
-        reserved: "booked",
-        mixed: "mixed",
-        unknown: "other",
+        completed: i18n.t("activity.done"), "no-show": i18n.t("activity.absent"), cancelled: i18n.t("activity.cancelled"), reserved: i18n.t("activity.booked"), mixed: i18n.t("activity.mixed"), unknown: i18n.t("activity.other"),
     };
     const details = Object.entries(breakdown)
         .filter(([, count]) => count && count > 0)
@@ -345,8 +322,8 @@ function formatTypeBreakdown(typeCounts?: { lesson: number; bay: number }) {
     if (!typeCounts) return "";
 
     const details = [
-        typeCounts.bay > 0 ? `${typeCounts.bay} bay` : null,
-        typeCounts.lesson > 0 ? `${typeCounts.lesson} lesson` : null,
+        typeCounts.bay > 0 ? `${typeCounts.bay} ${i18n.t("activity.bay")}` : null,
+        typeCounts.lesson > 0 ? `${typeCounts.lesson} ${i18n.t("activity.lesson")}` : null,
     ].filter(Boolean).join(" · ");
 
     return details;

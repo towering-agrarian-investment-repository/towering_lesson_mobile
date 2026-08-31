@@ -308,6 +308,7 @@ const ko = {
             "program": "\ud504\ub85c\uadf8\ub7a8"
         }
     },
+    "activity": { "title": "활동", "description": "연간 골프 활동", "reservationDays": "예약 일수", "reservationHours": "예약 시간", "totalReservations": "총 예약 수", "golfActivity": "골프 활동", "weeklyReservations": "주간 예약", "preview": "미리보기", "save": "저장", "saving": "저장 중…", "savedTitle": "저장됨", "savedMessage": "활동 카드가 사진에 저장되었습니다.", "permissionTitle": "권한 필요", "permissionMessage": "활동 카드를 저장하려면 사진 저장 권한을 허용해 주세요.", "openSettings": "설정 열기", "couldNotSaveTitle": "저장할 수 없음", "couldNotSaveMessage": "활동 카드를 저장하지 못했습니다. 다시 시도해 주세요.", "all": "전체", "allTime": "전체 기간", "myGolfActivity": "나의 {{period}} 골프 활동", "reservations": "예약", "daysPlayed": "플레이 일수", "hoursOnCourse": "필드 시간", "golfer": "골퍼", "done": "완료", "absent": "결석", "booked": "예약됨", "mixed": "혼합", "activityCount": "활동 {{count}}개", "activityOnDate": "{{date}} 활동 {{count}}개", "onDate": "{{date}}", "overall": "전체", "weekOf": "{{date}} 주", "noRecorded": "이 기간에 기록된 {{unit}}이(가) 없습니다.", "currentWeek": "이번 주", "horizontalScroll": "가로 스크롤 영역", "today": "오늘", "bay": "베이", "lesson": "레슨", "other": "기타", "cancelled": "취소됨" },
     "common": {
         offlineTitle: "오프라인 상태입니다",
         offlineMessage: "인터넷 연결을 확인한 후 다시 시도해 주세요.",

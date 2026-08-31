@@ -11,7 +11,7 @@ function TodayReservation() {
     const { data: todayReservations = [], isLoading: todayReservationsLoading, isError: todayReservationError } = useTodayMemberReservations();
 
     return (
-        <View className="gap-4">
+        <View className="gap-2">
             <TitleSectionWithBadge
                 label={t("reservations.todayTitle")}
                 length={todayReservations.length}
