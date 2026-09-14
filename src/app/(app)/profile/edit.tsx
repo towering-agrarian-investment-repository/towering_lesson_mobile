@@ -249,7 +249,6 @@ export default function EditProfileScreen() {
                             isSubmitting
                             || isUploadingImage
                             || !form.formState.isDirty
-                            || !form.formState.isValid
                         }
                         className="rounded-xl"
                         onPress={form.handleSubmit(onSubmit, handleInvalidSubmit)}

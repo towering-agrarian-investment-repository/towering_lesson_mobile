@@ -112,7 +112,7 @@ export function getStoreUrl(state: AppUpdateState) {
     if (Platform.OS === "android") {
         return (
             state.androidStoreUrl ??
-            "https://play.google.com/store/apps/details?id=com.anonymous.golflessonsystemmobile"
+            "https://play.google.com/store/apps/details?id=com.toweringinvest.happygolfmobile"
         );
     }
 

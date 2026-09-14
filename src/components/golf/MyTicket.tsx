@@ -138,9 +138,9 @@ function MyTicket({ member }: Props) {
                     tone="danger"
                 />
             ) : tickets.length === 0 ? (
-                <InlineState
-                    title={t("tickets.empty")}
-                />
+                <View className="h-40 items-center justify-center">
+                    <InlineState title={t("tickets.empty")} />
+                </View>
             ) : (
                 <Animated.FlatList
                     ref={carouselRef}

@@ -31,7 +31,6 @@ import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { showAppToast } from "@/lib/toast/toast";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -433,10 +432,6 @@ export default function ReservationDetailScreen() {
         }
 
         setIsCancelSheetVisible(false);
-        showAppToast({
-            message: t("reservations.reservationCancelled"),
-            type: "success",
-        });
         router.replace("/reservation");
     };
 

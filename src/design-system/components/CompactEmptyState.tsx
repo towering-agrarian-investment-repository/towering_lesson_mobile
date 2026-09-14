@@ -30,7 +30,7 @@ export function CompactEmptyState({
 
             <View className="min-w-0 flex-1 gap-0.5">
                 <AppText variant="label" className="font-semibold text-foreground">
-                    {title}
+                    {title.trim()}
                 </AppText>
 
                 {message ? (
@@ -39,7 +39,7 @@ export function CompactEmptyState({
                         className="leading-5 text-muted-foreground"
                         numberOfLines={2}
                     >
-                        {message}
+                        {message.trim()}
                     </AppText>
                 ) : null}
             </View>

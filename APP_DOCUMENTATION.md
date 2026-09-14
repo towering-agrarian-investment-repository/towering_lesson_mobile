@@ -50,7 +50,7 @@ This document is intended to serve as the official implementation reference for 
 
 - App name: `Golf Lesson System`
 - Expo slug: `golf-lesson-system-mobile`
-- Android package: `com.anonymous.golflessonsystemmobile`
+- Android package: `com.toweringinvest.happygolfmobile`
 - Deep link scheme: `golflessonsystemmobile`
 
 ### Runtime theme

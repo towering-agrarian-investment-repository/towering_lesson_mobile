@@ -7,9 +7,7 @@ import {
     Button,
     Divider,
     Skeleton,
-    Textarea,
 } from "@/design-system";
-import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
 import { View } from "react-native";
 
@@ -35,8 +33,6 @@ type BookingConfirmationFooterProps = {
 
 type BookingConfirmationContentProps = {
     children: React.ReactNode;
-    notes: string;
-    onNotesChange: (value: string) => void;
     disabledReason?: string | null;
     policies: readonly ReservationPolicy[];
 };
@@ -110,35 +106,21 @@ export function BookingConfirmationLoadingState({
                 ))}
             </View>
 
-            <View className="gap-4">
-                <Divider className="bg-border" />
-                <Skeleton className="h-24 w-full rounded-xl" />
-            </View>
         </View>
     );
 }
 
 export function BookingConfirmationContent({
     children,
-    notes,
-    onNotesChange,
     disabledReason,
     policies,
 }: BookingConfirmationContentProps) {
-    const { t } = useTranslation();
     return (
         <View className="grow">
             <View className="gap-4">{children}</View>
 
             <View className="mt-6 gap-4">
                 <Divider className="bg-border" />
-
-                <Textarea
-                    label={t("common.notes")}
-                    placeholder={t("bookingConfirmation.notesPlaceholder")}
-                    value={notes}
-                    onChangeText={onNotesChange}
-                />
 
                 {disabledReason ? (
                     <View className="rounded-xl bg-warning/10 px-4 py-3">

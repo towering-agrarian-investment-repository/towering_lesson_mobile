@@ -16,7 +16,11 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "icon": "./assets/images/expo-icons/icon.png"
+      "icon": "./assets/images/expo-icons/icon.png",
+      "bundleIdentifier": "com.toweringinvest.happygolfmobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,8 +28,14 @@
         "foregroundImage": "./assets/images/expo-icons/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.golflessonsystemmobile",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.toweringinvest.happygolfmobile",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+      ]
     },
     "web": {
       "output": "static",
@@ -93,6 +103,6 @@
         "projectId": "075f354d-9980-43e0-9ae5-07584735ab10"
       }
     },
-    "owner": "mthanak"
+    "owner": "towering-agrarian-investment"
   }
 }

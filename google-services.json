@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "800695251537",
-    "project_id": "golflessonsystemmobile",
-    "storage_bucket": "golflessonsystemmobile.firebasestorage.app"
+    "project_number": "10322218351",
+    "project_id": "v2hapygolfmanagement",
+    "storage_bucket": "v2hapygolfmanagement.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:800695251537:android:8496053ba0b9290208be70",
+        "mobilesdk_app_id": "1:10322218351:android:ea02084c41799f5799ac9a",
         "android_client_info": {
-          "package_name": "com.anonymous.golflessonsystemmobile"
+          "package_name": "com.toweringinvest.happygolfmobile"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAVeaFnGhULVOmIXh9iZBbdOWmozfPOsso"
+          "current_key": "AIzaSyC4KpHRFXzu-odUl2ybBEALP8S6hgA95nA"
         }
       ],
       "services": {

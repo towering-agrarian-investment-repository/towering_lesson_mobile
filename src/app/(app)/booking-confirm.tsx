@@ -22,7 +22,6 @@ import { useTranslation } from "react-i18next";
 import {
     RefreshControl,
 } from "react-native";
-import { useState } from "react";
 
 export default function ConfirmScreen() {
     const { t } = useTranslation();
@@ -57,7 +56,7 @@ export default function ConfirmScreen() {
     const router = useRouter();
     const isRescheduleMode = mode === "reschedule";
     const reservationIdNumber = reservationId ? Number(reservationId) : null;
-    const [notes, setNotes] = useState(initialNotes ?? "");
+    const notes = initialNotes?.trim() || null;
     const {
         mutate: createReservation,
         isPending: isCreating,
@@ -115,7 +114,7 @@ export default function ConfirmScreen() {
                     slotGroupId,
                     mode,
                     reservationId,
-                    notes,
+                    notes: notes ?? undefined,
                 },
             });
 
@@ -132,7 +131,7 @@ export default function ConfirmScreen() {
                     reservationId: reservationIdNumber,
                     data: {
                         baySlotId: Number(baySlotId),
-                        notes: notes.trim() || null,
+                        notes,
                     },
                 },
                 {
@@ -151,7 +150,7 @@ export default function ConfirmScreen() {
             {
                 ticketId: Number(ticketId),
                 baySlotId: Number(baySlotId),
-                notes: notes.trim() || null,
+                notes,
             },
             {
                 onSuccess: (response: BookingConfirmationSuccessResponse) =>
@@ -231,8 +230,6 @@ export default function ConfirmScreen() {
                 />
             ) : (
                 <BookingConfirmationContent
-                    notes={notes}
-                    onNotesChange={setNotes}
                     disabledReason={disabledReason}
                     policies={policies}
                 >

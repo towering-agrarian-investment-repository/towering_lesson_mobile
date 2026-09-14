@@ -25,7 +25,6 @@ import { Stack } from "expo-router/stack";
 import {
     RefreshControl,
 } from "react-native";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function LessonBookingConfirmScreen() {
@@ -55,7 +54,7 @@ export default function LessonBookingConfirmScreen() {
     }>();
     const router = useRouter();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
-    const [notes, setNotes] = useState(initialNotes ?? "");
+    const notes = initialNotes?.trim() || null;
     const { mutate: createReservation, isPending: isCreating } =
         useCreateMemberLessonReservation();
     const selectedDate = new Date(`${date}T12:00:00`);
@@ -72,7 +71,6 @@ export default function LessonBookingConfirmScreen() {
         Number.isFinite(month);
     const {
         data,
-        isLoading,
         isError,
         refetch,
         isRefetching,
@@ -124,7 +122,7 @@ export default function LessonBookingConfirmScreen() {
                     ticketId,
                     ticketName,
                     ticketType,
-                    notes,
+                    notes: notes ?? undefined,
                 },
             });
 
@@ -135,7 +133,7 @@ export default function LessonBookingConfirmScreen() {
             {
                 ticketId: ticketIdNumber,
                 lessonAvailabilityId: lessonAvailabilityIdNumber,
-                notes: notes.trim() || null,
+                notes,
             },
             {
                 onSuccess: (response: BookingConfirmationSuccessResponse) =>
@@ -250,8 +248,6 @@ export default function LessonBookingConfirmScreen() {
                 />
             ) : (
                 <BookingConfirmationContent
-                    notes={notes}
-                    onNotesChange={setNotes}
                     disabledReason={disabledReason}
                     policies={policies}
                 >
