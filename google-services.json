@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:10322218351:android:22ce899efa59c25c99ac9a",
+        "android_client_info": {
+          "package_name": "com.toweringinvest.happygolfcoachmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4KpHRFXzu-odUl2ybBEALP8S6hgA95nA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:10322218351:android:ea02084c41799f5799ac9a",
         "android_client_info": {
           "package_name": "com.toweringinvest.happygolfmobile"

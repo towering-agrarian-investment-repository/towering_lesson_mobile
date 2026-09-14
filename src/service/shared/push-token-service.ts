@@ -4,7 +4,7 @@ import { apiClient } from "@/lib/client/api-client";
 export type PushTokenPlatform = "EXPO";
 
 export interface SavePushTokenRequest {
-    deviceId?: string | null;
+    deviceId: string;
     pushToken: string;
     platform: PushTokenPlatform;
 }
@@ -18,13 +18,10 @@ export const savePushToken = async (
     });
 };
 
-export const deactivatePushToken = async (
-    pushToken: string,
+export const deactivatePushInstallation = async (
+    deviceId: string,
 ): Promise<ApiResponse<void>> => {
-    const params = new URLSearchParams();
-    params.set("pushToken", pushToken);
-
-    return apiClient(`/push-tokens?${params.toString()}`, {
+    return apiClient(`/push-tokens/installations/${encodeURIComponent(deviceId)}`, {
         method: "DELETE",
     });
 };

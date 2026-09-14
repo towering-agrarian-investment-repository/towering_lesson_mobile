@@ -1,7 +1,9 @@
+import { getInstallationId } from "@/lib/config/notification/pushRegistrationStorage";
 import { savePushToken } from "@/service/shared/push-token-service";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 Notifications.setNotificationHandler({
 	handleNotification: async () => ({
@@ -12,12 +14,15 @@ Notifications.setNotificationHandler({
 	}),
 });
 
-export const registerForPushNotifications = async (): Promise<string | null> => {
+export const registerForPushNotifications = async (
+	devicePushToken?: Notifications.DevicePushToken,
+): Promise<string | null> => {
 	if (!Device.isDevice) {
+		console.warn("[push] Push notifications require a physical device");
 		return null;
 	}
 
-	if (process.env.EXPO_OS === "android") {
+	if (Platform.OS === "android") {
 		await Notifications.setNotificationChannelAsync("default", {
 			name: "default",
 			importance: Notifications.AndroidImportance.MAX,
@@ -36,6 +41,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 	}
 
 	if (finalStatus !== "granted") {
+		console.warn(`[push] Notification permission is ${finalStatus}`);
 		return null;
 	}
 
@@ -49,37 +55,21 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 
 	const tokenResponse = await Notifications.getExpoPushTokenAsync({
 		projectId,
+		...(devicePushToken ? { devicePushToken } : {}),
 	});
 
 	const expoPushToken = tokenResponse.data;
+	const installationId = await getInstallationId();
 
 	await savePushToken({
-		deviceId: getDeviceId(),
+		deviceId: installationId,
 		pushToken: expoPushToken,
 		platform: "EXPO",
 	});
 
+	if (__DEV__) {
+		console.info("[push] Expo push token registered with the backend");
+	}
+
 	return expoPushToken;
-};
-
-export const getDeviceId = (): string | null => {
-	return Device.osInternalBuildId ?? Device.deviceName ?? null;
-};
-
-export const addNotificationReceivedListener = (
-	callback: (notification: Notifications.Notification) => void,
-) => {
-	return Notifications.addNotificationReceivedListener(callback);
-};
-
-export const addNotificationResponseReceivedListener = (
-	callback: (response: Notifications.NotificationResponse) => void,
-) => {
-	return Notifications.addNotificationResponseReceivedListener(callback);
-};
-
-export const removeNotificationSubscription = (
-	subscription: Notifications.EventSubscription | null,
-) => {
-	subscription?.remove();
 };

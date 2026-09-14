@@ -1,5 +1,5 @@
 
-import { addNotificationReceivedListener, addNotificationResponseReceivedListener, registerForPushNotifications, removeNotificationSubscription } from "@/lib/config/notification/registerPushNotification";
+import { registerForPushNotifications } from "@/lib/config/notification/registerPushNotification";
 import type { NotificationReferenceType } from "@/service/shared/notification-service";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -14,12 +14,6 @@ export const usePushNotification = (isLoggedIn: boolean) => {
     const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
     const [notification, setNotification] =
         useState<Notifications.Notification | null>(null);
-
-    const notificationListener =
-        useRef<Notifications.EventSubscription | null>(null);
-
-    const responseListener =
-        useRef<Notifications.EventSubscription | null>(null);
     const lastHandledNotificationId = useRef<string | null>(null);
 
     const handleNotificationNavigation = useCallback(
@@ -94,36 +88,60 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             return;
         }
 
-        registerForPushNotifications()
-            .then((token) => {
-                setExpoPushToken(token);
-            })
-            .catch(() => {});
+        let isActive = true;
 
-        notificationListener.current = addNotificationReceivedListener(
+        const registerPushToken = async (
+            devicePushToken?: Notifications.DevicePushToken,
+        ) => {
+            try {
+                const token = await registerForPushNotifications(devicePushToken);
+
+                if (!isActive) {
+                    return;
+                }
+
+                setExpoPushToken(token);
+            } catch (error) {
+                console.error("[push] Registration failed", error);
+            }
+        };
+
+        void registerPushToken();
+
+        const pushTokenSubscription = Notifications.addPushTokenListener((devicePushToken) => {
+            void registerPushToken(devicePushToken);
+        });
+
+        const notificationSubscription = Notifications.addNotificationReceivedListener(
             (receivedNotification) => {
                 setNotification(receivedNotification);
             },
         );
 
-        responseListener.current = addNotificationResponseReceivedListener(
+        const responseSubscription = Notifications.addNotificationResponseReceivedListener(
             (response) => {
                 handleNotificationNavigation(response);
             },
         );
 
-        void Notifications.getLastNotificationResponseAsync().then((response) => {
-            handleNotificationNavigation(response);
-        });
+        void Notifications.getLastNotificationResponseAsync()
+            .then((response) => {
+                handleNotificationNavigation(response);
+            })
+            .catch((error) => {
+                console.error("[push] Failed to read the last notification response", error);
+            });
 
         return () => {
-            removeNotificationSubscription(notificationListener.current);
-            removeNotificationSubscription(responseListener.current);
+            isActive = false;
+            pushTokenSubscription.remove();
+            notificationSubscription.remove();
+            responseSubscription.remove();
         };
     }, [handleNotificationNavigation, isLoggedIn]);
 
     return {
-        expoPushToken,
+        expoPushToken: isLoggedIn ? expoPushToken : null,
         notification,
     };
 };

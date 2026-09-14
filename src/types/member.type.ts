@@ -5,7 +5,6 @@ export type MemberSelfResponse = {
     authUserId: string;
     name: string;
     nickname?: string | null;
-    username: string;
     phoneNumber: string;
     profileImage: string | null;
     gender: GenderEnum | null;

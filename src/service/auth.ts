@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { deactivateCurrentPushInstallation } from "@/lib/config/notification/pushRegistrationStorage";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
 const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid phone number or password";
@@ -17,8 +18,6 @@ export type AuthSession = {
         email: string;
         name?: string | null;
         role?: string | null;
-        username?: string | null;
-        displayUsername?: string | null;
         phoneNumber?: string | null;
         image?: string | null;
         emailVerified?: boolean;
@@ -49,6 +48,8 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
 };
 
 export const signOut = async () => {
+    await deactivateCurrentPushInstallation();
+
     const result = await authClient.signOut();
 
     if (result.error) {
