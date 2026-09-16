@@ -84,40 +84,42 @@ export default function HomeScreen() {
       headerShown={false}
       contentClassName="flex-grow"
       footer={
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("home.viewMyReservations")}
-          disabled={isLocked}
-          className="mx-6 rounded-xl bg-primary py-4 disabled:opacity-60"
-          style={({ pressed }) => ({
-            opacity: pressed && !isLocked ? 0.86 : 1,
-            ...getPressedScaleStyle(pressed, isLocked),
-          })}
-          onPressIn={() => {
-            if (!isLocked) {
-              void queryClient.prefetchInfiniteQuery(
-                getMemberReservationsQueryOptions("all"),
-              );
-            }
-          }}
-          onPress={() => {
-            if (isLocked) {
-              return;
-            }
+        <View className="border-t border-border bg-background px-5 py-3">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("home.viewMyReservations")}
+            disabled={isLocked}
+            className="min-h-12 items-center justify-center rounded-xl bg-primary px-4 disabled:opacity-60"
+            style={({ pressed }) => ({
+              opacity: pressed && !isLocked ? 0.86 : 1,
+              ...getPressedScaleStyle(pressed, isLocked),
+            })}
+            onPressIn={() => {
+              if (!isLocked) {
+                void queryClient.prefetchInfiniteQuery(
+                  getMemberReservationsQueryOptions("all"),
+                );
+              }
+            }}
+            onPress={() => {
+              if (isLocked) {
+                return;
+              }
 
-            triggerImpactHaptic();
-            runWithNavigationLock(() => {
-              router.push("/reservation");
-            });
-          }}
-        >
-          <AppText
-            variant="label"
-            className="text-center text-base font-bold text-primary-foreground"
+              triggerImpactHaptic();
+              runWithNavigationLock(() => {
+                router.push("/reservation");
+              });
+            }}
           >
-            {t("home.viewMyReservations")}
-          </AppText>
-        </Pressable>
+            <AppText
+              variant="label"
+              className="text-center text-base font-bold text-primary-foreground"
+            >
+              {t("home.viewMyReservations")}
+            </AppText>
+          </Pressable>
+        </View>
       }
       refreshControl={
         <RefreshControl

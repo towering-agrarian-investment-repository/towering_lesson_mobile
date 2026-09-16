@@ -81,6 +81,8 @@ export type BaySlotGroupScheduleResponse = {
     startDateTime: string;
     endDateTime: string;
     totalBaySlots: number;
+    totalReservableBaySlots: number;
+    totalDisplayCapacity: number;
     totalReservations: number;
     baySlots: BaySlotScheduleResponse[];
 };

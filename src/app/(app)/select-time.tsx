@@ -135,13 +135,13 @@ export default function TimeScreen() {
                         const { group, availableBayCount } = item;
 
                         return (
-                        <Pressable
+                            <Pressable
                                 accessibilityRole="button"
                                 accessibilityLabel={formatTimeRange(
                                     group.startDateTime,
                                     group.endDateTime,
                                 )}
-                            className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
+                                className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
                                 onPress={() => handleSelect(group)}
                                 disabled={isLocked}
                             >
@@ -165,7 +165,7 @@ export default function TimeScreen() {
                                         {t("booking.select")}
                                     </AppText>
                                 </View>
-                        </Pressable>
+                            </Pressable>
                         );
                     }}
                     ItemSeparatorComponent={() => <View className="h-3" />}
