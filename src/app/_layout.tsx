@@ -55,6 +55,7 @@ export default function RootLayout() {
             <WelcomeProvider>
               <AppUpdateProvider value={update}>
                 <ThemedRoot
+                  isAuthPending={isPending}
                   hasAuthorizedSession={hasAuthorizedSession}
                   update={update}
                 />
@@ -68,9 +69,11 @@ export default function RootLayout() {
 }
 
 function ThemedRoot({
+  isAuthPending,
   hasAuthorizedSession,
   update,
 }: {
+  isAuthPending: boolean;
   hasAuthorizedSession: boolean;
   update: ReturnType<typeof useAppUpdate>;
 }) {
@@ -112,11 +115,11 @@ function ThemedRoot({
   return (
     <>
       <VariableContextProvider value={themeVariables}>
-        {!isWelcomeReady || update.isChecking ? <View className="flex-1 bg-background" /> : null}
+        {!isWelcomeReady || update.isChecking || isAuthPending ? <View className="flex-1 bg-background" /> : null}
         {isWelcomeReady && !update.isChecking && update.isForceUpdateRequired && update.state ? (
           <AppUpdateGate state={update.state} force />
         ) : null}
-        {isWelcomeReady && !update.isChecking && !update.isForceUpdateRequired ? (
+        {isWelcomeReady && !isAuthPending && !update.isChecking && !update.isForceUpdateRequired ? (
           <View className="flex-1 bg-background">
             <Stack
                 screenOptions={{

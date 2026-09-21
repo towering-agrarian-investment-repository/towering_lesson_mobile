@@ -78,7 +78,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
                 return;
             }
 
-            router.push("/(app)/(tabs)/notice");
+            router.navigate("/(app)/(tabs)/notice");
         },
         [],
     );

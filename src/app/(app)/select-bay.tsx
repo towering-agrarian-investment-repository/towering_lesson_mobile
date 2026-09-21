@@ -6,6 +6,7 @@ import {
     Skeleton,
 } from "@/design-system";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
+import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
@@ -43,6 +44,9 @@ export default function BayScreen() {
         mode,
         reservationId,
         notes,
+        conflictMessage,
+        conflictSlotId,
+        conflictId,
     } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
@@ -52,9 +56,12 @@ export default function BayScreen() {
         startTime?: string;
         endTime?: string;
         mode?: string;
-        reservationId?: string;
-        notes?: string;
-    }>();
+            reservationId?: string;
+            notes?: string;
+            conflictMessage?: string;
+            conflictSlotId?: string;
+            conflictId?: string;
+        }>();
 
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
@@ -87,6 +94,11 @@ export default function BayScreen() {
         if (!slotGroup) return;
 
         runWithNavigationLock(() => {
+            router.setParams({
+                conflictMessage: undefined,
+                conflictSlotId: undefined,
+                conflictId: undefined,
+            });
             router.push({
                 pathname: "/booking-confirm",
                 params: {
@@ -132,6 +144,13 @@ export default function BayScreen() {
                     ),
                 ]}
             />
+
+            {conflictMessage ? (
+                <AvailabilityConflictNotice
+                    key={conflictId}
+                    message={conflictMessage}
+                />
+            ) : null}
 
             {isLoading ? (
                 <View className="gap-3">
@@ -180,7 +199,10 @@ export default function BayScreen() {
                     message={t("booking.timeNoLongerAvailableMessage")}
                     actionLabel={t("booking.chooseAnotherTime")}
                     onAction={() => {
-                        router.back();
+                        runWithNavigationLock(() => router.dismissTo({
+                            pathname: "/select-time",
+                            params: { date, ticketId, ticketName, ticketType, mode, reservationId, notes },
+                        }));
                     }}
                 />
             ) : null}
@@ -193,10 +215,17 @@ export default function BayScreen() {
                                 const {
                                     isBlocked,
                                     isReserved,
-                                    isDisabled,
+                                    isDisabled: isUnavailable,
                                 } = getBaySlotAvailability(bay);
+                                const wasJustBooked = Boolean(
+                                    conflictMessage &&
+                                    conflictSlotId === String(bay.id),
+                                );
+                                const isDisabled = isUnavailable || wasJustBooked;
 
-                                const statusLabel = isBlocked
+                                const statusLabel = wasJustBooked
+                                    ? t("booking.justBooked")
+                                    : isBlocked
                                     ? t("booking.statusBlocked")
                                     : isReserved
                                         ? t("booking.statusBooked")
@@ -212,9 +241,11 @@ export default function BayScreen() {
                                         <Pressable
                                             accessibilityRole="button"
                                             accessibilityLabel={`${bay.bayName}, ${statusLabel}`}
-                                            className={`items-center gap-2 rounded-2xl border px-3 py-4 ${!isDisabled
-                                                ? "border-border bg-card"
-                                                : "border-muted bg-muted opacity-55"
+                                            className={`items-center gap-2 rounded-2xl border px-3 py-4 ${wasJustBooked
+                                                ? "border-warning/40 bg-warning/10 opacity-80"
+                                                : !isDisabled
+                                                    ? "border-border bg-card"
+                                                    : "border-muted bg-muted opacity-55"
                                                 }`}
                                             onPress={() =>
                                                 !isDisabled && handleSelect(bay)
@@ -233,9 +264,11 @@ export default function BayScreen() {
 
                                             <AppText
                                                 variant="badge"
-                                                className={`rounded-full px-2.5 py-1 text-center ${!isDisabled
-                                                    ? "bg-primary/10 text-primary"
-                                                    : "bg-muted text-muted-foreground"
+                                                className={`rounded-full px-2.5 py-1 text-center ${wasJustBooked
+                                                    ? "bg-warning/15 text-warning"
+                                                    : !isDisabled
+                                                        ? "bg-primary/10 text-primary"
+                                                        : "bg-muted text-muted-foreground"
                                                     }`}
                                             >
                                                 {statusLabel}

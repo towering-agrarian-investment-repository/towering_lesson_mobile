@@ -10,11 +10,15 @@ import {
 } from "@/components/golf/reservation/ReservationSections";
 import { EmptyState, ErrorState, Screen, Divider } from "@/design-system";
 import { showAppToast } from "@/lib/toast/toast";
+import { responseError } from "@/lib/api-response/api-response";
 import {
+    getMemberBaySlotGroupsQueryOptions,
+    isReservationSlotUnavailable,
     useCreateMemberBayReservation,
     useMemberBaySlotGroups,
     useRescheduleMemberBayReservation,
 } from "@/lib/hook/useReservation";
+import { useQueryClient } from "@tanstack/react-query";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -54,6 +58,7 @@ export default function ConfirmScreen() {
             notes?: string;
         }>();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const isRescheduleMode = mode === "reschedule";
     const reservationIdNumber = reservationId ? Number(reservationId) : null;
     const notes = initialNotes?.trim() || null;
@@ -93,6 +98,36 @@ export default function ConfirmScreen() {
     const { isDisabled: isBaySlotDisabled } = getBaySlotAvailability(selectedBaySlot);
     const isMissingRequiredData = !slotGroup || !selectedBaySlot;
 
+    const handleSlotUnavailable = async (error: unknown) => {
+        if (!isReservationSlotUnavailable(error)) {
+            return;
+        }
+
+        await queryClient.invalidateQueries({
+            queryKey: getMemberBaySlotGroupsQueryOptions(date, date).queryKey,
+            refetchType: "all",
+        });
+        router.dismissTo({
+            pathname: "/select-bay",
+            params: {
+                date,
+                ticketId,
+                ticketName,
+                ticketType,
+                slotGroupId,
+                startTime,
+                endTime,
+                mode,
+                reservationId,
+                notes: notes ?? undefined,
+                conflictMessage: error.message,
+                conflictSlotId: baySlotId,
+                conflictId: String(Date.now()),
+            },
+        });
+        responseError(error);
+    };
+
     const handleConfirm = () => {
         if (!baySlotId || !slotGroup || !selectedBaySlot) {
             return;
@@ -104,7 +139,7 @@ export default function ConfirmScreen() {
                 type: "warning",
             });
 
-            router.replace({
+            router.dismissTo({
                 pathname: "/select-bay",
                 params: {
                     date,
@@ -137,6 +172,7 @@ export default function ConfirmScreen() {
                 {
                     onSuccess: (response: BookingConfirmationSuccessResponse) =>
                         handleBookingConfirmationSuccess(router, response),
+                    onError: handleSlotUnavailable,
                 },
             );
             return;
@@ -155,6 +191,7 @@ export default function ConfirmScreen() {
             {
                 onSuccess: (response: BookingConfirmationSuccessResponse) =>
                     handleBookingConfirmationSuccess(router, response),
+                onError: handleSlotUnavailable,
             },
         );
     };
@@ -225,7 +262,14 @@ export default function ConfirmScreen() {
                     message={t("bookingConfirmation.selectedBayUnavailableMessage")}
                     actionLabel={t("bookingConfirmation.chooseAnotherBay")}
                     onAction={() => {
-                        router.back();
+                        router.dismissTo({
+                            pathname: "/select-bay",
+                            params: {
+                                date, ticketId, ticketName, ticketType, slotGroupId,
+                                startTime, endTime, mode, reservationId,
+                                notes: notes ?? undefined,
+                            },
+                        });
                     }}
                 />
             ) : (

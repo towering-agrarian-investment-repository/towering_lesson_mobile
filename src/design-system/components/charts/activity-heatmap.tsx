@@ -102,11 +102,10 @@ export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, t
         : "empty";
     useEffect(() => {
         if (autoScrolledRange.current === rangeKey || !needsScroll || containerWidth === 0 || focusMonthWeekIndex === -1) return;
-        const maxScrollX = Math.max(0, gridWidth - availableWidth);
         const targetX = Math.min(maxScrollX, Math.max(0, focusMonthWeekIndex * (cellSize + CELL_GAP)));
         scrollRef.current?.scrollToOffset({ offset: targetX, animated: false });
         autoScrolledRange.current = rangeKey;
-    }, [needsScroll, containerWidth, focusMonthWeekIndex, cellSize, availableWidth, gridWidth, rangeKey]);
+    }, [needsScroll, containerWidth, focusMonthWeekIndex, cellSize, maxScrollX, rangeKey]);
 
     const handleSelectDay = useCallback((dateKey: string, date: Date, count: number) => {
         setSelectedDay(dateKey);

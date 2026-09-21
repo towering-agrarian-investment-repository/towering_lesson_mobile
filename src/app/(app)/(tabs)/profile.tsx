@@ -9,7 +9,6 @@ import {
     ListRow,
     Screen,
     Card,
-    Button,
     triggerSelectionHaptic,
     type PrimaryColorPreference,
     type ThemePreference,
@@ -27,7 +26,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import Constants from "expo-constants";
 import { Href, Link } from "expo-router";
-import { Download, Languages, Moon, Smartphone, Sun } from "lucide-react-native";
+import { Download, Moon, Smartphone, Sun } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
@@ -164,7 +163,7 @@ export default function ProfileScreen() {
 
                 <Card className="gap-3 rounded-none border-0 bg-transparent p-0 pt-5 pb-3">
                     <SectionTitle title={t("profile.personalRecord")} />
-                    <LinkRow label={t("navigation.tabs.lessons")} href="/(app)/(tabs)/lessons" />
+                    <LinkRow label={t("navigation.tabs.lessons")} href="/lessons" />
                     <LinkRow label={t("profile.lessonLog")} href="/lesson-log" />
                 </Card>
 
@@ -647,7 +646,6 @@ function LanguagePreferenceRow({
     onChange: (language: AppLanguage) => Promise<void>;
 }) {
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const [isLanguageSheetVisible, setIsLanguageSheetVisible] = useState(false);
     const languageOptions: { label: string; value: AppLanguage }[] = [
         { label: t("profile.english"), value: "en" },

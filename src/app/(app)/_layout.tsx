@@ -1,16 +1,14 @@
 import {
-    getPressedScaleStyle,
-    triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
 import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type Href, Stack, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
+
+export const unstable_settings = { anchor: "(tabs)" };
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -58,14 +56,13 @@ function getToastStyles(
 export default function AppLayout() {
     const colors = useThemeColors();
     const { t } = useTranslation();
-    const router = useRouter();
 
     return (
         <QueryClientProvider client={queryClient}>
             <ToastProvider>
                 <ToastBridge />
                     <Stack
-                    screenOptions={({ navigation }) => ({
+                    screenOptions={{
                         animation: "none",
                         fullScreenGestureEnabled: true,
                         gestureEnabled: true,
@@ -78,34 +75,11 @@ export default function AppLayout() {
                             fontWeight: "700",
                         },
                         headerTitleAlign: "left",
-                        headerLeftContainerStyle: {
-                            paddingLeft: 8,
-                        },
                         headerLargeTitleStyle: {
                             color: colors.foreground,
                         },
                         headerShadowVisible: false,
-                        headerLeft: ({ canGoBack }) =>
-                            canGoBack ? (
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel={t("common.goBack")}
-                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full"
-                                    hitSlop={8}
-                                    style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.94)}
-                                    onPress={() => {
-                                        triggerSelectionHaptic();
-                                        navigation.goBack();
-                                    }}
-                                >
-                                    <ChevronLeft
-                                        size={20}
-                                        color={colors.foreground}
-                                        strokeWidth={2.4}
-                                    />
-                                </Pressable>
-                            ) : undefined,
-                    })}
+                    }}
                 >
                     <Stack.Screen
                         name="(tabs)"
@@ -121,31 +95,12 @@ export default function AppLayout() {
                             title: t("navigation.screens.myReservations"),
                             animation: "none",
                             animationDuration: 150,
-                            headerLeft: () => (
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel={t("common.goBack")}
-                                    className="mr-1 h-11 w-11 items-center justify-center rounded-full"
-                                    hitSlop={8}
-                                    style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.94)}
-                                    onPress={() => {
-                                        triggerSelectionHaptic();
-                                        if (router.canGoBack()) {
-                                            router.back();
-                                            return;
-                                        }
-
-                                        router.replace("/(app)/(tabs)" as Href);
-                                    }}
-                                >
-                                    <ChevronLeft
-                                        size={20}
-                                        color={colors.foreground}
-                                        strokeWidth={2.4}
-                                    />
-                                </Pressable>
-                            ),
                         }}
+                    />
+
+                    <Stack.Screen
+                        name="lessons/index"
+                        options={{ title: t("navigation.tabs.lessons") }}
                     />
 
                     <Stack.Screen

@@ -18,10 +18,7 @@ export function useUploadMemberUser() {
             queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         },
         onError: (err: unknown) => {
-            responseError({
-                error: err,
-                errorMessage: "Could not upload profile image.",
-            });
+            responseError(err);
         },
     });
 }

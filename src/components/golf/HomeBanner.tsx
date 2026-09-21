@@ -1,18 +1,23 @@
 import bannerFallback from "@/assets/images/banner.png";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { showAppToast } from "@/lib/toast/toast";
 import type { PublishedBanner } from "@/types/banner";
 import { Image } from "expo-image";
 import { Href, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, Linking, Pressable, View } from "react-native";
 
 const BANNER_ASPECT_RATIO = 993 / 250;
 const AUTO_ROTATE_MS = 5000;
 
 export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
+    const { t } = useTranslation();
     const router = useRouter();
+    const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
     const listRef = useRef<FlatList<PublishedBanner>>(null);
     const [width, setWidth] = useState(0);
-    const [, setIndex] = useState(0);
+    const indexRef = useRef(0);
 
     const items = useMemo(() => {
         const ordered = [...banners].sort((a, b) => a.displayOrder - b.displayOrder);
@@ -32,7 +37,7 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
     }, [items]);
 
     useEffect(() => {
-        setIndex(0);
+        indexRef.current = 0;
         listRef.current?.scrollToIndex({ index: 0, animated: false });
     }, [items.length]);
 
@@ -40,11 +45,9 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
         if (items.length < 2 || width === 0) return;
 
         const timer = setInterval(() => {
-            setIndex((current) => {
-                const next = (current + 1) % items.length;
-                listRef.current?.scrollToIndex({ index: next, animated: true });
-                return next;
-            });
+            const next = (indexRef.current + 1) % items.length;
+            indexRef.current = next;
+            listRef.current?.scrollToIndex({ index: next, animated: true });
         }, AUTO_ROTATE_MS);
 
         return () => clearInterval(timer);
@@ -52,8 +55,24 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
 
     const openBanner = (targetUrl: string | null) => {
         if (!targetUrl) return;
-        if (/^https?:\/\//i.test(targetUrl)) void Linking.openURL(targetUrl);
-        else router.push(targetUrl as Href);
+
+        runWithNavigationLock(() => {
+            if (/^https?:\/\//i.test(targetUrl)) {
+                void Linking.openURL(targetUrl)
+                    .catch(() => {
+                        showAppToast({
+                            message: t("common.unableToOpenLink", {
+                                defaultValue: "Unable to open this link.",
+                            }),
+                            type: "error",
+                        });
+                    })
+                    .finally(unlock);
+                return;
+            }
+
+            router.push(targetUrl as Href);
+        });
     };
 
     if (items.length === 0) return null;
@@ -95,7 +114,8 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
                                 <Pressable
                                     accessibilityRole="link"
                                     accessibilityLabel={banner.title || "Banner"}
-                                    className="active:opacity-85"
+                                    disabled={isLocked}
+                                    className="active:opacity-85 disabled:opacity-60"
                                     onPress={() => openBanner(banner.targetUrl)}
                                 >
                                     {image}
@@ -105,7 +125,11 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
                     );
                 }}
                 onMomentumScrollEnd={(event) => {
-                    if (width > 0) setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
+                    if (width > 0) {
+                        indexRef.current = Math.round(
+                            event.nativeEvent.contentOffset.x / width,
+                        );
+                    }
                 }}
             />
 

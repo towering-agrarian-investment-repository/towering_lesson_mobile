@@ -44,7 +44,7 @@ export async function createMemberLessonReservation(
 
 export async function cancelLessonReservationById(
     id: number,
-): Promise<ApiResponse<void>> {
+): Promise<ApiResponse<null>> {
     return apiClient(`/member/lesson-reservations/${id}/cancel`, {
         method: "PUT",
     });

@@ -11,7 +11,7 @@ export interface SavePushTokenRequest {
 
 export const savePushToken = async (
     data: SavePushTokenRequest,
-): Promise<ApiResponse<void>> => {
+): Promise<ApiResponse<null>> => {
     return apiClient("/push-tokens", {
         method: "POST",
         body: JSON.stringify(data),
@@ -20,7 +20,7 @@ export const savePushToken = async (
 
 export const deactivatePushInstallation = async (
     deviceId: string,
-): Promise<ApiResponse<void>> => {
+): Promise<ApiResponse<null>> => {
     return apiClient(`/push-tokens/installations/${encodeURIComponent(deviceId)}`, {
         method: "DELETE",
     });

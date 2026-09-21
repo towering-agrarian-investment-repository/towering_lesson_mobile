@@ -64,7 +64,7 @@ export const useMarkAsRead = () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
-			responseError({ error });
+			responseError(error);
 		},
 	});
 };
@@ -79,7 +79,7 @@ export const useMarkAllAsRead = () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
-			responseError({ error });
+			responseError(error);
 		},
 	});
 };
@@ -94,7 +94,7 @@ export const useDeleteNotification = () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
-			responseError({ error });
+			responseError(error);
 		},
 	});
 };
@@ -109,7 +109,7 @@ export const useDeleteAllNotifications = () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
-			responseError({ error });
+			responseError(error);
 		},
 	});
 };

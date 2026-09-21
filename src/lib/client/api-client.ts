@@ -1,7 +1,12 @@
 import { authClient } from "../auth-client";
 import { env } from "../config/env";
 import i18n from "../../i18n";
-import { notifyUpdateRequired, type AppUpdateConfig } from "../update/app-update";
+import {
+    API_ERROR_CODE,
+    isApiError,
+    isApiErrorResponse,
+} from "../api-response/api-response";
+import { notifyUpdateRequired } from "../update/app-update";
 import { getAppRequestHeaders } from "./app-request-headers";
 
 const API_BASE_URL = env.apiBaseUrl;
@@ -47,6 +52,7 @@ export async function apiClient<T = unknown>(
     }
 
     const headers = new Headers(options.headers);
+    headers.set("Accept", "application/json");
     headers.set("Authorization", `Bearer ${jwtToken}`);
     Object.entries(getAppRequestHeaders()).forEach(([key, value]) => headers.set(key, value));
 
@@ -54,7 +60,11 @@ export async function apiClient<T = unknown>(
         headers.set("Accept-Language", i18n.resolvedLanguage ?? i18n.language ?? "en");
     }
 
-    if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
+    if (
+        options.body &&
+        !(options.body instanceof FormData) &&
+        !headers.has("Content-Type")
+    ) {
         headers.set("Content-Type", "application/json");
     }
 
@@ -72,20 +82,31 @@ export async function apiClient<T = unknown>(
         headers,
     });
 
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType?.includes("application/json");
+    let payload: unknown;
 
-    const data = isJson ? await response.json() : await response.text();
-
-    if (isUpdateRequiredResponse(response.status, data)) {
-        notifyUpdateRequired(getUpdateConfig(data));
+    try {
+        payload = await response.json();
+    } catch {
+        throw new Error(
+            response.ok
+                ? "Backend returned an invalid success response."
+                : "Backend returned an invalid error response.",
+        );
     }
 
     if (!response.ok) {
-        throw data;
+        if (!isApiErrorResponse(payload)) {
+            throw new Error("Backend returned an invalid error response.");
+        }
+
+        if (isUpdateRequiredResponse(response.status, payload)) {
+            notifyUpdateRequired();
+        }
+
+        throw payload;
     }
 
-    return data as T;
+    return payload as T;
 }
 
 function uploadFormDataWithXhr<T>(
@@ -103,29 +124,36 @@ function uploadFormDataWithXhr<T>(
         });
 
         request.onload = () => {
-            const contentType = request.getResponseHeader("content-type");
             const responseText =
                 typeof request.responseText === "string" ? request.responseText : "";
-            let data: unknown = responseText;
+            let payload: unknown;
 
-            if (contentType?.includes("application/json") && responseText) {
-                try {
-                    data = JSON.parse(responseText);
-                } catch {
-                    data = responseText;
-                }
-            }
-
-            if (isUpdateRequiredResponse(request.status, data)) {
-                notifyUpdateRequired(getUpdateConfig(data));
-            }
-
-            if (request.status >= 200 && request.status < 300) {
-                resolve(data as T);
+            try {
+                payload = JSON.parse(responseText);
+            } catch {
+                reject(new Error(
+                    request.status >= 200 && request.status < 300
+                        ? "Backend returned an invalid success response."
+                        : "Backend returned an invalid error response.",
+                ));
                 return;
             }
 
-            reject(data);
+            if (request.status >= 200 && request.status < 300) {
+                resolve(payload as T);
+                return;
+            }
+
+            if (!isApiErrorResponse(payload)) {
+                reject(new Error("Backend returned an invalid error response."));
+                return;
+            }
+
+            if (isUpdateRequiredResponse(request.status, payload)) {
+                notifyUpdateRequired();
+            }
+
+            reject(payload);
         };
 
         request.onerror = () => {
@@ -141,43 +169,11 @@ function uploadFormDataWithXhr<T>(
 }
 
 function isUpdateRequiredResponse(status: number, data: unknown) {
-    if (status === 426) {
-        return true;
-    }
-
-    if (!data || typeof data !== "object") {
-        return false;
-    }
-
-    const payload = data as Record<string, unknown>;
-    const nestedPayload =
-        payload.data && typeof payload.data === "object"
-            ? (payload.data as Record<string, unknown>)
-            : null;
     return (
-        status === 403 &&
-        (payload.code === "UPDATE_REQUIRED" ||
-            payload.errorCode === "UPDATE_REQUIRED" ||
-            payload.error === "UPDATE_REQUIRED" ||
-            nestedPayload?.code === "UPDATE_REQUIRED" ||
-            nestedPayload?.errorCode === "UPDATE_REQUIRED")
+        status === 426 &&
+        isApiError(data, {
+            httpStatus: 426,
+            errorCode: API_ERROR_CODE.UPGRADE_REQUIRED,
+        })
     );
-}
-
-function getUpdateConfig(data: unknown): AppUpdateConfig | undefined {
-    if (!data || typeof data !== "object") {
-        return undefined;
-    }
-
-    const payload = data as Record<string, unknown>;
-    const updateInfo =
-        payload.data && typeof payload.data === "object"
-            ? (payload.data as Record<string, unknown>)
-            : payload;
-
-    if (typeof updateInfo.minimumSupportedVersion !== "string") {
-        return undefined;
-    }
-
-    return updateInfo as AppUpdateConfig;
 }

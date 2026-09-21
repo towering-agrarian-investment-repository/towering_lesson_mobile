@@ -9,6 +9,7 @@ import {
     Skeleton,
 } from "@/design-system";
 import * as Haptics from "expo-haptics";
+import type { useRouter } from "expo-router";
 import { View } from "react-native";
 
 export type BookingConfirmationSuccessResponse = {
@@ -18,11 +19,10 @@ export type BookingConfirmationSuccessResponse = {
     } | null;
 };
 
-type BookingConfirmationRouter = {
-    dismissAll: () => void;
-    push: (...args: any[]) => void;
-    replace: (...args: any[]) => void;
-};
+type BookingConfirmationRouter = Pick<
+    ReturnType<typeof useRouter>,
+    "dismissTo" | "push"
+>;
 
 type BookingConfirmationFooterProps = {
     title: string;
@@ -49,22 +49,23 @@ export function handleBookingConfirmationSuccess(
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
 
-    router.dismissAll();
+    router.dismissTo("/(app)/(tabs)");
 
-    if (reservation) {
-        router.replace("/reservation");
-        router.push({
-            pathname: "/reservation/[id]",
-            params: {
-                id: String(reservation.id),
-                type: reservation.reservationType,
-                success: "true",
-            },
-        });
+    if (!reservation) {
+        router.push("/reservation");
         return;
     }
 
-    router.replace("/reservation");
+    // Keep the reservation list as the detail screen's intentional back target.
+    router.push("/reservation");
+    router.push({
+        pathname: "/reservation/[id]",
+        params: {
+            id: String(reservation.id),
+            type: reservation.reservationType,
+            success: "true",
+        },
+    });
 }
 
 export function BookingConfirmationFooter({

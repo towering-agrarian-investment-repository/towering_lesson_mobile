@@ -51,18 +51,30 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
     const [containerWidth, setContainerWidth] = useState(0);
     const startDateKey = startDate ? weekKey(startDate) : "";
     const endDateKey = weekKey(endDate);
-    const weeks = useMemo(() => buildWeekSummaries(values, startDate, endDate, numWeeks), [values, startDateKey, endDateKey, numWeeks]);
+    const weeks = useMemo(
+        () => buildWeekSummaries(
+            values,
+            startDateKey ? parseCalendarDate(startDateKey) : undefined,
+            parseCalendarDate(endDateKey),
+            numWeeks,
+        ),
+        [values, startDateKey, endDateKey, numWeeks],
+    );
     const maxTotal = Math.max(1, ...weeks.map((w) => w.total));
     const hasData = weeks.some((week) => week.total > 0);
+    const rangeKey = weeks.length
+        ? `${weekKey(weeks[0].weekStart)}-${weekKey(weeks[weeks.length - 1].weekStart)}`
+        : "empty";
 
     const currentWeekKey = weekKey(parseCalendarDate(new Date()));
-    const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
+    const [selection, setSelection] = useState<{
+        rangeKey: string;
+        weekKey: string;
+    } | null>(null);
+    const selectedWeek = selection?.rangeKey === rangeKey
+        ? selection.weekKey
+        : null;
     const selectedSummary = weeks.find((w) => weekKey(w.weekStart) === selectedWeek);
-
-    useEffect(() => {
-        // Reset to the overall summary whenever the year/range changes.
-        setSelectedWeek(null);
-    }, [weeks]);
 
     const chartViewportWidth = Math.max(0, containerWidth - Y_AXIS_WIDTH - CHART_GAP);
     const barWidth = chartViewportWidth > 0
@@ -79,20 +91,17 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
 
     const scrollRef = useRef<FlatList<(typeof weeks)[number]>>(null);
     const autoScrolledRange = useRef<string | null>(null);
-    const rangeKey = weeks.length
-        ? `${weekKey(weeks[0].weekStart)}-${weekKey(weeks[weeks.length - 1].weekStart)}`
-        : "empty";
     useEffect(() => {
         if (autoScrolledRange.current === rangeKey || containerWidth === 0) return;
         const initialScrollX = initialScrollToEnd ? maxScrollX : 0;
         scrollRef.current?.scrollToOffset({ offset: initialScrollX, animated: false });
         autoScrolledRange.current = rangeKey;
-    }, [containerWidth, gridWidth, initialScrollToEnd, rangeKey]);
+    }, [containerWidth, initialScrollToEnd, maxScrollX, rangeKey]);
 
     const handleBarPress = useCallback((weekStart: Date, total: number, key: string) => {
-        setSelectedWeek(key);
+        setSelection({ rangeKey, weekKey: key });
         onWeekPress?.(weekStart, total);
-    }, [onWeekPress]);
+    }, [onWeekPress, rangeKey]);
 
     const renderBar = useCallback(({ item: week }: { item: WeeklyWeek }) => (
         <WeeklyBar

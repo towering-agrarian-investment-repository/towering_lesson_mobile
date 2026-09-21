@@ -93,7 +93,7 @@ export default function EditProfileScreen() {
             {
                 onSuccess: () => {
                     triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
-                    router.back();
+                    router.dismissTo("/(app)/(tabs)/profile");
                 },
             },
         );

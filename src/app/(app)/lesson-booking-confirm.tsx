@@ -9,10 +9,14 @@ import {
 } from "@/components/golf/reservation/ReservationSections";
 import { Divider, EmptyState, ErrorState, Screen } from "@/design-system";
 import {
+    getMemberTicketLessonSlotsQueryOptions,
+    isReservationSlotUnavailable,
     useCreateMemberLessonReservation,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
+import { responseError } from "@/lib/api-response/api-response";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     getLessonSlotDisplayName,
     isLessonSlotBookable,
@@ -53,6 +57,7 @@ export default function LessonBookingConfirmScreen() {
         notes?: string;
     }>();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const notes = initialNotes?.trim() || null;
     const { mutate: createReservation, isPending: isCreating } =
@@ -98,6 +103,35 @@ export default function LessonBookingConfirmScreen() {
         : isGroupTicket;
     const isMissingRequiredData = !ticketIdNumber || !lessonAvailabilityIdNumber;
 
+    const handleSlotUnavailable = async (error: unknown) => {
+        if (!isReservationSlotUnavailable(error) || !ticketIdNumber) {
+            return;
+        }
+
+        await queryClient.invalidateQueries({
+            queryKey: getMemberTicketLessonSlotsQueryOptions(
+                ticketIdNumber,
+                year,
+                month,
+            ).queryKey,
+            refetchType: "all",
+        });
+        router.dismissTo({
+            pathname: "/select-lesson-slot",
+            params: {
+                date,
+                ticketId,
+                ticketName,
+                ticketType,
+                notes: notes ?? undefined,
+                conflictMessage: error.message,
+                conflictSlotId: lessonAvailabilityId,
+                conflictId: String(Date.now()),
+            },
+        });
+        responseError(error);
+    };
+
     const handleConfirm = () => {
         if (!ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot) {
             return;
@@ -115,7 +149,7 @@ export default function LessonBookingConfirmScreen() {
                 type: "warning",
             });
 
-            router.replace({
+            router.dismissTo({
                 pathname: "/select-lesson-slot",
                 params: {
                     date,
@@ -138,6 +172,7 @@ export default function LessonBookingConfirmScreen() {
             {
                 onSuccess: (response: BookingConfirmationSuccessResponse) =>
                     handleBookingConfirmationSuccess(router, response),
+                onError: handleSlotUnavailable,
             },
         );
     };
@@ -235,13 +270,14 @@ export default function LessonBookingConfirmScreen() {
                         ? t("bookingConfirmation.chooseAnotherGroup")
                         : t("bookingConfirmation.chooseAnotherSlot")}
                     onAction={() => {
-                        router.replace({
+                        router.dismissTo({
                             pathname: "/select-lesson-slot",
                             params: {
                                 date,
                                 ticketId,
                                 ticketName,
                                 ticketType,
+                                notes: notes ?? undefined,
                             },
                         });
                     }}

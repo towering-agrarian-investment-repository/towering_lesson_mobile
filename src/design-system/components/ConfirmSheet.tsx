@@ -46,7 +46,9 @@ export function ConfirmSheet({
             visible={visible}
             transparent
             animationType="slide"
-            onRequestClose={onClose}
+            onRequestClose={() => {
+                if (!loading) onClose();
+            }}
         >
             <View className="flex-1 justify-end">
                 {blurEnabled ? (

@@ -38,14 +38,18 @@ export function useUpdateMemberLessonLog() {
 			data: MemberLessonLogUpdateRequest;
 		}) => updateMemberLessonLog(lessonLogId, data),
 		onSuccess: (res, variables) => {
-			responseStatus({ res });
-			queryClient.invalidateQueries({ queryKey: ["member", "lesson-logs"] });
-			queryClient.invalidateQueries({
-				queryKey: ["member", "lesson-logs", String(variables.lessonLogId)],
+			responseStatus(res);
+			queryClient.setQueryData(
+				getMemberLessonLogByIdQueryOptions(variables.lessonLogId).queryKey,
+				res,
+			);
+			void queryClient.invalidateQueries({
+				queryKey: ["member", "lesson-logs"],
+				exact: true,
 			});
 		},
 		onError: (error: unknown) => {
-			responseError({ error });
+			responseError(error);
 		},
 	});
 }

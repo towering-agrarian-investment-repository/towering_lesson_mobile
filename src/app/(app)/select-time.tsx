@@ -121,7 +121,10 @@ export default function TimeScreen() {
                     message={t("booking.noAvailableTimesMessage")}
                     actionLabel={t("booking.chooseAnotherDate")}
                     onAction={() => {
-                        router.back();
+                        runWithNavigationLock(() => router.dismissTo({
+                            pathname: "/select-date",
+                            params: { ticketId, ticketName, ticketType, mode, reservationId, notes },
+                        }));
                     }}
                 />
             ) : null}

@@ -8,6 +8,7 @@ import {
     useThemeColors,
 } from "@/design-system";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
+import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
@@ -47,12 +48,24 @@ function getMinutesUntilStart(slot: MemberLessonSlotResponse) {
 export default function SelectLessonSlotScreen() {
     const { t } = useTranslation();
     const colors = useThemeColors();
-    const { date, ticketId, ticketName, ticketType, notes } = useLocalSearchParams<{
+    const {
+        date,
+        ticketId,
+        ticketName,
+        ticketType,
+        notes,
+        conflictMessage,
+        conflictSlotId,
+        conflictId,
+    } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
         ticketName: string;
         ticketType?: string;
         notes?: string;
+        conflictMessage?: string;
+        conflictSlotId?: string;
+        conflictId?: string;
     }>();
 
     const router = useRouter();
@@ -78,6 +91,11 @@ export default function SelectLessonSlotScreen() {
 
     const handleSelect = (slot: MemberLessonSlotResponse) => {
         runWithNavigationLock(() => {
+            router.setParams({
+                conflictMessage: undefined,
+                conflictSlotId: undefined,
+                conflictId: undefined,
+            });
             router.push({
                 pathname: "/lesson-booking-confirm",
                 params: {
@@ -122,6 +140,13 @@ export default function SelectLessonSlotScreen() {
                     ]}
                 />
 
+                {conflictMessage ? (
+                    <AvailabilityConflictNotice
+                        key={conflictId}
+                        message={conflictMessage}
+                    />
+                ) : null}
+
             {isLoading ? (
                 <View className="items-center justify-center gap-3 py-2">
                     {Array.from({ length: 4 }, (_, index) => (
@@ -155,7 +180,10 @@ export default function SelectLessonSlotScreen() {
                     }
                     actionLabel={t("booking.chooseAnotherDate")}
                     onAction={() => {
-                        router.back();
+                        runWithNavigationLock(() => router.dismissTo({
+                            pathname: "/select-date",
+                            params: { ticketId, ticketName, ticketType, notes },
+                        }));
                     }}
                 />
             ) : null}
@@ -180,7 +208,11 @@ export default function SelectLessonSlotScreen() {
                     maxToRenderPerBatch={8}
                     windowSize={7}
                     renderItem={({ item: slot }) => {
-                        const disabled = isLessonSlotFull(slot);
+                        const wasJustBooked = Boolean(
+                            conflictMessage &&
+                            conflictSlotId === String(slot.id),
+                        );
+                        const disabled = wasJustBooked || isLessonSlotFull(slot);
                         const isBookable = isLessonSlotBookable(slot);
                         const startingSoon = !disabled && isStartingSoon(slot);
                         const minutesUntilStart = !disabled
@@ -189,7 +221,9 @@ export default function SelectLessonSlotScreen() {
                         const lessonTitle = getLessonSlotDisplayName(slot);
                         const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
                         const spotsLeft = getLessonSpotsLeft(slot);
-                        const statusLabel = disabled
+                        const statusLabel = wasJustBooked
+                            ? t("booking.justBooked")
+                            : disabled
                             ? isBookable
                                 ? t("booking.full")
                                 : t("booking.statusUnavailable")
@@ -214,9 +248,11 @@ export default function SelectLessonSlotScreen() {
                                 key={slot.id}
                                 accessibilityRole="button"
                                 accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
-                                className={`gap-2.5 rounded-2xl border p-3.5 ${disabled
-                                        ? "border-border bg-muted/70 opacity-70"
-                                        : "border-border bg-card"
+                                className={`gap-2.5 rounded-2xl border p-3.5 ${wasJustBooked
+                                        ? "border-warning/40 bg-warning/10 opacity-80"
+                                        : disabled
+                                            ? "border-border bg-muted/70 opacity-70"
+                                            : "border-border bg-card"
                                         }`}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
@@ -288,7 +324,9 @@ export default function SelectLessonSlotScreen() {
                                             <AppText
                                                 variant="badge"
                                                 className={
-                                                    disabled
+                                                    wasJustBooked
+                                                        ? "text-warning"
+                                                        : disabled
                                                         ? "text-danger"
                                                         : startingSoon
                                                             ? "text-warning"
@@ -318,9 +356,11 @@ export default function SelectLessonSlotScreen() {
                                 key={slot.id}
                                 accessibilityRole="button"
                                 accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
-                                className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${disabled
-                                    ? "border-muted bg-muted opacity-55"
-                                    : "border-border bg-card"
+                                className={`flex-row items-center justify-between gap-3 rounded-xl border px-4 py-4 ${wasJustBooked
+                                    ? "border-warning/40 bg-warning/10 opacity-80"
+                                    : disabled
+                                        ? "border-muted bg-muted opacity-55"
+                                        : "border-border bg-card"
                                     }`}
                                 onPress={() => !disabled && handleSelect(slot)}
                                 disabled={disabled || isLocked}
@@ -372,7 +412,9 @@ export default function SelectLessonSlotScreen() {
                                         <AppText
                                             variant="badge"
                                             className={
-                                                disabled
+                                                wasJustBooked
+                                                    ? "text-warning"
+                                                    : disabled
                                                     ? "text-muted-foreground"
                                                     : startingSoon
                                                         ? "text-warning"

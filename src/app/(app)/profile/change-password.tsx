@@ -56,30 +56,16 @@ function ChangePasswordScreen() {
             });
             triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
 
-            if (router.canGoBack()) {
-                router.back();
-                return;
-            }
-
-            router.replace("/profile" as never);
+            router.dismissTo("/(app)/(tabs)/profile");
 
         } catch (error) {
             const err = error as {
                 code?: string;
                 message?: string;
-                status?: number;
-                statusText?: string;
-                response?: {
-                    data?: {
-                        code?: string;
-                        message?: string;
-                        status?: number;
-                    };
-                };
             };
 
-            const code = err.code || err.response?.data?.code;
-            const message = err.message || err.response?.data?.message;
+            const code = err.code;
+            const message = err.message;
 
             if (code === "INVALID_PASSWORD") {
                 form.setError("currentPassword", {
@@ -90,7 +76,7 @@ function ChangePasswordScreen() {
                 return;
             }
 
-            responseError({ error })
+            responseError(error)
         }
     }
 

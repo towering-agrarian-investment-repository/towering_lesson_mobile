@@ -24,11 +24,11 @@ export function useUpdateMemberProfile() {
     >({
         mutationFn: updateMemberProfile,
         onSuccess: (res) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "profile"] });
+            responseStatus(res);
+            queryClient.setQueryData(["member", "profile"], res);
         },
         onError: (error) => {
-            responseError({ error });
+            responseError(error);
         },
     });
 }

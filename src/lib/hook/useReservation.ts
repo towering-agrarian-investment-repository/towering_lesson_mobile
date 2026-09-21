@@ -24,13 +24,22 @@ import {
     MemberLessonSlotResponse,
 } from "@/types/member-lesson";
 import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "../api-response/api-response";
+import { keepPreviousData, QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { API_ERROR_CODE, ApiResponse, ApiErrorResponse, CursorPageResponse, isApiError, responseError, responseStatus } from "../api-response/api-response";
 
 
 export type MemberReservationDetailResponse =
     | MemberLessonReservationResponse
     | MemberBayReservationResponse;
+
+export function isReservationSlotUnavailable(
+    error: unknown,
+): error is ApiErrorResponse {
+    return isApiError(error, {
+        httpStatus: 409,
+        errorCode: API_ERROR_CODE.RESERVATION_SLOT_UNAVAILABLE,
+    });
+}
 
 type RescheduleMemberBayReservationVariables = {
     reservationId: number;
@@ -139,6 +148,32 @@ export function getMemberReservationDetailQueryOptions(
     };
 }
 
+function cacheMemberReservationDetail(
+    queryClient: QueryClient,
+    response: ApiResponse<MemberReservationDetailResponse>,
+) {
+    const reservation = response.data;
+
+    if (!reservation) {
+        return;
+    }
+
+    queryClient.setQueryData(
+        getMemberReservationDetailQueryOptions(
+            reservation.id,
+            reservation.reservationType,
+        ).queryKey,
+        response,
+    );
+}
+
+function refreshMemberReservationLists(queryClient: QueryClient) {
+    void queryClient.invalidateQueries({
+        queryKey: ["member", "reservations"],
+        predicate: (query) => query.queryKey[2] !== "detail",
+    });
+}
+
 export function useMemberReservationById(id: number, domain?: MemberReservationDomain) {
     return useQuery<ApiResponse<MemberReservationDetailResponse>>({
         ...getMemberReservationDetailQueryOptions(
@@ -170,14 +205,20 @@ export function useCreateMemberBayReservation() {
         CreateBayReservationRequest
     >({
         mutationFn: createMemberBayReservation,
+        retry: false,
         onSuccess: (res) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
+            responseStatus(res);
+            cacheMemberReservationDetail(queryClient, res);
+            refreshMemberReservationLists(queryClient);
+            void queryClient.invalidateQueries({
+                queryKey: ["member", "bay-slot-groups"],
+                refetchType: "none",
+            });
         },
         onError: (error) => {
-            responseError({ error });
+            if (!isReservationSlotUnavailable(error)) {
+                responseError(error);
+            }
         },
     });
 }
@@ -192,14 +233,20 @@ export function useCreateMemberLessonReservation() {
         CreateLessonReservationRequest
     >({
         mutationFn: createMemberLessonReservation,
+        retry: false,
         onSuccess: (res) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "ticket-lesson-slots"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
+            responseStatus(res);
+            cacheMemberReservationDetail(queryClient, res);
+            refreshMemberReservationLists(queryClient);
+            void queryClient.invalidateQueries({
+                queryKey: ["member", "ticket-lesson-slots"],
+                refetchType: "none",
+            });
         },
         onError: (error) => {
-            responseError({ error });
+            if (!isReservationSlotUnavailable(error)) {
+                responseError(error);
+            }
         },
     });
 }
@@ -234,19 +281,22 @@ export function useMemberTicketLessonSlots(
 export function useCancelMemberLessonReservation() {
     const queryClient = useQueryClient();
 
-    return useMutation<ApiResponse<void>, unknown, number>({
+    return useMutation<ApiResponse<null>, unknown, number>({
         mutationFn: cancelLessonReservationById,
         onSuccess: (res, reservationId) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "ticket-lesson-slots"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
-            queryClient.invalidateQueries({
+            responseStatus(res);
+            refreshMemberReservationLists(queryClient);
+            void queryClient.invalidateQueries({
+                queryKey: ["member", "ticket-lesson-slots"],
+                refetchType: "none",
+            });
+            void queryClient.invalidateQueries({
                 queryKey: ["member", "reservations", "detail", "lesson", reservationId],
+                refetchType: "none",
             });
         },
         onError: (error) => {
-            responseError({ error });
+            responseError(error);
         },
     });
 }
@@ -254,19 +304,22 @@ export function useCancelMemberLessonReservation() {
 export function useCancelMemberBayReservation() {
     const queryClient = useQueryClient();
 
-    return useMutation<ApiResponse<void>, unknown, number>({
+    return useMutation<ApiResponse<null>, unknown, number>({
         mutationFn: cancelBayReservationById,
         onSuccess: (res, reservationId) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
-            queryClient.invalidateQueries({
+            responseStatus(res);
+            refreshMemberReservationLists(queryClient);
+            void queryClient.invalidateQueries({
+                queryKey: ["member", "bay-slot-groups"],
+                refetchType: "none",
+            });
+            void queryClient.invalidateQueries({
                 queryKey: ["member", "reservations", "detail", "bay", reservationId],
+                refetchType: "none",
             });
         },
         onError: (error) => {
-            responseError({ error });
+            responseError(error);
         },
     });
 }
@@ -281,17 +334,20 @@ export function useRescheduleMemberBayReservation() {
     >({
         mutationFn: ({ reservationId, data }) =>
             rescheduleBayReservationById(reservationId, data),
-        onSuccess: (res, { reservationId }) => {
-            responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "bay-slot-groups"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "reservations", "today"] });
-            queryClient.invalidateQueries({
-                queryKey: ["member", "reservations", "detail", "bay", reservationId],
+        retry: false,
+        onSuccess: (res) => {
+            responseStatus(res);
+            cacheMemberReservationDetail(queryClient, res);
+            refreshMemberReservationLists(queryClient);
+            void queryClient.invalidateQueries({
+                queryKey: ["member", "bay-slot-groups"],
+                refetchType: "none",
             });
         },
         onError: (error) => {
-            responseError({ error });
+            if (!isReservationSlotUnavailable(error)) {
+                responseError(error);
+            }
         },
     });
 }

@@ -26,6 +26,7 @@ import {
     useCancelMemberLessonReservation,
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { MemberBayReservationResponse } from "@/types/member-bay";
 import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
@@ -33,10 +34,9 @@ import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { Href, Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
     CheckCircle2,
-    ChevronLeft,
     ChevronRight,
 } from "lucide-react-native";
 import { useState } from "react";
@@ -169,9 +169,8 @@ export default function ReservationDetailScreen() {
     const { t } = useTranslation();
     const { id, type, success } = useLocalSearchParams<ReservationParams>();
 
-    const colors = useThemeColors();
     const router = useRouter();
-    const canGoBack = router.canGoBack();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
     const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
 
     const reservationType = isReservationDomain(type) ? type : undefined;
@@ -195,29 +194,6 @@ export default function ReservationDetailScreen() {
 
     const screenOptions = {
         title: t("reservations.reservationDetailTitle"),
-        headerLeft: () => (
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={
-                    canGoBack ? t("reservations.goBack") : t("reservations.backToList")
-                }
-                className="pr-3"
-                onPress={() => {
-                    if (canGoBack) {
-                        router.back();
-                        return;
-                    }
-
-                    router.replace("/reservation");
-                }}
-            >
-                <ChevronLeft
-                    size={20}
-                    color={colors.foreground}
-                    strokeWidth={2.25}
-                />
-            </Pressable>
-        ),
     } as const;
 
     if (isLoading) {
@@ -299,7 +275,9 @@ export default function ReservationDetailScreen() {
                         }
                         actionLabel={t("navigation.screens.myReservations")}
                         onAction={() => {
-                            router.replace("/reservation");
+                            runWithNavigationLock(() => {
+                                router.dismissTo("/reservation");
+                            });
                         }}
                     />
                 </Screen>
@@ -390,20 +368,22 @@ export default function ReservationDetailScreen() {
     };
 
     const handleRescheduleReservation = () => {
-        if (!canRescheduleReservation || !reservation.ticket?.id) {
+        if (!canRescheduleReservation || !reservation.ticket?.id || isLocked) {
             return;
         }
 
-        router.push({
-            pathname: "/select-date",
-            params: {
-                ticketId: String(reservation.ticket.id),
-                ticketName: reservation.ticket.name,
-                ticketType: reservation.ticket.type,
-                mode: "reschedule",
-                reservationId: String(reservation.id),
-                notes: reservation.memberNotes ?? "",
-            },
+        runWithNavigationLock(() => {
+            router.push({
+                pathname: "/select-date",
+                params: {
+                    ticketId: String(reservation.ticket.id),
+                    ticketName: reservation.ticket.name,
+                    ticketType: reservation.ticket.type,
+                    mode: "reschedule",
+                    reservationId: String(reservation.id),
+                    notes: reservation.memberNotes ?? "",
+                },
+            });
         });
     };
 
@@ -432,7 +412,7 @@ export default function ReservationDetailScreen() {
         }
 
         setIsCancelSheetVisible(false);
-        router.replace("/reservation");
+        router.dismissTo("/reservation");
     };
 
     return (
@@ -474,6 +454,7 @@ export default function ReservationDetailScreen() {
                                     variant="secondary"
                                     className="rounded-xl"
                                     onPress={handleRescheduleReservation}
+                                    disabled={isLocked}
                                 />
                             ) : null}
 
@@ -551,7 +532,12 @@ export default function ReservationDetailScreen() {
                                     <DetailRow
                                         label={t("reservations.lessonLabel")}
                                         value={lessonNameValue}
-                                        href={lessonDetailsHref}
+                                        disabled={isLocked}
+                                        onPress={lessonDetailsHref ? () => {
+                                            runWithNavigationLock(() => {
+                                                router.push(lessonDetailsHref as Href);
+                                            });
+                                        } : undefined}
                                     />
                                 </>
                             ) : null}
@@ -562,7 +548,12 @@ export default function ReservationDetailScreen() {
                                     <DetailRow
                                         label={t("reservations.lessonPostLabel")}
                                         value={lessonLogValue}
-                                        href={lessonLogHref}
+                                        disabled={isLocked}
+                                        onPress={lessonLogHref ? () => {
+                                            runWithNavigationLock(() => {
+                                                router.push(lessonLogHref as Href);
+                                            });
+                                        } : undefined}
                                     />
                                 </>
                             ) : null}
@@ -685,14 +676,13 @@ function ReservationStatusBanner({
 function DetailRow({
     label,
     value,
-    href,
+    disabled = false,
+    onPress,
 }: {
     label: string;
     value: string;
-    href?: {
-        pathname: string;
-        params: Record<string, string>;
-    } | null;
+    disabled?: boolean;
+    onPress?: () => void;
 }) {
     const colors = useThemeColors();
 
@@ -710,7 +700,7 @@ function DetailRow({
                     {value}
                 </ReservationFieldValue>
 
-                {href ? (
+                {onPress ? (
                     <ChevronRight
                         size={18}
                         color={colors.mutedForeground}
@@ -721,23 +711,24 @@ function DetailRow({
         </View>
     );
 
-    if (!href) {
+    if (!onPress) {
         return content;
     }
 
     return (
-        <Link href={href as Href} asChild>
-            <Pressable
-                style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.994)}
-                onPressIn={() => {
-                    if (process.env.EXPO_OS === "ios") {
-                        void Haptics.selectionAsync();
-                    }
-                }}
-            >
-                {content}
-            </Pressable>
-        </Link>
+        <Pressable
+            accessibilityRole="button"
+            disabled={disabled}
+            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.994)}
+            onPressIn={() => {
+                if (!disabled && process.env.EXPO_OS === "ios") {
+                    void Haptics.selectionAsync();
+                }
+            }}
+            onPress={onPress}
+        >
+            {content}
+        </Pressable>
     );
 }
 

@@ -75,13 +75,13 @@ export const getUnreadNotificationCount = async (): Promise<ApiResponse<number>>
 
 export const markNotificationAsRead = async (
 	notificationId: number,
-): Promise<ApiResponse<void>> => {
+): Promise<ApiResponse<null>> => {
 	return apiClient(`/notification/${notificationId}/read`, {
 		method: "PUT",
 	});
 };
 
-export const markAllNotificationsAsRead = async (): Promise<ApiResponse<void>> => {
+export const markAllNotificationsAsRead = async (): Promise<ApiResponse<null>> => {
 	return apiClient("/notification/read-all", {
 		method: "PUT",
 	});
@@ -89,13 +89,13 @@ export const markAllNotificationsAsRead = async (): Promise<ApiResponse<void>> =
 
 export const deleteNotification = async (
 	notificationId: number,
-): Promise<ApiResponse<void>> => {
+): Promise<ApiResponse<null>> => {
 	return apiClient(`/notification/${notificationId}`, {
 		method: "DELETE",
 	});
 };
 
-export const deleteAllNotifications = async (): Promise<ApiResponse<void>> => {
+export const deleteAllNotifications = async (): Promise<ApiResponse<null>> => {
 	return apiClient("/notification/all", {
 		method: "DELETE",
 	});

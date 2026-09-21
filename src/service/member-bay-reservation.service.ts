@@ -40,7 +40,7 @@ export async function getMemberBaySlotGroups(
     );
 }
 
-export async function cancelBayReservationById(id: number): Promise<ApiResponse<void>> {
+export async function cancelBayReservationById(id: number): Promise<ApiResponse<null>> {
     return apiClient(`/member/bay-reservations/${id}/cancel`, {
         method: "PUT",
     });

@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { getPressedScaleStyle, triggerSelectionHaptic, useTheme, useThemeColors } from "@/design-system";
-import { Tabs, useRouter } from 'expo-router';
+import { useTheme, useThemeColors } from "@/design-system";
+import { Tabs } from 'expo-router';
 import { useAppUpdateContext } from "@/lib/update/update-context";
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft } from 'lucide-react-native';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabLayout() {
@@ -13,9 +12,10 @@ function TabLayout() {
     const { t } = useTranslation();
     const update = useAppUpdateContext();
     const insets = useSafeAreaInsets();
-    const router = useRouter();
     return (
         <Tabs
+            initialRouteName="index"
+            backBehavior="initialRoute"
             screenOptions={{
                 headerShown: false,
                 headerTintColor: colors.foreground,
@@ -95,38 +95,6 @@ function TabLayout() {
                             color={color}
                         />
                     )
-                }}
-            />
-            <Tabs.Screen
-                name='lessons'
-                options={{
-                    href: null,
-                    title: t("navigation.tabs.lessons"),
-                    headerShown: true,
-                    headerLeft: () => (
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t("common.goBack")}
-                            className="mr-1 h-11 w-11 items-center justify-center rounded-full"
-                            hitSlop={8}
-                            style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.94)}
-                            onPress={() => {
-                                triggerSelectionHaptic();
-                                if (router.canGoBack()) {
-                                    router.back();
-                                    return;
-                                }
-
-                                router.replace("/(app)/(tabs)/profile");
-                            }}
-                        >
-                            <ChevronLeft
-                                size={20}
-                                color={colors.foreground}
-                                strokeWidth={2.4}
-                            />
-                        </Pressable>
-                    ),
                 }}
             />
             <Tabs.Screen

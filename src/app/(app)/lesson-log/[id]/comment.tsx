@@ -167,7 +167,7 @@ function LessonLogCommentScreen() {
                                 {
                                     onSuccess: () => {
                                         triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
-                                        router.replace({
+                                        router.dismissTo({
                                             pathname: "/lesson-log/[id]",
                                             params: {
                                                 id: String(lessonLog.id),

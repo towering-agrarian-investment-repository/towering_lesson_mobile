@@ -3,6 +3,7 @@ import { Linking, Platform } from "react-native";
 import { env } from "../config/env";
 import i18n from "../../i18n";
 import { getAppRequestHeaders } from "../client/app-request-headers";
+import type { ApiResponse } from "../api-response/api-response";
 
 export type AppUpdateConfig = {
     minimumSupportedVersion?: string | null;
@@ -31,6 +32,10 @@ export function subscribeToUpdateRequired(listener: (config?: AppUpdateConfig) =
 }
 
 export function notifyUpdateRequired(config?: AppUpdateConfig) {
+    if (!config) {
+        appUpdateCheck = null;
+    }
+
     updateRequiredListeners.forEach((listener) => listener(config));
 }
 
@@ -70,7 +75,13 @@ async function fetchAppUpdateStateOnce(): Promise<AppUpdateState | null> {
             return null;
         }
 
-        const config = JSON.parse(responseText) as AppUpdateConfig;
+        const payload = JSON.parse(responseText) as ApiResponse<AppUpdateConfig>;
+        const config = payload.data;
+
+        if (!config) {
+            return null;
+        }
+
         return {
             installedVersion,
             minimumSupportedVersion: config.minimumSupportedVersion ?? null,

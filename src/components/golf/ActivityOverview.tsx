@@ -2,7 +2,6 @@ import {
     ActivityHeatmap,
     ActivityStatusLegend,
     AppText,
-    CircleLoader,
     ErrorState,
     Screen,
     Skeleton,
@@ -13,7 +12,7 @@ import { ActivityShareCard } from "@/components/golf/ActivityShareCard";
 import { useMemberActivity } from "@/lib/hook/useMemberActivity";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import type { MemberActivityStatusCounts } from "@/types/member-activity";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as MediaLibrary from "expo-media-library";
 import { Stack } from "expo-router";
@@ -28,15 +27,17 @@ export function ActivityOverview() {
     const colors = useThemeColors();
     const currentYear = new Date().getFullYear();
     const firstActivityYear = 2025;
-    const [selectedYear, setSelectedYear] = useState<ActivityFilter>(currentYear);
+    const [requestedYear, setSelectedYear] = useState<ActivityFilter>(currentYear);
     const [showShareCard, setShowShareCard] = useState(false);
     const [showDayNumbers, setShowDayNumbers] = useState(true);
     const [isSavingShareCard, setIsSavingShareCard] = useState(false);
     const shareCardRef = useRef<View>(null);
     const { data: memberProfile } = useGetMemberProfile();
-    const activityQuery = useMemberActivity(selectedYear);
-    const allActivityQuery = useMemberActivity("all", Boolean(activityQuery.data));
-    const { data: activity, isLoading, isError, refetch, isRefetching } = activityQuery;
+    const requestedActivityQuery = useMemberActivity(requestedYear);
+    const allActivityQuery = useMemberActivity(
+        "all",
+        Boolean(requestedActivityQuery.data),
+    );
     const { data: allActivity, refetch: refetchAll, isRefetching: isRefetchingAll } = allActivityQuery;
 
     const availableYears = useMemo(() => {
@@ -52,11 +53,15 @@ export function ActivityOverview() {
             .sort((a, b) => b - a);
     }, [allActivity, currentYear, firstActivityYear]);
 
-    useEffect(() => {
-        if (allActivity && selectedYear !== "all" && !availableYears.includes(selectedYear)) {
-            setSelectedYear("all");
-        }
-    }, [allActivity, availableYears, selectedYear]);
+    const selectedYear =
+        allActivity &&
+        requestedYear !== "all" &&
+        !availableYears.includes(requestedYear)
+            ? "all"
+            : requestedYear;
+    const activityQuery =
+        selectedYear === "all" ? allActivityQuery : requestedActivityQuery;
+    const { data: activity, isLoading, isError, refetch, isRefetching } = activityQuery;
 
 
     const activityValues = useMemo(() => (activity?.daily ?? []).map((day) => ({
@@ -75,7 +80,7 @@ export function ActivityOverview() {
     })), [activity?.weekly]);
 
     if (isLoading) {
-        return <CircleLoader fullScreen />;
+        return <ActivityInitialLoadingState />;
     }
 
     if (isError && !activity) {
@@ -92,7 +97,7 @@ export function ActivityOverview() {
     }
 
     if (!activity) {
-        return <CircleLoader fullScreen />;
+        return <ActivityLoadingState />;
     }
 
     const firstDate = getActivityDate(activity.daily[0]?.date) ?? getActivityDate(activity.weekly[0]?.weekStart) ?? new Date();

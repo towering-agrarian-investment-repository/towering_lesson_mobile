@@ -72,7 +72,7 @@ export const changePassword = async ({
     });
 
     if (error) {
-        throw new Error(error.message || "Could not change password.");
+        throw error;
     }
 
     return data;

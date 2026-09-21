@@ -187,7 +187,7 @@ export function useSubmitMemberHomework() {
             });
         },
         onSuccess: (res, variables) => {
-            responseStatus({ res });
+            responseStatus(res);
             queryClient.invalidateQueries({ queryKey: ["member", "homeworks"] });
             queryClient.invalidateQueries({
                 queryKey: ["member", "homeworks", variables.homeworkId],
@@ -203,10 +203,7 @@ export function useSubmitMemberHomework() {
             queryClient.invalidateQueries({ queryKey: ["member", "groups"] });
         },
         onError: (error: unknown) => {
-            responseError({
-                error,
-                errorMessage: "Could not submit homework.",
-            });
+            responseError(error);
         },
     });
 }
