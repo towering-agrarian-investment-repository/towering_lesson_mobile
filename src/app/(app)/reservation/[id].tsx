@@ -7,6 +7,7 @@ import {
     AppText,
     Badge,
     Button,
+    Card,
     ConfirmSheet,
     Divider,
     EmptyState,
@@ -26,26 +27,38 @@ import {
     useCancelMemberLessonReservation,
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
+import { useMemberTickets } from "@/lib/hook/useTicket";
+import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { MemberBayReservationResponse } from "@/types/member-bay";
 import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
+import { TicketListItemResponse } from "@/types/member-ticket";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+    Href,
+    Stack,
+    useFocusEffect,
+    useLocalSearchParams,
+    useRouter,
+} from "expo-router";
 import {
     CheckCircle2,
     ChevronRight,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+    BackHandler,
     Pressable,
     RefreshControl,
     View,
 } from "react-native";
+
+const SUCCESS_TICKET_STATUSES = ["ACTIVE", "IN_USE", "FULLY_USED"];
 
 type ReservationParams = {
     id: string;
@@ -172,6 +185,7 @@ export default function ReservationDetailScreen() {
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
+    const isSuccess = success === "true";
 
     const reservationType = isReservationDomain(type) ? type : undefined;
 
@@ -184,6 +198,18 @@ export default function ReservationDetailScreen() {
     } = useMemberReservationById(Number(id), reservationType);
 
     const reservation = data?.data;
+    const {
+        data: memberResponse,
+        isLoading: isMemberProfileLoading,
+    } = useGetMemberProfile();
+    const {
+        data: ticketsResponse,
+        isLoading: isTicketUsageLoading,
+        isError: isTicketUsageError,
+    } = useMemberTickets(
+        isSuccess ? memberResponse?.data?.id : undefined,
+        SUCCESS_TICKET_STATUSES,
+    );
 
     const { mutate: cancelLessonReservation, isPending: isCancellingLesson } =
         useCancelMemberLessonReservation();
@@ -192,16 +218,58 @@ export default function ReservationDetailScreen() {
         useCancelMemberBayReservation();
 
 
+    const handleGoHome = useCallback(() => {
+        if (isLocked) {
+            return;
+        }
+
+        runWithNavigationLock(() => {
+            router.dismissTo("/(app)/(tabs)");
+        });
+    }, [isLocked, router, runWithNavigationLock]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!isSuccess || process.env.EXPO_OS !== "android") {
+                return;
+            }
+
+            const subscription = BackHandler.addEventListener(
+                "hardwareBackPress",
+                () => {
+                    handleGoHome();
+                    return true;
+                },
+            );
+
+            return () => subscription.remove();
+        }, [handleGoHome, isSuccess]),
+    );
+
     const screenOptions = {
-        title: t("reservations.reservationDetailTitle"),
+        title: isSuccess
+            ? t("reservations.confirmedTitle")
+            : t("reservations.reservationDetailTitle"),
+        headerBackVisible: !isSuccess,
+        gestureEnabled: !isSuccess,
+        fullScreenGestureEnabled: !isSuccess,
     } as const;
+    const successFooter = isSuccess ? (
+        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+            <Button
+                title={t("navigation.tabs.home")}
+                onPress={handleGoHome}
+                disabled={isLocked}
+            />
+        </View>
+    ) : null;
 
     if (isLoading) {
         return (
             <>
                 <Stack.Screen options={screenOptions} />
 
-                <Screen contentClassName="flex-col gap-8">
+                <Screen contentClassName="flex-col gap-8" footer={successFooter}>
                     <View className="flex-col gap-4">
                         <Skeleton className="h-8 w-2/3 rounded-xl" />
                         <Skeleton className="h-6 w-1/3 rounded-full" />
@@ -228,6 +296,7 @@ export default function ReservationDetailScreen() {
 
                 <Screen
                     contentClassName="grow"
+                    footer={successFooter}
                     refreshControl={
                         <RefreshControl
                             refreshing={isRefetching}
@@ -257,6 +326,7 @@ export default function ReservationDetailScreen() {
 
                 <Screen
                     contentClassName="grow"
+                    footer={successFooter}
                     refreshControl={
                         <RefreshControl
                             refreshing={isRefetching}
@@ -323,6 +393,9 @@ export default function ReservationDetailScreen() {
         : lessonReservation?.coach?.name?.trim() || "-";
 
     const noteValue = reservation.memberNotes?.trim() || "-";
+    const bookedTicket = ticketsResponse?.data?.find(
+        (ticket) => ticket.id === reservation.ticket?.id,
+    );
 
     const reservationPolicies = getReservationPolicies(t);
     const policies = isBayReservation
@@ -446,7 +519,9 @@ export default function ReservationDetailScreen() {
                     />
                 }
                 footer={
-                    canCancelReservation || canRescheduleReservation ? (
+                    isSuccess ? (
+                        successFooter
+                    ) : canCancelReservation || canRescheduleReservation ? (
                         <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
                             {canRescheduleReservation ? (
                                 <Button
@@ -477,100 +552,146 @@ export default function ReservationDetailScreen() {
                         title={title}
                         reservationStatus={reservation.reservationStatus}
                         ticketType={reservation.ticket?.type ?? null}
-                        showStatus={success !== "true"}
+                        showStatus={!isSuccess}
                     />
 
-                    {success === "true" ? (
-                        <ReservationSuccessBanner
-                            title={t("reservations.confirmedTitle")}
-                            message={t("reservations.confirmedMessage")}
-                        />
-                    ) : null}
+                    {isSuccess ? (
+                        <>
+                            <ReservationSuccessBanner
+                                title={t("reservations.confirmedTitle")}
+                                message={t("reservations.confirmedMessage")}
+                            />
 
-                    <View className="flex-col gap-2">
-                        <View className="flex-col">
-
-                            <DetailRow label={t("bookingConfirmation.dateLabel")} value={dateValue} />
-
-                            <Divider className="bg-border" />
-
-                            <DetailRow label={t("bookingConfirmation.timeLabel")} value={timeValue} />
-
-                            {isBayReservation ? (
-                                <>
-                                    <Divider className="bg-border" />
-                                    <DetailRow
-                                        label={t("reservations.bayLabel")}
-                                        value={reservationLocationValue}
-                                    />
-                                </>
-                            ) : null}
-
-                            {programValue !== "-" ? (
-                                <>
-                                    <Divider className="bg-border" />
-                                    <DetailRow label={t("reservations.programLabel")} value={programValue} />
-                                </>
-                            ) : null}
-
-                            {isBayReservation ? null : (
-                                <>
-                                    <Divider className="bg-border" />
-                                    <CoachDetailRow
-                                        label={t("reservations.coachLabel")}
-                                        value={coachName}
-                                        imageUrl={
-                                            lessonReservation?.coach?.profileImage
-                                        }
-                                    />
-                                </>
-                            )}
-
-                            {lessonNameValue ? (
-                                <>
-                                    <Divider className="bg-border" />
-                                    <DetailRow
-                                        label={t("reservations.lessonLabel")}
-                                        value={lessonNameValue}
-                                        disabled={isLocked}
-                                        onPress={lessonDetailsHref ? () => {
-                                            runWithNavigationLock(() => {
-                                                router.push(lessonDetailsHref as Href);
-                                            });
-                                        } : undefined}
-                                    />
-                                </>
-                            ) : null}
-
-                            {lessonLogHref ? (
-                                <>
-                                    <Divider className="bg-border" />
-                                    <DetailRow
-                                        label={t("reservations.lessonPostLabel")}
-                                        value={lessonLogValue}
-                                        disabled={isLocked}
-                                        onPress={lessonLogHref ? () => {
-                                            runWithNavigationLock(() => {
-                                                router.push(lessonLogHref as Href);
-                                            });
-                                        } : undefined}
-                                    />
-                                </>
-                            ) : null}
-
-                            <>
+                            <Card className="gap-0 p-4">
+                                <DetailRow
+                                    label={t("bookingConfirmation.dateLabel")}
+                                    value={dateValue}
+                                />
                                 <Divider className="bg-border" />
                                 <DetailRow
-                                    label={t("reservations.notesLabel")}
-                                    value={noteValue}
+                                    label={t("bookingConfirmation.timeLabel")}
+                                    value={timeValue}
                                 />
-                            </>
-                        </View>
-                    </View>
 
-                    <View className="flex-col gap-2">
-                        <ReservationPoliciesSection policies={policies} />
-                    </View>
+                                {isBayReservation ? (
+                                    <>
+                                        <Divider className="bg-border" />
+                                        <DetailRow
+                                            label={t("reservations.bayLabel")}
+                                            value={reservationLocationValue}
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Divider className="bg-border" />
+                                        <CoachDetailRow
+                                            label={t("reservations.coachLabel")}
+                                            value={coachName}
+                                            imageUrl={lessonReservation?.coach?.profileImage}
+                                        />
+                                    </>
+                                )}
+                            </Card>
+
+                            <BookingTicketSummary
+                                reservationTicket={reservation.ticket}
+                                ticket={bookedTicket}
+                                loading={isMemberProfileLoading || isTicketUsageLoading}
+                                hasError={isTicketUsageError}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <View className="flex-col gap-2">
+                                <View className="flex-col">
+                                    <DetailRow
+                                        label={t("bookingConfirmation.dateLabel")}
+                                        value={dateValue}
+                                    />
+
+                                    <Divider className="bg-border" />
+
+                                    <DetailRow
+                                        label={t("bookingConfirmation.timeLabel")}
+                                        value={timeValue}
+                                    />
+
+                                    {isBayReservation ? (
+                                        <>
+                                            <Divider className="bg-border" />
+                                            <DetailRow
+                                                label={t("reservations.bayLabel")}
+                                                value={reservationLocationValue}
+                                            />
+                                        </>
+                                    ) : null}
+
+                                    {programValue !== "-" ? (
+                                        <>
+                                            <Divider className="bg-border" />
+                                            <DetailRow
+                                                label={t("reservations.programLabel")}
+                                                value={programValue}
+                                            />
+                                        </>
+                                    ) : null}
+
+                                    {isBayReservation ? null : (
+                                        <>
+                                            <Divider className="bg-border" />
+                                            <CoachDetailRow
+                                                label={t("reservations.coachLabel")}
+                                                value={coachName}
+                                                imageUrl={lessonReservation?.coach?.profileImage}
+                                            />
+                                        </>
+                                    )}
+
+                                    {lessonNameValue ? (
+                                        <>
+                                            <Divider className="bg-border" />
+                                            <DetailRow
+                                                label={t("reservations.lessonLabel")}
+                                                value={lessonNameValue}
+                                                disabled={isLocked}
+                                                onPress={lessonDetailsHref ? () => {
+                                                    runWithNavigationLock(() => {
+                                                        router.push(lessonDetailsHref as Href);
+                                                    });
+                                                } : undefined}
+                                            />
+                                        </>
+                                    ) : null}
+
+                                    {lessonLogHref ? (
+                                        <>
+                                            <Divider className="bg-border" />
+                                            <DetailRow
+                                                label={t("reservations.lessonPostLabel")}
+                                                value={lessonLogValue}
+                                                disabled={isLocked}
+                                                onPress={() => {
+                                                    runWithNavigationLock(() => {
+                                                        router.push(lessonLogHref as Href);
+                                                    });
+                                                }}
+                                            />
+                                        </>
+                                    ) : null}
+
+                                    <Divider className="bg-border" />
+                                    <DetailRow
+                                        label={t("reservations.notesLabel")}
+                                        value={noteValue}
+                                    />
+                                </View>
+                            </View>
+
+                            <View className="flex-col gap-2">
+                                <ReservationPoliciesSection policies={policies} />
+                            </View>
+                        </>
+                    )}
                 </View>
             </Screen>
         </>
@@ -600,6 +721,94 @@ function ReservationSuccessBanner({
                 ) : null}
             </View>
         </View>
+    );
+}
+
+function BookingTicketSummary({
+    reservationTicket,
+    ticket,
+    loading,
+    hasError,
+}: {
+    reservationTicket: {
+        id: number;
+        name: string;
+        type: string | null;
+    } | null;
+    ticket?: TicketListItemResponse;
+    loading: boolean;
+    hasError: boolean;
+}) {
+    const { t } = useTranslation();
+
+    if (!reservationTicket) {
+        return null;
+    }
+
+    const ticketType = ticket?.type ?? reservationTicket.type;
+    const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
+
+    return (
+        <Card className="gap-3 p-4">
+            <AppText variant="caption" className="font-semibold text-muted-foreground">
+                {t("bookingConfirmation.ticketLabel")}
+            </AppText>
+
+            <View className="flex-row items-center justify-between gap-3">
+                <AppText
+                    variant="label"
+                    selectable
+                    className="min-w-0 flex-1 text-base font-bold text-foreground"
+                    numberOfLines={2}
+                >
+                    {ticket?.name ?? reservationTicket.name}
+                </AppText>
+
+                {ticketType && ticketTone ? (
+                    <Badge
+                        label={formatTicketTypeLabel(ticketType)}
+                        className={`${ticketTone.badgeClassName} px-2 py-0.5`}
+                        textClassName={`${ticketTone.badgeTextClassName} text-xs font-semibold leading-4`}
+                    />
+                ) : null}
+            </View>
+
+            {loading ? (
+                <View className="gap-2">
+                    <Skeleton className="h-4 w-32 rounded-full" />
+                    <Skeleton className="h-4 w-24 rounded-full" />
+                </View>
+            ) : ticket ? (
+                ticket.isUnlimited ? (
+                    <AppText variant="caption" className="text-muted-foreground">
+                        {t("tickets.unlimitedUsage")}
+                    </AppText>
+                ) : ticket.totalCount != null ? (
+                    <View className="gap-1">
+                        <AppText variant="body" className="font-semibold text-foreground">
+                            {t("tickets.usage", {
+                                used: ticket.usedCount,
+                                total: ticket.totalCount,
+                            })}
+                        </AppText>
+                        <AppText variant="caption" className="text-muted-foreground">
+                            {t("tickets.usageRemaining", {
+                                remaining: ticket.remainingCount,
+                                total: ticket.totalCount,
+                            })}
+                        </AppText>
+                    </View>
+                ) : (
+                    <AppText variant="caption" className="text-muted-foreground">
+                        {t("tickets.flexibleUsage")}
+                    </AppText>
+                )
+            ) : (
+                <AppText variant="caption" className="text-muted-foreground">
+                    {hasError ? t("tickets.loadError") : t("tickets.flexibleUsage")}
+                </AppText>
+            )}
+        </Card>
     );
 }
 

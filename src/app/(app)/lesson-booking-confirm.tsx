@@ -174,7 +174,8 @@ export default function LessonBookingConfirmScreen() {
                 notes,
             },
             {
-                onSuccess: () => handleBookingConfirmationSuccess(router),
+                onSuccess: (response) =>
+                    handleBookingConfirmationSuccess(router, response.data),
                 onError: handleSlotUnavailable,
             },
         );

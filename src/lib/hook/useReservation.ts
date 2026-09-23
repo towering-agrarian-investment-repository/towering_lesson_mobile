@@ -174,6 +174,13 @@ function refreshMemberReservationLists(queryClient: QueryClient) {
     });
 }
 
+function refreshMemberTickets(queryClient: QueryClient) {
+    void queryClient.invalidateQueries({
+        queryKey: ["member", "tickets"],
+        refetchType: "all",
+    });
+}
+
 export function useMemberReservationById(id: number, domain?: MemberReservationDomain) {
     return useQuery<ApiResponse<MemberReservationDetailResponse>>({
         ...getMemberReservationDetailQueryOptions(
@@ -210,6 +217,7 @@ export function useCreateMemberBayReservation() {
             responseStatus(res);
             cacheMemberReservationDetail(queryClient, res);
             refreshMemberReservationLists(queryClient);
+            refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "bay-slot-groups"],
                 refetchType: "none",
@@ -238,6 +246,7 @@ export function useCreateMemberLessonReservation() {
             responseStatus(res);
             cacheMemberReservationDetail(queryClient, res);
             refreshMemberReservationLists(queryClient);
+            refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "ticket-lesson-slots"],
                 refetchType: "none",
@@ -339,6 +348,7 @@ export function useRescheduleMemberBayReservation() {
             responseStatus(res);
             cacheMemberReservationDetail(queryClient, res);
             refreshMemberReservationLists(queryClient);
+            refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "bay-slot-groups"],
                 refetchType: "none",

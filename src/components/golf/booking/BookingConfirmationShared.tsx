@@ -27,6 +27,10 @@ type BookingConfirmationContentProps = {
 
 export function handleBookingConfirmationSuccess(
     router: ImperativeRouter,
+    reservation: {
+        id: number;
+        reservationType: "bay" | "lesson";
+    } | null,
 ) {
     if (process.env.EXPO_OS === "android") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -34,7 +38,19 @@ export function handleBookingConfirmationSuccess(
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
 
-    router.dismissTo("/(app)/(tabs)");
+    if (!reservation) {
+        router.dismissTo("/(app)/(tabs)");
+        return;
+    }
+
+    router.replace({
+        pathname: "/reservation/[id]",
+        params: {
+            id: String(reservation.id),
+            type: reservation.reservationType,
+            success: "true",
+        },
+    });
 }
 
 export function BookingConfirmationFooter({

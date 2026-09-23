@@ -169,7 +169,8 @@ export default function ConfirmScreen() {
                     },
                 },
                 {
-                    onSuccess: () => handleBookingConfirmationSuccess(router),
+                    onSuccess: (response) =>
+                        handleBookingConfirmationSuccess(router, response.data),
                     onError: handleSlotUnavailable,
                 },
             );
@@ -187,7 +188,8 @@ export default function ConfirmScreen() {
                 notes,
             },
             {
-                onSuccess: () => handleBookingConfirmationSuccess(router),
+                onSuccess: (response) =>
+                    handleBookingConfirmationSuccess(router, response.data),
                 onError: handleSlotUnavailable,
             },
         );
