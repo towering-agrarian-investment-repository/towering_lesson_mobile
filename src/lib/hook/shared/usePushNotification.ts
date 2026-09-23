@@ -2,7 +2,7 @@
 import { registerForPushNotifications } from "@/lib/config/notification/registerPushNotification";
 import type { NotificationReferenceType } from "@/service/shared/notification-service";
 import * as Notifications from "expo-notifications";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type NotificationPayload = {
@@ -11,6 +11,7 @@ type NotificationPayload = {
 };
 
 export const usePushNotification = (isLoggedIn: boolean) => {
+    const router = useRouter();
     const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
     const [notification, setNotification] =
         useState<Notifications.Notification | null>(null);
@@ -69,18 +70,13 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             }
 
             if (referenceType === "BOOKING" && referenceId) {
-                router.push({
-                    pathname: "/reservation/[id]",
-                    params: {
-                        id: referenceId,
-                    },
-                });
+                router.navigate("/reservation");
                 return;
             }
 
             router.navigate("/(app)/(tabs)/notice");
         },
-        [],
+        [router],
     );
 
     useEffect(() => {

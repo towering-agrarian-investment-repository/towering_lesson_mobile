@@ -2,7 +2,6 @@ import {
     BookingConfirmationContent,
     BookingConfirmationFooter,
     BookingConfirmationLoadingState,
-    type BookingConfirmationSuccessResponse,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
 import {
@@ -129,7 +128,7 @@ export default function ConfirmScreen() {
     };
 
     const handleConfirm = () => {
-        if (!baySlotId || !slotGroup || !selectedBaySlot) {
+        if (isSubmitting || !baySlotId || !slotGroup || !selectedBaySlot) {
             return;
         }
 
@@ -170,8 +169,7 @@ export default function ConfirmScreen() {
                     },
                 },
                 {
-                    onSuccess: (response: BookingConfirmationSuccessResponse) =>
-                        handleBookingConfirmationSuccess(router, response),
+                    onSuccess: () => handleBookingConfirmationSuccess(router),
                     onError: handleSlotUnavailable,
                 },
             );
@@ -189,8 +187,7 @@ export default function ConfirmScreen() {
                 notes,
             },
             {
-                onSuccess: (response: BookingConfirmationSuccessResponse) =>
-                    handleBookingConfirmationSuccess(router, response),
+                onSuccess: () => handleBookingConfirmationSuccess(router),
                 onError: handleSlotUnavailable,
             },
         );

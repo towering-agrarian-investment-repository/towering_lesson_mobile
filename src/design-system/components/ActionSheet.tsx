@@ -27,7 +27,6 @@ type ActionSheetProps = {
     options: ActionSheetOption[];
     onClose: () => void;
     cancelLabel?: string;
-    closeDelayMs?: number;
     blurEnabled?: boolean;
     blurIntensity?: number;
 };
@@ -39,7 +38,6 @@ export function ActionSheet({
     options,
     onClose,
     cancelLabel,
-    closeDelayMs = 0,
     blurEnabled = true,
     blurIntensity = 60,
 }: ActionSheetProps) {
@@ -55,7 +53,7 @@ export function ActionSheet({
 
         triggerSelectionHaptic();
         onClose();
-        setTimeout(option.onPress, closeDelayMs);
+        option.onPress();
     };
 
     return (

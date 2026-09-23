@@ -187,6 +187,7 @@ const en = {
         nickname: "Nickname",
         nicknamePlaceholder: "Enter a nickname",
         onlyImageTypesSupported: "Only JPEG, PNG, and WebP images are supported.",
+        profileImageTooLarge: "Profile images must be 10 MiB or smaller.",
     },
     changePassword: {
         currentPasswordRequired: "Current password is required.",

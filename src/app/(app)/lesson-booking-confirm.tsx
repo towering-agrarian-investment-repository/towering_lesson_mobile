@@ -1,7 +1,6 @@
 import {
     BookingConfirmationContent,
     BookingConfirmationFooter,
-    type BookingConfirmationSuccessResponse,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
 import {
@@ -133,7 +132,12 @@ export default function LessonBookingConfirmScreen() {
     };
 
     const handleConfirm = () => {
-        if (!ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot) {
+        if (
+            isCreating
+            || !ticketIdNumber
+            || !lessonAvailabilityIdNumber
+            || !selectedSlot
+        ) {
             return;
         }
 
@@ -170,8 +174,7 @@ export default function LessonBookingConfirmScreen() {
                 notes,
             },
             {
-                onSuccess: (response: BookingConfirmationSuccessResponse) =>
-                    handleBookingConfirmationSuccess(router, response),
+                onSuccess: () => handleBookingConfirmationSuccess(router),
                 onError: handleSlotUnavailable,
             },
         );

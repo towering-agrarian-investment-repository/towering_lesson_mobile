@@ -139,7 +139,8 @@ const ko = {
         "basicInformation": "\uae30\ubcf8 \uc815\ubcf4",
         "fullName": "\uc774\ub984",
         "fullNamePlaceholder": "Jane Member",
-        "onlyImageTypesSupported": "JPEG, PNG, WebP \uc774\ubbf8\uc9c0\ub9cc \uc9c0\uc6d0\ub429\ub2c8\ub2e4."
+        "onlyImageTypesSupported": "JPEG, PNG, WebP \uc774\ubbf8\uc9c0\ub9cc \uc9c0\uc6d0\ub429\ub2c8\ub2e4.",
+        "profileImageTooLarge": "\ud504\ub85c\ud544 \uc774\ubbf8\uc9c0\ub294 10 MiB \uc774\ud558\uc5ec\uc57c \ud569\ub2c8\ub2e4."
     },
     "changePassword": {
         "currentPasswordRequired": "\ud604\uc7ac \ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",

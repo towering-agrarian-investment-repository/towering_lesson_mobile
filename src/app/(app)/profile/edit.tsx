@@ -2,19 +2,19 @@ import { ActionSheet, AppText as Text, Button, CircleLoader, ErrorState, Screen,
 import {
     FormTextInput,
 } from "@/components/ui/form";
-import { useUploadMemberUser } from "@/lib/hook/useUploadFile";
+import { useUpdateMemberProfileImage } from "@/lib/hook/useUploadFile";
 import {
     useGetMemberProfile,
     useUpdateMemberProfile,
 } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
-import { type UploadFormFile } from "@/service/user";
 import {
     getProfileImageMimeType,
     isAllowedExtension,
-    isAllowedMimeType,
+    isProfileImageContentType,
     PROFILE_IMAGE_EXTENSIONS,
-    PROFILE_IMAGE_MIME_TYPES,
+    PROFILE_IMAGE_MAX_SIZE_BYTES,
+    type ProfileImageContentType,
 } from "@/utils/media";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
@@ -53,7 +53,7 @@ export default function EditProfileScreen() {
     const {
         mutate: uploadProfileImage,
         isPending: isUploadingImage,
-    } = useUploadMemberUser();
+    } = useUpdateMemberProfileImage();
     const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
         useState(false);
 
@@ -107,12 +107,13 @@ export default function EditProfileScreen() {
         memberId: number,
         asset: ImagePicker.ImagePickerAsset,
     ) => {
-        const file = createFileFromAsset(asset, t);
+        const image = createProfileImageFromAsset(asset, t);
 
         uploadProfileImage(
             {
-                id: memberId,
-                file,
+                memberId,
+                imageUri: image.uri,
+                contentType: image.contentType,
             },
             {
                 onSuccess: () => {
@@ -261,7 +262,6 @@ export default function EditProfileScreen() {
                 title={t("profile.changeProfilePhoto")}
                 description={t("profile.changeProfilePhotoDescription")}
                 onClose={closePhotoSourceSheet}
-                closeDelayMs={250}
                 options={[
                     {
                         key: "camera",
@@ -333,29 +333,42 @@ export default function EditProfileScreen() {
     );
 }
 
-function createFileFromAsset(
+function createProfileImageFromAsset(
     asset: ImagePicker.ImagePickerAsset,
     t: (key: string) => string,
-): UploadFormFile {
+): { uri: string; contentType: ProfileImageContentType } {
+    if (
+        typeof asset.fileSize === "number"
+        && asset.fileSize > PROFILE_IMAGE_MAX_SIZE_BYTES
+    ) {
+        throw new Error(t("profile.profileImageTooLarge"));
+    }
+
     const rawName =
         asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
     const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
     const hasSupportedExtension = isAllowedExtension(rawName, PROFILE_IMAGE_EXTENSIONS);
-    const hasSupportedMimeType = isAllowedMimeType(asset.mimeType, [...PROFILE_IMAGE_MIME_TYPES]);
+    const normalizedMimeType = asset.mimeType?.toLowerCase();
+    const hasSupportedMimeType = isProfileImageContentType(normalizedMimeType);
 
-    if (!hasSupportedExtension && !hasSupportedMimeType) {
+    if (
+        (normalizedMimeType && !hasSupportedMimeType)
+        || (!normalizedMimeType && !hasSupportedExtension)
+    ) {
         throw new Error(t("profile.onlyImageTypesSupported"));
     }
 
-    const mimeType =
-        asset.mimeType?.toLowerCase()
-        ?? getProfileImageMimeType(extension)
-        ?? "image/jpeg";
+    const contentType = hasSupportedMimeType
+        ? normalizedMimeType
+        : getProfileImageMimeType(extension);
+
+    if (!contentType) {
+        throw new Error(t("profile.onlyImageTypesSupported"));
+    }
 
     return {
         uri: asset.uri,
-        name: rawName,
-        type: mimeType,
+        contentType,
     };
 }
 

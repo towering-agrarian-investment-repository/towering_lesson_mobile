@@ -4,6 +4,10 @@ import {
     UpdateMyProfileRequest,
     MemberSelfResponse,
 } from "@/types/member.type";
+import {
+    PROFILE_IMAGE_MAX_SIZE_BYTES,
+    type ProfileImageContentType,
+} from "@/utils/media";
 
 export const getMemberProfile = async (
     signal?: AbortSignal,
@@ -23,29 +27,92 @@ export const updateMemberProfile = async (
     });
 };
 
-export type UploadFormFile = {
-    uri: string;
-    name: string;
-    type: string;
+export type StagedUpload = {
+    uploadUrl: string;
+    key: string;
+    expiresAt: string;
 };
 
-export const uploadMemberUserProfileImage = async (
-    id: number,
-    file: UploadFormFile,
-) => {
-    if (!file?.uri || !file?.name || !file?.type) {
-        throw new Error("Selected image is missing uri, name, or MIME type.");
+export const updateMemberProfileImage = async (
+    memberId: number,
+    imageUri: string,
+    contentType: ProfileImageContentType,
+): Promise<ApiResponse<MemberSelfResponse>> => {
+    const imageResponse = await fetch(imageUri);
+    const imageBlob = await imageResponse.blob();
+
+    if (imageBlob.size <= 0) {
+        throw new Error("The selected profile image is empty.");
     }
 
-    const formData = new FormData();
-    formData.append("file", {
-        uri: file.uri,
-        name: file.name,
-        type: file.type,
-    } as unknown as Blob);
+    if (imageBlob.size > PROFILE_IMAGE_MAX_SIZE_BYTES) {
+        throw new Error("Profile images must be 10 MiB or smaller.");
+    }
 
-    return apiClient(`/member/${id}/profile-image`, {
-        method: "PUT",
-        body: formData,
-    });
+    const stageUpload = async () => {
+        const response = await apiClient<ApiResponse<StagedUpload>>(
+            "/uploads/images/presigned",
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    purpose: "PROFILE_IMAGE",
+                    contentType,
+                    sizeBytes: imageBlob.size,
+                }),
+            },
+        );
+
+        if (
+            !response.data?.uploadUrl
+            || !response.data.key
+            || !response.data.expiresAt
+        ) {
+            throw new Error("The API returned an invalid staged upload.");
+        }
+
+        return response.data;
+    };
+
+    let staged = await stageUpload();
+
+    if (hasExpired(staged.expiresAt)) {
+        staged = await stageUpload();
+    }
+
+    let uploadResponse = await putProfileImage(staged, imageBlob, contentType);
+
+    if (!uploadResponse.ok && hasExpired(staged.expiresAt)) {
+        staged = await stageUpload();
+        uploadResponse = await putProfileImage(staged, imageBlob, contentType);
+    }
+
+    if (!uploadResponse.ok) {
+        throw new Error(`Profile image upload failed: ${uploadResponse.status}`);
+    }
+
+    return apiClient<ApiResponse<MemberSelfResponse>>(
+        `/member/${memberId}/profile-image`,
+        {
+            method: "PUT",
+            body: JSON.stringify({ uploadKey: staged.key }),
+        },
+    );
 };
+
+function putProfileImage(
+    staged: StagedUpload,
+    imageBlob: Blob,
+    contentType: ProfileImageContentType,
+) {
+    return fetch(staged.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: imageBlob,
+    });
+}
+
+function hasExpired(expiresAt: string) {
+    const expiryTime = Date.parse(expiresAt);
+
+    return Number.isFinite(expiryTime) && expiryTime <= Date.now();
+}

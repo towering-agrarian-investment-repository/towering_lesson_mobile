@@ -6,14 +6,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
-import { useRouter } from "expo-router";
 
 const featureIcons = [CalendarDays, ClipboardCheck, MessageCircle];
 
 export default function WelcomeScreen() {
     const { t } = useTranslation();
     const colors = useThemeColors();
-    const router = useRouter();
     const { completeWelcome } = useWelcome();
     const [isStarting, setIsStarting] = useState(false);
 
@@ -32,7 +30,6 @@ export default function WelcomeScreen() {
 
         try {
             await completeWelcome();
-            router.replace("/login");
         } finally {
             setIsStarting(false);
         }

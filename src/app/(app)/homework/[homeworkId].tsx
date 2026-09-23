@@ -26,6 +26,7 @@ import {
     getFileExtension,
     getProfileImageMimeType,
     HOMEWORK_SUBMISSION_EXTENSIONS,
+    HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
     HOMEWORK_SUBMISSION_MIME_TYPES,
     isAllowedExtension,
     isAllowedMimeType,
@@ -389,14 +390,31 @@ function createFileFromDocument(
         throw new Error(t("homework.supportedFilesOnly"));
     }
 
-    const mimeType = asset.mimeType?.toLowerCase()
-        || (extension ? getProfileImageMimeType(extension) : null)
-        || (extension === "mp4" ? "video/mp4" : null);
+    const pickedMimeType = asset.mimeType?.toLowerCase();
+    const mimeType = isAllowedMimeType(
+        pickedMimeType,
+        HOMEWORK_SUBMISSION_MIME_TYPES,
+    )
+        ? pickedMimeType
+        : (extension ? getProfileImageMimeType(extension) : null)
+            || (extension === "mp4" ? "video/mp4" : null);
+
+    if (!mimeType || !isAllowedMimeType(mimeType, HOMEWORK_SUBMISSION_MIME_TYPES)) {
+        throw new Error(t("homework.supportedFilesOnly"));
+    }
+
+    if (asset.size == null || asset.size <= 0) {
+        throw new Error("The selected homework file is empty or its size is unavailable.");
+    }
+
+    if (asset.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
+        throw new Error("Homework files must be 100 MiB or smaller.");
+    }
 
     return {
         uri: asset.uri,
         name: asset.name || `homework-${Date.now()}`,
-        type: mimeType || "application/octet-stream",
+        type: mimeType,
         size: asset.size,
     };
 }
@@ -413,8 +431,8 @@ function SubmissionRow({
         <ListRow
             title={
                 submission.submittedByName?.trim() ||
+                submission.originalFileName?.trim() ||
                 submission.fileUrl?.split("/").pop() ||
-                submission.s3Key?.split("/").pop() ||
                 t("homework.submissionWithId", { id: submission.id })
             }
             subtitle={[

@@ -24,6 +24,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { UserRound } from "lucide-react-native";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
@@ -70,7 +71,11 @@ export default function SelectLessonSlotScreen() {
 
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const [dismissedConflictId, setDismissedConflictId] = useState<string>();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
+    const visibleConflictMessage = dismissedConflictId === conflictId
+        ? undefined
+        : conflictMessage;
 
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
@@ -91,11 +96,7 @@ export default function SelectLessonSlotScreen() {
 
     const handleSelect = (slot: MemberLessonSlotResponse) => {
         runWithNavigationLock(() => {
-            router.setParams({
-                conflictMessage: undefined,
-                conflictSlotId: undefined,
-                conflictId: undefined,
-            });
+            setDismissedConflictId(conflictId);
             router.push({
                 pathname: "/lesson-booking-confirm",
                 params: {
@@ -140,10 +141,10 @@ export default function SelectLessonSlotScreen() {
                     ]}
                 />
 
-                {conflictMessage ? (
+                {visibleConflictMessage ? (
                     <AvailabilityConflictNotice
                         key={conflictId}
-                        message={conflictMessage}
+                        message={visibleConflictMessage}
                     />
                 ) : null}
 
@@ -209,7 +210,7 @@ export default function SelectLessonSlotScreen() {
                     windowSize={7}
                     renderItem={({ item: slot }) => {
                         const wasJustBooked = Boolean(
-                            conflictMessage &&
+                            visibleConflictMessage &&
                             conflictSlotId === String(slot.id),
                         );
                         const disabled = wasJustBooked || isLessonSlotFull(slot);

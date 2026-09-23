@@ -14,6 +14,7 @@ import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatTypeOrNull } from "@/utils/format-enum";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Pressable,
@@ -65,6 +66,7 @@ export default function BayScreen() {
 
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const [dismissedConflictId, setDismissedConflictId] = useState<string>();
 
     const {
         data,
@@ -81,6 +83,9 @@ export default function BayScreen() {
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
     );
+    const visibleConflictMessage = dismissedConflictId === conflictId
+        ? undefined
+        : conflictMessage;
     const bookingContext = formatTypeOrNull(ticketType) ?? ticketName;
 
     const loadingRows = chunkItems(
@@ -94,11 +99,7 @@ export default function BayScreen() {
         if (!slotGroup) return;
 
         runWithNavigationLock(() => {
-            router.setParams({
-                conflictMessage: undefined,
-                conflictSlotId: undefined,
-                conflictId: undefined,
-            });
+            setDismissedConflictId(conflictId);
             router.push({
                 pathname: "/booking-confirm",
                 params: {
@@ -145,10 +146,10 @@ export default function BayScreen() {
                 ]}
             />
 
-            {conflictMessage ? (
+            {visibleConflictMessage ? (
                 <AvailabilityConflictNotice
                     key={conflictId}
-                    message={conflictMessage}
+                    message={visibleConflictMessage}
                 />
             ) : null}
 
@@ -218,7 +219,7 @@ export default function BayScreen() {
                                     isDisabled: isUnavailable,
                                 } = getBaySlotAvailability(bay);
                                 const wasJustBooked = Boolean(
-                                    conflictMessage &&
+                                    visibleConflictMessage &&
                                     conflictSlotId === String(bay.id),
                                 );
                                 const isDisabled = isUnavailable || wasJustBooked;

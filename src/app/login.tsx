@@ -5,13 +5,11 @@ import {
 import golfFieldImage from "@/assets/images/img_golf_filed.png";
 import goLogoImage from "@/assets/images/img_go.png";
 import { AppText, Screen, useThemeColors } from "@/design-system";
-import { authClient } from "@/lib/auth-client";
 import { signIn } from "@/service/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { type Href, useRouter } from "expo-router";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -32,7 +30,6 @@ export default function LoginScreen() {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isLoginPressed, setIsLoginPressed] = useState(false);
     const colors = useThemeColors();
-    const router = useRouter();
     const { t } = useTranslation();
     const loginSchema = createLoginSchema(t);
 
@@ -59,12 +56,6 @@ export default function LoginScreen() {
                 phoneNumber: values.phoneNumber.trim(),
                 password: values.password,
             });
-
-            // Refresh the session query before leaving the login route so the
-            // protected app stack sees the newly authenticated user immediately.
-            await authClient.getSession();
-            router.replace("/(app)/(tabs)" as Href);
-
         } catch (error) {
             form.setError("password", {
                 type: "server",

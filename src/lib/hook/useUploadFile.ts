@@ -1,21 +1,27 @@
 import {
-    uploadMemberUserProfileImage,
-    type UploadFormFile,
+    updateMemberProfileImage,
 } from "@/service/user";
+import { type ProfileImageContentType } from "@/utils/media";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { responseError } from "../api-response/api-response";
 
 
-export function useUploadMemberUser() {
+export function useUpdateMemberProfileImage() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, file }: { id: number; file: UploadFormFile }) =>
-            uploadMemberUserProfileImage(id, file),
-        onSuccess: (res, _variables) => {
-            // responseStatus({ res });
-            queryClient.invalidateQueries({ queryKey: ["member", "profile"] });
-            queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+        mutationFn: ({
+            memberId,
+            imageUri,
+            contentType,
+        }: {
+            memberId: number;
+            imageUri: string;
+            contentType: ProfileImageContentType;
+        }) => updateMemberProfileImage(memberId, imageUri, contentType),
+        onSuccess: (res) => {
+            queryClient.setQueryData(["member", "profile"], res);
+            void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         },
         onError: (err: unknown) => {
             responseError(err);

@@ -5,8 +5,10 @@ const DOCUMENT_EXTENSIONS = ["pdf"] as const;
 
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const VIDEO_MIME_TYPES = ["video/mp4"] as const;
+export type ProfileImageContentType = (typeof IMAGE_MIME_TYPES)[number];
+export const PROFILE_IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 export const PROFILE_IMAGE_EXTENSIONS = new Set(IMAGE_EXTENSIONS);
-export const PROFILE_IMAGE_MIME_TYPES = new Set(IMAGE_MIME_TYPES);
+export const PROFILE_IMAGE_MIME_TYPES = new Set<ProfileImageContentType>(IMAGE_MIME_TYPES);
 
 export const HOMEWORK_SUBMISSION_EXTENSIONS = new Set([
     ...IMAGE_EXTENSIONS,
@@ -16,6 +18,7 @@ export const HOMEWORK_SUBMISSION_MIME_TYPES = [
     ...IMAGE_MIME_TYPES,
     ...VIDEO_MIME_TYPES,
 ];
+export const HOMEWORK_SUBMISSION_MAX_SIZE_BYTES = 100 * 1024 * 1024;
 
 export const RESOURCE_IMAGE_EXTENSIONS = new Set(IMAGE_EXTENSIONS);
 export const RESOURCE_VIDEO_EXTENSIONS = new Set(VIDEO_EXTENSIONS);
@@ -49,6 +52,14 @@ export function isAllowedMimeType(
     allowedMimeTypes: readonly string[],
 ) {
     return value ? allowedMimeTypes.includes(value.toLowerCase()) : false;
+}
+
+export function isProfileImageContentType(
+    value: string | null | undefined,
+): value is ProfileImageContentType {
+    return value
+        ? PROFILE_IMAGE_MIME_TYPES.has(value.toLowerCase() as ProfileImageContentType)
+        : false;
 }
 
 export function getProfileImageMimeType(extension: string) {

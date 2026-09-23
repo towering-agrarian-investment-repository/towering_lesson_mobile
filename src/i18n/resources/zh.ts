@@ -143,6 +143,7 @@ const zh: TranslationResource<typeof en> = {
         nickname: "昵称",
         nicknamePlaceholder: "请输入昵称",
         onlyImageTypesSupported: "仅支持 JPEG、PNG 和 WebP 格式的图片。",
+        profileImageTooLarge: "头像大小不得超过 10 MiB。",
     },
     changePassword: {
         currentPasswordRequired: "请输入当前密码。",

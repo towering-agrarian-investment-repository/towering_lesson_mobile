@@ -8,6 +8,7 @@ import {
     getMemberHomeworks,
     getMemberHomeworkSubmissionsByHomeworkId,
     HomeworkSubmissionFile,
+    readHomeworkSubmissionFile,
     submitHomework,
     uploadHomeworkSubmissionFile,
 } from "@/service/member-homework.service";
@@ -23,6 +24,11 @@ import {
 } from "@/types/member-homework";
 import { MemberLessonDetailResponse } from "@/types/member-lesson";
 import { SessionInstanceResponse } from "@/types/member-session";
+import {
+    HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
+    HOMEWORK_SUBMISSION_MIME_TYPES,
+    isAllowedMimeType,
+} from "@/utils/media";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     ApiResponse,
@@ -160,29 +166,82 @@ export function useSubmitMemberHomework() {
             file: HomeworkSubmissionFile;
             memberMemo?: string;
         }) => {
-            const uploadResponse = await generateHomeworkSubmissionUpload(homeworkId, {
-                homeworkInstanceId,
-                files: [
-                    {
-                        originalFileName: file.name,
-                        mediaType: file.type,
-                    },
-                ],
-            });
-            const uploadTarget = uploadResponse.data?.uploads?.[0];
+            const mediaType = file.type.toLowerCase();
 
-            if (!uploadTarget?.key || !uploadTarget.uploadUrl) {
-                throw new Error("Could not prepare homework upload.");
+            if (!isAllowedMimeType(mediaType, HOMEWORK_SUBMISSION_MIME_TYPES)) {
+                throw new Error("Only JPEG, PNG, WebP, and MP4 files are supported.");
             }
 
-            await uploadHomeworkSubmissionFile(uploadTarget.uploadUrl, file);
+            const fileBlob = await readHomeworkSubmissionFile(file);
+
+            if (fileBlob.size <= 0) {
+                throw new Error("The selected homework file is empty.");
+            }
+
+            if (fileBlob.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
+                throw new Error("Homework files must be 100 MiB or smaller.");
+            }
+
+            const requestUploadTarget = async () => {
+                const uploadResponse = await generateHomeworkSubmissionUpload(homeworkId, {
+                    homeworkInstanceId,
+                    files: [
+                        {
+                            originalFileName: file.name,
+                            mediaType,
+                            sizeBytes: fileBlob.size,
+                        },
+                    ],
+                });
+                const uploadTarget = uploadResponse.data?.uploads?.[0];
+
+                if (
+                    uploadResponse.data?.homeworkId !== homeworkId
+                    || !uploadTarget?.key
+                    || !uploadTarget.uploadUrl
+                    || !uploadTarget.expiresAt
+                ) {
+                    throw new Error("Could not prepare homework upload.");
+                }
+
+                return uploadTarget;
+            };
+
+            const requestFreshUploadTarget = async () => {
+                let uploadTarget = await requestUploadTarget();
+
+                if (hasExpired(uploadTarget.expiresAt)) {
+                    uploadTarget = await requestUploadTarget();
+                }
+
+                if (hasExpired(uploadTarget.expiresAt)) {
+                    throw new Error("Could not prepare a valid homework upload URL.");
+                }
+
+                return uploadTarget;
+            };
+
+            let uploadTarget = await requestFreshUploadTarget();
+
+            try {
+                await uploadHomeworkSubmissionFile(
+                    uploadTarget.uploadUrl,
+                    fileBlob,
+                    mediaType,
+                );
+            } catch {
+                uploadTarget = await requestFreshUploadTarget();
+                await uploadHomeworkSubmissionFile(
+                    uploadTarget.uploadUrl,
+                    fileBlob,
+                    mediaType,
+                );
+            }
 
             return submitHomework({
                 homeworkId,
-                s3Key: uploadTarget.key,
-                originalFileName: uploadTarget.originalFileName ?? file.name,
-                mediaType: uploadTarget.mediaType ?? file.type,
-                fileSizeBytes: file.size,
+                uploadKey: uploadTarget.key,
+                originalFileName: file.name,
                 memberMemo: memberMemo?.trim() || undefined,
             });
         },
@@ -206,4 +265,10 @@ export function useSubmitMemberHomework() {
             responseError(error);
         },
     });
+}
+
+function hasExpired(expiresAt: string) {
+    const expiryTime = Date.parse(expiresAt);
+
+    return !Number.isFinite(expiryTime) || expiryTime <= Date.now();
 }

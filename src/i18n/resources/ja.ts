@@ -143,6 +143,7 @@ const ja: TranslationResource<typeof en> = {
         nickname: "ニックネーム",
         nicknamePlaceholder: "ニックネームを入力",
         onlyImageTypesSupported: "JPEG、PNG、WebP 形式の画像のみ対応しています。",
+        profileImageTooLarge: "プロフィール画像は10 MiB以下にしてください。",
     },
     changePassword: {
         currentPasswordRequired: "現在のパスワードを入力してください。",

@@ -29,7 +29,7 @@ export type MemberHomeworkSubmissionResponse = {
     memberName: string | null;
     submittedByAuthUserId: string | null;
     submittedByName: string | null;
-    s3Key: string | null;
+    originalFileName: string | null;
     externalUrl: string | null;
     fileUrl: string | null;
     mediaType: string | null;
@@ -51,6 +51,7 @@ export type MemberHomeworkDetailResponse = {
 export type GenerateHomeworkSubmissionUploadFileRequest = {
     originalFileName: string;
     mediaType: string;
+    sizeBytes: number;
 };
 
 export type GenerateHomeworkSubmissionUploadsRequest = {
@@ -61,19 +62,17 @@ export type GenerateHomeworkSubmissionUploadsRequest = {
 export type HomeworkSubmissionUploadTarget = {
     key: string;
     uploadUrl: string;
-    originalFileName?: string | null;
-    mediaType?: string | null;
+    expiresAt: string;
 };
 
 export type GenerateHomeworkSubmissionUploadsResponse = {
-    uploads?: HomeworkSubmissionUploadTarget[] | null;
+    homeworkId: number;
+    uploads: HomeworkSubmissionUploadTarget[];
 };
 
 export type SubmitHomeworkRequest = {
     homeworkId: number;
-    s3Key: string;
+    uploadKey: string;
     originalFileName: string;
-    mediaType?: string;
-    fileSizeBytes?: number;
     memberMemo?: string;
 };

@@ -143,6 +143,7 @@ const km: TranslationResource<typeof en> = {
         nickname: "ឈ្មោះហៅក្រៅ",
         nicknamePlaceholder: "បញ្ចូលឈ្មោះហៅក្រៅ",
         onlyImageTypesSupported: "គាំទ្រតែប្រភេទរូបភាព JPEG, PNG និង WebP ប៉ុណ្ណោះ។",
+        profileImageTooLarge: "រូបភាពប្រវត្តិរូបត្រូវមានទំហំមិនលើសពី 10 MiB។",
     },
     changePassword: {
         currentPasswordRequired: "តម្រូវឱ្យបញ្ចូលពាក្យសម្ងាត់បច្ចុប្បន្ន។",
