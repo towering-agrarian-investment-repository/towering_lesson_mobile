@@ -23,8 +23,6 @@ import type { MemberHomeworkSubmissionResponse } from "@/types/member-homework";
 import { formatFileSize } from "@/utils/file";
 import { formatType } from "@/utils/format-enum";
 import {
-    getFileExtension,
-    getProfileImageMimeType,
     HOMEWORK_SUBMISSION_EXTENSIONS,
     HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
     HOMEWORK_SUBMISSION_MIME_TYPES,
@@ -38,6 +36,7 @@ import {
 } from "@/utils/status-tone";
 import { formatDateForDisplay, fmtDateTime } from "@/utils/time-helper";
 import * as DocumentPicker from "expo-document-picker";
+import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
@@ -376,7 +375,7 @@ function createFileFromDocument(
     asset: DocumentPicker.DocumentPickerAsset,
     t: (key: string) => string,
 ): HomeworkSubmissionFile {
-    const extension = getFileExtension(asset.name);
+    const file = new File(asset.uri);
     const hasSupportedExtension = isAllowedExtension(
         asset.name,
         HOMEWORK_SUBMISSION_EXTENSIONS,
@@ -390,32 +389,25 @@ function createFileFromDocument(
         throw new Error(t("homework.supportedFilesOnly"));
     }
 
-    const pickedMimeType = asset.mimeType?.toLowerCase();
-    const mimeType = isAllowedMimeType(
-        pickedMimeType,
-        HOMEWORK_SUBMISSION_MIME_TYPES,
-    )
-        ? pickedMimeType
-        : (extension ? getProfileImageMimeType(extension) : null)
-            || (extension === "mp4" ? "video/mp4" : null);
+    const mimeType = asset.mimeType;
 
     if (!mimeType || !isAllowedMimeType(mimeType, HOMEWORK_SUBMISSION_MIME_TYPES)) {
         throw new Error(t("homework.supportedFilesOnly"));
     }
 
-    if (asset.size == null || asset.size <= 0) {
+    if (!file.exists || file.size <= 0) {
         throw new Error("The selected homework file is empty or its size is unavailable.");
     }
 
-    if (asset.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
+    if (file.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
         throw new Error("Homework files must be 100 MiB or smaller.");
     }
 
     return {
         uri: asset.uri,
-        name: asset.name || `homework-${Date.now()}`,
+        name: asset.name || file.name,
         type: mimeType,
-        size: asset.size,
+        size: file.size,
     };
 }
 

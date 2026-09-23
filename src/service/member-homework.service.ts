@@ -13,6 +13,8 @@ import {
     HOMEWORK_SUBMISSION_MIME_TYPES,
     isAllowedMimeType,
 } from "@/utils/media";
+import { fetch as expoFetch } from "expo/fetch";
+import { File } from "expo-file-system";
 
 export type HomeworkSubmissionFile = {
     uri: string;
@@ -92,14 +94,14 @@ export async function submitHomework(
 
 export async function uploadHomeworkSubmissionFile(
     uploadUrl: string,
-    fileBlob: Blob,
+    file: File,
     mediaType: string,
 ) {
-    if (fileBlob.size <= 0) {
+    if (!file.exists || file.size <= 0) {
         throw new Error("The selected homework file is empty.");
     }
 
-    if (fileBlob.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
+    if (file.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
         throw new Error("Homework files must be 100 MiB or smaller.");
     }
 
@@ -107,27 +109,17 @@ export async function uploadHomeworkSubmissionFile(
         throw new Error("Only JPEG, PNG, WebP, and MP4 files are supported.");
     }
 
-    const uploadResponse = await fetch(uploadUrl, {
+    const uploadResponse = await expoFetch(uploadUrl, {
         method: "PUT",
         headers: {
             "Content-Type": mediaType,
         },
-        body: fileBlob,
+        body: file,
     });
 
     if (!uploadResponse.ok) {
-        throw new Error(`Could not upload homework file (${uploadResponse.status}).`);
+        throw new Error(
+            `Storage upload failed: ${uploadResponse.status} ${await uploadResponse.text()}`,
+        );
     }
-}
-
-export async function readHomeworkSubmissionFile(
-    file: HomeworkSubmissionFile,
-): Promise<Blob> {
-    const fileResponse = await fetch(file.uri);
-
-    if (!fileResponse.ok) {
-        throw new Error("Could not read the selected homework file.");
-    }
-
-    return fileResponse.blob();
 }
