@@ -98,7 +98,7 @@ export type MemberLessonDetailResponse = {
     currentHomeworkSubmissions: MemberHomeworkSubmissionResponse[];
 };
 
-export type LessonAvailabilityReservationResponse = {
+export type MemberLessonAvailabilityReservationSummary = {
     id: number;
     memberId?: number | null;
     reservationStatus?: LessonReservationStatus | null;
@@ -122,7 +122,7 @@ export type MemberLessonSlotResponse = {
     slotStatus?: LessonSlotStatus | null;
     notes?: string | null;
     lessonInstances?: unknown[];
-    reservations?: LessonAvailabilityReservationResponse[];
+    reservations?: MemberLessonAvailabilityReservationSummary[];
 };
 
 export type CreateLessonReservationRequest = {
@@ -186,7 +186,6 @@ export type MemberLessonReservationResponse = {
     reservationDate: string | null;
     durationMinutes: number | null;
     reservationStatus: LessonReservationStatus | null;
-    checkedInAt: string | null;
     cancelledAt: string | null;
     memberNotes: string | null;
     isCancellable: boolean;

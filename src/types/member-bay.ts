@@ -27,13 +27,17 @@ export type MemberBayReservationParticipant = {
     notes: string | null;
 };
 
-export type MemberBayReservationAttendance = {
+export type AttendanceStatus = "PENDING" | "PRESENT" | "ABSENT";
+
+export type AttendanceReservationDomain = "LESSON" | "BAY";
+
+export type MemberReservationAttendance = {
     id: number;
     reservationId: number;
-    reservationDomain: string;
+    reservationDomain: AttendanceReservationDomain;
     checkedInAt: string | null;
     checkedOutAt: string | null;
-    attendanceStatus: string;
+    attendanceStatus: AttendanceStatus;
     notes: string | null;
 };
 
@@ -51,12 +55,11 @@ export type MemberBayReservationResponse = {
     durationMinutes: number;
     numberOfPlayers: number;
     reservationStatus: string;
-    checkedInAt: string | null;
     cancelledAt: string | null;
     memberNotes: string | null;
     adminNotes: string | null;
     participants: MemberBayReservationParticipant[];
-    attendance: MemberBayReservationAttendance;
+    attendance: MemberReservationAttendance | null;
     isCancellable: boolean;
 };
 
