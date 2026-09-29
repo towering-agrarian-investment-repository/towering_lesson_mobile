@@ -173,6 +173,16 @@ export default function AppLayout() {
                     />
 
                     <Stack.Screen
+                        name="booking-success"
+                        options={{
+                            headerShown: false,
+                            animation: "none",
+                            fullScreenGestureEnabled: false,
+                            gestureEnabled: false,
+                        }}
+                    />
+
+                    <Stack.Screen
                         name="reservation/[id]"
                         options={{
                             title: t("reservations.reservationDetailTitle"),

@@ -8,6 +8,8 @@ import {
     Divider,
     Skeleton,
 } from "@/design-system";
+import type { MemberBayReservationResponse } from "@/types/member-bay";
+import type { MemberLessonReservationResponse } from "@/types/member-lesson";
 import * as Haptics from "expo-haptics";
 import type { ImperativeRouter } from "expo-router";
 import { View } from "react-native";
@@ -27,10 +29,7 @@ type BookingConfirmationContentProps = {
 
 export function handleBookingConfirmationSuccess(
     router: ImperativeRouter,
-    reservation: {
-        id: number;
-        reservationType: "bay" | "lesson";
-    } | null,
+    reservation: MemberBayReservationResponse | MemberLessonReservationResponse | null,
 ) {
     if (process.env.EXPO_OS === "android") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -39,17 +38,45 @@ export function handleBookingConfirmationSuccess(
     }
 
     if (!reservation) {
-        router.dismissTo("/(app)/(tabs)");
+        router.replace("/booking-success");
         return;
     }
 
+    const isBayReservation = "baySlot" in reservation;
+    const params: Record<string, string> = {
+        type: isBayReservation ? "bay" : "lesson",
+    };
+
+    const addParam = (key: string, value?: string | number | null) => {
+        if (value !== undefined && value !== null && String(value).trim()) {
+            params[key] = String(value);
+        }
+    };
+
+    addParam("ticketId", reservation.ticket?.id);
+    addParam("ticketName", reservation.ticket?.name);
+    addParam("ticketType", reservation.ticket?.type);
+    addParam("date", reservation.startTime ?? reservation.reservationDate);
+    addParam("startTime", reservation.startTime);
+    addParam("endTime", reservation.endTime);
+
+    if (isBayReservation) {
+        addParam("bayName", reservation.bayName);
+        addParam("bayId", reservation.baySlot.bayId);
+    } else {
+        addParam(
+            "reservationName",
+            reservation.lessonAvailability?.name ??
+                reservation.lessonName ??
+                reservation.lessonProgramGroupName ??
+                reservation.lessonProgramName,
+        );
+        addParam("coachName", reservation.coach?.name);
+    }
+
     router.replace({
-        pathname: "/reservation/[id]",
-        params: {
-            id: String(reservation.id),
-            type: reservation.reservationType,
-            success: "true",
-        },
+        pathname: "/booking-success",
+        params,
     });
 }
 
@@ -60,7 +87,7 @@ export function BookingConfirmationFooter({
     onPress,
 }: BookingConfirmationFooterProps) {
     return (
-        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+        <View className="pb-8 pt-4">
             <Button
                 title={title}
                 loading={loading}

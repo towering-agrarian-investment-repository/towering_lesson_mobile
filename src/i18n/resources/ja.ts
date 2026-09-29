@@ -375,6 +375,7 @@ const ja: TranslationResource<typeof en> = {
         unlimitedUsage: "無制限利用可能",
         usage: "使用済み {{used}} / 全 {{total}} 回",
         usageRemaining: "残り {{remaining}} / 全 {{total}} 回",
+        remainingBalance: "残り {{remaining}} 回",
         flexibleUsage: "フレキシブルチケット",
         useOncePerDay: "1日1回まで利用可能",
     },

@@ -372,6 +372,7 @@ const ko = {
         "empty": "\uc774\uc6a9\uad8c\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
         "unlimitedUsage": "\ubb34\uc81c\ud55c \uc774\uc6a9",
         "usageRemaining": "{{total}}\ud68c \uc911 {{remaining}}\ud68c \ub0a8\uc74c",
+        "remainingBalance": "{{remaining}}\ud68c \ub0a8\uc74c",
         "flexibleUsage": "\uc720\ub3d9 \uc774\uc6a9",
         "useOncePerDay": "\ud558\ub8e8 1\ud68c \uc0ac\uc6a9"
     },

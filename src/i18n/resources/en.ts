@@ -418,6 +418,7 @@ const en = {
         unlimitedUsage: "Unlimited Usage",
         usage: "{{used}}/{{total}} used",
         usageRemaining: "{{remaining}} out of {{total}}",
+        remainingBalance: "{{remaining}} remaining",
         flexibleUsage: "Flexible Usage",
         useOncePerDay: "Use once per day",
     },

@@ -118,6 +118,7 @@ export function Screen({
 
             {footer ? (
                 <View
+                    className="border-t border-border bg-background px-5"
                     style={{
                         paddingBottom: insets.bottom,
                     }}

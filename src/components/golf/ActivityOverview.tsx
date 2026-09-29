@@ -271,7 +271,7 @@ export function ActivityOverview() {
                     headerShown={false}
                     contentClassName="gap-5"
                     footer={
-                        <View className="border-t border-border bg-background px-5 pb-3 pt-3">
+                        <View className="pb-3 pt-3">
                             <Pressable
                                 accessibilityRole="button"
                                 accessibilityLabel={t("activity.save")}

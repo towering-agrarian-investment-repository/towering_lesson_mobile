@@ -3,6 +3,7 @@ import {
     ReservationFieldValue,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
+import { BookingTicketSummary } from "@/components/golf/booking/BookingTicketSummary";
 import {
     AppText,
     Badge,
@@ -33,7 +34,6 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { MemberBayReservationResponse } from "@/types/member-bay";
 import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
-import { TicketListItemResponse } from "@/types/member-ticket";
 import { formatType } from "@/utils/format-enum";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import * as Haptics from "expo-haptics";
@@ -255,7 +255,7 @@ export default function ReservationDetailScreen() {
         fullScreenGestureEnabled: !isSuccess,
     } as const;
     const successFooter = isSuccess ? (
-        <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+        <View className="pb-8 pt-4">
             <Button
                 title={t("navigation.tabs.home")}
                 onPress={handleGoHome}
@@ -522,7 +522,7 @@ export default function ReservationDetailScreen() {
                     isSuccess ? (
                         successFooter
                     ) : canCancelReservation || canRescheduleReservation ? (
-                        <View className="gap-3 border-t border-border bg-background px-6 pb-8 pt-4">
+                        <View className="gap-3 pb-8 pt-4">
                             {canRescheduleReservation ? (
                                 <Button
                                     title={t("reservations.reschedule")}
@@ -721,94 +721,6 @@ function ReservationSuccessBanner({
                 ) : null}
             </View>
         </View>
-    );
-}
-
-function BookingTicketSummary({
-    reservationTicket,
-    ticket,
-    loading,
-    hasError,
-}: {
-    reservationTicket: {
-        id: number;
-        name: string;
-        type: string | null;
-    } | null;
-    ticket?: TicketListItemResponse;
-    loading: boolean;
-    hasError: boolean;
-}) {
-    const { t } = useTranslation();
-
-    if (!reservationTicket) {
-        return null;
-    }
-
-    const ticketType = ticket?.type ?? reservationTicket.type;
-    const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
-
-    return (
-        <Card className="gap-3 p-4">
-            <AppText variant="caption" className="font-semibold text-muted-foreground">
-                {t("bookingConfirmation.ticketLabel")}
-            </AppText>
-
-            <View className="flex-row items-center justify-between gap-3">
-                <AppText
-                    variant="label"
-                    selectable
-                    className="min-w-0 flex-1 text-base font-bold text-foreground"
-                    numberOfLines={2}
-                >
-                    {ticket?.name ?? reservationTicket.name}
-                </AppText>
-
-                {ticketType && ticketTone ? (
-                    <Badge
-                        label={formatTicketTypeLabel(ticketType)}
-                        className={`${ticketTone.badgeClassName} px-2 py-0.5`}
-                        textClassName={`${ticketTone.badgeTextClassName} text-xs font-semibold leading-4`}
-                    />
-                ) : null}
-            </View>
-
-            {loading ? (
-                <View className="gap-2">
-                    <Skeleton className="h-4 w-32 rounded-full" />
-                    <Skeleton className="h-4 w-24 rounded-full" />
-                </View>
-            ) : ticket ? (
-                ticket.isUnlimited ? (
-                    <AppText variant="caption" className="text-muted-foreground">
-                        {t("tickets.unlimitedUsage")}
-                    </AppText>
-                ) : ticket.totalCount != null ? (
-                    <View className="gap-1">
-                        <AppText variant="body" className="font-semibold text-foreground">
-                            {t("tickets.usage", {
-                                used: ticket.usedCount,
-                                total: ticket.totalCount,
-                            })}
-                        </AppText>
-                        <AppText variant="caption" className="text-muted-foreground">
-                            {t("tickets.usageRemaining", {
-                                remaining: ticket.remainingCount,
-                                total: ticket.totalCount,
-                            })}
-                        </AppText>
-                    </View>
-                ) : (
-                    <AppText variant="caption" className="text-muted-foreground">
-                        {t("tickets.flexibleUsage")}
-                    </AppText>
-                )
-            ) : (
-                <AppText variant="caption" className="text-muted-foreground">
-                    {hasError ? t("tickets.loadError") : t("tickets.flexibleUsage")}
-                </AppText>
-            )}
-        </Card>
     );
 }
 

@@ -375,6 +375,7 @@ const zh: TranslationResource<typeof en> = {
         unlimitedUsage: "无限次使用",
         usage: "已用 {{used}} / 共 {{total}}",
         usageRemaining: "剩余 {{remaining}} / 共 {{total}}",
+        remainingBalance: "剩余 {{remaining}} 次",
         flexibleUsage: "灵活套餐",
         useOncePerDay: "每日限用一次",
     },

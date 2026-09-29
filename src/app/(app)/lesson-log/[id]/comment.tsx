@@ -149,7 +149,7 @@ function LessonLogCommentScreen() {
             keyboardAware
             contentClassName="grow gap-5"
             footer={
-                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                <View className="pb-8 pt-4">
                     <Button
                         title={t("changePassword.confirm")}
                         accessibilityLabel={t("lessonLog.submitCommentAccessibility")}

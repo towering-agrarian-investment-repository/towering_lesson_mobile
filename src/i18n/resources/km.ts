@@ -375,6 +375,7 @@ const km: TranslationResource<typeof en> = {
         unlimitedUsage: "ប្រើប្រាស់មិនកំណត់",
         usage: "បានប្រើ {{used}}/{{total}} ដង",
         usageRemaining: "នៅសល់ {{remaining}} នៃ {{total}} ដង",
+        remainingBalance: "នៅសល់ {{remaining}} ដង",
         flexibleUsage: "ការប្រើប្រាស់បត់បែន",
         useOncePerDay: "ប្រើប្រាស់បានម្តងក្នុងមួយថ្ងៃ",
     },

@@ -84,7 +84,7 @@ export default function HomeScreen() {
       headerShown={false}
       contentClassName="flex-grow"
       footer={
-        <View>
+        <View className="pb-4 pt-3">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("home.viewMyReservations")}

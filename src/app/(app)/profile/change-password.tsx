@@ -95,7 +95,7 @@ function ChangePasswordScreen() {
             keyboardAware
             contentClassName="flex-grow"
             footer={
-                <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                <View className="pb-8 pt-4">
                     <Button
                         title={form.formState.isSubmitting ? t("changePassword.saving") : t("changePassword.confirm")}
                         loading={form.formState.isSubmitting}

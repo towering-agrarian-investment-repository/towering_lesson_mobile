@@ -129,7 +129,7 @@ function LessonLogDetailsScreen() {
             }
             footer={
                 canReview ? (
-                    <View className="border-t border-border bg-background px-6 pb-8 pt-4">
+                    <View className="pb-8 pt-4">
                         <Button
                             title={t("lessonLog.leaveComment")}
                             accessibilityLabel={t("lessonLog.leaveCommentAccessibility")}
