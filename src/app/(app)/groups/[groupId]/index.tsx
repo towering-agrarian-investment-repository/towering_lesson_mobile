@@ -58,13 +58,13 @@ export default function GroupDetailScreen() {
         refetch: refetchHomeworks,
     } = useMemberHomeworks();
 
-    const hasEmbeddedHomeworks = data?.data?.homeworks !== undefined;
-    const group = data?.data?.group;
-    const lessons = [...(data?.data?.lessons ?? [])].sort(
+    const hasEmbeddedHomeworks = data?.data.homeworks !== undefined;
+    const group = data?.data.group;
+    const lessons = [...(data?.data.lessons ?? [])].sort(
         (a, b) => (a.orderIndex ?? Number.MAX_SAFE_INTEGER) - (b.orderIndex ?? Number.MAX_SAFE_INTEGER),
     );
     const groupHomeworks = hasEmbeddedHomeworks
-        ? data?.data?.homeworks ?? []
+        ? data?.data.homeworks ?? []
         : (homeworkResponse?.data ?? []).filter(
             (homework) => homework.lessonProgramGroupId === Number(groupId),
         );

@@ -73,7 +73,7 @@ export function getMemberReservationsQueryOptions(type: MemberReservationType) {
             }, signal),
         getNextPageParam: (lastPage: ApiResponse<CursorPageResponse<MemberReservationResponse>>) => {
             const page = lastPage.data;
-            return page?.hasMore ? page.nextCursor : undefined;
+            return page.hasMore ? page.nextCursor : undefined;
         },
     };
 }
@@ -91,8 +91,8 @@ export function useMemberReservations(type: MemberReservationType) {
     >({
         ...getMemberReservationsQueryOptions(type),
         select: (data) => ({
-            items: data.pages.flatMap((page) => page.data?.items ?? []),
-            hasMore: data.pages[data.pages.length - 1]?.data?.hasMore ?? false,
+            items: data.pages.flatMap((page) => page.data.items),
+            hasMore: data.pages[data.pages.length - 1]?.data.hasMore ?? false,
         }),
     });
 }
@@ -106,7 +106,7 @@ export function useTodayMemberReservations() {
     >({
         queryKey: ["member", "reservations", "today"],
         queryFn: ({ signal }) => getTodayMemberReservations(signal),
-        select: (response) => response.data ?? [],
+        select: (response) => response.data,
         staleTime: 30_000,
     });
 }
@@ -214,7 +214,6 @@ export function useCreateMemberBayReservation() {
         mutationFn: createMemberBayReservation,
         retry: false,
         onSuccess: (res) => {
-            responseStatus(res);
             cacheMemberReservationDetail(queryClient, res);
             refreshMemberReservationLists(queryClient);
             refreshMemberTickets(queryClient);
@@ -243,7 +242,6 @@ export function useCreateMemberLessonReservation() {
         mutationFn: createMemberLessonReservation,
         retry: false,
         onSuccess: (res) => {
-            responseStatus(res);
             cacheMemberReservationDetail(queryClient, res);
             refreshMemberReservationLists(queryClient);
             refreshMemberTickets(queryClient);
@@ -345,7 +343,6 @@ export function useRescheduleMemberBayReservation() {
             rescheduleBayReservationById(reservationId, data),
         retry: false,
         onSuccess: (res) => {
-            responseStatus(res);
             cacheMemberReservationDetail(queryClient, res);
             refreshMemberReservationLists(queryClient);
             refreshMemberTickets(queryClient);

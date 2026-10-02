@@ -125,7 +125,7 @@ export default function LessonBookingConfirmScreen() {
                 notes: notes ?? undefined,
                 conflictMessage: error.message,
                 conflictSlotId: lessonAvailabilityId,
-                conflictId: String(Date.now()),
+                conflictId: error.timestamp,
             },
         });
         responseError(error);
@@ -175,7 +175,22 @@ export default function LessonBookingConfirmScreen() {
             },
             {
                 onSuccess: (response) =>
-                    handleBookingConfirmationSuccess(router, response.data),
+                    handleBookingConfirmationSuccess(router, {
+                        type: "lesson",
+                        mode: "booking",
+                        ticketId: response.data.ticket?.id ?? ticketId,
+                        ticketName: response.data.ticket?.name ?? ticketName,
+                        ticketRemainingCount:
+                            response.data.ticket?.remainingCount,
+                        ticketIsUnlimited:
+                            response.data.ticket?.isUnlimited,
+                        date,
+                        startTime: selectedSlot.startTime ?? startTime,
+                        endTime: selectedSlot.endTime ?? endTime,
+                        reservationName:
+                            getLessonSlotDisplayName(selectedSlot) ?? lessonName,
+                        coachName: selectedSlot.coachName ?? coachName,
+                    }),
                 onError: handleSlotUnavailable,
             },
         );

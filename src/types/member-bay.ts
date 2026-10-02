@@ -5,6 +5,8 @@ export type MemberBayReservationTicket = {
     name: string;
     type: string;
     status: string;
+    isUnlimited: boolean;
+    remainingCount: number | null;
 };
 
 export type MemberBayReservationBaySlot = {

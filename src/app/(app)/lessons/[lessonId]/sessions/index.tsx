@@ -23,7 +23,7 @@ export default function LessonSessionsScreen() {
         isRefetching,
     } = useMemberLessonById(numericLessonId);
 
-    const sessions = data?.data?.sessions ?? [];
+    const sessions = data?.data.sessions ?? [];
 
     if (isLoading) {
         return (

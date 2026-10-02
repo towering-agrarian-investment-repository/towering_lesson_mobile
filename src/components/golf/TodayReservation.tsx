@@ -1,5 +1,6 @@
-import { InlineState, Skeleton } from "@/design-system";
+import { Divider, InlineState, Skeleton } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
+import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
@@ -18,13 +19,17 @@ function TodayReservation() {
             />
 
             {todayReservationsLoading ? (
-                <View className="flex-row flex-wrap items-start gap-3 py-3">
-                    {["w-48", "w-56", "w-44"].map((widthClassName, index) => (
-                        <Skeleton
-                            key={index}
-                            className={`h-[54px] ${widthClassName} rounded-full`}
-                        />
-                    ))}
+                <View className="py-3">
+                    <View className="overflow-hidden rounded-xl border border-border bg-card">
+                        {[0, 1, 2].map((index) => (
+                            <Fragment key={index}>
+                                {index > 0 ? <Divider /> : null}
+                                <View className="px-4 py-3">
+                                    <Skeleton className="h-12 w-full rounded-lg" />
+                                </View>
+                            </Fragment>
+                        ))}
+                    </View>
                 </View>
             ) : todayReservationError ? (
                 <View className="justify-center">
@@ -34,19 +39,21 @@ function TodayReservation() {
                     />
                 </View>
             ) : todayReservations.length === 0 ? (
-                <View className="justify-center">
+                <View className="min-h-40 justify-center py-3">
                     <InlineState
                         title={t("reservations.empty")}
                     />
                 </View>
             ) : (
-                <View className="flex-row flex-wrap items-start gap-3 py-3">
-                    {todayReservations.map((reservation) => (
-                        <TodayReservationCard
-                            key={`${reservation.reservationType}:${reservation.id}`}
-                            reservation={reservation}
-                        />
-                    ))}
+                <View className="py-3">
+                    <View className="overflow-hidden rounded-xl border border-border bg-card">
+                        {todayReservations.map((reservation, index) => (
+                            <Fragment key={`${reservation.reservationType}:${reservation.id}`}>
+                                {index > 0 ? <Divider /> : null}
+                                <TodayReservationCard reservation={reservation} />
+                            </Fragment>
+                        ))}
+                    </View>
                 </View>
             )}
         </View>

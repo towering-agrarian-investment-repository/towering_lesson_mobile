@@ -2,7 +2,7 @@ import { ActionSheet, AppText as Text, Button, CircleLoader, ErrorState, Screen,
 import {
     FormTextInput,
 } from "@/components/ui/form";
-import { useUpdateMemberProfileImage } from "@/lib/hook/useUploadFile";
+import { useRemoveMemberProfileImage, useUpdateMemberProfileImage } from "@/lib/hook/useUploadFile";
 import {
     useGetMemberProfile,
     useUpdateMemberProfile,
@@ -21,8 +21,8 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Camera, ImageIcon } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { Camera, ImageIcon, Trash2 } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -54,10 +54,17 @@ export default function EditProfileScreen() {
         mutate: uploadProfileImage,
         isPending: isUploadingImage,
     } = useUpdateMemberProfileImage();
+    const { mutate: removeProfileImage, isPending: isRemovingImage } =
+        useRemoveMemberProfileImage();
+    const removalLock = useRef(false);
+    const isUpdatingImage = isUploadingImage || isRemovingImage;
     const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
         useState(false);
 
     const member = memberResponse?.data;
+    const memberId = member?.id;
+    const memberName = member?.name;
+    const memberNickname = member?.nickname;
     const editProfileSchema = createEditProfileSchema(t);
 
     const form = useForm<EditProfileFormValues>({
@@ -70,18 +77,18 @@ export default function EditProfileScreen() {
     });
 
     useEffect(() => {
-        if (!member) {
+        if (!memberId) {
             return;
         }
 
         form.reset({
-            name: member.name ?? "",
-            nickname: member.nickname ?? "",
+            name: memberName ?? "",
+            nickname: memberNickname ?? "",
         });
-    }, [form, member]);
+    }, [form, memberId, memberName, memberNickname]);
 
     const onSubmit = (values: EditProfileFormValues) => {
-        if (!member) {
+        if (!member || isSubmitting || isUpdatingImage) {
             return;
         }
 
@@ -128,7 +135,7 @@ export default function EditProfileScreen() {
     };
 
     const handlePickProfileImageFromLibrary = async () => {
-        if (!member?.id || isUploadingImage) {
+        if (!member?.id || isUpdatingImage || isSubmitting) {
             return;
         }
 
@@ -167,7 +174,7 @@ export default function EditProfileScreen() {
     };
 
     const handleTakeProfileImage = async () => {
-        if (!member?.id || isUploadingImage) {
+        if (!member?.id || isUpdatingImage || isSubmitting) {
             return;
         }
 
@@ -206,7 +213,7 @@ export default function EditProfileScreen() {
     };
 
     const handleChangeProfileImage = () => {
-        if (!member?.id || isUploadingImage) {
+        if (!member?.id || isUpdatingImage || isSubmitting) {
             return;
         }
 
@@ -215,6 +222,26 @@ export default function EditProfileScreen() {
 
     const closePhotoSourceSheet = () => {
         setIsPhotoSourceSheetVisible(false);
+    };
+
+    const handleRemoveProfileImage = () => {
+        if (!member?.profileImage || isUpdatingImage || isSubmitting || removalLock.current) {
+            return;
+        }
+
+        removalLock.current = true;
+        removeProfileImage(member.id, {
+            onSuccess: () => {
+                triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
+                showAppToast({
+                    message: t("profile.profileImageRemoved"),
+                    type: "success",
+                });
+            },
+            onSettled: () => {
+                removalLock.current = false;
+            },
+        });
     };
 
     if (isLoading) {
@@ -248,7 +275,7 @@ export default function EditProfileScreen() {
                         loading={isSubmitting}
                         disabled={
                             isSubmitting
-                            || isUploadingImage
+                            || isUpdatingImage
                             || !form.formState.isDirty
                         }
                         className="rounded-xl"
@@ -268,7 +295,7 @@ export default function EditProfileScreen() {
                         title: t("profile.takePhoto"),
                         description: t("profile.useCamera"),
                         icon: <Camera size={22} color={colors.foreground} />,
-                        disabled: isUploadingImage,
+                        disabled: isUpdatingImage || isSubmitting,
                         onPress: () => {
                             void handleTakeProfileImage();
                         },
@@ -278,11 +305,18 @@ export default function EditProfileScreen() {
                         title: t("profile.chooseFromLibrary"),
                         description: t("profile.selectExistingPhoto"),
                         icon: <ImageIcon size={22} color={colors.foreground} />,
-                        disabled: isUploadingImage,
+                        disabled: isUpdatingImage || isSubmitting,
                         onPress: () => {
                             void handlePickProfileImageFromLibrary();
                         },
                     },
+                    ...(member.profileImage ? [{
+                        key: "remove",
+                        title: t("profile.removePhoto"),
+                        icon: <Trash2 size={22} color={colors.danger} />,
+                        disabled: isUpdatingImage || isSubmitting,
+                        onPress: handleRemoveProfileImage,
+                    }] : []),
                 ]}
             />
 
@@ -294,10 +328,12 @@ export default function EditProfileScreen() {
                     />
 
                     <Button
-                        title={isUploadingImage ? t("profile.uploading") : t("profile.changePhoto")}
+                        title={isRemovingImage
+                            ? t("profile.removingPhoto")
+                            : isUploadingImage ? t("profile.uploading") : t("profile.changePhoto")}
                         variant="secondary"
-                        loading={isUploadingImage}
-                        disabled={isUploadingImage || isSubmitting}
+                        loading={isUpdatingImage}
+                        disabled={isUpdatingImage || isSubmitting}
                         onPress={() => {
                             handleChangeProfileImage();
                         }}

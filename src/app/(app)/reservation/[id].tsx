@@ -3,12 +3,10 @@ import {
     ReservationFieldValue,
     ReservationPoliciesSection,
 } from "@/components/golf/reservation/ReservationSections";
-import { BookingTicketSummary } from "@/components/golf/booking/BookingTicketSummary";
 import {
     AppText,
     Badge,
     Button,
-    Card,
     ConfirmSheet,
     Divider,
     EmptyState,
@@ -28,8 +26,6 @@ import {
     useCancelMemberLessonReservation,
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
-import { useMemberTickets } from "@/lib/hook/useTicket";
-import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { MemberBayReservationResponse } from "@/types/member-bay";
 import { MemberLessonReservationResponse } from "@/types/member-lesson";
@@ -41,29 +37,21 @@ import { Image } from "expo-image";
 import {
     Href,
     Stack,
-    useFocusEffect,
     useLocalSearchParams,
     useRouter,
 } from "expo-router";
-import {
-    CheckCircle2,
-    ChevronRight,
-} from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { ChevronRight } from "lucide-react-native";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    BackHandler,
     Pressable,
     RefreshControl,
     View,
 } from "react-native";
 
-const SUCCESS_TICKET_STATUSES = ["ACTIVE", "IN_USE", "FULLY_USED"];
-
 type ReservationParams = {
     id: string;
     type?: string;
-    success?: string;
 };
 
 function isReservationDomain(
@@ -180,12 +168,11 @@ function getReservationPolicies(t: (key: string) => string) {
 
 export default function ReservationDetailScreen() {
     const { t } = useTranslation();
-    const { id, type, success } = useLocalSearchParams<ReservationParams>();
+    const { id, type } = useLocalSearchParams<ReservationParams>();
 
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
-    const isSuccess = success === "true";
 
     const reservationType = isReservationDomain(type) ? type : undefined;
 
@@ -198,78 +185,22 @@ export default function ReservationDetailScreen() {
     } = useMemberReservationById(Number(id), reservationType);
 
     const reservation = data?.data;
-    const {
-        data: memberResponse,
-        isLoading: isMemberProfileLoading,
-    } = useGetMemberProfile();
-    const {
-        data: ticketsResponse,
-        isLoading: isTicketUsageLoading,
-        isError: isTicketUsageError,
-    } = useMemberTickets(
-        isSuccess ? memberResponse?.data?.id : undefined,
-        SUCCESS_TICKET_STATUSES,
-    );
 
     const { mutate: cancelLessonReservation, isPending: isCancellingLesson } =
         useCancelMemberLessonReservation();
 
     const { mutate: cancelBayReservation, isPending: isCancellingBay } =
         useCancelMemberBayReservation();
-
-
-    const handleGoHome = useCallback(() => {
-        if (isLocked) {
-            return;
-        }
-
-        runWithNavigationLock(() => {
-            router.dismissTo("/(app)/(tabs)");
-        });
-    }, [isLocked, router, runWithNavigationLock]);
-
-    useFocusEffect(
-        useCallback(() => {
-            if (!isSuccess || process.env.EXPO_OS !== "android") {
-                return;
-            }
-
-            const subscription = BackHandler.addEventListener(
-                "hardwareBackPress",
-                () => {
-                    handleGoHome();
-                    return true;
-                },
-            );
-
-            return () => subscription.remove();
-        }, [handleGoHome, isSuccess]),
-    );
-
     const screenOptions = {
-        title: isSuccess
-            ? t("reservations.confirmedTitle")
-            : t("reservations.reservationDetailTitle"),
-        headerBackVisible: !isSuccess,
-        gestureEnabled: !isSuccess,
-        fullScreenGestureEnabled: !isSuccess,
+        title: t("reservations.reservationDetailTitle"),
     } as const;
-    const successFooter = isSuccess ? (
-        <View className="pb-8 pt-4">
-            <Button
-                title={t("navigation.tabs.home")}
-                onPress={handleGoHome}
-                disabled={isLocked}
-            />
-        </View>
-    ) : null;
 
     if (isLoading) {
         return (
             <>
                 <Stack.Screen options={screenOptions} />
 
-                <Screen contentClassName="flex-col gap-8" footer={successFooter}>
+                <Screen contentClassName="flex-col gap-8">
                     <View className="flex-col gap-4">
                         <Skeleton className="h-8 w-2/3 rounded-xl" />
                         <Skeleton className="h-6 w-1/3 rounded-full" />
@@ -296,7 +227,6 @@ export default function ReservationDetailScreen() {
 
                 <Screen
                     contentClassName="grow"
-                    footer={successFooter}
                     refreshControl={
                         <RefreshControl
                             refreshing={isRefetching}
@@ -326,7 +256,6 @@ export default function ReservationDetailScreen() {
 
                 <Screen
                     contentClassName="grow"
-                    footer={successFooter}
                     refreshControl={
                         <RefreshControl
                             refreshing={isRefetching}
@@ -393,9 +322,6 @@ export default function ReservationDetailScreen() {
         : lessonReservation?.coach?.name?.trim() || "-";
 
     const noteValue = reservation.memberNotes?.trim() || "-";
-    const bookedTicket = ticketsResponse?.data?.find(
-        (ticket) => ticket.id === reservation.ticket?.id,
-    );
 
     const reservationPolicies = getReservationPolicies(t);
     const policies = isBayReservation
@@ -519,9 +445,7 @@ export default function ReservationDetailScreen() {
                     />
                 }
                 footer={
-                    isSuccess ? (
-                        successFooter
-                    ) : canCancelReservation || canRescheduleReservation ? (
+                    canCancelReservation || canRescheduleReservation ? (
                         <View className="gap-3 pb-8 pt-4">
                             {canRescheduleReservation ? (
                                 <Button
@@ -552,58 +476,10 @@ export default function ReservationDetailScreen() {
                         title={title}
                         reservationStatus={reservation.reservationStatus}
                         ticketType={reservation.ticket?.type ?? null}
-                        showStatus={!isSuccess}
                     />
 
-                    {isSuccess ? (
-                        <>
-                            <ReservationSuccessBanner
-                                title={t("reservations.confirmedTitle")}
-                                message={t("reservations.confirmedMessage")}
-                            />
-
-                            <Card className="gap-0 p-4">
-                                <DetailRow
-                                    label={t("bookingConfirmation.dateLabel")}
-                                    value={dateValue}
-                                />
-                                <Divider className="bg-border" />
-                                <DetailRow
-                                    label={t("bookingConfirmation.timeLabel")}
-                                    value={timeValue}
-                                />
-
-                                {isBayReservation ? (
-                                    <>
-                                        <Divider className="bg-border" />
-                                        <DetailRow
-                                            label={t("reservations.bayLabel")}
-                                            value={reservationLocationValue}
-                                        />
-                                    </>
-                                ) : (
-                                    <>
-                                        <Divider className="bg-border" />
-                                        <CoachDetailRow
-                                            label={t("reservations.coachLabel")}
-                                            value={coachName}
-                                            imageUrl={lessonReservation?.coach?.profileImage}
-                                        />
-                                    </>
-                                )}
-                            </Card>
-
-                            <BookingTicketSummary
-                                reservationTicket={reservation.ticket}
-                                ticket={bookedTicket}
-                                loading={isMemberProfileLoading || isTicketUsageLoading}
-                                hasError={isTicketUsageError}
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <View className="flex-col gap-2">
-                                <View className="flex-col">
+                    <View className="flex-col gap-2">
+                        <View className="flex-col">
                                     <DetailRow
                                         label={t("bookingConfirmation.dateLabel")}
                                         value={dateValue}
@@ -684,43 +560,15 @@ export default function ReservationDetailScreen() {
                                         label={t("reservations.notesLabel")}
                                         value={noteValue}
                                     />
-                                </View>
-                            </View>
+                        </View>
+                    </View>
 
-                            <View className="flex-col gap-2">
-                                <ReservationPoliciesSection policies={policies} />
-                            </View>
-                        </>
-                    )}
+                    <View className="flex-col gap-2">
+                        <ReservationPoliciesSection policies={policies} />
+                    </View>
                 </View>
             </Screen>
         </>
-    );
-}
-
-function ReservationSuccessBanner({
-    title,
-    message,
-}: {
-    title: string;
-    message: string;
-}) {
-    const colors = useThemeColors();
-
-    return (
-        <View className="flex-row items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-4">
-            <CheckCircle2 size={24} color={colors.success} strokeWidth={2.5} />
-            <View className="flex-1 gap-0.5">
-                <AppText variant="label" className="text-success">
-                    {title}
-                </AppText>
-                {message ? (
-                    <AppText variant="caption" className="text-success">
-                        {message}
-                    </AppText>
-                ) : null}
-            </View>
-        </View>
     );
 }
 
@@ -728,12 +576,10 @@ function HeaderSection({
     title,
     reservationStatus,
     ticketType,
-    showStatus = true,
 }: {
     title: string;
     reservationStatus?: string | null;
     ticketType?: string | null;
-    showStatus?: boolean;
 }) {
     const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
 
@@ -757,9 +603,7 @@ function HeaderSection({
                 {title}
             </AppText>
 
-            {showStatus ? (
-                <ReservationStatusBanner reservationStatus={reservationStatus} />
-            ) : null}
+            <ReservationStatusBanner reservationStatus={reservationStatus} />
         </View>
     );
 }

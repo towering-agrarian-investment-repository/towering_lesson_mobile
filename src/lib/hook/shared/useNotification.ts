@@ -36,11 +36,11 @@ export const useGetNotifications = (isRead?: boolean) => {
 			),
 		getNextPageParam: (lastPage) => {
 			const page = lastPage.data;
-			return page?.hasMore ? page.nextCursor : undefined;
+			return page.hasMore ? page.nextCursor : undefined;
 		},
 		select: (data) => ({
-			items: data.pages.flatMap((page) => page.data?.items ?? []),
-			hasMore: data.pages[data.pages.length - 1]?.data?.hasMore ?? false,
+			items: data.pages.flatMap((page) => page.data.items),
+			hasMore: data.pages[data.pages.length - 1]?.data.hasMore ?? false,
 		}),
 		staleTime: 15_000,
 	});

@@ -69,6 +69,10 @@ export async function apiClient<T = unknown>(
         headers,
     });
 
+    if (response.status === 204) {
+        return undefined as T;
+    }
+
     let payload: unknown;
 
     try {

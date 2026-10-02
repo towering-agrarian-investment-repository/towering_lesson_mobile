@@ -309,8 +309,8 @@ export function ActivityOverview() {
                                 heatmapEndDate={shareLastDate}
                                 numDays={daysBetween(shareFirstDate, shareLastDate)}
                                 showDayNumbers={showDayNumbers}
-                                memberName={memberProfile?.data?.name}
-                                memberImage={memberProfile?.data?.profileImage}
+                                memberName={memberProfile?.data.name}
+                                memberImage={memberProfile?.data.profileImage}
                             />
                         </View>
                         <View className="gap-3">

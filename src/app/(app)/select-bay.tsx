@@ -101,7 +101,7 @@ export default function BayScreen() {
         runWithNavigationLock(() => {
             setDismissedConflictId(conflictId);
             router.push({
-                pathname: "/booking-confirm",
+                pathname: "/bay-booking-confirm",
                 params: {
                     date,
                     ticketId,

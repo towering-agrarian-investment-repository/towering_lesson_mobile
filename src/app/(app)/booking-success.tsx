@@ -1,4 +1,3 @@
-import { BookingTicketSummary } from "@/components/golf/booking/BookingTicketSummary";
 import {
     AppText,
     Badge,
@@ -25,9 +24,11 @@ import { BackHandler, View } from "react-native";
 
 type BookingSuccessParams = {
     type?: "bay" | "lesson";
+    mode?: "booking" | "reschedule";
     ticketId?: string;
     ticketName?: string;
-    ticketType?: string;
+    ticketRemainingCount?: string;
+    ticketIsUnlimited?: string;
     date?: string;
     startTime?: string;
     endTime?: string;
@@ -36,8 +37,6 @@ type BookingSuccessParams = {
     reservationName?: string;
     coachName?: string;
 };
-
-const SUCCESS_TICKET_STATUSES = ["ACTIVE", "IN_USE", "FULLY_USED"];
 
 function BookingDetailRow({
     icon,
@@ -71,9 +70,11 @@ export default function BookingSuccessScreen() {
     const { t } = useTranslation();
     const {
         type,
+        mode,
         ticketId,
         ticketName,
-        ticketType,
+        ticketRemainingCount,
+        ticketIsUnlimited,
         date,
         startTime,
         endTime,
@@ -85,31 +86,35 @@ export default function BookingSuccessScreen() {
     const router = useRouter();
     const colors = useThemeColors();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const ticketIdNumber = ticketId ? Number(ticketId) : null;
-    const hasTicketId = ticketIdNumber != null && Number.isFinite(ticketIdNumber);
-    const {
-        data: memberResponse,
-        isLoading: isMemberProfileLoading,
-        isError: isMemberProfileError,
-    } = useGetMemberProfile();
-    const {
-        data: ticketsResponse,
-        isLoading: isTicketUsageLoading,
-        isError: isTicketUsageError,
-    } = useMemberTickets(
-        hasTicketId ? memberResponse?.data?.id : undefined,
-        SUCCESS_TICKET_STATUSES,
-    );
-    const bookedTicket = hasTicketId
-        ? ticketsResponse?.data?.find((ticket) => ticket.id === ticketIdNumber)
-        : undefined;
-    const reservationTicket = hasTicketId && ticketIdNumber !== null && ticketName
-        ? {
-            id: ticketIdNumber,
-            name: ticketName,
-            type: ticketType ?? null,
-        }
+    const parsedRemainingCount = ticketRemainingCount == null
+        ? null
+        : Number(ticketRemainingCount);
+    const remainingCount = parsedRemainingCount != null &&
+        Number.isFinite(parsedRemainingCount)
+        ? parsedRemainingCount
         : null;
+    const isUnlimited = ticketIsUnlimited === "true";
+    const { data: memberResponse } = useGetMemberProfile();
+    // Include fully used tickets so the final booking can still show total usage.
+    const { data: ticketsResponse } = useMemberTickets(
+        ticketId && !isUnlimited ? memberResponse?.data?.id : undefined,
+        [],
+    );
+    const ticket = ticketsResponse?.data?.find(
+        (item) => String(item.id) === ticketId,
+    );
+    const totalCount = ticket?.totalCount;
+    const usageLabel = isUnlimited || ticket?.isUnlimited
+        ? t("tickets.unlimitedUsage")
+        : totalCount != null
+            ? t("tickets.usage", {
+                used: remainingCount != null
+                    ? Math.max(0, totalCount - remainingCount)
+                    : ticket?.usedCount ?? 0,
+                total: totalCount,
+            })
+            : null;
+    const isReschedule = mode === "reschedule";
 
     const handleGoHome = useCallback(() => {
         if (isLocked) {
@@ -145,6 +150,12 @@ export default function BookingSuccessScreen() {
             : type === "lesson"
                 ? t("reservations.lessonLabel")
                 : t("reservations.fallback");
+    const successTitle = isReschedule
+        ? t("reservations.rescheduledTitle")
+        : t("reservations.confirmedTitle");
+    const successMessage = isReschedule
+        ? t("reservations.rescheduledMessage")
+        : t("reservations.confirmedMessage");
     const dateValue = date ? formatDateForDisplay(date) : null;
     const timeValue = startTime || endTime
         ? formatTimeRange(startTime, endTime)
@@ -190,7 +201,7 @@ export default function BookingSuccessScreen() {
                             selectable
                             className="text-center text-2xl text-foreground"
                         >
-                            {t("reservations.confirmedTitle")}
+                            {successTitle}
                         </AppText>
 
                         <AppText
@@ -198,7 +209,7 @@ export default function BookingSuccessScreen() {
                             selectable
                             className="max-w-sm text-center leading-6"
                         >
-                            {t("reservations.confirmedMessage")}
+                            {successMessage}
                         </AppText>
                     </View>
 
@@ -242,18 +253,35 @@ export default function BookingSuccessScreen() {
                     )}
                 </View>
 
-                {reservationTicket ? (
+                {ticketName ? (
                     <>
                         <Divider />
-                        <BookingTicketSummary
-                            reservationTicket={reservationTicket}
-                            ticket={bookedTicket}
-                            loading={isMemberProfileLoading || isTicketUsageLoading}
-                            hasError={isMemberProfileError || isTicketUsageError}
-                            variant="flat"
-                            showTypeBadge={false}
-                            usageDisplay="remaining"
-                        />
+                        <View className="gap-3 py-1">
+                            <AppText
+                                variant="caption"
+                                className="font-semibold text-muted-foreground"
+                            >
+                                {t("bookingConfirmation.ticketLabel")}
+                            </AppText>
+                            <AppText
+                                variant="label"
+                                selectable
+                                className="text-base font-bold text-foreground"
+                            >
+                                {ticketName}
+                                {usageLabel ? (
+                                    <AppText
+                                        variant="caption"
+                                        className="font-medium text-muted-foreground"
+                                        style={{ fontVariant: ["tabular-nums"] }}
+                                    >
+                                        {" ("}
+                                        {usageLabel}
+                                        {")"}
+                                    </AppText>
+                                ) : null}
+                            </AppText>
+                        </View>
                     </>
                 ) : null}
             </Screen>

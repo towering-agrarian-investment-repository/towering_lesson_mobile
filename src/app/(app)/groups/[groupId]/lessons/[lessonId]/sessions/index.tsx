@@ -25,7 +25,7 @@ export default function GroupLessonSessionsScreen() {
         isRefetching,
     } = useMemberLessonByGroup(numericGroupId, numericLessonId);
 
-    const sessions = data?.data?.sessions ?? [];
+    const sessions = data?.data.sessions ?? [];
 
     if (isLoading) {
         return (

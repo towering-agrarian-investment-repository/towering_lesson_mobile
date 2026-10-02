@@ -8,8 +8,6 @@ import {
     Divider,
     Skeleton,
 } from "@/design-system";
-import type { MemberBayReservationResponse } from "@/types/member-bay";
-import type { MemberLessonReservationResponse } from "@/types/member-lesson";
 import * as Haptics from "expo-haptics";
 import type { ImperativeRouter } from "expo-router";
 import { View } from "react-native";
@@ -27,9 +25,25 @@ type BookingConfirmationContentProps = {
     policies: readonly ReservationPolicy[];
 };
 
+type BookingSuccessDetails = {
+    type: "bay" | "lesson";
+    mode?: "booking" | "reschedule";
+    ticketId?: number | string | null;
+    ticketName?: string | null;
+    ticketRemainingCount?: number | null;
+    ticketIsUnlimited?: boolean | null;
+    date?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    bayName?: string | null;
+    bayId?: string | number | null;
+    reservationName?: string | null;
+    coachName?: string | null;
+};
+
 export function handleBookingConfirmationSuccess(
     router: ImperativeRouter,
-    reservation: MemberBayReservationResponse | MemberLessonReservationResponse | null,
+    details: BookingSuccessDetails,
 ) {
     if (process.env.EXPO_OS === "android") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -37,42 +51,31 @@ export function handleBookingConfirmationSuccess(
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
 
-    if (!reservation) {
-        router.replace("/booking-success");
-        return;
-    }
-
-    const isBayReservation = "baySlot" in reservation;
     const params: Record<string, string> = {
-        type: isBayReservation ? "bay" : "lesson",
+        type: details.type,
+        mode: details.mode ?? "booking",
     };
 
-    const addParam = (key: string, value?: string | number | null) => {
+    const addParam = (
+        key: string,
+        value?: string | number | boolean | null,
+    ) => {
         if (value !== undefined && value !== null && String(value).trim()) {
             params[key] = String(value);
         }
     };
 
-    addParam("ticketId", reservation.ticket?.id);
-    addParam("ticketName", reservation.ticket?.name);
-    addParam("ticketType", reservation.ticket?.type);
-    addParam("date", reservation.startTime ?? reservation.reservationDate);
-    addParam("startTime", reservation.startTime);
-    addParam("endTime", reservation.endTime);
-
-    if (isBayReservation) {
-        addParam("bayName", reservation.bayName);
-        addParam("bayId", reservation.baySlot.bayId);
-    } else {
-        addParam(
-            "reservationName",
-            reservation.lessonAvailability?.name ??
-                reservation.lessonName ??
-                reservation.lessonProgramGroupName ??
-                reservation.lessonProgramName,
-        );
-        addParam("coachName", reservation.coach?.name);
-    }
+    addParam("ticketName", details.ticketName);
+    addParam("ticketId", details.ticketId);
+    addParam("ticketRemainingCount", details.ticketRemainingCount);
+    addParam("ticketIsUnlimited", details.ticketIsUnlimited);
+    addParam("date", details.date);
+    addParam("startTime", details.startTime);
+    addParam("endTime", details.endTime);
+    addParam("bayName", details.bayName);
+    addParam("bayId", details.bayId);
+    addParam("reservationName", details.reservationName);
+    addParam("coachName", details.coachName);
 
     router.replace({
         pathname: "/booking-success",

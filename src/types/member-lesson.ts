@@ -148,6 +148,8 @@ export type MemberLessonReservationRelatedTicket = {
     name: string;
     type: TicketType | null;
     status: TicketStatus | null;
+    isUnlimited: boolean;
+    remainingCount: number | null;
 };
 
 export type MemberLessonReservationRelatedLessonAvailability = {

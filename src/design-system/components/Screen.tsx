@@ -18,6 +18,8 @@ type ScreenProps = {
     className?: string;
     contentClassName?: string;
     footer?: ReactNode;
+    /** Disable when a bottom tab bar already handles the safe area. */
+    footerSafeArea?: boolean;
     headerShown?: boolean;
     horizontalPadding?: boolean;
     keyboardAware?: boolean;
@@ -30,6 +32,7 @@ export function Screen({
     className,
     contentClassName,
     footer,
+    footerSafeArea = true,
     headerShown = true,
     horizontalPadding = true,
     keyboardAware = false,
@@ -120,7 +123,7 @@ export function Screen({
                 <View
                     className="border-t border-border bg-background px-5"
                     style={{
-                        paddingBottom: insets.bottom,
+                        paddingBottom: footerSafeArea ? insets.bottom : 0,
                     }}
                 >
                     {footer}

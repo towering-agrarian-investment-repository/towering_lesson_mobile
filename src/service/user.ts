@@ -33,6 +33,12 @@ export type StagedUpload = {
     expiresAt: string;
 };
 
+export const removeMemberProfileImage = async (memberId: number): Promise<void> => {
+    await apiClient(`/member/${memberId}/profile-image`, {
+        method: "DELETE",
+    });
+};
+
 export const updateMemberProfileImage = async (
     memberId: number,
     imageUri: string,
@@ -63,7 +69,7 @@ export const updateMemberProfileImage = async (
         );
 
         if (
-            !response.data?.uploadUrl
+            !response.data.uploadUrl
             || !response.data.key
             || !response.data.expiresAt
         ) {

@@ -195,10 +195,10 @@ export function useSubmitMemberHomework() {
                         },
                     ],
                 });
-                const uploadTarget = uploadResponse.data?.uploads?.[0];
+                const uploadTarget = uploadResponse.data.uploads[0];
 
                 if (
-                    uploadResponse.data?.homeworkId !== homeworkId
+                    uploadResponse.data.homeworkId !== homeworkId
                     || !uploadTarget?.key
                     || !uploadTarget.uploadUrl
                     || !uploadTarget.expiresAt

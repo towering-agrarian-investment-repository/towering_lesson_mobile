@@ -1,12 +1,10 @@
 import {
+    AppToastProvider,
     useThemeColors,
 } from "@/design-system";
-import { registerToastHandler } from "@/lib/toast/toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ToastProvider, useToast } from "react-native-toastify-expo/lib";
 
 export const unstable_settings = { anchor: "(tabs)" };
 
@@ -19,39 +17,6 @@ const queryClient = new QueryClient({
         },
     },
 });
-function getToastStyles(
-    colors: ReturnType<typeof useThemeColors>,
-    type: "success" | "error" | "warning" | "info",
-) {
-    const backgroundColor =
-        type === "error"
-            ? colors.danger
-            : type === "success"
-                ? colors.success
-                : type === "warning"
-                    ? colors.warning
-                    : colors.primary;
-    const textColor =
-        type === "info"
-            ? colors.primaryForeground
-            : type === "warning"
-                ? colors.foreground
-                : "#ffffff";
-
-    return {
-        containerStyle: {
-            backgroundColor,
-            borderRadius: 14,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-        },
-        textStyle: {
-            color: textColor,
-            fontSize: 15,
-            fontWeight: "600" as const,
-        },
-    };
-}
 
 export default function AppLayout() {
     const colors = useThemeColors();
@@ -59,9 +24,8 @@ export default function AppLayout() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <ToastProvider>
-                <ToastBridge />
-                    <Stack
+            <AppToastProvider>
+                <Stack
                     screenOptions={{
                         animation: "none",
                         fullScreenGestureEnabled: true,
@@ -153,7 +117,7 @@ export default function AppLayout() {
                     />
 
                     <Stack.Screen
-                        name="booking-confirm"
+                        name="bay-booking-confirm"
                         options={{
                             title: t("navigation.screens.bookingConfirmation"),
                             animation: "none",
@@ -304,34 +268,7 @@ export default function AppLayout() {
                         }}
                     />
                 </Stack>
-            </ToastProvider>
+            </AppToastProvider>
         </QueryClientProvider>
     );
-}
-
-function ToastBridge() {
-    const { showToast } = useToast();
-    const colors = useThemeColors();
-
-    useEffect(() => {
-        registerToastHandler((options) => {
-            const toastType = options.type ?? "info";
-            const { containerStyle, textStyle } = getToastStyles(colors, toastType);
-
-            showToast({
-                message: options.message,
-                type: toastType,
-                duration: options.duration ?? 3000,
-                position: options.position ?? "bottom",
-                containerStyle,
-                textStyle,
-            });
-        });
-
-        return () => {
-            registerToastHandler(null);
-        };
-    }, [colors, showToast]);
-
-    return null;
 }

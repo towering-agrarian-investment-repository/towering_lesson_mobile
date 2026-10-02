@@ -13,7 +13,7 @@ export type ApiStatus = {
 };
 
 export type ApiResponse<T> = {
-    data: T | null;
+    data: T;
     status: ApiStatus;
 };
 
