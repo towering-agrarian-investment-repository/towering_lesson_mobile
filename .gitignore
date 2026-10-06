@@ -48,3 +48,5 @@ example
 
 # local design asset dump
 assets/golf/
+
+.env.local

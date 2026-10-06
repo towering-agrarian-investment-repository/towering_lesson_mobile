@@ -84,6 +84,14 @@
           "granularPermissions": []
         }
       ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "golf-member-mobile",
+          "organization": "towering-agrarian-investment"
+        }
+      ],
       "expo-video",
       "@react-native-community/datetimepicker",
       "expo-font",
