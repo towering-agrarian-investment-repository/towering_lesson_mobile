@@ -1,6 +1,6 @@
 allowBuilds:
   unrs-resolver@1.12.2: true
+  '@sentry/cli': true
 
 overrides:
   lightningcss: 1.30.1
- 
