@@ -43,6 +43,12 @@ This command will move the starter code to the **app-example** directory and cre
 
 ## Learn more
 
+For localhost, Android, and physical-phone setup, see
+[Local development](docs/local-development.md).
+
+For staging and production environment configuration, see
+[Production environment](docs/production-environment.md).
+
 To learn more about developing your project with Expo, look at the following resources:
 
 - [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).

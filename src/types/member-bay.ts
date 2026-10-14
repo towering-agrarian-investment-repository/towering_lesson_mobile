@@ -9,15 +9,6 @@ export type MemberBayReservationTicket = {
     remainingCount: number | null;
 };
 
-export type MemberBayReservationBaySlot = {
-    id: number;
-    bayId: number;
-    ruleId: number;
-    ruleName: string;
-    slotStatus: string;
-    notes: string | null;
-};
-
 export type MemberBayReservationParticipant = {
     id: number;
     bayReservationId: number;
@@ -48,8 +39,7 @@ export type MemberBayReservationResponse = {
     id: number;
     reservationNumber: string;
     ticket: MemberBayReservationTicket;
-    baySlot: MemberBayReservationBaySlot;
-    bayName: string;
+    bayName: string | null;
     bookedAt: string | null;
     startTime: string;
     endTime: string;

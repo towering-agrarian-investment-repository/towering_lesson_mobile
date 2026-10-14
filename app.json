@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Golf Lesson System",
+    "name": "HappyGolfCAM2",
     "slug": "golf-lesson-system-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -24,7 +24,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#141B34",
+        "backgroundColor": "#071634",
         "foregroundImage": "./assets/images/expo-icons/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -111,7 +111,7 @@
         "projectId": "075f354d-9980-43e0-9ae5-07584735ab10"
       }
     },
-    "owner": "mthanak"
+    "owner": "towering-agrarian-investment"
   }
 }
 

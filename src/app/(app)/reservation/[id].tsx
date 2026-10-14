@@ -74,20 +74,13 @@ function isLessonReservationDetail(
 
 function getReservationTitle(
     reservation: MemberReservationDetailResponse,
-    t: (key: string, options?: Record<string, unknown>) => string,
+    t: (key: string) => string,
 ) {
-    if (isBayReservationDetail(reservation)) {
-        return reservation.bayName || t("reservations.bayReservationWithId", {
-            id: reservation.id,
-        });
-    }
+    const name = isBayReservationDetail(reservation)
+        ? reservation.bayName
+        : reservation.lessonAvailability?.name;
 
-    return (
-        reservation.lessonAvailability?.name ??
-        reservation.lessonProgramGroupName ??
-        reservation.lessonProgramName ??
-        t("reservations.reservationFallbackWithId", { id: reservation.id })
-    );
+    return name?.trim() || t("common.notAvailable");
 }
 
 function getReservationStatusTone(
@@ -298,13 +291,6 @@ export default function ReservationDetailScreen() {
     const title = getReservationTitle(reservation, t);
     const dateValue = formatDateForDisplay(reservation.startTime) || "-";
     const timeValue = formatTimeRange(reservation.startTime, reservation.endTime);
-    const reservationLocationValue = isBayReservation
-        ? reservation.bayName || t("reservations.bayWithId", { id: reservation.baySlot.bayId })
-        : lessonReservation?.lessonAvailability?.name ??
-        lessonReservation?.lessonProgramGroupName ??
-        lessonReservation?.lessonProgramName ??
-        "-";
-
     const lessonNameValue = isBayReservation
         ? null
         : lessonReservation?.lessonProgramEnrollmentId != null
@@ -497,7 +483,7 @@ export default function ReservationDetailScreen() {
                                             <Divider className="bg-border" />
                                             <DetailRow
                                                 label={t("reservations.bayLabel")}
-                                                value={reservationLocationValue}
+                                                value={title}
                                             />
                                         </>
                                     ) : null}

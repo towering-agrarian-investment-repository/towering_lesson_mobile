@@ -148,23 +148,20 @@ export function getMemberReservationDetailQueryOptions(
     };
 }
 
-function cacheMemberReservationDetail(
+function refreshMemberReservationDetail(
     queryClient: QueryClient,
-    response: ApiResponse<MemberReservationDetailResponse>,
+    id: number | undefined,
+    domain: MemberReservationDomain,
 ) {
-    const reservation = response.data;
-
-    if (!reservation) {
+    if (id == null) {
         return;
     }
 
-    queryClient.setQueryData(
-        getMemberReservationDetailQueryOptions(
-            reservation.id,
-            reservation.reservationType,
-        ).queryKey,
-        response,
-    );
+    // Mutation responses may omit related names; populate details through GET.
+    void queryClient.invalidateQueries({
+        queryKey: getMemberReservationDetailQueryOptions(id, domain).queryKey,
+        exact: true,
+    });
 }
 
 function refreshMemberReservationLists(queryClient: QueryClient) {
@@ -214,7 +211,7 @@ export function useCreateMemberBayReservation() {
         mutationFn: createMemberBayReservation,
         retry: false,
         onSuccess: (res) => {
-            cacheMemberReservationDetail(queryClient, res);
+            refreshMemberReservationDetail(queryClient, res.data?.id, "bay");
             refreshMemberReservationLists(queryClient);
             refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
@@ -242,7 +239,7 @@ export function useCreateMemberLessonReservation() {
         mutationFn: createMemberLessonReservation,
         retry: false,
         onSuccess: (res) => {
-            cacheMemberReservationDetail(queryClient, res);
+            refreshMemberReservationDetail(queryClient, res.data?.id, "lesson");
             refreshMemberReservationLists(queryClient);
             refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
@@ -342,8 +339,8 @@ export function useRescheduleMemberBayReservation() {
         mutationFn: ({ reservationId, data }) =>
             rescheduleBayReservationById(reservationId, data),
         retry: false,
-        onSuccess: (res) => {
-            cacheMemberReservationDetail(queryClient, res);
+        onSuccess: (_res, { reservationId }) => {
+            refreshMemberReservationDetail(queryClient, reservationId, "bay");
             refreshMemberReservationLists(queryClient);
             refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
