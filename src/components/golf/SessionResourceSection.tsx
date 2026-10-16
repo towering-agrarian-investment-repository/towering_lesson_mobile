@@ -1,11 +1,14 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    AppText,
-    Card,
     getPressedScaleStyle,
     InlineState,
     ListRow,
     useThemeColors,
 } from "@/design-system";
+import { cn } from "@/design-system/utils/cn";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import type { SessionResourcesFilesResponse } from "@/types/member-session";
 import {
     getFileExtension,
@@ -15,6 +18,7 @@ import {
     RESOURCE_IMAGE_EXTENSIONS,
     RESOURCE_VIDEO_EXTENSIONS,
 } from "@/utils/media";
+import { Host, Text } from "@expo/ui";
 import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -29,6 +33,7 @@ type SessionResourceSectionProps = {
 const VIDEO_BACKGROUND_COLOR = "#000";
 
 function ResourceVideo({ videoUrl }: { videoUrl: string }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
@@ -46,14 +51,27 @@ function ResourceVideo({ videoUrl }: { videoUrl: string }) {
                     nativeControls
                     fullscreenOptions={{ enable: true }}
                     contentFit="contain"
-                    style={{ width: "100%", height: 240, backgroundColor: VIDEO_BACKGROUND_COLOR }}
+                    style={{
+                        width: "100%",
+                        height: 240,
+                        backgroundColor: VIDEO_BACKGROUND_COLOR,
+                    }}
                 />
             </View>
 
             {status === "error" ? (
-                <AppText variant="caption" className="leading-5 text-danger">
-                    {t("sessionResources.videoFailedToLoad")}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.caption,
+                            lineHeight: typography.subtext.lineHeight * uiFontScale,
+                            color: uiColors.danger,
+                            fontSize: typography.caption.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {t("sessionResources.videoFailedToLoad")}
+                    </Text>
+                </Host>
             ) : null}
         </View>
     );
@@ -64,11 +82,7 @@ export function SessionResourceSection({
 }: SessionResourceSectionProps) {
     const { t } = useTranslation();
     if (resources.length === 0) {
-        return (
-            <InlineState
-                title={t("sessionResources.noResources")}
-            />
-        );
+        return <InlineState title={t("sessionResources.noResources")} />;
     }
 
     return (
@@ -88,11 +102,13 @@ function SessionResourceItem({
 }: {
     resource: SessionResourcesFilesResponse;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const colors = useThemeColors();
     const url = getResourceUrl(resource);
-    const title = resource.originalFileName?.trim()
-        || t("sessionResources.resourceFallback", { id: resource.id });
+    const title =
+        resource.originalFileName?.trim() ||
+        t("sessionResources.resourceFallback", { id: resource.id });
     const resourceTypeLabel = getResourceTypeLabel(resource, t);
     const fileAccentColor = getFileAccentColor(resource, colors);
 
@@ -107,7 +123,7 @@ function SessionResourceItem({
                     </View>
                 }
                 className="border-border bg-card px-4 py-3.5"
-                titleClassName="font-medium leading-6"
+                titleStyle={{ fontWeight: "500", lineHeight: 24 }}
                 showChevron={false}
             />
         );
@@ -115,12 +131,21 @@ function SessionResourceItem({
 
     if (isImageResource(resource)) {
         return (
-            <Card className="overflow-hidden p-0">
+            <View
+                className={cn(
+                    "rounded-xl border border-border bg-card p-5",
+                    "overflow-hidden p-0",
+                )}
+            >
                 <Pressable
                     accessibilityRole="imagebutton"
-                    accessibilityLabel={t("sessionResources.openImage", { title })}
+                    accessibilityLabel={t("sessionResources.openImage", {
+                        title,
+                    })}
                     className="relative overflow-hidden"
-                    style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.992)}
+                    style={({ pressed }) =>
+                        getPressedScaleStyle(pressed, false, 0.992)
+                    }
                     onPress={() => {
                         void Linking.openURL(url);
                     }}
@@ -131,23 +156,50 @@ function SessionResourceItem({
                         style={{ width: "100%", height: 220 }}
                     />
                     <View className="absolute inset-x-0 bottom-0 flex-row items-end justify-between gap-3 bg-black/45 px-4 py-3">
-                        <AppText
-                            variant="caption"
-                            className="min-w-0 flex-1 font-medium text-white"
-                            numberOfLines={1}
+                        <Host
+                            matchContents={{ vertical: true }}
+                            ignoreSafeArea="all"
+                            style={{ flex: 1, minWidth: 0 }}
                         >
-                            {title}
-                        </AppText>
-                        <AppText
-                            variant="caption"
-                            className="shrink-0 rounded-full bg-black/55 px-2.5 py-1 font-medium text-white"
-                            numberOfLines={1}
-                        >
-                            {resourceTypeLabel}
-                        </AppText>
+                            <Text
+                                numberOfLines={1}
+                                textStyle={{
+                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                    fontWeight: "500" as const,
+                                    color: "#ffffff",
+                                    fontSize:
+                                        typography.caption.fontSize *
+                                        uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
+                                {title}
+                            </Text>
+                        </Host>
+                        <View className="shrink-0 rounded-full bg-black/55 px-2.5 py-1">
+                            <Host
+                                matchContents
+                                ignoreSafeArea="all"
+
+
+                            >
+                                <Text
+                                    numberOfLines={1}
+                                    textStyle={{
+                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                        fontWeight: "500" as const,
+                                        color: "#ffffff",
+                                        fontSize:
+                                            typography.caption.fontSize *
+                                            uiFontScale,
+                                    }}
+                                >
+                                    {resourceTypeLabel}
+                                </Text>
+                            </Host>
+                        </View>
                     </View>
                 </Pressable>
-            </Card>
+            </View>
         );
     }
 
@@ -155,13 +207,23 @@ function SessionResourceItem({
         return (
             <View className="gap-3">
                 <View className="flex-row items-start justify-between gap-3">
-                    <AppText
-                        variant="label"
-                        className="min-w-0 flex-1"
-                        numberOfLines={2}
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        style={{ flex: 1, minWidth: 0 }}
                     >
-                        {title}
-                    </AppText>
+                        <Text
+                            numberOfLines={2}
+                            textStyle={{
+                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontSize:
+                                    typography.label.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {title}
+                        </Text>
+                    </Host>
                     <BadgePill label={resourceTypeLabel} />
                 </View>
                 <ResourceVideo videoUrl={url} />
@@ -179,7 +241,7 @@ function SessionResourceItem({
                 </View>
             }
             className="border-border bg-card px-4 py-3.5"
-            titleClassName="font-medium leading-6"
+            titleStyle={{ fontWeight: "500", lineHeight: 24 }}
             showChevron={Boolean(url)}
             onPress={() => {
                 if (url) {
@@ -202,19 +264,31 @@ function isSupportedResource(resource: SessionResourcesFilesResponse) {
 }
 
 function isImageResource(resource: SessionResourcesFilesResponse) {
-    return isAllowedMimeType(resource.mediaType, ["image/jpeg", "image/png", "image/webp"])
-        || isAllowedExtension(
-            resource.originalFileName || resource.fileUrl || resource.externalUrl,
+    return (
+        isAllowedMimeType(resource.mediaType, [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        ]) ||
+        isAllowedExtension(
+            resource.originalFileName ||
+            resource.fileUrl ||
+            resource.externalUrl,
             RESOURCE_IMAGE_EXTENSIONS,
-        );
+        )
+    );
 }
 
 function isVideoResource(resource: SessionResourcesFilesResponse) {
-    return isAllowedMimeType(resource.mediaType, ["video/mp4"])
-        || isAllowedExtension(
-            resource.originalFileName || resource.fileUrl || resource.externalUrl,
+    return (
+        isAllowedMimeType(resource.mediaType, ["video/mp4"]) ||
+        isAllowedExtension(
+            resource.originalFileName ||
+            resource.fileUrl ||
+            resource.externalUrl,
             RESOURCE_VIDEO_EXTENSIONS,
-        );
+        )
+    );
 }
 
 function getResourceTypeLabel(
@@ -254,15 +328,22 @@ function getFileAccentColor(
 }
 
 function BadgePill({ label }: { label: string }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
         <View className="self-start rounded-full bg-muted px-2.5 py-1">
-            <AppText
-                variant="caption"
-                className="font-medium text-muted-foreground"
-                numberOfLines={1}
-            >
-                {label}
-            </AppText>
+            <Host matchContents ignoreSafeArea="all">
+                <Text
+                    numberOfLines={1}
+                    textStyle={{
+                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                        fontWeight: "500" as const,
+                        color: uiColors.mutedForeground,
+                        fontSize: typography.caption.fontSize * uiFontScale,
+                    }}
+                >
+                    {label}
+                </Text>
+            </Host>
         </View>
     );
 }

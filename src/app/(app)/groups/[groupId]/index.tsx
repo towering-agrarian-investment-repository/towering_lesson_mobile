@@ -1,5 +1,6 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    AppText,
     Badge,
     CompactEmptyState,
     ErrorState,
@@ -8,6 +9,8 @@ import {
     Skeleton,
     useThemeColors,
 } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import {
     getMemberHomeworkByIdQueryOptions,
     getMemberLessonByGroupQueryOptions,
@@ -15,12 +18,6 @@ import {
     useMemberHomeworks,
 } from "@/lib/hook/useMemberLessonFlow";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { BookOpen, Check, ClipboardCheck } from "lucide-react-native";
-import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { RefreshControl, View } from "react-native";
 import type { MemberHomeworkSummaryResponse } from "@/types/member-homework";
 import type { MemberLessonSummaryResponse } from "@/types/member-lesson";
 import { formatType } from "@/utils/format-enum";
@@ -35,36 +32,39 @@ import {
     getLessonStatusTone,
 } from "@/utils/status-tone";
 import { fmtDate, fmtTime, formatDateForDisplay } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { BookOpen, Check, ClipboardCheck } from "lucide-react-native";
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { RefreshControl, View } from "react-native";
 
 type GroupParams = {
     groupId: string;
 };
 
 export default function GroupDetailScreen() {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const { groupId } = useLocalSearchParams<GroupParams>();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const {
-        data,
-        isLoading,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberGroupById(Number(groupId));
-    const {
-        data: homeworkResponse,
-        refetch: refetchHomeworks,
-    } = useMemberHomeworks();
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberGroupById(Number(groupId));
+    const { data: homeworkResponse, refetch: refetchHomeworks } =
+        useMemberHomeworks();
 
     const hasEmbeddedHomeworks = data?.data.homeworks !== undefined;
     const group = data?.data.group;
     const lessons = [...(data?.data.lessons ?? [])].sort(
-        (a, b) => (a.orderIndex ?? Number.MAX_SAFE_INTEGER) - (b.orderIndex ?? Number.MAX_SAFE_INTEGER),
+        (a, b) =>
+            (a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
+            (b.orderIndex ?? Number.MAX_SAFE_INTEGER),
     );
     const groupHomeworks = hasEmbeddedHomeworks
-        ? data?.data.homeworks ?? []
+        ? (data?.data.homeworks ?? [])
         : (homeworkResponse?.data ?? []).filter(
             (homework) => homework.lessonProgramGroupId === Number(groupId),
         );
@@ -72,9 +72,10 @@ export default function GroupDetailScreen() {
         (lesson) => lesson.lessonStatus === "COMPLETED",
     ).length;
     const totalLessons = lessons.length;
-    const progress = totalLessons > 0
-        ? Math.round((completedLessons / totalLessons) * 100)
-        : 0;
+    const progress =
+        totalLessons > 0
+            ? Math.round((completedLessons / totalLessons) * 100)
+            : 0;
     const scheduleLabel = getRangeLabel(
         fmtDate(group?.programStartDate),
         fmtDate(group?.programEndDate),
@@ -108,7 +109,11 @@ export default function GroupDetailScreen() {
                 <ErrorState
                     title={t("groupsFlow.failedGroupTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -134,20 +139,36 @@ export default function GroupDetailScreen() {
                 <View className="gap-4 bg-surface px-4 py-4">
                     <View className="gap-3">
                         <View className="gap-2">
-                            <AppText
-                                variant="h3"
-                                className="text-xl font-semibold leading-7"
-                                numberOfLines={2}
-                            >
-                                {getGroupName(group)}
-                            </AppText>
-                            <AppText
-                                variant="meta"
-                                className="leading-5 text-muted-foreground"
-                                numberOfLines={2}
-                            >
-                                {group.lessonProgramName?.trim() || t("groupsFlow.missingValue")}
-                            </AppText>
+                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                <Text
+                                    numberOfLines={2}
+                                    textStyle={{
+                                        ...typography.h3,
+                                        color: uiColors.foreground,
+                                        fontSize: typography.h3.fontSize * uiFontScale,
+                                        fontWeight: "600" as const,
+                                        lineHeight: typography.h3.lineHeight * uiFontScale,
+                                    }}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                    {getGroupName(group)}
+                                </Text>
+                            </Host>
+                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                <Text
+                                    numberOfLines={2}
+                                    textStyle={{
+                                        ...typography.meta,
+                                        lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                        color: uiColors.mutedForeground,
+                                        fontSize:
+                                            typography.meta.fontSize *
+                                            uiFontScale,
+                                    }}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                    {group.lessonProgramName?.trim() ||
+                                        t("groupsFlow.missingValue")}
+                                </Text>
+                            </Host>
                         </View>
 
                         <GroupProgressCard
@@ -164,28 +185,33 @@ export default function GroupDetailScreen() {
                             <Badge
                                 label={formatType(group.groupStatus)}
                                 className="bg-primary/10"
-                                textClassName="text-primary"
+                                color="primary"
                             />
                         ) : null}
                         <Badge
-                            label={t("groupsFlow.lessonsCount", { count: lessons.length })}
+                            label={t("groupsFlow.lessonsCount", {
+                                count: lessons.length,
+                            })}
                             className="bg-muted"
-                            textClassName="text-muted-foreground"
+                            color="mutedForeground"
                         />
                         <Badge
-                            label={t("groupsFlow.homeworkCount", { count: groupHomeworks.length })}
+                            label={t("groupsFlow.homeworkCount", {
+                                count: groupHomeworks.length,
+                            })}
                             className="bg-muted"
-                            textClassName="text-muted-foreground"
+                            color="mutedForeground"
                         />
                     </View>
                 </View>
             </View>
 
-            <SectionHeader title={t("groupsFlow.lessonsTitle")} count={lessons.length} />
+            <SectionHeader
+                title={t("groupsFlow.lessonsTitle")}
+                count={lessons.length}
+            />
             {lessons.length === 0 ? (
-                <CompactEmptyState
-                    title={t("groupsFlow.noLessons")}
-                />
+                <CompactEmptyState title={t("groupsFlow.noLessons")} />
             ) : (
                 <View className="gap-3">
                     {lessons.map((lesson) => (
@@ -216,11 +242,12 @@ export default function GroupDetailScreen() {
                 </View>
             )}
 
-            <SectionHeader title={t("groupsFlow.homeworkTitle")} count={groupHomeworks.length} />
+            <SectionHeader
+                title={t("groupsFlow.homeworkTitle")}
+                count={groupHomeworks.length}
+            />
             {groupHomeworks.length === 0 ? (
-                <CompactEmptyState
-                    title={t("groupsFlow.noHomework")}
-                />
+                <CompactEmptyState title={t("groupsFlow.noHomework")} />
             ) : (
                 <View className="gap-3">
                     {groupHomeworks.map((homework) => (
@@ -230,13 +257,17 @@ export default function GroupDetailScreen() {
                             disabled={isLocked}
                             onPress={() => {
                                 void queryClient.prefetchQuery(
-                                    getMemberHomeworkByIdQueryOptions(homework.homeworkId),
+                                    getMemberHomeworkByIdQueryOptions(
+                                        homework.homeworkId,
+                                    ),
                                 );
                                 runWithNavigationLock(() => {
                                     router.push({
                                         pathname: "/homework/[homeworkId]",
                                         params: {
-                                            homeworkId: String(homework.homeworkId),
+                                            homeworkId: String(
+                                                homework.homeworkId,
+                                            ),
                                         },
                                     });
                                 });
@@ -268,15 +299,21 @@ function LessonRow({
     return (
         <ListRow
             title={getLessonName(lesson)}
-            subtitle={formatDateForDisplay(lesson.startTime ?? null) || undefined}
-            meta={lesson.lessonStatus ? (
-                <Badge
-                    label={formatType(lesson.lessonStatus)}
-                    className={`px-2 py-1 ${lessonStatusTone.className}`}
-                    textClassName={lessonStatusTone.textClassName}
-                />
-            ) : lesson.orderIndex != null ? `#${lesson.orderIndex}` : undefined}
-            leading={(
+            subtitle={
+                formatDateForDisplay(lesson.startTime ?? null) || undefined
+            }
+            meta={
+                lesson.lessonStatus ? (
+                    <Badge
+                        label={formatType(lesson.lessonStatus)}
+                        className={`px-2 py-1 ${lessonStatusTone.className}`}
+                        color={lessonStatusTone.color}
+                    />
+                ) : lesson.orderIndex != null ? (
+                    `#${lesson.orderIndex}`
+                ) : undefined
+            }
+            leading={
                 <RowIcon tone={isCompleted ? "success" : "primary"}>
                     {isCompleted ? (
                         <Check size={18} color={colors.success} />
@@ -284,9 +321,15 @@ function LessonRow({
                         <BookOpen size={18} color={colors.primary} />
                     )}
                 </RowIcon>
-            )}
+            }
             className={rowClassName}
-            titleClassName={isCompleted ? "font-medium leading-6 text-foreground/70" : "font-medium leading-6"}
+            titleStyle={{
+                fontWeight: "500",
+                lineHeight: 24,
+                color: isCompleted
+                    ? colors.foreground + "b3"
+                    : colors.foreground,
+            }}
             disabled={disabled}
             onPress={onPress}
         />
@@ -316,24 +359,38 @@ function HomeworkRow({
         : submissionStatus
             ? getHomeworkSubmissionTone(submissionStatus)
             : getFallbackHomeworkTone(homework.homeworkStatus);
-    const rowClassName = getHomeworkRowClassName(reviewStatus, submissionStatus, homework.homeworkStatus);
+    const rowClassName = getHomeworkRowClassName(
+        reviewStatus,
+        submissionStatus,
+        homework.homeworkStatus,
+    );
 
     return (
         <ListRow
             title={getHomeworkTitle(homework)}
-            subtitle={homework.dueAt
-                ? t("groupsFlow.dueDate", { date: formatDateForDisplay(homework.dueAt) })
-                : homework.description ?? undefined}
-            meta={homework.homeworkStatus ? (
-                <Badge
-                    label={statusLabel}
-                    className={`px-2 py-1 ${statusTone.className}`}
-                    textClassName={statusTone.textClassName}
-                />
-            ) : undefined}
-            leading={<RowIcon><ClipboardCheck size={18} color={colors.mutedForeground} /></RowIcon>}
+            subtitle={
+                homework.dueAt
+                    ? t("groupsFlow.dueDate", {
+                        date: formatDateForDisplay(homework.dueAt),
+                    })
+                    : (homework.description ?? undefined)
+            }
+            meta={
+                homework.homeworkStatus ? (
+                    <Badge
+                        label={statusLabel}
+                        className={`px-2 py-1 ${statusTone.className}`}
+                        color={statusTone.color}
+                    />
+                ) : undefined
+            }
+            leading={
+                <RowIcon>
+                    <ClipboardCheck size={18} color={colors.mutedForeground} />
+                </RowIcon>
+            }
             className={rowClassName}
-            titleClassName="font-medium leading-6"
+            titleStyle={{ fontWeight: "500", lineHeight: 24 }}
             disabled={disabled}
             onPress={onPress}
         />
@@ -362,19 +419,35 @@ function RowIcon({
     );
 }
 
-function SectionHeader({
-    title,
-    count,
-}: {
-    title: string;
-    count: number;
-}) {
+function SectionHeader({ title, count }: { title: string; count: number }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
         <View className="flex-row items-center justify-between gap-4">
-            <AppText variant="h3" className="text-lg font-semibold">
-                {title}
-            </AppText>
-            {count > 0 ? <AppText variant="count">{count}</AppText> : null}
+            <Host matchContents ignoreSafeArea="all">
+                <Text
+                    textStyle={{
+                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                        color: uiColors.foreground,
+                        fontSize: typography.subtitle.fontSize * uiFontScale,
+                        fontWeight: "600" as const,
+                    }}
+                >
+                    {title}
+                </Text>
+            </Host>
+            {count > 0 ? (
+                <Host matchContents ignoreSafeArea="all">
+                    <Text
+                        textStyle={{
+                            ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.count.fontSize * uiFontScale,
+                        }}
+                    >
+                        {String(count ?? "")}
+                    </Text>
+                </Host>
+            ) : null}
         </View>
     );
 }
@@ -392,31 +465,60 @@ function GroupProgressCard({
     timeframeLabel: string;
     totalLessons: number;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
 
     return (
         <View className="gap-3 rounded-2xl bg-background px-4 py-4">
             <View className="flex-row items-end justify-between gap-4">
                 <View className="min-w-0 flex-1 gap-1">
-                    <AppText variant="caption" className="uppercase tracking-[0.08em]">
-                        {t("groupsFlow.progress")}
-                    </AppText>
-                    <AppText variant="body" className="font-medium leading-6 text-foreground">
-                        {progress === 100
-                            ? t("groupsFlow.allLessonsCompleted")
-                            : t("groupsFlow.lessonsCompleted", {
-                                completed: completedLessons,
-                                total: totalLessons,
-                            })}
-                    </AppText>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            textStyle={{
+                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                color: uiColors.mutedForeground,
+                                letterSpacing: 1.28,
+                                fontSize:
+                                    typography.caption.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {t("groupsFlow.progress").toUpperCase()}
+                        </Text>
+                    </Host>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            textStyle={{
+                                ...typography.body,
+                                fontWeight: "500" as const,
+                                lineHeight: typography.body.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontSize:
+                                    typography.body.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {progress === 100
+                                ? t("groupsFlow.allLessonsCompleted")
+                                : t("groupsFlow.lessonsCompleted", {
+                                    completed: completedLessons,
+                                    total: totalLessons,
+                                })}
+                        </Text>
+                    </Host>
                 </View>
 
-                <AppText
-                    variant="value"
-                    className="text-right text-2xl font-bold text-primary"
-                >
-                    {progress}%
-                </AppText>
+                <Host matchContents ignoreSafeArea="all">
+                    <Text
+                        textStyle={{
+                            ...typography.value, lineHeight: typography.h2.lineHeight * uiFontScale,
+                            textAlign: "right" as const,
+                            fontSize: typography.h2.fontSize * uiFontScale,
+                            fontWeight: "700" as const,
+                            color: uiColors.primary,
+                        }}
+                    >
+                        {String(progress ?? "") + "%"}
+                    </Text>
+                </Host>
             </View>
 
             <View className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -427,32 +529,58 @@ function GroupProgressCard({
             </View>
 
             <View className="gap-2">
-                <ProgressMetaRow label={t("groupsFlow.schedule")} value={scheduleLabel} />
-                <ProgressMetaRow label={t("groupsFlow.time")} value={timeframeLabel} />
+                <ProgressMetaRow
+                    label={t("groupsFlow.schedule")}
+                    value={scheduleLabel}
+                />
+                <ProgressMetaRow
+                    label={t("groupsFlow.time")}
+                    value={timeframeLabel}
+                />
             </View>
         </View>
     );
 }
 
-function ProgressMetaRow({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
+function ProgressMetaRow({ label, value }: { label: string; value: string }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <AppText variant="caption" className="shrink-0 leading-5 text-muted-foreground">
-                {label}
-            </AppText>
-            <AppText
-                variant="caption"
-                className="min-w-0 flex-1 text-right font-medium leading-5 text-foreground"
-                numberOfLines={1}
+            <Host
+                matchContents
+                ignoreSafeArea="all"
+                style={{ flexShrink: 0 }}
             >
-                {value}
-            </AppText>
+                <Text
+                    textStyle={{
+                        ...typography.caption,
+                        lineHeight: typography.subtext.lineHeight * uiFontScale,
+                        color: uiColors.mutedForeground,
+                        fontSize: typography.caption.fontSize * uiFontScale,
+                    }}
+                >
+                    {label}
+                </Text>
+            </Host>
+            <Host
+                matchContents={{ vertical: true }}
+                ignoreSafeArea="all"
+                style={{ flex: 1, minWidth: 0 }}
+            >
+                <Text
+                    numberOfLines={1}
+                    textStyle={{
+                        ...typography.caption,
+                        textAlign: "right" as const,
+                        fontWeight: "500" as const,
+                        lineHeight: typography.subtext.lineHeight * uiFontScale,
+                        color: uiColors.foreground,
+                        fontSize: typography.caption.fontSize * uiFontScale,
+                    }}
+                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
+                    {value}
+                </Text>
+            </Host>
         </View>
     );
 }
@@ -487,20 +615,20 @@ function getFallbackHomeworkTone(status?: string | null) {
     if (status === "COMPLETED" || status === "SUBMITTED") {
         return {
             className: "bg-emerald-100",
-            textClassName: "text-emerald-700",
+            color: "success" as const,
         };
     }
 
     if (status === "OVERDUE" || status === "REJECTED" || status === "MISSING") {
         return {
             className: "bg-rose-100",
-            textClassName: "text-rose-700",
+            color: "danger" as const,
         };
     }
 
     return {
         className: "bg-amber-100",
-        textClassName: "text-amber-700",
+        color: "warning" as const,
     };
 }
 
@@ -509,14 +637,18 @@ function getHomeworkRowClassName(
     submissionStatus?: string | null,
     homeworkStatus?: string | null,
 ) {
-    if (reviewStatus === "CONFIRMED" || submissionStatus === "REVIEWED" || homeworkStatus === "COMPLETED") {
+    if (
+        reviewStatus === "CONFIRMED" ||
+        submissionStatus === "REVIEWED" ||
+        homeworkStatus === "COMPLETED"
+    ) {
         return "border-emerald-100 bg-emerald-50/60 px-4 py-3.5";
     }
 
     if (
-        homeworkStatus === "OVERDUE"
-        || homeworkStatus === "REJECTED"
-        || homeworkStatus === "MISSING"
+        homeworkStatus === "OVERDUE" ||
+        homeworkStatus === "REJECTED" ||
+        homeworkStatus === "MISSING"
     ) {
         return "border-rose-100 bg-rose-50/70 px-4 py-3.5";
     }

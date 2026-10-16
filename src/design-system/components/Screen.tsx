@@ -1,17 +1,18 @@
-import { cn } from "../utils/cn";
-import { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
     Keyboard,
-    RefreshControlProps,
     ScrollView,
     TouchableWithoutFeedback,
     View,
+    useWindowDimensions,
+    type RefreshControlProps,
 } from "react-native";
 import {
-    KeyboardAwareScrollView,
     KeyboardAvoidingView,
+    KeyboardAwareScrollView,
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { cn } from "../utils/cn";
 
 type ScreenProps = {
     children?: ReactNode;
@@ -25,6 +26,7 @@ type ScreenProps = {
     keyboardAware?: boolean;
     scroll?: boolean;
     refreshControl?: ReactElement<RefreshControlProps>;
+    maxWidth?: number;
 };
 
 export function Screen({
@@ -38,97 +40,86 @@ export function Screen({
     keyboardAware = false,
     scroll = true,
     refreshControl,
+    maxWidth = 1280,
 }: ScreenProps) {
     const insets = useSafeAreaInsets();
-    const paddingTop = headerShown ? 16 : insets.top + 16;
-    const paddingHorizontal = horizontalPadding ? 20 : 0;
-
-    const scrollContentContainerStyle = {
-        flexGrow: 1,
-        paddingTop,
+    const { width } = useWindowDimensions();
+    const edgePadding = horizontalPadding ? (width >= 768 ? 24 : 16) : 0;
+    const bodyStyle = {
+        width: "100%",
+        maxWidth,
+        alignSelf: "center",
+        paddingTop: headerShown ? 16 : insets.top + 16,
         paddingBottom: 24,
-        paddingHorizontal,
+        paddingLeft: Math.max(edgePadding, insets.left),
+        paddingRight: Math.max(edgePadding, insets.right),
     } as const;
-
-    const fixedContentStyle = {
-        flex: 1,
-        paddingTop,
-        paddingBottom: 24,
-        paddingHorizontal,
-    } as const;
-
-    const screenContent = (
-        scroll ? (
-            keyboardAware ? (
-                <KeyboardAwareScrollView
-                    className="flex-1 bg-background"
-                    contentContainerStyle={scrollContentContainerStyle}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode={process.env.EXPO_OS === "ios" ? "interactive" : "on-drag"}
-                    bounces={false}
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={refreshControl}
-                    contentInsetAdjustmentBehavior={
-                        headerShown ? "automatic" : "never"
-                    }
-                    bottomOffset={20}
-                >
-                    <View className={cn("flex-1", contentClassName)}>{children}</View>
-                </KeyboardAwareScrollView>
-            ) : (
-                <ScrollView
-                    className="flex-1 bg-background"
-                    contentContainerStyle={scrollContentContainerStyle}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode={process.env.EXPO_OS === "ios" ? "interactive" : "on-drag"}
-                    bounces={false}
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={refreshControl}
-                    contentInsetAdjustmentBehavior={
-                        headerShown ? "automatic" : "never"
-                    }
-                >
-                    <View className={cn("flex-1", contentClassName)}>{children}</View>
-                </ScrollView>
-            )
-        ) : (
-                <KeyboardAvoidingView
-                    className="flex-1"
-                    behavior={process.env.EXPO_OS === "ios" ? "padding" : "height"}
-                    enabled={keyboardAware}
-            >
-                <View
-                    className={cn("flex-1", contentClassName)}
-                    style={fixedContentStyle}
-                >
-                    {children}
-                </View>
-            </KeyboardAvoidingView>
-        )
+    const content = (
+        <View className={scroll ? "grow" : "flex-1"} style={bodyStyle}>
+            <View className={cn(scroll ? "grow" : "flex-1", contentClassName)}>
+                {children}
+            </View>
+        </View>
     );
-
-    const dismissibleScreenContent = keyboardAware ? (
-        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
-            {screenContent}
-        </TouchableWithoutFeedback>
+    const scrollProps = {
+        className: "flex-1 bg-background",
+        contentContainerStyle: { flexGrow: 1 },
+        keyboardShouldPersistTaps: "handled",
+        keyboardDismissMode:
+            process.env.EXPO_OS === "ios" ? "interactive" : "on-drag",
+        showsVerticalScrollIndicator: false,
+        refreshControl,
+        contentInsetAdjustmentBehavior: headerShown ? "automatic" : "never",
+    } as const;
+    const screenContent = scroll ? (
+        keyboardAware ? (
+            <KeyboardAwareScrollView {...scrollProps} bottomOffset={20}>
+                {content}
+            </KeyboardAwareScrollView>
+        ) : (
+            <ScrollView {...scrollProps}>{content}</ScrollView>
+        )
     ) : (
-        screenContent
+        content
     );
 
     return (
-        <View className={cn("flex-1 bg-background", className)}>
-            {dismissibleScreenContent}
-
+        <KeyboardAvoidingView
+            className={cn("flex-1 bg-background", className)}
+            enabled={keyboardAware && !scroll}
+            automaticOffset
+            behavior="padding"
+        >
+            {keyboardAware ? (
+                <TouchableWithoutFeedback
+                    accessible={false}
+                    onPress={Keyboard.dismiss}
+                >
+                    {screenContent}
+                </TouchableWithoutFeedback>
+            ) : (
+                screenContent
+            )}
             {footer ? (
                 <View
-                    className="border-t border-border bg-background px-5"
+                    className="border-t border-border bg-background"
                     style={{
                         paddingBottom: footerSafeArea ? insets.bottom : 0,
                     }}
                 >
-                    {footer}
+                    <View
+                        style={{
+                            width: "100%",
+                            maxWidth: Math.min(maxWidth, 640),
+                            alignSelf: "center",
+                            paddingLeft: Math.max(edgePadding, insets.left),
+                            paddingRight: Math.max(edgePadding, insets.right),
+                        }}
+                    >
+                        {footer}
+                    </View>
                 </View>
             ) : null}
-        </View>
+        </KeyboardAvoidingView>
     );
 }

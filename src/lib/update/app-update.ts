@@ -65,14 +65,21 @@ async function fetchAppUpdateStateOnce(): Promise<AppUpdateState | null> {
             signal: controller.signal,
         });
 
+        if (!response.ok) {
+            if (__DEV__) {
+                console.log(
+                    "[app-update] response:",
+                    response.status,
+                    response.headers.get("content-type") ?? "unknown content type",
+                );
+            }
+            return null;
+        }
+
         const responseText = await response.text();
 
         if (__DEV__) {
             console.log("[app-update] response:", response.status, responseText);
-        }
-
-        if (!response.ok) {
-            return null;
         }
 
         const payload = JSON.parse(responseText) as ApiResponse<AppUpdateConfig>;

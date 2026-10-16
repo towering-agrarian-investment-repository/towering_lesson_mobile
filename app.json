@@ -3,8 +3,8 @@
     "name": "HappyGolfCAM2",
     "slug": "golf-lesson-system-mobile",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/expo-icons/icon.png",
+    "orientation": "default",
+    "icon": "./assets/images/Happy-Golf-V2-Icons/expo/icon.png",
     "scheme": "golflessonsystemmobile",
     "userInterfaceStyle": "automatic",
     "runtimeVersion": {
@@ -16,16 +16,21 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "icon": "./assets/images/expo-icons/icon.png",
+      "icon": {
+        "light": "./assets/images/Happy-Golf-V2-Icons/expo/ios-icon.png"
+      },
+      "supportsTablet": true,
       "bundleIdentifier": "com.toweringinvest.happygolfmobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "icon": "./assets/images/Happy-Golf-V2-Icons/expo/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#071634",
-        "foregroundImage": "./assets/images/expo-icons/adaptive-icon.png"
+        "backgroundColor": "#5FB1FF",
+        "foregroundImage": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-foreground.png",
+        "monochromeImage": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.toweringinvest.happygolfmobile",
@@ -54,8 +59,6 @@
         "expo-build-properties",
         {
           "android": {
-            "buildToolsVersion": "36.0.0",
-            "compileSdkVersion": 36,
             "minSdkVersion": 24,
             "targetSdkVersion": 36
           }
@@ -93,13 +96,13 @@
         }
       ],
       "expo-video",
-      "@react-native-community/datetimepicker",
       "expo-font",
       "expo-image",
       "expo-localization",
       "expo-secure-store",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -114,5 +117,3 @@
     "owner": "towering-agrarian-investment"
   }
 }
-
-// "owner": "towering-agrarian-investment"

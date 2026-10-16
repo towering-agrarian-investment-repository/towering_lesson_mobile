@@ -1,549 +1,273 @@
 # Golf Lesson System Mobile App Documentation
 
-## 1. Overview
+This document describes the current source and configuration of the HappyGolf member app. Use [AGENTS.md](AGENTS.md) for contributor rules and [package.json](package.json) for installed versions. Feature implementation does not by itself certify backend availability or completed device QA.
 
-Golf Lesson System Mobile is an Expo + React Native mobile application for member login, ticket-based booking, reservation management, and profile management.
+## 1. Product and stack
 
-The app is designed for:
+The app supports member authentication, ticket-based bay and lesson booking, reservation management, lesson content and homework, notifications, activity reporting, and profile preferences on Android and iOS.
 
-- Member authentication
-- Viewing active tickets
-- Booking bay sessions and lesson sessions
-- Viewing current and historical reservations
-- Cancelling eligible reservations
-- Managing personal profile information
-- Managing password and appearance preferences
+| Layer | Current implementation |
+| --- | --- |
+| App/runtime | Expo SDK 58, React Native 0.88, React 19, TypeScript |
+| Navigation | Expo Router stacks and native bottom tabs |
+| Native controls | `@expo/ui` universal controls; platform-specific UI where needed |
+| React Native styling | NativeWind 5 preview, Tailwind CSS 4, semantic theme variables |
+| Networking/state | TanStack Query, shared API client, Better Auth Expo client |
+| Forms | React Hook Form and Zod |
+| Local storage | SecureStore for Better Auth storage; AsyncStorage for preferences/onboarding |
+| Media/diagnostics | Expo Image, Video, ImagePicker, DocumentPicker, MediaLibrary, Notifications, and Sentry |
 
-This document is intended to serve as the official implementation reference for the current mobile application.
+Tooling uses a supported Node.js LTS version meeting Expo's requirement (`>=22.13.0` for this baseline), managed locally through nvm. The repository and EAS profiles pin pnpm 10.26.0.
 
-## 2. Product Summary
+## 2. App configuration
 
-### Primary user
+Source: [app.json](app.json).
 
-- Authenticated golf members
+Launcher icons come from the [Happy Golf V2 icon pack](<assets/images/Happy-Golf-V2-Icons/README.md>): the default, iOS, Android, adaptive, and themed launcher icons use its supplied artwork. In-app logos, the splash screen, notification icons, and the web favicon retain their existing artwork and settings. Launcher icon updates require a new build and installation.
 
-### Primary goals
+| Setting | Value |
+| --- | --- |
+| Display name | `HappyGolfCAM2` |
+| Expo slug | `golf-lesson-system-mobile` |
+| App version | `1.0.0` |
+| Android package / iOS bundle identifier | `com.toweringinvest.happygolfmobile` |
+| Deep-link scheme | `golflessonsystemmobile` |
+| Interface style | `automatic` |
+| Orientation | `default` |
+| iPad support | Enabled through `ios.supportsTablet` |
+| EAS Update runtime policy | `appVersion` |
 
-- Sign in to the member account
-- View active tickets
-- Book a bay reservation or lesson reservation
-- Review reservation details
-- Cancel reservations when allowed
-- View and update profile data
+Android min/target SDK settings live in app config. Compile SDK and build-tools versions use the installed Expo/React Native defaults. Generated `android/` and `ios/` projects are ignored; persistent native configuration belongs in app config/config plugins.
 
-## 3. Technology Stack
+## 3. Startup and authentication
 
-- Expo
-- Expo Router
-- React Native
-- TypeScript
-- NativeWind
-- TanStack React Query
-- Better Auth Expo client
-- React Hook Form
-- Zod
-- AsyncStorage
+The [root layout](<src/app/_layout.tsx>) provides gesture handling, keyboard handling, safe-area context, theme preferences, onboarding state, and app-update context.
 
-## 4. App Configuration
+- The native splash remains visible while auth bootstrap and the initial app-version check are pending.
+- Protected routing also waits for onboarding state to load.
+- Users who have not completed onboarding see [welcome](<src/app/welcome.tsx>); completion is persisted locally.
+- After onboarding, logged-out users see [login](<src/app/login.tsx>), and authorized members enter the authenticated stack.
+- Login uses **phone number and password**, through Better Auth's phone-number client.
+- Only the `MEMBER` role is allowed. Unauthorized-role sessions are signed out.
+- Login failures are surfaced through the form. Password changes require the current and new passwords.
+- Logout deactivates the current push installation, signs out through Better Auth, and clears query state from the Profile flow.
 
-### App identity
+Sources: [auth service](<src/service/auth.ts>), [auth client](<src/lib/auth-client.ts>), [onboarding context](<src/lib/welcome/welcome-context.tsx>).
 
-- App name: `Golf Lesson System`
-- Expo slug: `golf-lesson-system-mobile`
-- Android package: `com.toweringinvest.happygolfmobile`
-- Deep link scheme: `golflessonsystemmobile`
+## 4. Navigation
 
-### Runtime theme
+The [authenticated stack](<src/app/(app)/_layout.tsx>) contains the main tabs, booking, reservations, lessons/groups/sessions, homework, lesson logs, and profile-edit/password screens.
 
-- Supports light mode, dark mode, and system theme
-- Theme preference is persisted locally
+The main tabs use `NativeTabs` from `expo-router/native-tabs`, with translated labels, SF Symbols on iOS, the existing Ionicons package on Android, and initial-route back behavior. The Profile tab can display an optional-app-update badge. Notifications, Activity, and Profile each have nested stack layouts for their headers.
 
-### Splash behavior
+| Tab | Screen |
+| --- | --- |
+| Home | [index.tsx](<src/app/(app)/(tabs)/index.tsx>) |
+| Notifications | [notice/index.tsx](<src/app/(app)/(tabs)/notice/index.tsx>) |
+| Activity | [activity/index.tsx](<src/app/(app)/(tabs)/activity/index.tsx>) |
+| Profile | [profile/index.tsx](<src/app/(app)/(tabs)/profile/index.tsx>) |
 
-- Native splash is configured via `expo-splash-screen`
-- Runtime splash is held until auth session bootstrap finishes
+Source: [tab layout](<src/app/(app)/(tabs)/_layout.tsx>). There is no separate gender-selection modal or design-system demo route in the current app.
 
-## 5. Environment Configuration
+## 5. Home and tickets
 
-The app currently uses public Expo environment variables:
+The Home dashboard shows a compact HappyGolf logo, published banners with a local fallback, member tickets, today's reservations, pull-to-refresh, and an action opening the reservation list.
 
-- `EXPO_PUBLIC_API_BASE_URL`
-- `EXPO_PUBLIC_AUTH_BASE_URL`
+- Banners support automatic rotation and configured internal/external links.
+- Home ticket queries default to `ACTIVE` and `IN_USE` statuses.
+- Ticket cards show localized ticket types, validity dates, and usage/unlimited information.
+- Booking availability depends on ticket status, expiry, and remaining usage. Lesson-program tickets do not start the ticket booking flow.
+- The [tickets screen](<src/app/(app)/tickets.tsx>) provides ticket-type tabs.
+- Today's reservations are displayed as stacked rows, with explicit loading, error, and empty states.
 
-Files:
+Sources: [Home](<src/app/(app)/(tabs)/index.tsx>), [HomeBanner](<src/components/golf/HomeBanner.tsx>), [MyTicket](<src/components/golf/MyTicket.tsx>), [TicketCard](<src/components/golf/TicketCard.tsx>), [TodayReservation](<src/components/golf/TodayReservation.tsx>), [ticket queries](<src/lib/hook/useTicket.ts>).
 
-- [.env](/d:/golf-lesson-system-mobile/.env:1)
-- [.env.example](/d:/golf-lesson-system-mobile/.env.example:1)
-- [src/lib/config/env.ts](/d:/golf-lesson-system-mobile/src/lib/config/env.ts:1)
+## 6. Booking and reservations
 
-Important:
+### Bay booking
 
-- Secrets must not be stored in the mobile app
-- Only public, client-safe configuration belongs in Expo public env vars
+`ticket -> select-date -> select-time -> select-bay -> bay-booking-confirm -> booking-success`
 
-## 6. Navigation Structure
+Date selection uses availability data. The next steps select an available time group and bay, then present booking details and policies. Confirmation rechecks availability; slot conflicts can return the member to an earlier selection step.
 
-### Root routing
+Sources: [date route](<src/app/(app)/select-date.tsx>), [availability calendar](<src/components/golf/booking/SelectDatePicker.tsx>), [time selection](<src/app/(app)/select-time.tsx>), [bay selection](<src/app/(app)/select-bay.tsx>), [bay confirmation](<src/app/(app)/bay-booking-confirm.tsx>).
 
-File: [src/app/_layout.tsx](/d:/golf-lesson-system-mobile/src/app/_layout.tsx:1)
+### Lesson booking
 
-Behavior:
+`ticket -> select-date -> select-lesson-slot -> lesson-booking-confirm -> booking-success`
 
-- App waits for auth session bootstrap before hiding splash
-- Logged-out users are routed to `login`
-- Logged-in users are routed to `(app)`
+Private/group lesson tickets use lesson-slot availability, slot-fullness checks, confirmation details/policies, and the lesson reservation mutation.
 
-### Authenticated app stack
+Sources: [lesson-slot selection](<src/app/(app)/select-lesson-slot.tsx>), [lesson confirmation](<src/app/(app)/lesson-booking-confirm.tsx>).
 
-File: [src/app/(app)/_layout.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/_layout.tsx:1)
+### Completion behavior
 
-Includes:
+The shared success handler replaces the confirmation screen with [booking-success](<src/app/(app)/booking-success.tsx>), passing booking/reschedule summary information. The success screen's Home action dismisses to the main tabs; Android hardware back also returns Home. It does not immediately redirect to reservation detail.
 
-- Tab navigator
-- Reservation list
-- Reservation detail
-- Booking flow screens
-- Profile edit screens
-- Password change
-- Gender selection modal
-- Design system demo
+Sources: [shared confirmation footer, loading UI, and navigation](<src/components/golf/booking/BookingConfirmationShared.tsx>), [shared reservation content and fields](<src/components/golf/reservation/ReservationSections.tsx>). Confirmation and reservation details share field spacing, separators, and responsive policy layout.
 
-### Tab routes
+### Reservation list and detail
 
-- Home: `src/app/(app)/(tabs)/index.tsx`
-- Notice: `src/app/(app)/(tabs)/notice.tsx`
-- Profile: `src/app/(app)/(tabs)/profile.tsx`
+- The [reservation list](<src/app/(app)/reservation.tsx>) has all/bay/private/group/program tabs, cursor pagination, refresh, and loading/error/empty states.
+- [Reservation detail](<src/app/(app)/reservation/[id].tsx>) supports bay and lesson records, status, ticket details, timing, coach/program/bay information, notes, and policies.
+- Cancellation is offered when status is `RESERVED` and the backend marks the reservation cancellable. It uses an Expo UI bottom sheet with the existing danger styling and guards pending requests.
+- Bay rescheduling is implemented for bay records marked cancellable, reusing selection/confirmation screens in reschedule mode. Lesson rescheduling is not currently exposed.
+- Booking/cancellation/reschedule hooks refresh affected reservation and ticket query data.
 
-## 7. Feature Inventory
+Sources: [reservation hooks](<src/lib/hook/useReservation.ts>), [bay reservation service](<src/service/member-bay-reservation.service.ts>), [lesson reservation service](<src/service/member-lesson-reservation.service.ts>).
 
-### 7.1 Authentication
+## 7. Lessons, groups, lesson logs, and homework
 
-Files:
+These areas are implemented screens backed by services and queries.
 
-- [src/app/login.tsx](/d:/golf-lesson-system-mobile/src/app/login.tsx:1)
-- [src/service/auth.ts](/d:/golf-lesson-system-mobile/src/service/auth.ts:1)
-- [src/lib/auth-client.ts](/d:/golf-lesson-system-mobile/src/lib/auth-client.ts:1)
+| Feature | Behavior and entry point |
+| --- | --- |
+| Member lessons/groups | [Lessons](<src/app/(app)/lessons/index.tsx>) lists member groups; [group detail](<src/app/(app)/groups/[groupId]/index.tsx>) leads into group lessons. |
+| Lesson detail and sessions | [Lesson detail](<src/app/(app)/lessons/[lessonId]/index.tsx>) and [group lesson detail](<src/app/(app)/groups/[groupId]/lessons/[lessonId]/index.tsx>) expose lesson/session content. |
+| Session lists | [Lesson sessions](<src/app/(app)/lessons/[lessonId]/sessions/index.tsx>) and [group lesson sessions](<src/app/(app)/groups/[groupId]/lessons/[lessonId]/sessions/index.tsx>) display session instances. |
+| Lesson logs | [Log list](<src/app/(app)/lesson-log/index.tsx>) and [log detail](<src/app/(app)/lesson-log/[id]/index.tsx>) display coach lesson posts/media and member feedback state. |
+| Member feedback | [Comment/rating screen](<src/app/(app)/lesson-log/[id]/comment.tsx>) submits member feedback and refreshes lesson-log query data. |
+| Homework | [Homework detail](<src/app/(app)/homework/[homeworkId].tsx>) shows task details, due date, submissions/history, and coach review information when provided. |
 
-Implemented:
+Homework submission accepts one JPEG, PNG, WebP, or MP4 file, up to 100 MiB, plus a member memo. It obtains an upload URL, uploads the file to storage, then submits the homework record. Empty/unsupported/oversized files are rejected, and pending submissions disable the relevant actions.
 
-- Username/password login
-- Auth session bootstrap on app launch
-- Sign out
-- Password change
+Lesson resources support images, videos, and external/file links through [SessionResourceSection](<src/components/golf/SessionResourceSection.tsx>). Domain queries live in [useMemberLessonFlow](<src/lib/hook/useMemberLessonFlow.ts>) and [useLessonLog](<src/lib/hook/useLessonLog.ts>); uploads/submission requests are in the [homework service](<src/service/member-homework.service.ts>).
 
-Behavior:
+## 8. Notifications and push
 
-- Login uses Better Auth username flow
-- Invalid credentials are surfaced on the password field
-- Logout clears cached query state
+The Notifications tab is a real feed, not a placeholder.
 
-### 7.2 Home Dashboard
+- Cursor-paginated feed with refresh, loading, error, and empty states.
+- Read/unread state, marking one or all notifications as read, individual swipe deletion, and confirmed deletion of all notifications.
+- Supported references open bay/lesson reservation detail or lesson-log detail; record queries can be prefetched before navigation.
+- Push registration runs for authenticated members, requests permission, creates the Android notification channel, and registers an Expo push token against a stable installation ID with the backend.
+- Push listeners handle received notifications, notification taps, token changes, and the last notification response. Supported taps open the corresponding route; other references fall back to the notification/reservation screens.
+- The registration function skips non-physical devices. Delivery also depends on permissions, platform credentials, and backend token/message handling.
 
-File:
+Sources: [notification screen](<src/app/(app)/(tabs)/notice/index.tsx>), [notification queries](<src/lib/hook/shared/useNotification.ts>), [notification service](<src/service/shared/notification-service.ts>), [push listeners](<src/lib/hook/shared/usePushNotification.ts>), [push registration](<src/lib/config/notification/registerPushNotification.ts>), [installation storage](<src/lib/config/notification/pushRegistrationStorage.ts>).
 
-- [src/app/(app)/(tabs)/index.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/(tabs)/index.tsx:1)
+## 9. Activity
 
-Implemented:
+The Activity tab fetches member activity for an individual year or all time. It displays reservation totals/days/hours, a daily heatmap, weekly summaries, and status/type information. A preview card can be captured as a PNG and saved to the photo library after requesting write access.
 
-- Member dashboard screen
-- HappyGolf logo header
-- Ticket section
-- Today's reservations section
-- Pull-to-refresh
-- Quick CTA to full reservation list
+Sources: [ActivityOverview](<src/components/golf/ActivityOverview.tsx>), [ActivityShareCard](<src/components/golf/ActivityShareCard.tsx>), [activity query](<src/lib/hook/useMemberActivity.ts>), [activity service](<src/service/member-activity.service.ts>).
 
-### 7.3 Ticket Management
+## 10. Profile, preferences, and localization
 
-Files:
+The Profile tab displays member identity, phone/gender, and school/guardian information when supplied by the backend. It links to lessons, lesson logs, profile editing, and password change.
 
-- [src/components/golf/MyTicket.tsx](/d:/golf-lesson-system-mobile/src/components/golf/MyTicket.tsx:1)
-- [src/components/golf/TicketCard.tsx](/d:/golf-lesson-system-mobile/src/components/golf/TicketCard.tsx:1)
-- [src/service/ticket-service.ts](/d:/golf-lesson-system-mobile/src/service/ticket-service.ts:1)
+- [Profile editing](<src/app/(app)/profile/edit.tsx>) changes name/nickname and supports choosing a photo, taking a photo, uploading it, or removing the profile image.
+- Photo source actions use an Expo UI bottom sheet. Image validation and limits are centralized in [media utilities](<src/utils/media.ts>).
+- Gender is displayed with translated labels; the current edit form does not edit gender.
+- [Password change](<src/app/(app)/profile/change-password.tsx>) uses validated native inputs and pending-state protection.
+- Appearance controls select system/light/dark mode and blue/green primary-color preferences.
+- Language selection supports English (`en`), Korean (`ko`), Japanese (`ja`), Chinese (`zh`), and Khmer (`km`). Preferences persist through AsyncStorage.
+- Navigation titles, gender, ticket types, form labels, and other UI strings use the existing translation resources.
 
-Implemented:
+Sources: [Profile](<src/app/(app)/(tabs)/profile/index.tsx>), [i18n setup/resources](<src/i18n/index.ts>), [theme/preferences](<src/design-system/utils/theme.ts>).
 
-- Fetch member tickets
-- Show active/in-use tickets
-- Display ticket type, validity period, usage summary
-- Disable booking for expired / fully used tickets
-- Disable booking for lesson program tickets
+## 11. UI architecture and responsive layout
 
-### 7.4 Bay Booking Flow
+- Native `Text`, `Button`, `TextInput`, pickers, switches, and sheets come from `@expo/ui` inside `Host` trees. `RNHostView` bridges embedded React Native content.
+- [Native button styles](<src/design-system/utils/native-button-styles.ts>) apply exact theme fills, borders, label colors, and disabled opacity to the existing Expo controls. Login retains its green-to-teal gradient. Form underlines live on React Native views, with explicit native-host sizing and plain transparent input surfaces.
+- The former project-owned text/button/input/card/container/sheet primitives were removed. Simple card surfaces are styled React Native `View`s; they are not a second control library.
+- React Hook Form integration remains in [form components](<src/components/ui/form/index.ts>).
+- Remaining generic UI includes Badge, Divider, IconButton, ListRow, loaders, skeletons, state components, charts, and layout helpers. See the [public exports](<src/design-system/index.ts>).
+- [Screen](<src/design-system/components/Screen.tsx>) owns safe-area insets, scrolling, keyboard handling, consistent outer padding, maximum content width, and footers. Vertical virtualized-list screens use non-scroll mode.
+- [AdaptivePanels](<src/design-system/layout/AdaptivePanels.tsx>) uses native [ArrangementView on iOS 27.1+](<src/design-system/layout/AdaptivePanels.ios.tsx>) and a [measured-width fallback](<src/design-system/layout/AdaptivePanels.shared.tsx>) on Android/older iOS.
+- Home uses responsive ticket grids and paired ticket/reservation sections. Booking confirmation, Profile, and Activity also use adaptive sections; narrower forms constrain their content width.
+- The runtime palette/preferences are defined in [theme.ts](<src/design-system/utils/theme.ts>), mapped to CSS variables by the root layout, and consumed as semantic classes from [global.css](<src/global.css>). Native text uses the shared [typography ramp](<src/design-system/utils/typography.ts>).
+- Expo UI replacements preserve the existing screen design. Host layout uses explicit React Native styles or surrounding NativeWind views; native text has explicit line metrics, constrained wrapping, and alignment. Button fills retain the full content area on iOS. Multiline form comments retain their bordered surface instead of the single-line underline.
+- Date badges explicitly center native text on both platforms. Shared empty/error states grow within the available content area below headers/filters and above footers; their content has a defined width for text wrapping. Scroll content keeps its intrinsic height, and empty reservation/ticket lists center without extra bottom-only padding.
+- Profile preferences retain their original summary rows and selection cards through [ProfilePreferenceRow](<src/components/golf/profile/ProfilePreferenceRow.tsx>), with Expo UI handling sheet presentation. Logout, notification deletion, and reservation cancellation also retain branded confirmation sheets and pending guards. Native tabs use the app's existing label/icon colors, without Android's default active indicator.
+- Responsive behavior is based on available width, with stable child trees to preserve local state during resizing. Phone, tablet, split-screen, and folding behavior remain part of device QA.
 
-Route flow:
+## 12. Networking and environment
 
-1. Ticket card
-2. `select-date`
-3. `select-time`
-4. `select-bay`
-5. `booking-confirm`
-6. Reservation detail after success
+Configuration is read through [env.ts](<src/lib/config/env.ts>):
 
-Files:
+| Variable | Purpose |
+| --- | --- |
+| `EXPO_PUBLIC_API_BASE_URL` | Required member API base URL |
+| `EXPO_PUBLIC_AUTH_BASE_URL` | Required Better Auth base URL |
+| `EXPO_PUBLIC_APP_VERSION_URL` | Optional version-check endpoint; defaults to the API base plus `/app/version` |
+| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | Sentry environment label used by the root layout |
+| `EXPO_PUBLIC_SKIP_APP_UPDATE_CHECK` | When `true`, skips the initial update check in development only |
 
-- [src/components/golf/booking/SelectDatePicker.tsx](/d:/golf-lesson-system-mobile/src/components/golf/booking/SelectDatePicker.tsx:1)
-- [src/app/(app)/select-time.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-time.tsx:1)
-- [src/app/(app)/select-bay.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-bay.tsx:1)
-- [src/app/(app)/booking-confirm.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/booking-confirm.tsx:1)
+Use [.env.example](.env.example) as the local configuration reference. Public Expo variables are bundled into the client and must not contain secrets. Supply reachable backend URLs for each environment; a physical device's `localhost` is the device itself, so local development may need LAN access, tunnelling, or emulator port forwarding.
 
-Implemented:
+The [API client](<src/lib/client/api-client.ts>) obtains a JWT from Better Auth, sends Bearer authorization and `Accept-Language`, and attaches `X-App-Client`, `X-App-Platform`, and `X-App-Version` from the [request-header helper](<src/lib/client/app-request-headers.ts>). Missing tokens and malformed/error responses are surfaced to the calling layer. HTTP 426 upgrade-required responses notify the update gate.
 
-- Calendar date selection using availability data
-- Time slot selection using bay slot groups
-- Bay selection with availability state
-- Confirmation screen
-- Reservation creation
-- Validation for slot availability before submit
-- Success redirect to created reservation
+Services in `src/service/` define domain requests. Hooks in `src/lib/hook/` manage query caching, enabled states, cancellation signals for supported reads, pagination, and mutation-driven query updates. Shared response/error handling lives in [api-response.ts](<src/lib/api-response/api-response.ts>). Media uploads use their dedicated storage-upload path rather than JSON API bodies.
 
-### 7.5 Lesson Booking Flow
+## 13. App-version checks and EAS Update
 
-Route flow:
+The [app-version check](<src/lib/update/app-update.ts>) reads the backend's minimum/latest supported version and store URLs. The [update hook](<src/lib/update/use-app-update.ts>) exposes checking, required-update, and optional-update state.
 
-1. Ticket card
-2. `select-date`
-3. `select-lesson-slot`
-4. `lesson-booking-confirm`
-5. Reservation detail after success
+- Below the minimum version, the root displays a blocking update gate.
+- A newer optional version can be surfaced in Profile and its tab badge.
+- The initial check times out after five seconds and fails open when the endpoint is unavailable/offline.
+- Backend HTTP 426 upgrade-required responses can trigger another version check.
 
-Files:
+Source: [AppUpdateGate](<src/components/update/AppUpdateGate.tsx>).
 
-- [src/app/(app)/select-lesson-slot.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-lesson-slot.tsx:1)
-- [src/app/(app)/lesson-booking-confirm.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/lesson-booking-confirm.tsx:1)
+This backend version policy is separate from EAS Update delivery. `app.json` configures `expo-updates` with an EAS Update URL, an `appVersion` runtime policy, and launch checks. Native dependency/SDK changes still require a compatible new binary; an OTA update cannot add missing native modules.
 
-Implemented:
+## 14. Development and builds
 
-- Lesson slot selection by date
-- Slot fullness detection
-- Confirmation screen
-- Lesson reservation creation
-- Success redirect to created reservation
+Install dependencies with the pinned pnpm version, then start Metro:
 
-### 7.6 Reservation List
+```sh
+pnpm install --frozen-lockfile
+pnpm start --dev-client
+```
 
-File:
+Checks, when appropriate to a code/configuration change:
 
-- [src/app/(app)/reservation.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/reservation.tsx:1)
+```sh
+pnpm exec tsc --noEmit
+pnpm exec eslint src
+pnpm dlx expo-doctor
+pnpm exec expo export --platform android --platform ios --output-dir dist
+```
 
-Implemented:
+Startup compatibility for the current dependency versions:
 
-- Reservation tabs by type:
-  - all
-  - bay
-  - private
-  - group
-  - program
-- Infinite query reservation loading
-- Pull-to-refresh
-- Pagination
-- Empty state
-- Error state
-- Loading skeleton
+- [The react-native-css patch](<patches/react-native-css@3.0.7.patch>) forwards new React Native exports lazily while keeping NativeWind's styled primitives. This includes `NativeComponentRegistry`, which Expo Router 58 needs during startup. pnpm applies the patch from `pnpm-workspace.yaml`; keep it with the lockfile.
+- [Metro configuration](metro.config.js) treats Sentry 8.28's optional legacy `router-store` lookup as unavailable when that file is absent. This uses Sentry's existing null fallback; legacy-store navigation enrichment is unavailable, while error and replay reporting remain configured.
+- Verify these fixes with `node --test scripts/startup-compat.test.cjs`. After changing the patch or Metro configuration, restart with `pnpm start --dev-client --clear`.
 
-### 7.7 Reservation Detail
+Build configuration is in [eas.json](eas.json):
 
-File:
+| Profile | Purpose |
+| --- | --- |
+| `development` | Internal development client; Android APK; local development environment values |
+| `development-simulator` | Extends development with an unsigned iOS simulator target |
+| `preview` | Internal preview distribution; Android APK; preview environment/channel |
+| `production` | Production environment/channel with automatic build-version increments |
 
-- [src/app/(app)/reservation/[id].tsx](/d:/golf-lesson-system-mobile/src/app/(app)/reservation/[id].tsx:1)
+Development build commands:
 
-Implemented:
+```sh
+eas build --platform android --profile development
+eas build --platform ios --profile development-simulator
+```
 
-- Reservation detail fetch by id and reservation type
-- Supports both bay and lesson reservations
-- Status banner
-- Ticket badge
-- Date, time, bay/program/lesson/coach/note display
-- Reservation policy section
-- Pull-to-refresh
-- Loading state
-- Error state
-- Empty state
-- Cancel reservation action for eligible reservations
+A physical iOS development build uses the `development` profile and requires Apple signing/provisioning credentials. Preview/production backend values must be configured for their selected EAS environments. Native configuration or dependency changes require regeneration/rebuilding as appropriate; documentation-only edits do not require app builds.
 
-### 7.8 Today’s Reservations
+## 15. Current boundaries and QA
 
-Files:
+Source-confirmed boundaries include lesson-program tickets not launching ticket booking, no gender-edit modal, and rescheduling currently exposed only for bay reservations. Notifications and lesson logs are implemented and should not be described as placeholders.
 
-- [src/components/golf/TodayReservation.tsx](/d:/golf-lesson-system-mobile/src/components/golf/TodayReservation.tsx:1)
-- [src/components/golf/TodayReservationCard.tsx](/d:/golf-lesson-system-mobile/src/components/golf/TodayReservationCard.tsx:1)
+Before release, verify on the intended devices and backend environment:
 
-Implemented:
+- Onboarding, phone/password login, role rejection, logout, session restoration, and password changes.
+- Bay/private/group booking, availability conflicts, completion navigation, eligible cancellation, and bay rescheduling.
+- Ticket filters, today's reservations, pagination, refresh, and loading/error/empty states.
+- Lesson/group/session content, media playback/links, member feedback, and homework upload/review/history.
+- Notification feed actions and push registration/tap navigation across app states and permission outcomes.
+- Activity filters, charts, image capture, photo-library permissions, and saving.
+- Profile/image changes, all supported languages, both themes, and primary-color preferences.
+- Repeated taps, pending submissions, Android back, keyboard access, large text, offline/slow connections, and phone/tablet/Duo resizing.
 
-- Horizontal list of today’s reservations
-- Loading state
-- Error state
-
-Current limitation:
-
-- Empty state is currently visually suppressed instead of rendered as a visible message
-
-### 7.9 Profile
-
-Files:
-
-- [src/app/(app)/(tabs)/profile.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/(tabs)/profile.tsx:1)
-- [src/app/(app)/profile/edit.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/profile/edit.tsx:1)
-- [src/app/(app)/profile/change-password.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/profile/change-password.tsx:1)
-- [src/app/(app)/profile/gender-modal.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/profile/gender-modal.tsx:1)
-
-Implemented:
-
-- Profile overview
-- Personal info display
-- Parent / guardian info display
-- Theme preference control
-- Edit personal information
-- Gender selection via modal
-- Password change
-- Logout
-
-### 7.10 Notice
-
-File:
-
-- [src/app/(app)/(tabs)/notice.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/(tabs)/notice.tsx:1)
-
-Current status:
-
-- Implemented as placeholder empty state
-- No notification feed yet
-
-### 7.11 Lesson Log
-
-File:
-
-- [src/app/(app)/lesson-log.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/lesson-log.tsx:1)
-
-Current status:
-
-- Implemented as placeholder empty state
-- No lesson history list yet
-
-## 8. Data Domains
-
-The app primarily works with these domains:
-
-- Authentication session
-- Member profile
-- Member tickets
-- Bay slot groups
-- Bay reservations
-- Lesson availability slots
-- Lesson reservations
-- Reservation summaries and reservation detail
-
-## 9. Networking and Data Fetching
-
-### Query layer
-
-Files:
-
-- [src/lib/hook/useUser.ts](/d:/golf-lesson-system-mobile/src/lib/hook/useUser.ts:1)
-- [src/lib/hook/useTicket.ts](/d:/golf-lesson-system-mobile/src/lib/hook/useTicket.ts:1)
-- [src/lib/hook/useReservation.ts](/d:/golf-lesson-system-mobile/src/lib/hook/useReservation.ts:1)
-
-Implemented:
-
-- React Query for read and mutation operations
-- Infinite query for reservation history
-- Query invalidation after create/cancel mutations
-- Request cancellation for read queries via `AbortSignal`
-
-### API layer
-
-Files:
-
-- [src/lib/client/api-client.ts](/d:/golf-lesson-system-mobile/src/lib/client/api-client.ts:1)
-- [src/lib/api-response/api-response.ts](/d:/golf-lesson-system-mobile/src/lib/api-response/api-response.ts:1)
-
-Behavior:
-
-- JWT token is fetched from auth client before API requests
-- All authenticated API calls use Bearer token authorization
-- Shared response/error handling helpers are used in mutations
-
-## 10. UI and Design System
-
-### Theme system
-
-Files:
-
-- [src/design-system/utils/theme.ts](/d:/golf-lesson-system-mobile/src/design-system/utils/theme.ts:1)
-- [src/global.css](/d:/golf-lesson-system-mobile/src/global.css:1)
-
-Implemented:
-
-- Semantic theme tokens
-- Light theme
-- Dark theme
-- System theme support
-- Persistent theme preference
-
-### Design system
-
-Implemented reusable components include:
-
-- AppText
-- Button
-- Input
-- Card
-- Badge
-- Divider
-- IconButton
-- Layout primitives
-
-Reference:
-
-- [src/design-system/index.ts](/d:/golf-lesson-system-mobile/src/design-system/index.ts:1)
-
-### Shared screen states
-
-Files:
-
-- [src/components/ui/StateCard.tsx](/d:/golf-lesson-system-mobile/src/components/ui/StateCard.tsx:1)
-- [src/components/ui/CircleLoader.tsx](/d:/golf-lesson-system-mobile/src/components/ui/CircleLoader.tsx:1)
-- [src/components/ui/Skeleton.tsx](/d:/golf-lesson-system-mobile/src/components/ui/Skeleton.tsx:1)
-
-Implemented:
-
-- Loading states
-- Skeleton states
-- Error states
-- Empty states
-
-## 11. Navigation and Interaction Safeguards
-
-### Duplicate tap protection
-
-File:
-
-- [src/lib/hook/useNavigationLock.ts](/d:/golf-lesson-system-mobile/src/lib/hook/useNavigationLock.ts:1)
-
-Implemented:
-
-- Navigation lock for push-based transitions
-- Applied at parent screen/list level for booking and reservation flows
-
-### Booking completion behavior
-
-Implemented:
-
-- Booking success clears prior flow stack using `dismissAll`
-- User cannot swipe back into completed booking steps
-
-## 12. Error, Loading, and Empty State Standard
-
-The app uses the following standard for required-data screens:
-
-- loading
-- error
-- empty
-- content
-
-This standard is implemented across the booking flow and reservation flow to prevent:
-
-- stale cached content under errors
-- blank screens during failed requests
-- ambiguous missing-data behavior
-
-## 13. Performance and UX Optimizations
-
-Implemented optimizations:
-
-- Runtime splash gating during auth bootstrap
-- Request cancellation for query reads
-- FlatList usage for large reservation/ticket/reservation-summary lists
-- Navigation lock to prevent duplicate stack pushes
-- Parent-level navigation locking instead of per-card focus subscriptions
-- Reduced card-level prefetch churn
-- Mutation buttons disable while pending
-
-## 14. Security Notes
-
-Important constraints:
-
-- Do not store backend secrets in the frontend app
-- Only public endpoints and client-safe config belong in `.env`
-- Authentication is session-based through Better Auth Expo client
-
-## 15. Build and Release
-
-Relevant files:
-
-- [app.json](/d:/golf-lesson-system-mobile/app.json:1)
-- [eas.json](/d:/golf-lesson-system-mobile/eas.json:1)
-
-Current EAS profiles:
-
-- `development`
-- `preview`
-- `production`
-
-Android build behavior:
-
-- `development` builds APK
-- `preview` builds APK
-- `production` uses standard production build flow
-
-## 16. Current Limitations / Not Yet Implemented
-
-The following areas are currently placeholders or incomplete:
-
-- Notice feed content
-- Lesson log history content
-- Notification center functionality
-- Full lesson detail route validation for all possible backend data shapes
-- Broader release-environment backend configuration beyond local/LAN development usage
-
-## 17. Recommended QA Coverage
-
-Before release, validate:
-
-- login
-- logout
-- session restore on app reopen
-- bay booking flow
-- lesson booking flow
-- reservation cancellation
-- profile edit
-- password change
-- theme switching
-- Android back button behavior
-- slow network and offline scenarios
-- dark mode and light mode
-
-## 18. Source Map
-
-### Core app entry
-
-- [src/app/_layout.tsx](/d:/golf-lesson-system-mobile/src/app/_layout.tsx:1)
-- [src/app/(app)/_layout.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/_layout.tsx:1)
-
-### Key routes
-
-- [src/app/login.tsx](/d:/golf-lesson-system-mobile/src/app/login.tsx:1)
-- [src/app/(app)/(tabs)/index.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/(tabs)/index.tsx:1)
-- [src/app/(app)/(tabs)/profile.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/(tabs)/profile.tsx:1)
-- [src/app/(app)/select-date.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-date.tsx:1)
-- [src/app/(app)/select-time.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-time.tsx:1)
-- [src/app/(app)/select-bay.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-bay.tsx:1)
-- [src/app/(app)/select-lesson-slot.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/select-lesson-slot.tsx:1)
-- [src/app/(app)/booking-confirm.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/booking-confirm.tsx:1)
-- [src/app/(app)/lesson-booking-confirm.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/lesson-booking-confirm.tsx:1)
-- [src/app/(app)/reservation.tsx](/d:/golf-lesson-system-mobile/src/app/(app)/reservation.tsx:1)
-- [src/app/(app)/reservation/[id].tsx](/d:/golf-lesson-system-mobile/src/app/(app)/reservation/[id].tsx:1)
-
-## 19. Summary
-
-The current mobile app is a functional member-facing booking and reservation application with:
-
-- working authentication
-- ticket-driven bay and lesson booking flows
-- reservation list and reservation detail views
-- reservation cancellation
-- profile management
-- runtime theme support
-- app-level loading, error, and empty states
-- improved navigation safety and query cancellation
-
-The current codebase is suitable for continued product iteration, internal testing, and release hardening, with placeholder sections clearly identified for future expansion.
+Code checks, native build results, and runtime QA are distinct. Record which checks actually ran; do not treat successful compilation as proof that every device flow has been tested. Device testing is handled manually when requested by the user.

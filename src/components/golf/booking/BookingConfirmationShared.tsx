@@ -1,16 +1,16 @@
+import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
+import { Divider, Skeleton } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
 import {
-    ReservationPoliciesSection,
-    type ReservationPolicy,
-} from "@/components/golf/reservation/ReservationSections";
-import {
-    AppText,
-    Button,
-    Divider,
-    Skeleton,
-} from "@/design-system";
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import * as Haptics from "expo-haptics";
 import type { ImperativeRouter } from "expo-router";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 type BookingConfirmationFooterProps = {
     title: string;
@@ -19,11 +19,7 @@ type BookingConfirmationFooterProps = {
     onPress: () => void;
 };
 
-type BookingConfirmationContentProps = {
-    children: React.ReactNode;
-    disabledReason?: string | null;
-    policies: readonly ReservationPolicy[];
-};
+
 
 type BookingSuccessDetails = {
     type: "bay" | "lesson";
@@ -48,7 +44,9 @@ export function handleBookingConfirmationSuccess(
     if (process.env.EXPO_OS === "android") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else if (process.env.EXPO_OS === "ios") {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+        );
     }
 
     const params: Record<string, string> = {
@@ -89,14 +87,78 @@ export function BookingConfirmationFooter({
     disabled,
     onPress,
 }: BookingConfirmationFooterProps) {
+    const {
+        colors: uiColors,
+        resolvedScheme: uiScheme,
+        fontScale: uiFontScale,
+    } = useTheme();
     return (
         <View className="pb-8 pt-4">
-            <Button
-                title={title}
-                loading={loading}
-                disabled={disabled}
-                onPress={onPress}
-            />
+            <Host
+                matchContents={{ vertical: true }}
+                ignoreSafeArea="all"
+                colorScheme={uiScheme}
+                seedColor={uiColors.primary}
+                accessibilityLabel={title}
+                accessibilityState={{
+                    disabled: disabled || loading,
+                    busy: loading,
+                }}
+                style={{ width: "100%" }}>
+                <Button
+                    modifiers={
+                        process.env.EXPO_OS === "ios"
+                            ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                            : [
+                                fillMaxWidth(),
+                                defaultMinSize({ minHeight: 48 }),
+                            ]
+                    }
+                    variant="text"
+                    disabled={disabled || loading}
+                    onPress={onPress}
+                    style={{
+                        ...getNativeButtonStyle(
+                            uiColors,
+                            "filled",
+                            disabled || loading,
+                            uiColors.primary,
+                        ), ...{ borderRadius: 12 }
+                    }}
+                >
+                    <Row
+                        modifiers={
+                            process.env.EXPO_OS === "ios"
+                                ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                : [fillMaxWidth()]
+                        }
+                        spacing={8}
+                        alignment="center"
+                    >
+                        <Spacer flexible />
+                        {loading ? (
+                            <RNHostView matchContents>
+                                <ActivityIndicator
+                                    color={uiColors.primaryForeground}
+                                />
+                            </RNHostView>
+                        ) : null}
+                        <Text
+                            textStyle={{
+                                textAlign: "center",
+                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                fontWeight: "600",
+                                color: uiColors.primaryForeground,
+                                fontSize:
+                                    typography.label.fontSize * uiFontScale,
+                            }}
+                        >
+                            {title}
+                        </Text>
+                        <Spacer flexible />
+                    </Row>
+                </Button>
+            </Host>
         </View>
     );
 }
@@ -121,33 +183,7 @@ export function BookingConfirmationLoadingState({
                     </View>
                 ))}
             </View>
-
         </View>
     );
 }
 
-export function BookingConfirmationContent({
-    children,
-    disabledReason,
-    policies,
-}: BookingConfirmationContentProps) {
-    return (
-        <View className="grow">
-            <View className="gap-4">{children}</View>
-
-            <View className="mt-6 gap-4">
-                <Divider className="bg-border" />
-
-                {disabledReason ? (
-                    <View className="rounded-xl bg-warning/10 px-4 py-3">
-                        <AppText variant="meta" className="text-warning">
-                            {disabledReason}
-                        </AppText>
-                    </View>
-                ) : null}
-
-                <ReservationPoliciesSection policies={policies} />
-            </View>
-        </View>
-    );
-}

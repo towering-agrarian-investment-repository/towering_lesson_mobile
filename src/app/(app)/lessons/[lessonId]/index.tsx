@@ -1,7 +1,7 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    AppText,
     Badge,
-    Card,
     CompactEmptyState,
     ErrorState,
     ListRow,
@@ -9,6 +9,9 @@ import {
     Skeleton,
     useThemeColors,
 } from "@/design-system";
+import { cn } from "@/design-system/utils/cn";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import {
     getMemberHomeworkByIdQueryOptions,
     useMemberLessonById,
@@ -32,9 +35,15 @@ import {
     getLessonStatusTone,
 } from "@/utils/status-tone";
 import { formatDateForDisplay } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ClipboardCheck, FileText, PlayCircle } from "lucide-react-native";
+import {
+    Check,
+    ClipboardCheck,
+    FileText,
+    PlayCircle,
+} from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
@@ -44,6 +53,7 @@ type LessonParams = {
 };
 
 export default function StandaloneLessonDetailScreen() {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const colors = useThemeColors();
     const { lessonId } = useLocalSearchParams<LessonParams>();
@@ -51,13 +61,8 @@ export default function StandaloneLessonDetailScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const {
-        data,
-        isLoading,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberLessonById(numericLessonId);
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberLessonById(numericLessonId);
 
     const detail = data?.data;
     const lesson = detail?.lesson;
@@ -89,7 +94,11 @@ export default function StandaloneLessonDetailScreen() {
                 <ErrorState
                     title={t("lessons.failedLessonTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -111,23 +120,42 @@ export default function StandaloneLessonDetailScreen() {
 
     return (
         <Screen contentClassName="gap-5" refreshControl={refreshControl}>
-            <Card className="gap-0 overflow-hidden p-0">
+            <View
+                className={cn(
+                    "rounded-xl border border-border bg-card p-5",
+                    "gap-0 overflow-hidden p-0",
+                )}
+            >
                 <View className="gap-4 bg-surface px-5 py-5">
                     <View className="gap-2">
-                        <AppText
-                            variant="h3"
-                            className="text-xl font-semibold leading-7"
-                            numberOfLines={2}
-                        >
-                            {getLessonName(lesson)}
-                        </AppText>
-                        <AppText
-                            variant="meta"
-                            className="leading-5 text-muted-foreground"
-                            numberOfLines={2}
-                        >
-                            {getLessonMeta(detail)}
-                        </AppText>
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                numberOfLines={2}
+                                textStyle={{
+                                    ...typography.h3,
+                                    color: uiColors.foreground,
+                                    fontSize: typography.h3.fontSize * uiFontScale,
+                                    fontWeight: "600" as const,
+                                    lineHeight: typography.h3.lineHeight * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {getLessonName(lesson)}
+                            </Text>
+                        </Host>
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                numberOfLines={2}
+                                textStyle={{
+                                    ...typography.meta,
+                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                    color: uiColors.mutedForeground,
+                                    fontSize:
+                                        typography.meta.fontSize * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {getLessonMeta(detail)}
+                            </Text>
+                        </Host>
                     </View>
 
                     <View className="flex-row flex-wrap gap-2">
@@ -135,37 +163,57 @@ export default function StandaloneLessonDetailScreen() {
                             <Badge
                                 label={formatType(lesson.lessonStatus)}
                                 className={lessonStatusTone.className}
-                                textClassName={lessonStatusTone.textClassName}
+                                color={lessonStatusTone.color}
                             />
                         ) : null}
                         <Badge
-                            label={t("lessons.sessionsCount", { count: sessions.length })}
+                            label={t("lessons.sessionsCount", {
+                                count: sessions.length,
+                            })}
                             className="bg-muted"
-                            textClassName="text-muted-foreground"
+                            color="mutedForeground"
                         />
                         <Badge
-                            label={t("lessons.homeworkCount", { count: homeworks.length })}
+                            label={t("lessons.homeworkCount", {
+                                count: homeworks.length,
+                            })}
                             className="bg-muted"
-                            textClassName="text-muted-foreground"
+                            color="mutedForeground"
                         />
                     </View>
                 </View>
 
                 {lesson.description?.trim() ? (
                     <View className="px-5 py-5">
-                        <AppText variant="body" className="leading-6 text-foreground">
-                            {lesson.description}
-                        </AppText>
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                textStyle={{
+                                    ...typography.body,
+                                    lineHeight: typography.body.lineHeight * uiFontScale,
+                                    color: uiColors.foreground,
+                                    fontSize:
+                                        typography.body.fontSize * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {lesson.description}
+                            </Text>
+                        </Host>
                     </View>
                 ) : null}
-            </Card>
+            </View>
 
-            <Card className="gap-4 p-5">
-                <SectionHeader title={t("lessons.sessionsTitle")} count={sessions.length} />
+            <View
+                className={cn(
+                    "rounded-xl border border-border bg-card p-5",
+                    "gap-4 p-5",
+                )}
+            >
+                <SectionHeader
+                    title={t("lessons.sessionsTitle")}
+                    count={sessions.length}
+                />
                 {sessions.length === 0 ? (
-                    <CompactEmptyState
-                        title={t("lessons.noSessions")}
-                    />
+                    <CompactEmptyState title={t("lessons.noSessions")} />
                 ) : (
                     <View className="gap-3">
                         {sessions.map((session) => (
@@ -184,14 +232,20 @@ export default function StandaloneLessonDetailScreen() {
                         ))}
                     </View>
                 )}
-            </Card>
+            </View>
 
-            <Card className="gap-4 p-5">
-                <SectionHeader title={t("lessons.homeworkTitle")} count={homeworks.length} />
+            <View
+                className={cn(
+                    "rounded-xl border border-border bg-card p-5",
+                    "gap-4 p-5",
+                )}
+            >
+                <SectionHeader
+                    title={t("lessons.homeworkTitle")}
+                    count={homeworks.length}
+                />
                 {homeworks.length === 0 ? (
-                    <CompactEmptyState
-                        title={t("lessons.noHomework")}
-                    />
+                    <CompactEmptyState title={t("lessons.noHomework")} />
                 ) : (
                     <View className="gap-3">
                         {homeworks.map((homework) => (
@@ -202,13 +256,17 @@ export default function StandaloneLessonDetailScreen() {
                                 disabled={isLocked}
                                 onPress={() => {
                                     void queryClient.prefetchQuery(
-                                        getMemberHomeworkByIdQueryOptions(homework.homeworkId),
+                                        getMemberHomeworkByIdQueryOptions(
+                                            homework.homeworkId,
+                                        ),
                                     );
                                     runWithNavigationLock(() => {
                                         router.push({
                                             pathname: "/homework/[homeworkId]",
                                             params: {
-                                                homeworkId: String(homework.homeworkId),
+                                                homeworkId: String(
+                                                    homework.homeworkId,
+                                                ),
                                             },
                                         });
                                     });
@@ -217,25 +275,48 @@ export default function StandaloneLessonDetailScreen() {
                         ))}
                     </View>
                 )}
-            </Card>
+            </View>
 
             {detail.media?.length ? (
-                <Card className="gap-4 p-5">
-                    <SectionHeader title={t("lessons.mediaTitle")} count={detail.media.length} />
+                <View
+                    className={cn(
+                        "rounded-xl border border-border bg-card p-5",
+                        "gap-4 p-5",
+                    )}
+                >
+                    <SectionHeader
+                        title={t("lessons.mediaTitle")}
+                        count={detail.media.length}
+                    />
                     <View className="gap-3">
                         {detail.media.map((media, index) => (
                             <ListRow
                                 key={`media-${media.id ?? index}`}
-                                title={media.description?.trim() || t("lessons.mediaFallback", { id: media.id ?? index + 1 })}
+                                title={
+                                    media.description?.trim() ||
+                                    t("lessons.mediaFallback", {
+                                        id: media.id ?? index + 1,
+                                    })
+                                }
                                 subtitle={media.mediaType ?? undefined}
-                                leading={<RowIcon><FileText size={18} color={colors.mutedForeground} /></RowIcon>}
+                                leading={
+                                    <RowIcon>
+                                        <FileText
+                                            size={18}
+                                            color={colors.mutedForeground}
+                                        />
+                                    </RowIcon>
+                                }
                                 className="border-border bg-card px-4 py-3.5"
-                                titleClassName="font-medium leading-6"
+                                titleStyle={{
+                                    fontWeight: "500",
+                                    lineHeight: 24,
+                                }}
                                 showChevron={false}
                             />
                         ))}
                     </View>
-                </Card>
+                </View>
             ) : null}
         </Screen>
     );
@@ -250,10 +331,11 @@ function getLessonMeta(detail: {
     const lesson = detail.lesson;
     const date = formatDateForDisplay(lesson?.startTime ?? null);
 
-    return [
-        detail.group ? getGroupName(detail.group) : null,
-        date || null,
-    ].filter(Boolean).join(" / ") || "-";
+    return (
+        [detail.group ? getGroupName(detail.group) : null, date || null]
+            .filter(Boolean)
+            .join(" / ") || "-"
+    );
 }
 
 function SessionRow({
@@ -275,8 +357,12 @@ function SessionRow({
         <ListRow
             title={getSessionTitle(session)}
             subtitle={session.descriptionSnapshot?.trim() || undefined}
-            meta={session.orderIndex != null ? `#${session.orderIndex}` : undefined}
-            leading={(
+            meta={
+                session.orderIndex != null
+                    ? `#${session.orderIndex}`
+                    : undefined
+            }
+            leading={
                 <RowIcon tone={isCompleted ? "success" : "primary"}>
                     {isCompleted ? (
                         <Check size={18} color={colors.success} />
@@ -284,9 +370,15 @@ function SessionRow({
                         <PlayCircle size={18} color={colors.primary} />
                     )}
                 </RowIcon>
-            )}
+            }
             className={rowClassName}
-            titleClassName={isCompleted ? "font-medium leading-6 text-foreground/70" : "font-medium leading-6"}
+            titleStyle={{
+                fontWeight: "500",
+                lineHeight: 24,
+                color: isCompleted
+                    ? colors.foreground + "b3"
+                    : colors.foreground,
+            }}
             disabled={disabled}
             onPress={onPress}
         />
@@ -307,10 +399,14 @@ function HomeworkRow({
     const { t } = useTranslation();
     const colors = useThemeColors();
     const latestSubmission = submissions.find(
-        (submission) => submission.homeworkId === homework.homeworkId && submission.isCurrent,
+        (submission) =>
+            submission.homeworkId === homework.homeworkId &&
+            submission.isCurrent,
     );
-    const submissionStatus = latestSubmission?.status ?? homework.currentSubmissionStatus;
-    const reviewStatus = latestSubmission?.review?.status ?? homework.currentReviewStatus;
+    const submissionStatus =
+        latestSubmission?.status ?? homework.currentSubmissionStatus;
+    const reviewStatus =
+        latestSubmission?.review?.status ?? homework.currentReviewStatus;
     const statusLabel = reviewStatus
         ? formatType(reviewStatus)
         : submissionStatus
@@ -321,24 +417,36 @@ function HomeworkRow({
         : submissionStatus
             ? getHomeworkSubmissionTone(submissionStatus)
             : getFallbackHomeworkTone(homework.homeworkStatus);
-    const rowClassName = getHomeworkRowClassName(reviewStatus, submissionStatus, homework.homeworkStatus);
+    const rowClassName = getHomeworkRowClassName(
+        reviewStatus,
+        submissionStatus,
+        homework.homeworkStatus,
+    );
 
     return (
         <ListRow
             title={getHomeworkTitle(homework)}
-            subtitle={homework.dueAt
-                ? t("lessons.dueDate", { date: formatDateForDisplay(homework.dueAt) })
-                : homework.description ?? undefined}
-            meta={(
+            subtitle={
+                homework.dueAt
+                    ? t("lessons.dueDate", {
+                        date: formatDateForDisplay(homework.dueAt),
+                    })
+                    : (homework.description ?? undefined)
+            }
+            meta={
                 <Badge
                     label={statusLabel}
                     className={`px-2 py-1 ${statusTone.className}`}
-                    textClassName={statusTone.textClassName}
+                    color={statusTone.color}
                 />
-            )}
-            leading={<RowIcon><ClipboardCheck size={18} color={colors.mutedForeground} /></RowIcon>}
+            }
+            leading={
+                <RowIcon>
+                    <ClipboardCheck size={18} color={colors.mutedForeground} />
+                </RowIcon>
+            }
             className={rowClassName}
-            titleClassName="font-medium leading-6"
+            titleStyle={{ fontWeight: "500", lineHeight: 24 }}
             disabled={disabled}
             onPress={onPress}
         />
@@ -359,7 +467,7 @@ function RowIcon({
                     ? "h-10 w-10 items-center justify-center rounded-xl bg-primary/10"
                     : tone === "success"
                         ? "h-10 w-10 items-center justify-center rounded-xl bg-success/10"
-                    : "h-10 w-10 items-center justify-center rounded-xl bg-muted"
+                        : "h-10 w-10 items-center justify-center rounded-xl bg-muted"
             }
         >
             {children}
@@ -367,19 +475,35 @@ function RowIcon({
     );
 }
 
-function SectionHeader({
-    title,
-    count,
-}: {
-    title: string;
-    count: number;
-}) {
+function SectionHeader({ title, count }: { title: string; count: number }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
         <View className="flex-row items-center justify-between gap-4">
-            <AppText variant="h3" className="text-lg font-semibold">
-                {title}
-            </AppText>
-            {count > 0 ? <AppText variant="count">{count}</AppText> : null}
+            <Host matchContents ignoreSafeArea="all">
+                <Text
+                    textStyle={{
+                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                        color: uiColors.foreground,
+                        fontSize: typography.subtitle.fontSize * uiFontScale,
+                        fontWeight: "600" as const,
+                    }}
+                >
+                    {title}
+                </Text>
+            </Host>
+            {count > 0 ? (
+                <Host matchContents ignoreSafeArea="all">
+                    <Text
+                        textStyle={{
+                            ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.count.fontSize * uiFontScale,
+                        }}
+                    >
+                        {String(count ?? "")}
+                    </Text>
+                </Host>
+            ) : null}
         </View>
     );
 }
@@ -388,20 +512,20 @@ function getFallbackHomeworkTone(status?: string | null) {
     if (status === "COMPLETED" || status === "SUBMITTED") {
         return {
             className: "bg-emerald-100",
-            textClassName: "text-emerald-700",
+            color: "success" as const,
         };
     }
 
     if (status === "OVERDUE" || status === "REJECTED" || status === "MISSING") {
         return {
             className: "bg-rose-100",
-            textClassName: "text-rose-700",
+            color: "danger" as const,
         };
     }
 
     return {
         className: "bg-amber-100",
-        textClassName: "text-amber-700",
+        color: "warning" as const,
     };
 }
 
@@ -410,14 +534,18 @@ function getHomeworkRowClassName(
     submissionStatus?: string | null,
     homeworkStatus?: string | null,
 ) {
-    if (reviewStatus === "CONFIRMED" || submissionStatus === "REVIEWED" || homeworkStatus === "COMPLETED") {
+    if (
+        reviewStatus === "CONFIRMED" ||
+        submissionStatus === "REVIEWED" ||
+        homeworkStatus === "COMPLETED"
+    ) {
         return "border-emerald-100 bg-emerald-50/60 px-4 py-3.5";
     }
 
     if (
-        homeworkStatus === "OVERDUE"
-        || homeworkStatus === "REJECTED"
-        || homeworkStatus === "MISSING"
+        homeworkStatus === "OVERDUE" ||
+        homeworkStatus === "REJECTED" ||
+        homeworkStatus === "MISSING"
     ) {
         return "border-rose-100 bg-rose-50/70 px-4 py-3.5";
     }

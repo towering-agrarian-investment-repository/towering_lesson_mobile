@@ -1,22 +1,23 @@
+import { Host, Text } from "@expo/ui";
 import { View } from "react-native";
-import { AppText } from "./AppText";
 import { cn } from "../utils/cn";
-
-type BadgeVariant = "default" | "success" | "warning" | "danger";
+import { useTheme, type ThemeColors } from "../utils/theme";
+import { typography } from "../utils/typography";
 
 type BadgeProps = {
     label: string;
-    variant?: BadgeVariant;
+    variant?: "default" | "success" | "warning" | "danger";
     className?: string;
-    textClassName?: string;
+    color?: keyof ThemeColors;
 };
 
 export function Badge({
     label,
     variant = "default",
     className,
-    textClassName,
+    color,
 }: BadgeProps) {
+    const { colors, fontScale: uiFontScale } = useTheme();
     return (
         <View
             className={cn(
@@ -28,18 +29,22 @@ export function Badge({
                 className,
             )}
         >
-            <AppText
-                variant="badge"
-                className={cn(
-                    variant === "default" && "text-muted-foreground",
-                    variant === "success" && "text-success",
-                    variant === "warning" && "text-warning",
-                    variant === "danger" && "text-danger",
-                    textClassName,
-                )}
-            >
-                {label}
-            </AppText>
+            <Host matchContents ignoreSafeArea="all">
+                <Text
+                    textStyle={{
+                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
+                        color: colors[
+                            color ??
+                            (variant === "default"
+                                ? "mutedForeground"
+                                : variant)
+                        ],
+                        fontSize: typography.badge.fontSize * uiFontScale,
+                    }}
+                >
+                    {label}
+                </Text>
+            </Host>
         </View>
     );
 }

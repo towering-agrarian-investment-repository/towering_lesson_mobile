@@ -1,13 +1,14 @@
+import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
+import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { Button, Host, Text } from "@expo/ui";
+import {
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { CircleAlert, Inbox } from "lucide-react-native";
-import { MotiView } from "moti";
-import { useReducedMotion } from "react-native-reanimated";
 import { View } from "react-native";
-import { AppText } from "./AppText";
-import { Button } from "./Button";
-import { useThemeColors } from "../utils/theme";
-
-const CircleAlertIcon = CircleAlert as React.ComponentType<any>;
-const InboxIcon = Inbox as React.ComponentType<any>;
 
 export function ErrorState({
     title,
@@ -20,30 +21,107 @@ export function ErrorState({
     actionLabel?: string;
     onAction?: () => void;
 }) {
+    const {
+        colors: uiColors,
+        resolvedScheme: uiScheme,
+        fontScale: uiFontScale,
+    } = useTheme();
     const colors = useThemeColors();
-    const reduceMotion = useReducedMotion();
 
     return (
         <StateCardShell>
-            <MotiView
-                from={{ opacity: reduceMotion ? 1 : 0, translateY: reduceMotion ? 0 : -8 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={reduceMotion ? { duration: 0 } : { type: "timing", duration: 220 }}
-                className="items-center"
-            >
+            <View className="w-full items-center">
                 <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-danger/10">
-                    <CircleAlertIcon size={28} color={colors.danger} strokeWidth={2.4} />
+                    <CircleAlert
+                        size={28}
+                        color={colors.danger}
+                        strokeWidth={2.4}
+                    />
                 </View>
-                <AppText variant="h3" className="text-center text-danger">
-                    {title}
-                </AppText>
-                <AppText variant="subtext" className="mt-3 text-center text-muted-foreground">
-                    {message}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                            textAlign: "center" as const,
+                            color: uiColors.danger,
+                            fontSize: typography.h3.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        {title}
+                    </Text>
+                </Host>
+                <Host
+                    matchContents={{ vertical: true }}
+                    ignoreSafeArea="all"
+                    style={{ width: "100%", marginTop: 12 }}
+                >
+                    <Text
+                        textStyle={{
+                            ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                            textAlign: "center" as const,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.subtext.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        {message}
+                    </Text>
+                </Host>
                 {actionLabel && onAction ? (
-                    <Button title={actionLabel} onPress={onAction} className="mt-5 rounded-xl" />
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        colorScheme={uiScheme}
+                        seedColor={uiColors.primary}
+                        style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
+                        accessibilityLabel={actionLabel}
+                        accessibilityState={{ disabled: false, busy: false }}
+                    >
+                        <Button
+                            modifiers={
+                                process.env.EXPO_OS === "ios"
+                                    ? [
+                                        frame({
+                                            maxWidth: Infinity,
+                                            minHeight: 48,
+                                        }),
+                                    ]
+                                    : [
+                                        fillMaxWidth(),
+                                        defaultMinSize({ minHeight: 48 }),
+                                    ]
+                            }
+                            variant="text"
+                            disabled={false}
+                            onPress={onAction}
+                            style={{
+                                ...getNativeButtonStyle(
+                                    uiColors,
+                                    "filled",
+                                    false,
+                                    uiColors.primary,
+                                ), ...{ borderRadius: 12 }
+                            }}
+                        >
+                            <Text
+                                modifiers={
+                                    process.env.EXPO_OS === "ios"
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        : [fillMaxWidth()]
+                                }
+                                textStyle={{
+                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                    textAlign: "center",
+                                    color: uiColors.primaryForeground,
+                                    fontSize:
+                                        typography.label.fontSize * uiFontScale,
+                                }}
+                            >
+                                {actionLabel}
+                            </Text>
+                        </Button>
+                    </Host>
                 ) : null}
-            </MotiView>
+            </View>
         </StateCardShell>
     );
 }
@@ -53,46 +131,124 @@ export function EmptyState({
     message,
     actionLabel,
     onAction,
-    }: {
+}: {
     title: string;
     message?: string;
     actionLabel?: string;
     onAction?: () => void;
 }) {
+    const {
+        colors: uiColors,
+        resolvedScheme: uiScheme,
+        fontScale: uiFontScale,
+    } = useTheme();
     const colors = useThemeColors();
-    const reduceMotion = useReducedMotion();
 
     return (
         <StateCardShell>
-            <MotiView
-                from={{ opacity: reduceMotion ? 1 : 0, scale: reduceMotion ? 1 : 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={reduceMotion ? { duration: 0 } : { type: "timing", duration: 220 }}
-                className="items-center"
-            >
+            <View className="w-full items-center">
                 <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-muted">
-                    <InboxIcon size={28} color={colors.mutedForeground} strokeWidth={2.2} />
+                    <Inbox
+                        size={28}
+                        color={colors.mutedForeground}
+                        strokeWidth={2.2}
+                    />
                 </View>
-                <AppText variant="h3" className="text-center text-foreground">
-                    {title}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                            textAlign: "center" as const,
+                            color: uiColors.foreground,
+                            fontSize: typography.h3.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        {title}
+                    </Text>
+                </Host>
                 {message ? (
-                    <AppText variant="subtext" className="mt-3 text-center text-muted-foreground">
-                        {message}
-                    </AppText>
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        style={{ width: "100%", marginTop: 12 }}
+                    >
+                        <Text
+                            textStyle={{
+                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                textAlign: "center" as const,
+                                color: uiColors.mutedForeground,
+                                fontSize:
+                                    typography.subtext.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                            {message}
+                        </Text>
+                    </Host>
                 ) : null}
                 {actionLabel && onAction ? (
-                    <Button title={actionLabel} onPress={onAction} className="mt-5 rounded-xl" />
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        colorScheme={uiScheme}
+                        seedColor={uiColors.primary}
+                        style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
+                        accessibilityLabel={actionLabel}
+                        accessibilityState={{ disabled: false, busy: false }}
+                    >
+                        <Button
+                            modifiers={
+                                process.env.EXPO_OS === "ios"
+                                    ? [
+                                        frame({
+                                            maxWidth: Infinity,
+                                            minHeight: 48,
+                                        }),
+                                    ]
+                                    : [
+                                        fillMaxWidth(),
+                                        defaultMinSize({ minHeight: 48 }),
+                                    ]
+                            }
+                            variant="text"
+                            disabled={false}
+                            onPress={onAction}
+                            style={{
+                                ...getNativeButtonStyle(
+                                    uiColors,
+                                    "filled",
+                                    false,
+                                    uiColors.primary,
+                                ), ...{ borderRadius: 12 }
+                            }}
+                        >
+                            <Text
+                                modifiers={
+                                    process.env.EXPO_OS === "ios"
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        : [fillMaxWidth()]
+                                }
+                                textStyle={{
+                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                    textAlign: "center",
+                                    color: uiColors.primaryForeground,
+                                    fontSize:
+                                        typography.label.fontSize * uiFontScale,
+                                }}
+                            >
+                                {actionLabel}
+                            </Text>
+                        </Button>
+                    </Host>
                 ) : null}
-            </MotiView>
+            </View>
         </StateCardShell>
     );
 }
 
 function StateCardShell({ children }: { children: React.ReactNode }) {
     return (
-        <View className="flex-1 bg-background px-6 py-5">
-            <View className="flex-1 items-center justify-center">{children}</View>
+        <View className="grow items-center justify-center bg-background px-6 py-5">
+            {children}
         </View>
     );
 }

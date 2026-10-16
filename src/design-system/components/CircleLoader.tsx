@@ -1,9 +1,11 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import happyGolfToolbarLogo from "@/assets/images/happygolf_toolbar_logo.png";
-import { MotiView } from "moti";
-import { useReducedMotion } from "react-native-reanimated";
+import { Host, Text } from "@expo/ui";
 import { Image, View } from "react-native";
-import { AppText } from "./AppText";
-import { useThemeColors } from "../utils/theme";
+import Animated, { cubicBezier, useReducedMotion } from "react-native-reanimated";
+import { useTheme } from "../utils/theme";
+import { typography } from "../utils/typography";
 
 type CircleLoaderProps = {
     label?: string;
@@ -16,12 +18,14 @@ export function CircleLoader({
     fullScreen = false,
     logoOnly = false,
 }: CircleLoaderProps) {
-    const colors = useThemeColors();
+    const { colors, fontScale: uiFontScale } = useTheme();
     const reduceMotion = useReducedMotion();
     const dotSize = fullScreen ? 12 : 8;
-
     return (
         <View
+            accessibilityRole="progressbar"
+            accessibilityLabel={label}
+            accessibilityState={{ busy: true }}
             className={
                 fullScreen
                     ? "flex-1 items-center justify-center bg-background px-6"
@@ -29,53 +33,54 @@ export function CircleLoader({
             }
         >
             {logoOnly ? (
-                <MotiView
-                    from={{ opacity: reduceMotion ? 1 : 0.75, scale: reduceMotion ? 1 : 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={reduceMotion ? { duration: 0 } : {
-                        type: "timing",
-                        duration: 560,
-                        loop: true,
-                        repeatReverse: true,
-                    }}
-                >
-                    <Image
-                        source={happyGolfToolbarLogo}
-                        className="h-14 w-64"
-                        resizeMode="contain"
-                    />
-                </MotiView>
+                <Animated.View style={reduceMotion ? undefined : {
+                    animationName: { from: { opacity: 0.75, transform: [{ scale: 0.98 }] }, to: { opacity: 1, transform: [{ scale: 1 }] } },
+                    animationDuration: 560,
+                    animationIterationCount: "infinite",
+                    animationDirection: "alternate",
+                    animationTimingFunction: cubicBezier(0.77, 0, 0.175, 1),
+                }}>
+                    <Image source={happyGolfToolbarLogo} className="h-14 w-64" resizeMode="contain" />
+                </Animated.View>
             ) : (
                 <View className="flex-row items-center gap-2">
                     {[0, 1, 2].map((index) => (
-                        <MotiView
-                            key={index}
-                            from={{ opacity: reduceMotion ? 1 : 0.35, scale: reduceMotion ? 1 : 0.9, translateY: 0 }}
-                            animate={reduceMotion
-                                ? { opacity: 1, scale: 1, translateY: 0 }
-                                : { opacity: 1, scale: 1.15, translateY: -2 }}
-                            transition={reduceMotion ? { duration: 0 } : {
-                                type: "timing",
-                                duration: 360,
-                                delay: index * 50,
-                                loop: true,
-                                repeatReverse: true,
-                            }}
-                            style={{
-                                width: dotSize,
-                                height: dotSize,
-                                borderRadius: 999,
-                                backgroundColor: colors.primary,
-                            }}
-                        />
+                        <Animated.View key={index} style={{
+                            width: dotSize,
+                            height: dotSize,
+                            borderRadius: 999,
+                            backgroundColor: colors.primary,
+                            ...(!reduceMotion ? {
+                                animationName: {
+                                    from: { opacity: 0.35, transform: [{ translateY: 0 }, { scale: 0.9 }] },
+                                    to: { opacity: 1, transform: [{ translateY: -2 }, { scale: 1.15 }] },
+                                },
+                                animationDuration: 360,
+                                animationDelay: index * 50,
+                                animationIterationCount: "infinite" as const,
+                                animationDirection: "alternate" as const,
+                                animationTimingFunction: cubicBezier(0.77, 0, 0.175, 1),
+                            } : {}),
+                        }} />
                     ))}
                 </View>
             )}
-
             {label && !logoOnly ? (
-                <AppText variant="meta" className="mt-3 text-foreground/75">
-                    {label}
-                </AppText>
+                <Host
+                    matchContents={{ vertical: true }}
+                    ignoreSafeArea="all"
+                    style={{ width: "100%", marginTop: 12 }}
+                >
+                    <Text
+                        textStyle={{ textAlign: "center",
+                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
+                            color: colors.foreground + "bf",
+                            fontSize: typography.meta.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        {label}
+                    </Text>
+                </Host>
             ) : null}
         </View>
     );

@@ -1,33 +1,37 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    AppText,
-    Card,
     getPressedScaleStyle,
     triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
-import {
-    getTicketTypeTone,
-} from "@/design-system/utils/ticket-type";
+import { cn } from "@/design-system/utils/cn";
+import { useTheme } from "@/design-system/utils/theme";
+import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
+import { typography } from "@/design-system/utils/typography";
 import type {
     MemberReservationResponse,
     MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
 import { fmtTime } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
 import { format } from "date-fns";
+import { ChevronRight } from "lucide-react-native";
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
-import { ChevronRight } from "lucide-react-native";
 
 type Props = {
     reservation: MemberReservationResponse | MemberReservationSummaryResponse;
     disabled?: boolean;
     onPress?: (
-        reservation: MemberReservationResponse | MemberReservationSummaryResponse,
+        reservation:
+            MemberReservationResponse | MemberReservationSummaryResponse,
     ) => void;
 };
 
 function ReservationCard({ reservation, disabled = false, onPress }: Props) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const colors = useThemeColors();
     const startDate = new Date(reservation.startTime);
@@ -37,8 +41,11 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     const minutesUntilStart = Math.ceil(
         (startDate.getTime() - referenceTime) / 60000,
     );
-    const reservationStatus = String(reservation.reservationStatus).toUpperCase();
-    const isReservedUpcoming = reservationStatus === "RESERVED" && minutesUntilStart >= 0;
+    const reservationStatus = String(
+        reservation.reservationStatus,
+    ).toUpperCase();
+    const isReservedUpcoming =
+        reservationStatus === "RESERVED" && minutesUntilStart >= 0;
     const isStartingSoon = isReservedUpcoming && minutesUntilStart <= 60;
     const countdownLabel =
         reservationStatus === "RESERVED" && minutesUntilStart >= 0
@@ -57,7 +64,8 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
             ? t("reservations.checkedIn")
             : reservationStatus === "COMPLETED"
                 ? t("reservations.sessionCompleted")
-                : reservationStatus === "CANCELLED" || reservationStatus === "CANCELED"
+                : reservationStatus === "CANCELLED" ||
+                    reservationStatus === "CANCELED"
                     ? t("reservations.reservationCancelled")
                     : reservationStatus === "NO_SHOW"
                         ? t("reservations.markedAbsent")
@@ -65,17 +73,19 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                             ? t("reservations.sessionTimePassed")
                             : null;
     const secondaryLabel = countdownLabel ?? statusLabel;
-    const secondaryClassName = countdownLabel
-            ? isStartingSoon
-                ? "text-warning"
-                : "text-primary"
-        : reservationStatus === "CHECKED_IN" || reservationStatus === "COMPLETED"
-            ? "text-success"
-            : reservationStatus === "CANCELLED" || reservationStatus === "CANCELED"
-                ? "text-danger"
+    const secondaryColor = countdownLabel
+        ? isStartingSoon
+            ? colors.warning
+            : colors.primary
+        : reservationStatus === "CHECKED_IN" ||
+            reservationStatus === "COMPLETED"
+            ? colors.success
+            : reservationStatus === "CANCELLED" ||
+                reservationStatus === "CANCELED"
+                ? colors.danger
                 : reservationStatus === "NO_SHOW"
-                    ? "text-warning"
-                    : "text-muted-foreground";
+                    ? colors.warning
+                    : colors.mutedForeground;
     // Keep the card surface calm. Status and ticket type are communicated by
     // the small dot and the supporting label instead of coloring the whole card.
     const cardBackgroundClassName =
@@ -86,7 +96,6 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                 : "bg-primary/20";
     const arrowBackgroundClassName = "bg-muted";
     const arrowColor = colors.mutedForeground;
-    const cardTextClassName = "text-foreground";
 
     const title =
         reservation.bayName ??
@@ -110,47 +119,79 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
             disabled={disabled}
             accessibilityRole="button"
             accessibilityLabel={title}
-            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.99)}
+            style={({ pressed }) =>
+                getPressedScaleStyle(pressed, disabled, 0.99)
+            }
         >
-            <Card
-                className={`flex-col gap-3 overflow-hidden rounded-2xl border-border p-5 ${cardBackgroundClassName}`}
+            <View
+                className={cn(
+                    "rounded-xl border border-border bg-card p-5",
+                    `flex-col gap-3 overflow-hidden rounded-2xl border-border p-5 ${cardBackgroundClassName}`,
+                )}
             >
                 <View className="flex-row items-center gap-3">
-                    <View className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`} />
+                    <View
+                        className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`}
+                    />
 
-                    <AppText
-                        variant="label"
-                        className={`min-w-0 flex-1 font-medium ${cardTextClassName}`}
-                        numberOfLines={1}
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        style={{ flex: 1, minWidth: 0 }}
                     >
-                        {title}
-                    </AppText>
-
+                        <Text
+                            numberOfLines={1}
+                            textStyle={{
+                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontWeight: "500" as const,
+                                fontSize:
+                                    typography.label.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {title}
+                        </Text>
+                    </Host>
                 </View>
 
                 <View className="flex-row items-center gap-3">
                     <ReservationDateBadge date={startDate} />
 
                     <View className="min-w-0 flex-1 flex-col justify-center gap-3">
-                        <AppText
-                            variant="body"
-                            className={`text-lg font-semibold ${cardTextClassName}`}
-                        >
-                            {fmtTime(startDate)} - {fmtTime(endDate)}
-                        </AppText>
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                textStyle={{
+                                    ...typography.body, lineHeight: typography.h3.lineHeight * uiFontScale,
+                                    color: uiColors.foreground,
+                                    fontSize: typography.subtitle.fontSize * uiFontScale,
+                                    fontWeight: "600" as const,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {fmtTime(startDate) + " - " + fmtTime(endDate)}
+                            </Text>
+                        </Host>
 
                         {secondaryLabel ? (
-                            <AppText
-                                variant="badge"
-                                className={secondaryClassName}
-                                numberOfLines={1}
-                            >
-                                {secondaryLabel}
-                            </AppText>
+                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                <Text
+                                    numberOfLines={1}
+                                    textStyle={{
+                                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
+                                        color: secondaryColor,
+                                        fontSize:
+                                            typography.badge.fontSize *
+                                            uiFontScale,
+                                    }}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                    {secondaryLabel}
+                                </Text>
+                            </Host>
                         ) : null}
                     </View>
 
-                    <View className={`h-9 w-9 items-center justify-center rounded-full ${arrowBackgroundClassName}`}>
+                    <View
+                        className={`h-9 w-9 items-center justify-center rounded-full ${arrowBackgroundClassName}`}
+                    >
                         <ChevronRight
                             size={18}
                             color={arrowColor}
@@ -158,7 +199,7 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                         />
                     </View>
                 </View>
-            </Card>
+            </View>
         </Pressable>
     );
 }
@@ -171,46 +212,53 @@ function areReservationCardsEqual(prev: Props, next: Props) {
         prev.disabled === next.disabled &&
         prev.onPress === next.onPress &&
         previousReservation.id === nextReservation.id &&
-        previousReservation.reservationType === nextReservation.reservationType &&
-        previousReservation.reservationStatus === nextReservation.reservationStatus &&
+        previousReservation.reservationType ===
+        nextReservation.reservationType &&
+        previousReservation.reservationStatus ===
+        nextReservation.reservationStatus &&
         previousReservation.ticketType === nextReservation.ticketType &&
         previousReservation.startTime === nextReservation.startTime &&
         previousReservation.endTime === nextReservation.endTime &&
         previousReservation.bayName === nextReservation.bayName &&
         previousReservation.lessonAvailabilityName ===
-            nextReservation.lessonAvailabilityName &&
+        nextReservation.lessonAvailabilityName &&
         previousReservation.lessonProgramGroupName ===
-            nextReservation.lessonProgramGroupName &&
-        previousReservation.lessonProgramName === nextReservation.lessonProgramName
+        nextReservation.lessonProgramGroupName &&
+        previousReservation.lessonProgramName ===
+        nextReservation.lessonProgramName
     );
 }
 
-function ReservationDateBadge({
-    date,
-}: {
-    date: Date;
-}) {
+function ReservationDateBadge({ date }: { date: Date }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
-        <View
-            className="h-[82px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted"
-        >
+        <View className="h-[82px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
             <View className="flex-1 items-center justify-center px-2">
-                <AppText
-                    variant="badge"
-                    className="text-muted-foreground"
-                    numberOfLines={1}
-                >
-                    {format(date, "MMM").toUpperCase()}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        numberOfLines={1}
+                        textStyle={{ textAlign: "center",
+                            ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.badge.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        {format(date, "MMM").toUpperCase()}
+                    </Text>
+                </Host>
 
-                <AppText
-                    variant="h2"
-                    className="text-foreground"
-                    numberOfLines={1}
-                    style={{ fontVariant: ["tabular-nums"] }}
-                >
-                    {format(date, "dd")}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        numberOfLines={1}
+                        textStyle={{ textAlign: "center",
+                            ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
+                            color: uiColors.foreground,
+                            fontSize: typography.h2.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        {format(date, "dd")}
+                    </Text>
+                </Host>
             </View>
         </View>
     );

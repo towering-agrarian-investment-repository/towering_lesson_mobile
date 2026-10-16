@@ -1,10 +1,10 @@
-import {
-    TICKET_TABS,
-    TicketTabScene,
-} from "@/components/golf/TicketTabScene";
-import { AppText, getPressedScaleStyle, Screen } from "@/design-system";
-import { useCallback, useMemo, useState } from "react";
+import { TICKET_TABS, TicketTabScene } from "@/components/golf/TicketTabScene";
+import { getPressedScaleStyle, Screen } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { Host, Text } from "@expo/ui";
 import * as Haptics from "expo-haptics";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Animated, Pressable, View } from "react-native";
 import { TabView, type TabBarProps } from "react-native-tab-view";
@@ -15,6 +15,7 @@ type TicketRoute = {
 };
 
 export default function TicketsScreen() {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
@@ -26,14 +27,17 @@ export default function TicketsScreen() {
             })),
         [t],
     );
-    const handleTabChange = useCallback((nextIndex: number) => {
-        if (nextIndex === activeIndex) {
-            return;
-        }
+    const handleTabChange = useCallback(
+        (nextIndex: number) => {
+            if (nextIndex === activeIndex) {
+                return;
+            }
 
-        void Haptics.selectionAsync();
-        setActiveIndex(nextIndex);
-    }, [activeIndex]);
+            void Haptics.selectionAsync();
+            setActiveIndex(nextIndex);
+        },
+        [activeIndex],
+    );
 
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
@@ -46,24 +50,34 @@ export default function TicketsScreen() {
             <View className="rounded-2xl bg-surface p-1">
                 <View
                     className="relative flex-row gap-1"
-                    onLayout={({ nativeEvent }) => setTabBarWidth(nativeEvent.layout.width)}
+                    onLayout={({ nativeEvent }) =>
+                        setTabBarWidth(nativeEvent.layout.width)
+                    }
                 >
                     {tabBarWidth > 0 ? (
                         <Animated.View
                             pointerEvents="none"
                             className="absolute inset-y-0 left-0 rounded-2xl bg-primary"
                             style={{
-                                width: (tabBarWidth - (TICKET_TABS.length - 1) * 4) /
+                                width:
+                                    (tabBarWidth -
+                                        (TICKET_TABS.length - 1) * 4) /
                                     TICKET_TABS.length,
                                 transform: [
                                     {
                                         translateX: position.interpolate({
-                                            inputRange: [0, TICKET_TABS.length - 1],
+                                            inputRange: [
+                                                0,
+                                                TICKET_TABS.length - 1,
+                                            ],
                                             outputRange: [
                                                 0,
-                                                ((tabBarWidth - (TICKET_TABS.length - 1) * 4) /
-                                                    TICKET_TABS.length + 4) *
-                                                    (TICKET_TABS.length - 1),
+                                                ((tabBarWidth -
+                                                    (TICKET_TABS.length - 1) *
+                                                    4) /
+                                                    TICKET_TABS.length +
+                                                    4) *
+                                                (TICKET_TABS.length - 1),
                                             ],
                                             extrapolate: "clamp",
                                         }),
@@ -87,34 +101,46 @@ export default function TicketsScreen() {
                                     "tickets.showTabAccessibility",
                                     { label: t(`tickets.filters.${tab}`) },
                                 )}
-                                accessibilityState={{ selected: activeIndex === tabIndex }}
+                                accessibilityState={{
+                                    selected: activeIndex === tabIndex,
+                                }}
                                 className="min-h-11 flex-1 items-center justify-center rounded-2xl px-1"
                                 style={({ pressed }) =>
                                     getPressedScaleStyle(pressed, false, 0.992)
                                 }
                                 onPress={() => handleTabChange(tabIndex)}
                             >
-                                <AppText
-                                    numberOfLines={1}
-                                    adjustsFontSizeToFit
-                                    minimumFontScale={0.85}
-                                    className="text-xs font-semibold text-muted-foreground"
-                                >
-                                    {t(`tickets.filters.${tab}`)}
-                                </AppText>
+                                <Host matchContents ignoreSafeArea="all">
+                                    <Text
+                                        numberOfLines={1}
+                                        textStyle={{
+                                            ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                            fontSize: typography.caption.fontSize * uiFontScale,
+                                            fontWeight: "600" as const,
+                                            color: uiColors.mutedForeground,
+                                        }}
+                                    >
+                                        {t(`tickets.filters.${tab}`)}
+                                    </Text>
+                                </Host>
                                 <Animated.View
                                     pointerEvents="none"
                                     className="absolute inset-0 items-center justify-center"
                                     style={{ opacity: activeOpacity }}
                                 >
-                                    <AppText
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                        minimumFontScale={0.85}
-                                        className="text-xs font-semibold text-primary-foreground"
-                                    >
-                                        {t(`tickets.filters.${tab}`)}
-                                    </AppText>
+                                    <Host matchContents ignoreSafeArea="all">
+                                        <Text
+                                            numberOfLines={1}
+                                            textStyle={{
+                                                ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                                fontSize: typography.caption.fontSize * uiFontScale,
+                                                fontWeight: "600" as const,
+                                                color: uiColors.primaryForeground,
+                                            }}
+                                        >
+                                            {t(`tickets.filters.${tab}`)}
+                                        </Text>
+                                    </Host>
                                 </Animated.View>
                             </Pressable>
                         );
@@ -122,15 +148,11 @@ export default function TicketsScreen() {
                 </View>
             </View>
         ),
-        [activeIndex, handleTabChange, t, tabBarWidth],
+        [activeIndex, handleTabChange, t, tabBarWidth, uiColors, uiFontScale],
     );
 
     return (
-        <Screen
-            scroll={false}
-            horizontalPadding={false}
-            contentClassName="px-6"
-        >
+        <Screen scroll={false}>
             <TabView
                 navigationState={{ index: activeIndex, routes }}
                 onIndexChange={handleTabChange}

@@ -1,11 +1,12 @@
 import ReservationCard from "@/components/golf/ReservationCard";
 import {
-    AppText,
     CircleLoader,
     EmptyState,
     ErrorState,
     Skeleton,
 } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import {
@@ -17,17 +18,18 @@ import type {
     MemberReservationResponse,
     MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
+import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { FlatList, RefreshControl, View } from "react-native";
 import Animated, {
     FadeIn,
     FadeOut,
     LinearTransition,
     useReducedMotion,
 } from "react-native-reanimated";
-import { useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { FlatList, RefreshControl, View } from "react-native";
 
 export const RESERVATION_TABS: MemberReservationType[] = [
     "all",
@@ -38,8 +40,7 @@ export const RESERVATION_TABS: MemberReservationType[] = [
 ];
 
 type ReservationItem =
-    | MemberReservationResponse
-    | MemberReservationSummaryResponse;
+    MemberReservationResponse | MemberReservationSummaryResponse;
 
 const reservationKeyExtractor = (item: ReservationItem) =>
     `${item.reservationType}:${item.id}`;
@@ -110,7 +111,9 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             <Animated.View
                 entering={reduceMotion ? undefined : FadeIn.duration(180)}
                 exiting={reduceMotion ? undefined : FadeOut.duration(140)}
-                layout={reduceMotion ? undefined : LinearTransition.duration(180)}
+                layout={
+                    reduceMotion ? undefined : LinearTransition.duration(180)
+                }
             >
                 <ReservationCard
                     reservation={item}
@@ -143,11 +146,21 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
                 onRefresh={handleRefetch}
             >
                 <ErrorState
-                    title={isOnline === false ? t("common.offlineTitle") : t("reservations.failedListTitle")}
-                    message={isOnline === false
-                        ? t("common.offlineMessage")
-                        : t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    title={
+                        isOnline === false
+                            ? t("common.offlineTitle")
+                            : t("reservations.failedListTitle")
+                    }
+                    message={
+                        isOnline === false
+                            ? t("common.offlineMessage")
+                            : t("common.pullToRefreshAndTryAgain")
+                    }
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={handleRefetch}
                 />
             </ReservationStateList>
@@ -177,7 +190,10 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             renderItem={renderReservationItem}
             style={{ flex: 1 }}
             refreshControl={
-                <RefreshControl refreshing={isRefetching} onRefresh={handleRefetch} />
+                <RefreshControl
+                    refreshing={isRefetching}
+                    onRefresh={handleRefetch}
+                />
             }
             contentContainerStyle={{
                 paddingTop: 8,
@@ -192,15 +208,15 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             removeClippedSubviews
             updateCellsBatchingPeriod={50}
             ListHeaderComponent={
-                    <ReservationListHeader
-                        count={reservations.length}
-                        isUpdating={isFetching && !isFetchingNextPage}
+                <ReservationListHeader
+                    count={reservations.length}
+                    isUpdating={isFetching && !isFetchingNextPage}
                 />
             }
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.4}
             ListFooterComponent={
-                isFetchingNextPage ? <ReservationListFooter /> : null
+                isFetchingNextPage ? <ReservationListFooter /> : undefined
             }
         />
     );
@@ -271,23 +287,35 @@ function ReservationListHeader({
     count: number;
     isUpdating: boolean;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
 
     return (
         <View className="flex-row items-center justify-between pb-4">
-            <AppText
-                selectable
-                variant="count"
-                className="text-foreground/75"
-                style={{ fontVariant: ["tabular-nums"] }}
-            >
-                {t("reservations.count", { count })}
-            </AppText>
+            <Host matchContents ignoreSafeArea="all">
+                <Text
+                    textStyle={{
+                        ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
+                        color: uiColors.foreground + "bf",
+                        fontSize: typography.count.fontSize * uiFontScale,
+                    }}
+                >
+                    {t("reservations.count", { count })}
+                </Text>
+            </Host>
 
             {isUpdating ? (
-                <AppText selectable variant="meta" className="text-foreground/75">
-                    {t("reservations.updating")}
-                </AppText>
+                <Host matchContents ignoreSafeArea="all">
+                    <Text
+                        textStyle={{
+                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
+                            color: uiColors.foreground + "bf",
+                            fontSize: typography.meta.fontSize * uiFontScale,
+                        }}
+                    >
+                        {t("reservations.updating")}
+                    </Text>
+                </Host>
             ) : null}
         </View>
     );
@@ -314,11 +342,10 @@ function ReservationStateList({
         <FlatList
             className="flex-1"
             data={[]}
-            renderItem={null}
+            renderItem={() => null}
             contentContainerStyle={{
                 flexGrow: 1,
                 justifyContent: "center",
-                paddingBottom: 40,
             }}
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

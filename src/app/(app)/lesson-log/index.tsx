@@ -1,5 +1,6 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    AppText,
     EmptyState,
     ErrorState,
     Screen,
@@ -7,31 +8,29 @@ import {
     triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
-import type { MemberLessonLogResponse } from "@/types/member-lesson-log";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import {
     getMemberLessonLogByIdQueryOptions,
     useMemberLessonLogs,
 } from "@/lib/hook/useLessonLog";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useQueryClient } from "@tanstack/react-query";
+import type { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import { formatDateForDisplay } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
-import { ChevronRight } from "lucide-react-native";
 
 function LessonLogScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const {
-        data,
-        isLoading,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberLessonLogs();
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberLessonLogs();
 
     const lessonLogs = data?.data ?? [];
     const { isLocked, runWithNavigationLock } = useNavigationLock();
@@ -73,7 +72,11 @@ function LessonLogScreen() {
     );
 
     return (
-        <Screen scroll={false} horizontalPadding={false} contentClassName="grow">
+        <Screen
+            scroll={false}
+            horizontalPadding={false}
+            contentClassName="grow"
+        >
             {isLoading ? (
                 <LessonLogListSkeleton />
             ) : isError ? (
@@ -83,7 +86,11 @@ function LessonLogScreen() {
                         <ErrorState
                             title={t("lessonLog.failedPostsTitle")}
                             message={t("common.pullToRefreshAndTryAgain")}
-                            actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                            actionLabel={
+                                isRefetching
+                                    ? t("common.refreshing")
+                                    : t("common.refreshTryAgain")
+                            }
                             onAction={() => {
                                 void refetch();
                             }}
@@ -133,10 +140,12 @@ function LessonLogRow({
     disabled: boolean;
     onPress: () => void;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const colors = useThemeColors();
     const reservationName = item.reservation?.name?.trim();
-    const hasSubmittedReview = Boolean(item.comment?.trim()) || (item.ratings ?? 0) > 0;
+    const hasSubmittedReview =
+        Boolean(item.comment?.trim()) || (item.ratings ?? 0) > 0;
     const reviewLabel = hasSubmittedReview
         ? t("lessonLog.commentSubmitted")
         : t("lessonLog.leaveReview");
@@ -164,30 +173,51 @@ function LessonLogRow({
         >
             <View className="min-w-0 flex-1 gap-2">
                 <View
-                    className={`self-start rounded-full px-3 py-1.5 ${
-                        hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
-                    }`}
+                    className={`self-start rounded-full px-3 py-1.5 ${hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
+                        }`}
                 >
-                    <AppText
-                        variant="caption"
-                        className={hasSubmittedReview ? "text-success" : "text-warning"}
-                    >
-                        {reviewLabel}
-                    </AppText>
+                    <Host matchContents ignoreSafeArea="all">
+                        <Text
+                            textStyle={{
+                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                color: hasSubmittedReview
+                                    ? uiColors.success
+                                    : uiColors.warning,
+                                fontSize:
+                                    typography.caption.fontSize * uiFontScale,
+                            }}
+                        >
+                            {reviewLabel}
+                        </Text>
+                    </Host>
                 </View>
 
-                <AppText
-                    variant="body"
-                    className="text-base font-bold leading-snug text-foreground"
-                    numberOfLines={2}
-                >
-                    {`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        numberOfLines={2}
+                        textStyle={{
+                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
+                            fontSize: typography.body.fontSize * uiFontScale,
+                            fontWeight: "700" as const,
+                            color: uiColors.foreground,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>{`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}</Text>
+                </Host>
 
                 {reservationName ? (
-                    <AppText variant="caption" numberOfLines={2}>
-                        {reservationName}
-                    </AppText>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            numberOfLines={2}
+                            textStyle={{
+                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                color: uiColors.mutedForeground,
+                                fontSize:
+                                    typography.caption.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {reservationName}
+                        </Text>
+                    </Host>
                 ) : null}
             </View>
 
@@ -207,12 +237,14 @@ function LessonLogStateList({
     refreshControl,
 }: {
     emptyComponent: React.ReactElement;
-    refreshControl: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
+    refreshControl: React.ReactElement<
+        React.ComponentProps<typeof RefreshControl>
+    >;
 }) {
     return (
         <FlatList
             data={[]}
-            renderItem={null}
+            renderItem={() => null}
             refreshControl={refreshControl}
             contentContainerStyle={{
                 flexGrow: 1,

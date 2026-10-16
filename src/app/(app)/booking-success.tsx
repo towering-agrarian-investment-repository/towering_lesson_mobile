@@ -1,16 +1,23 @@
-import {
-    AppText,
-    Badge,
-    Button,
-    Divider,
-    Screen,
-    useThemeColors,
-} from "@/design-system";
+import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
+import { Badge, Divider, Screen, useThemeColors } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Button, Host, Text } from "@expo/ui";
+import {
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import {
+    Stack,
+    useFocusEffect,
+    useLocalSearchParams,
+    useRouter,
+} from "expo-router";
 import {
     CalendarDays,
     Check,
@@ -47,6 +54,7 @@ function BookingDetailRow({
     label: string;
     value?: string | null;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     if (!value) {
         return null;
     }
@@ -55,18 +63,41 @@ function BookingDetailRow({
         <View className="flex-row items-center gap-4 py-1">
             <View className="w-6 items-center">{icon}</View>
             <View className="min-w-0 flex-1 gap-1">
-                <AppText variant="caption" className="font-medium text-muted-foreground">
-                    {label}
-                </AppText>
-                <AppText variant="body" selectable className="font-semibold text-foreground">
-                    {value}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                            fontWeight: "500" as const,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.caption.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {label}
+                    </Text>
+                </Host>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
+                            fontWeight: "600" as const,
+                            color: uiColors.foreground,
+                            fontSize: typography.body.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {value}
+                    </Text>
+                </Host>
             </View>
         </View>
     );
 }
 
 export default function BookingSuccessScreen() {
+    const {
+        colors: uiColors,
+        resolvedScheme: uiScheme,
+        fontScale: uiFontScale,
+    } = useTheme();
     const { t } = useTranslation();
     const {
         type,
@@ -86,13 +117,12 @@ export default function BookingSuccessScreen() {
     const router = useRouter();
     const colors = useThemeColors();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const parsedRemainingCount = ticketRemainingCount == null
-        ? null
-        : Number(ticketRemainingCount);
-    const remainingCount = parsedRemainingCount != null &&
-        Number.isFinite(parsedRemainingCount)
-        ? parsedRemainingCount
-        : null;
+    const parsedRemainingCount =
+        ticketRemainingCount == null ? null : Number(ticketRemainingCount);
+    const remainingCount =
+        parsedRemainingCount != null && Number.isFinite(parsedRemainingCount)
+            ? parsedRemainingCount
+            : null;
     const isUnlimited = ticketIsUnlimited === "true";
     const { data: memberResponse } = useGetMemberProfile();
     // Include fully used tickets so the final booking can still show total usage.
@@ -104,16 +134,18 @@ export default function BookingSuccessScreen() {
         (item) => String(item.id) === ticketId,
     );
     const totalCount = ticket?.totalCount;
-    const usageLabel = isUnlimited || ticket?.isUnlimited
-        ? t("tickets.unlimitedUsage")
-        : totalCount != null
-            ? t("tickets.usage", {
-                used: remainingCount != null
-                    ? Math.max(0, totalCount - remainingCount)
-                    : ticket?.usedCount ?? 0,
-                total: totalCount,
-            })
-            : null;
+    const usageLabel =
+        isUnlimited || ticket?.isUnlimited
+            ? t("tickets.unlimitedUsage")
+            : totalCount != null
+                ? t("tickets.usage", {
+                    used:
+                        remainingCount != null
+                            ? Math.max(0, totalCount - remainingCount)
+                            : (ticket?.usedCount ?? 0),
+                    total: totalCount,
+                })
+                : null;
     const isReschedule = mode === "reschedule";
 
     const handleGoHome = useCallback(() => {
@@ -157,21 +189,62 @@ export default function BookingSuccessScreen() {
         ? t("reservations.rescheduledMessage")
         : t("reservations.confirmedMessage");
     const dateValue = date ? formatDateForDisplay(date) : null;
-    const timeValue = startTime || endTime
-        ? formatTimeRange(startTime, endTime)
-        : null;
-    const bayValue = type === "bay"
-        ? bayName || (bayId ? t("reservations.bayWithId", { id: bayId }) : null)
-        : null;
+    const timeValue =
+        startTime || endTime ? formatTimeRange(startTime, endTime) : null;
+    const bayValue =
+        type === "bay"
+            ? bayName ||
+            (bayId ? t("reservations.bayWithId", { id: bayId }) : null)
+            : null;
 
     const footer = (
         <View className="pb-4 pt-4">
-            <Button
-                title={t("activity.done")}
-                size="lg"
-                disabled={isLocked}
-                onPress={handleGoHome}
-            />
+            <Host
+                matchContents={{ vertical: true }}
+                ignoreSafeArea="all"
+                colorScheme={uiScheme}
+                seedColor={uiColors.primary}
+                accessibilityLabel={t("activity.done")}
+                accessibilityState={{ disabled: isLocked, busy: false }}
+                style={{ width: "100%" }}>
+                <Button
+                    modifiers={
+                        process.env.EXPO_OS === "ios"
+                            ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                            : [
+                                fillMaxWidth(),
+                                defaultMinSize({ minHeight: 56 }),
+                            ]
+                    }
+                    variant="text"
+                    disabled={isLocked}
+                    onPress={handleGoHome}
+                    style={{
+                        ...getNativeButtonStyle(
+                            uiColors,
+                            "filled",
+                            isLocked,
+                            uiColors.primary,
+                        ), ...{ borderRadius: 12 }
+                    }}
+                >
+                    <Text
+                        modifiers={
+                            process.env.EXPO_OS === "ios"
+                                ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                                : [fillMaxWidth()]
+                        }
+                        textStyle={{
+                            ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                            textAlign: "center",
+                            color: uiColors.primaryForeground,
+                            fontSize: typography.label.fontSize * uiFontScale,
+                        }}
+                    >
+                        {t("activity.done")}
+                    </Text>
+                </Button>
+            </Host>
         </View>
     );
 
@@ -190,27 +263,47 @@ export default function BookingSuccessScreen() {
                 contentClassName="grow gap-7 py-8"
                 footer={footer}
             >
-                <View className="items-center gap-3">
+                <View className="w-full items-center gap-3">
                     <View className="h-16 w-16 items-center justify-center rounded-full bg-success">
-                        <Check size={34} color={colors.primaryForeground} strokeWidth={3} />
+                        <Check
+                            size={34}
+                            color={colors.primaryForeground}
+                            strokeWidth={3}
+                        />
                     </View>
 
-                    <View className="items-center gap-2">
-                        <AppText
-                            variant="h1"
-                            selectable
-                            className="text-center text-2xl text-foreground"
-                        >
-                            {successTitle}
-                        </AppText>
+                    <View className="w-full items-center gap-2">
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                textStyle={{
+                                    ...typography.h1, lineHeight: typography.h2.lineHeight * uiFontScale,
+                                    textAlign: "center" as const,
+                                    fontSize: typography.h2.fontSize * uiFontScale,
+                                    color: uiColors.foreground,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                                {successTitle}
+                            </Text>
+                        </Host>
 
-                        <AppText
-                            variant="muted"
-                            selectable
-                            className="max-w-sm text-center leading-6"
+                        <Host
+                            matchContents={{ vertical: true }}
+                            ignoreSafeArea="all"
+                            style={{ maxWidth: 384, width: "100%" }}
                         >
-                            {successMessage}
-                        </AppText>
+                            <Text
+                                textStyle={{
+                                    ...typography.muted,
+                                    color: uiColors.mutedForeground,
+                                    textAlign: "center" as const,
+                                    lineHeight: typography.body.lineHeight * uiFontScale,
+                                    fontSize:
+                                        typography.muted.fontSize * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                                {successMessage}
+                            </Text>
+                        </Host>
                     </View>
 
                     <View className="pt-1">
@@ -222,30 +315,52 @@ export default function BookingSuccessScreen() {
 
                 <View className="gap-5">
                     <BookingDetailRow
-                        icon={<CalendarDays size={20} color={colors.mutedForeground} />}
+                        icon={
+                            <CalendarDays
+                                size={20}
+                                color={colors.mutedForeground}
+                            />
+                        }
                         label={t("bookingConfirmation.dateLabel")}
                         value={dateValue}
                     />
                     <BookingDetailRow
-                        icon={<Clock3 size={20} color={colors.mutedForeground} />}
+                        icon={
+                            <Clock3 size={20} color={colors.mutedForeground} />
+                        }
                         label={t("bookingConfirmation.timeLabel")}
                         value={timeValue}
                     />
                     {type === "bay" ? (
                         <BookingDetailRow
-                            icon={<MapPin size={20} color={colors.mutedForeground} />}
+                            icon={
+                                <MapPin
+                                    size={20}
+                                    color={colors.mutedForeground}
+                                />
+                            }
                             label={t("reservations.bayLabel")}
                             value={bayValue}
                         />
                     ) : (
                         <>
                             <BookingDetailRow
-                                icon={<MapPin size={20} color={colors.mutedForeground} />}
+                                icon={
+                                    <MapPin
+                                        size={20}
+                                        color={colors.mutedForeground}
+                                    />
+                                }
                                 label={t("reservations.lessonLabel")}
                                 value={reservationName}
                             />
                             <BookingDetailRow
-                                icon={<UserRound size={20} color={colors.mutedForeground} />}
+                                icon={
+                                    <UserRound
+                                        size={20}
+                                        color={colors.mutedForeground}
+                                    />
+                                }
                                 label={t("reservations.coachLabel")}
                                 value={coachName}
                             />
@@ -257,30 +372,33 @@ export default function BookingSuccessScreen() {
                     <>
                         <Divider />
                         <View className="gap-3 py-1">
-                            <AppText
-                                variant="caption"
-                                className="font-semibold text-muted-foreground"
-                            >
-                                {t("bookingConfirmation.ticketLabel")}
-                            </AppText>
-                            <AppText
-                                variant="label"
-                                selectable
-                                className="text-base font-bold text-foreground"
-                            >
-                                {ticketName}
-                                {usageLabel ? (
-                                    <AppText
-                                        variant="caption"
-                                        className="font-medium text-muted-foreground"
-                                        style={{ fontVariant: ["tabular-nums"] }}
-                                    >
-                                        {" ("}
-                                        {usageLabel}
-                                        {")"}
-                                    </AppText>
-                                ) : null}
-                            </AppText>
+                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                <Text
+                                    textStyle={{
+                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                        fontWeight: "600" as const,
+                                        color: uiColors.mutedForeground,
+                                        fontSize:
+                                            typography.caption.fontSize *
+                                            uiFontScale,
+                                    }}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                    {t("bookingConfirmation.ticketLabel")}
+                                </Text>
+                            </Host>
+                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                <Text
+                                    textStyle={{
+                                        ...typography.label, lineHeight: typography.body.lineHeight * uiFontScale,
+                                        fontSize: typography.body.fontSize * uiFontScale,
+                                        fontWeight: "700" as const,
+                                        color: uiColors.foreground,
+                                    }}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                    {ticketName +
+                                        (usageLabel ? ` (${usageLabel})` : "")}
+                                </Text>
+                            </Host>
                         </View>
                     </>
                 ) : null}

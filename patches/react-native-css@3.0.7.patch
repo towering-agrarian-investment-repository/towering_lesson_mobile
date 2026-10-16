@@ -1,0 +1,52 @@
+diff --git a/dist/commonjs/components/index.cjs b/dist/commonjs/components/index.cjs
+index bf661727ee33dc92f69aaaf06159b60cef51cff1..ed50aed97e72aff62ed04c2cd786fc2aa0422fb4 100644
+--- a/dist/commonjs/components/index.cjs
++++ b/dist/commonjs/components/index.cjs
+@@ -263,3 +263,12 @@ module.exports = {
+   }
+ };
+ //# sourceMappingURL=index.cjs.map
++// Preserve new React Native APIs without evaluating its lazy component getters.
++// CSS-enabled primitives above keep their existing implementations.
++for (const [name, descriptor] of Object.entries(
++  Object.getOwnPropertyDescriptors(require("react-native")),
++)) {
++  if (!Object.prototype.hasOwnProperty.call(module.exports, name)) {
++    Object.defineProperty(module.exports, name, descriptor);
++  }
++}
+diff --git a/dist/module/components/index.cjs b/dist/module/components/index.cjs
+index bf661727ee33dc92f69aaaf06159b60cef51cff1..ed50aed97e72aff62ed04c2cd786fc2aa0422fb4 100644
+--- a/dist/module/components/index.cjs
++++ b/dist/module/components/index.cjs
+@@ -263,3 +263,12 @@ module.exports = {
+   }
+ };
+ //# sourceMappingURL=index.cjs.map
++// Preserve new React Native APIs without evaluating its lazy component getters.
++// CSS-enabled primitives above keep their existing implementations.
++for (const [name, descriptor] of Object.entries(
++  Object.getOwnPropertyDescriptors(require("react-native")),
++)) {
++  if (!Object.prototype.hasOwnProperty.call(module.exports, name)) {
++    Object.defineProperty(module.exports, name, descriptor);
++  }
++}
+diff --git a/src/components/index.cts b/src/components/index.cts
+index d8aeb204d10e1f7e665da659aec32ddbec6c128a..4e25944a26474c483a94a84cc8d6bf2f82a5a8ca 100644
+--- a/src/components/index.cts
++++ b/src/components/index.cts
+@@ -261,3 +261,13 @@ module.exports = {
+     return require("react-native").VirtualViewMode;
+   },
+ };
++
++// Preserve new React Native APIs without evaluating its lazy component getters.
++// CSS-enabled primitives above keep their existing implementations.
++for (const [name, descriptor] of Object.entries(
++  Object.getOwnPropertyDescriptors(require("react-native")),
++)) {
++  if (!Object.prototype.hasOwnProperty.call(module.exports, name)) {
++    Object.defineProperty(module.exports, name, descriptor);
++  }
++}

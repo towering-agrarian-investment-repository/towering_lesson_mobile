@@ -1,3 +1,8 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { Host, Text } from "@expo/ui";
 import {
     CircleCheck,
     CircleX,
@@ -7,21 +12,14 @@ import {
     type LucideIcon,
 } from "lucide-react-native";
 import {
-    Animated,
-    Pressable,
-    View,
-    type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-    type ReactNode,
     useCallback,
     useEffect,
     useRef,
     useState,
+    type ReactNode,
 } from "react";
-import { AppText } from "./AppText";
-import { useThemeColors } from "../utils/theme";
+import { Animated, Pressable, View, type ViewStyle } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -77,6 +75,7 @@ const TOAST_ICONS: Record<ToastType, LucideIcon> = {
 };
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const colors = useThemeColors();
     const insets = useSafeAreaInsets();
     const [toast, setToast] = useState<ActiveToast | null>(null);
@@ -92,43 +91,49 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const dismissToast = useCallback((id: number) => {
-        if (activeIdRef.current !== id) return;
+    const dismissToast = useCallback(
+        (id: number) => {
+            if (activeIdRef.current !== id) return;
 
-        clearTimer();
-        Animated.parallel([
-            Animated.timing(opacity, {
-                toValue: 0,
-                duration: 160,
-                useNativeDriver: true,
-            }),
-            Animated.timing(translateY, {
-                toValue: -8,
-                duration: 160,
-                useNativeDriver: true,
-            }),
-        ]).start(({ finished }) => {
-            if (finished && activeIdRef.current === id) {
-                setToast(null);
-            }
-        });
-    }, [clearTimer, opacity, translateY]);
+            clearTimer();
+            Animated.parallel([
+                Animated.timing(opacity, {
+                    toValue: 0,
+                    duration: 160,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(translateY, {
+                    toValue: -8,
+                    duration: 160,
+                    useNativeDriver: true,
+                }),
+            ]).start(({ finished }) => {
+                if (finished && activeIdRef.current === id) {
+                    setToast(null);
+                }
+            });
+        },
+        [clearTimer, opacity, translateY],
+    );
 
-    const showToast = useCallback((options: ToastOptions) => {
-        const id = activeIdRef.current + 1;
-        activeIdRef.current = id;
-        clearTimer();
-        opacity.stopAnimation();
-        translateY.stopAnimation();
+    const showToast = useCallback(
+        (options: ToastOptions) => {
+            const id = activeIdRef.current + 1;
+            activeIdRef.current = id;
+            clearTimer();
+            opacity.stopAnimation();
+            translateY.stopAnimation();
 
-        setToast({
-            id,
-            message: options.message,
-            type: options.type ?? "info",
-            duration: options.duration ?? 3500,
-            position: options.position ?? "top",
-        });
-    }, [clearTimer, opacity, translateY]);
+            setToast({
+                id,
+                message: options.message,
+                type: options.type ?? "info",
+                duration: options.duration ?? 3500,
+                position: options.position ?? "top",
+            });
+        },
+        [clearTimer, opacity, translateY],
+    );
 
     useEffect(() => {
         registerToastHandler(showToast);
@@ -193,7 +198,9 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
                     <Animated.View
                         accessible
                         accessibilityLabel={toast.message}
-                        accessibilityLiveRegion={toast.type === "error" ? "assertive" : "polite"}
+                        accessibilityLiveRegion={
+                            toast.type === "error" ? "assertive" : "polite"
+                        }
                         accessibilityRole="alert"
                         className="w-full max-w-xl flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
                         style={{
@@ -207,16 +214,30 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
                             className="h-10 w-10 shrink-0 items-center justify-center rounded-full"
                             style={{ backgroundColor: `${accentColor}1A` }}
                         >
-                            <Icon size={21} color={accentColor} strokeWidth={2.4} />
+                            <Icon
+                                size={21}
+                                color={accentColor}
+                                strokeWidth={2.4}
+                            />
                         </View>
 
-                        <AppText
-                            selectable
-                            variant="label"
-                            className="min-w-0 flex-1 leading-5 text-foreground"
+                        <Host
+                            matchContents={{ vertical: true }}
+                            ignoreSafeArea="all"
+                            style={{ flex: 1, minWidth: 0 }}
                         >
-                            {toast.message}
-                        </AppText>
+                            <Text
+                                textStyle={{
+                                    ...typography.label,
+                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                    color: uiColors.foreground,
+                                    fontSize:
+                                        typography.label.fontSize * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {toast.message}
+                            </Text>
+                        </Host>
 
                         <Pressable
                             accessibilityRole="button"

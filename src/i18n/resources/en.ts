@@ -69,6 +69,7 @@ const en = {
         hoursOnCourse: "Hours on course",
         golfer: "Golfer",
         done: "Done",
+        completed: "Completed",
         absent: "Absent",
         booked: "Booked",
         mixed: "Mixed",

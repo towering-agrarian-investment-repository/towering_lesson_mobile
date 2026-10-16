@@ -1,10 +1,14 @@
-import { HappyGolfLogo } from "@/components/golf/HappyLogo";
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { ActivityShareCharts } from "@/components/golf/ActivityShareCharts";
-import { AppText, useTheme } from "@/design-system";
+import { HappyGolfLogo } from "@/components/golf/HappyLogo";
+import { useTheme } from "@/design-system";
 import type { ActivityHeatmapValue } from "@/design-system/components/charts/activity-heatmap";
+import { typography } from "@/design-system/utils/typography";
+import { Host, Row, Text } from "@expo/ui";
 import { forwardRef } from "react";
-import { Image, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { Image, View } from "react-native";
 
 type ActivityShareCardProps = {
     label: string;
@@ -20,54 +24,189 @@ type ActivityShareCardProps = {
     memberImage?: string | null;
 };
 
-export const ActivityShareCard = forwardRef<View, ActivityShareCardProps>(function ActivityShareCard({ label, totalReservations, totalDays, totalHours, dailyValues, heatmapStartDate, heatmapEndDate, numDays, showDayNumbers = true, memberName, memberImage }, ref) {
-    const { colors } = useTheme();
+export const ActivityShareCard = forwardRef<
+    React.ElementRef<typeof View>,
+    ActivityShareCardProps
+>(function ActivityShareCard(
+    {
+        label,
+        totalReservations,
+        totalDays,
+        totalHours,
+        dailyValues,
+        heatmapStartDate,
+        heatmapEndDate,
+        numDays,
+        showDayNumbers = true,
+        memberName,
+        memberImage,
+    },
+    ref,
+) {
+    const { colors: uiColors } = useTheme();
+    const { colors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
 
     return (
-        <View ref={ref} className="w-full overflow-hidden rounded-[28px] border border-border bg-card">
+        <View
+            ref={ref}
+            className="w-full overflow-hidden rounded-[28px] border border-border bg-card"
+        >
             <View className="bg-primary px-6 pb-5 pt-6">
-                <AppText variant="caption" className="font-bold uppercase tracking-[0.16em] text-primary-foreground">
-                    {t("activity.myGolfActivity", { period: label })}
-                </AppText>
-                <View className="mt-1 flex-row items-baseline gap-2">
-                    <AppText variant="h1" className="text-6xl text-primary-foreground">{totalReservations}</AppText>
-                    <AppText variant="h3" className="text-primary-foreground">{t("activity.reservations")}</AppText>
-                </View>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                            fontWeight: "700" as const,
+                            letterSpacing: typography.caption.fontSize * 0.16,
+                            color: uiColors.primaryForeground,
+                            fontSize: typography.caption.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {t("activity.myGolfActivity", { period: label }).toUpperCase()}
+                    </Text>
+                </Host>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%", marginTop: 4 }}>
+                    <Row
+                        alignment="center"
+                        spacing={8}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}
+                    >
+                        <Text
+                            textStyle={{
+                                ...typography.h1, lineHeight: typography.display.lineHeight * uiFontScale,
+                                fontSize: typography.display.fontSize * uiFontScale,
+                                color: uiColors.primaryForeground,
+                            }}
+                        >
+                            {String(totalReservations ?? "")}
+                        </Text>
+                        <Text
+                            textStyle={{
+                                ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                                color: uiColors.primaryForeground,
+                                fontSize: typography.h3.fontSize * uiFontScale,
+                            }}
+                        >
+                            {t("activity.reservations")}
+                        </Text>
+                    </Row>
+                </Host>
                 <View className="mt-3 flex-row gap-3">
-                    <ShareMetric value={String(totalDays)} label={t("activity.daysPlayed")} />
-                    <ShareMetric value={t("activity.hoursValue", { value: totalHours.toFixed(1) })} label={t("activity.hoursOnCourse")} divided />
+                    <ShareMetric
+                        value={String(totalDays)}
+                        label={t("activity.daysPlayed")}
+                    />
+                    <ShareMetric
+                        value={t("activity.hoursValue", {
+                            value: totalHours.toFixed(1),
+                        })}
+                        label={t("activity.hoursOnCourse")}
+                        divided
+                    />
                 </View>
             </View>
             <View className="px-6 pb-3 pt-3">
-                <ActivityShareCharts dailyValues={dailyValues} startDate={heatmapStartDate} endDate={heatmapEndDate} numDays={numDays} showDayNumbers={showDayNumbers} />
+                <ActivityShareCharts
+                    dailyValues={dailyValues}
+                    startDate={heatmapStartDate}
+                    endDate={heatmapEndDate}
+                    numDays={numDays}
+                    showDayNumbers={showDayNumbers}
+                />
             </View>
             <View className="mx-6 flex-row items-center justify-between border-t border-border py-4">
                 <View className="min-w-0 flex-1 flex-row items-center gap-2">
                     {memberImage ? (
-                        <Image source={{ uri: memberImage }} className="h-8 w-8 rounded-full" />
+                        <Image
+                            source={{ uri: memberImage }}
+                            className="h-8 w-8 rounded-full"
+                        />
                     ) : (
                         <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
-                            <AppText variant="caption" className="font-semibold">
-                                {(memberName || "G").slice(0, 1).toUpperCase()}
-                            </AppText>
+                            <Host matchContents ignoreSafeArea="all">
+                                <Text
+                                    textStyle={{
+                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                        color: uiColors.mutedForeground,
+                                        fontWeight: "600" as const,
+                                        fontSize:
+                                            typography.caption.fontSize *
+                                            uiFontScale,
+                                    }}
+                                >
+                                    {(memberName || "G")
+                                        .slice(0, 1)
+                                        .toUpperCase()}
+                                </Text>
+                            </Host>
                         </View>
                     )}
-                    <AppText variant="body" className="min-w-0 flex-1 text-sm font-semibold" numberOfLines={2}>
-                        {memberName || t("activity.golfer")}
-                    </AppText>
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        style={{ flex: 1, minWidth: 0 }}
+                    >
+                        <Text
+                            numberOfLines={2}
+                            textStyle={{
+                                ...typography.body, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontSize: typography.subtext.fontSize * uiFontScale,
+                                fontWeight: "600" as const,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {memberName || t("activity.golfer")}
+                        </Text>
+                    </Host>
                 </View>
-                <HappyGolfLogo width={82} height={20} primaryColor={colors.primary} accentColor={colors.warning} />
+                <HappyGolfLogo
+                    width={82}
+                    height={20}
+                    primaryColor={colors.primary}
+                    accentColor={colors.warning}
+                />
             </View>
         </View>
     );
 });
 
-function ShareMetric({ value, label, divided }: { value: string; label: string; divided?: boolean }) {
+function ShareMetric({
+    value,
+    label,
+    divided,
+}: {
+    value: string;
+    label: string;
+    divided?: boolean;
+}) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
-        <View className={`min-w-0 flex-1 px-2 ${divided ? "border-l border-primary-foreground/20 pl-4" : ""}`}>
-            <AppText variant="h3" className="text-primary-foreground">{value}</AppText>
-            <AppText variant="caption" className="text-primary-foreground">{label}</AppText>
+        <View
+            className={`min-w-0 flex-1 px-2 ${divided ? "border-l border-primary-foreground/20 pl-4" : ""}`}
+        >
+            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                <Text
+                    textStyle={{
+                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                        color: uiColors.primaryForeground,
+                        fontSize: typography.h3.fontSize * uiFontScale,
+                    }}
+                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                    {value}
+                </Text>
+            </Host>
+            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                <Text
+                    textStyle={{
+                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                        color: uiColors.primaryForeground,
+                        fontSize: typography.caption.fontSize * uiFontScale,
+                    }}
+                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                    {label}
+                </Text>
+            </Host>
         </View>
     );
 }

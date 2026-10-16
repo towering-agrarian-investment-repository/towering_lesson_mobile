@@ -1,8 +1,10 @@
-import type { Control, FieldValues, Path, RegisterOptions } from "react-hook-form";
+import type { TextInputProps } from "@expo/ui";
 import type {
-    KeyboardTypeOptions,
-    TextInputProps,
-} from "react-native";
+    Control,
+    FieldValues,
+    Path,
+    RegisterOptions,
+} from "react-hook-form";
 
 export type FormInputBaseProps<TFieldValues extends FieldValues> = {
     control: Control<TFieldValues>;
@@ -12,8 +14,7 @@ export type FormInputBaseProps<TFieldValues extends FieldValues> = {
     rules?: RegisterOptions<TFieldValues, Path<TFieldValues>>;
     autoCapitalize?: TextInputProps["autoCapitalize"];
     autoComplete?: TextInputProps["autoComplete"];
-    textContentType?: TextInputProps["textContentType"];
-    keyboardType?: KeyboardTypeOptions;
+    keyboardType?: TextInputProps["keyboardType"];
     multiline?: boolean;
     numberOfLines?: number;
     editable?: boolean;

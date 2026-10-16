@@ -1,27 +1,39 @@
+import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
+import { FormTextInput } from "@/components/ui/form";
 import {
-    AppText,
-    Button,
     EmptyState,
     ErrorState,
     getPressedScaleStyle,
     Screen,
-    Textarea,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import {
     useMemberLessonLogById,
     useUpdateMemberLessonLog,
 } from "@/lib/hook/useLessonLog";
 import { formatDateForDisplay } from "@/utils/time-helper";
+import { Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
+import {
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Controller, useForm } from "react-hook-form";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Star } from "lucide-react-native";
-import { Pressable, RefreshControl, View } from "react-native";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import {
+    ActivityIndicator,
+    Pressable,
+    RefreshControl,
+    View,
+} from "react-native";
 import { z } from "zod";
 
 type LessonLogParams = {
@@ -34,6 +46,11 @@ type LessonLogCommentFormValues = {
 };
 
 function LessonLogCommentScreen() {
+    const {
+        colors: uiColors,
+        resolvedScheme: uiScheme,
+        fontScale: uiFontScale,
+    } = useTheme();
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
@@ -74,7 +91,10 @@ function LessonLogCommentScreen() {
                     <View className="h-7 w-48 rounded-full bg-muted" />
                     <View className="flex-row gap-3 py-2">
                         {Array.from({ length: 5 }, (_, index) => (
-                            <View key={index} className="h-12 w-12 rounded-full bg-muted" />
+                            <View
+                                key={index}
+                                className="h-12 w-12 rounded-full bg-muted"
+                            />
                         ))}
                     </View>
                 </View>
@@ -103,7 +123,11 @@ function LessonLogCommentScreen() {
                 <ErrorState
                     title={t("lessonLog.failedCommentFormTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -150,56 +174,159 @@ function LessonLogCommentScreen() {
             contentClassName="grow gap-5"
             footer={
                 <View className="pb-8 pt-4">
-                    <Button
-                        title={t("changePassword.confirm")}
-                        accessibilityLabel={t("lessonLog.submitCommentAccessibility")}
-                        loading={isPending}
-                        disabled={isPending}
-                        onPress={form.handleSubmit((values) => {
-                            updateLessonLog(
-                                {
-                                    lessonLogId: Number(lessonLog.id),
-                                    data: {
-                                        ratings: values.ratings,
-                                        comment: values.comment.trim(),
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        colorScheme={uiScheme}
+                        seedColor={uiColors.primary}
+                        accessibilityLabel={t(
+                            "lessonLog.submitCommentAccessibility",
+                        )}
+                        accessibilityState={{
+                            disabled: isPending || isPending,
+                            busy: isPending,
+                        }}
+                        style={{ width: "100%" }}>
+                        <Button
+                            modifiers={
+                                process.env.EXPO_OS === "ios"
+                                    ? [
+                                        frame({
+                                            maxWidth: Infinity,
+                                            minHeight: 48,
+                                        }),
+                                    ]
+                                    : [
+                                        fillMaxWidth(),
+                                        defaultMinSize({ minHeight: 48 }),
+                                    ]
+                            }
+                            variant="text"
+                            disabled={isPending || isPending}
+                            onPress={form.handleSubmit((values) => {
+                                updateLessonLog(
+                                    {
+                                        lessonLogId: Number(lessonLog.id),
+                                        data: {
+                                            ratings: values.ratings,
+                                            comment: values.comment.trim(),
+                                        },
                                     },
-                                },
-                                {
-                                    onSuccess: () => {
-                                        triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
-                                        router.dismissTo({
-                                            pathname: "/lesson-log/[id]",
-                                            params: {
-                                                id: String(lessonLog.id),
-                                            },
-                                        });
+                                    {
+                                        onSuccess: () => {
+                                            triggerNotificationHaptic(
+                                                Haptics.NotificationFeedbackType
+                                                    .Success,
+                                            );
+                                            router.dismissTo({
+                                                pathname: "/lesson-log/[id]",
+                                                params: {
+                                                    id: String(lessonLog.id),
+                                                },
+                                            });
+                                        },
                                     },
-                                },
-                            );
-                        })}
-                    />
+                                );
+                            })}
+                            style={{
+                                ...getNativeButtonStyle(
+                                    uiColors,
+                                    "filled",
+                                    isPending || isPending,
+                                    uiColors.primary,
+                                ), ...{ borderRadius: 12 }
+                            }}
+                        >
+                            <Row
+                                modifiers={
+                                    process.env.EXPO_OS === "ios"
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        : [fillMaxWidth()]
+                                }
+                                spacing={8}
+                                alignment="center"
+                            >
+                                <Spacer flexible />
+                                {isPending ? (
+                                    <RNHostView matchContents>
+                                        <ActivityIndicator
+                                            color={uiColors.primaryForeground}
+                                        />
+                                    </RNHostView>
+                                ) : null}
+                                <Text
+                                    textStyle={{
+                                        textAlign: "center",
+                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                        fontWeight: "600",
+                                        color: uiColors.primaryForeground,
+                                        fontSize:
+                                            typography.label.fontSize *
+                                            uiFontScale,
+                                    }}
+                                >
+                                    {t("changePassword.confirm")}
+                                </Text>
+                                <Spacer flexible />
+                            </Row>
+                        </Button>
+                    </Host>
                 </View>
             }
         >
             <View className="gap-2">
-                <AppText selectable variant="h2">
-                    {formatDateForDisplay(lessonLog.lessonDate)}
-                </AppText>
-                <AppText selectable variant="muted">
-                    {t("lessonLog.shareRatingPrompt")}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
+                            color: uiColors.foreground,
+                            fontSize: typography.h2.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {formatDateForDisplay(lessonLog.lessonDate)}
+                    </Text>
+                </Host>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.muted.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {t("lessonLog.shareRatingPrompt")}
+                    </Text>
+                </Host>
             </View>
 
             <View className="h-px bg-border" />
 
             <View className="gap-4">
                 <View className="gap-2">
-                    <AppText selectable variant="label">
-                        {t("lessonLog.howWasLesson")}
-                    </AppText>
-                    <AppText selectable variant="meta" className="text-danger">
-                        {t("lessonLog.ratingPrivateNotice")}
-                    </AppText>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            textStyle={{
+                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontSize:
+                                    typography.label.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {t("lessonLog.howWasLesson")}
+                        </Text>
+                    </Host>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            textStyle={{
+                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
+                                color: uiColors.danger,
+                                fontSize:
+                                    typography.meta.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {t("lessonLog.ratingPrivateNotice")}
+                        </Text>
+                    </Host>
                 </View>
 
                 <Controller
@@ -216,11 +343,20 @@ function LessonLogCommentScreen() {
                                         <Pressable
                                             key={starValue}
                                             accessibilityRole="button"
-                                            accessibilityLabel={t("lessonLog.rateStarsAccessibility", {
-                                                count: starValue,
-                                            })}
+                                            accessibilityLabel={t(
+                                                "lessonLog.rateStarsAccessibility",
+                                                {
+                                                    count: starValue,
+                                                },
+                                            )}
                                             className="h-12 w-12 items-center justify-center"
-                                            style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.92)}
+                                            style={({ pressed }) =>
+                                                getPressedScaleStyle(
+                                                    pressed,
+                                                    false,
+                                                    0.92,
+                                                )
+                                            }
                                             onPress={() => {
                                                 triggerSelectionHaptic();
                                                 onChange(starValue);
@@ -228,8 +364,16 @@ function LessonLogCommentScreen() {
                                         >
                                             <Star
                                                 size={34}
-                                                fill={isActive ? colors.warning : "transparent"}
-                                                color={isActive ? colors.warning : colors.border}
+                                                fill={
+                                                    isActive
+                                                        ? colors.warning
+                                                        : "transparent"
+                                                }
+                                                color={
+                                                    isActive
+                                                        ? colors.warning
+                                                        : colors.border
+                                                }
                                                 strokeWidth={1.8}
                                             />
                                         </Pressable>
@@ -238,9 +382,19 @@ function LessonLogCommentScreen() {
                             </View>
 
                             {fieldState.error?.message ? (
-                                <AppText selectable variant="meta" className="text-danger">
-                                    {fieldState.error.message}
-                                </AppText>
+                                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                    <Text
+                                        textStyle={{
+                                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
+                                            color: colors.danger,
+                                            fontSize:
+                                                typography.meta.fontSize *
+                                                uiFontScale,
+                                        }}
+                                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                        {fieldState.error.message}
+                                    </Text>
+                                </Host>
                             ) : null}
                         </View>
                     )}
@@ -250,22 +404,14 @@ function LessonLogCommentScreen() {
             <View className="h-px bg-border" />
 
             <View className="gap-3">
-                <AppText selectable variant="label">
-                    {t("lessonLog.leaveComment")}
-                </AppText>
-
-                <Controller
+                <FormTextInput
                     control={form.control}
                     name="comment"
-                    render={({ field: { value, onChange, onBlur }, fieldState }) => (
-                        <Textarea
-                            value={value}
-                            onChangeText={onChange}
-                            onBlur={onBlur}
-                            placeholder={t("lessonLog.commentPlaceholder")}
-                            error={fieldState.error?.message}
-                        />
-                    )}
+                    label={t("lessonLog.leaveComment")}
+                    placeholder={t("lessonLog.commentPlaceholder")}
+                    multiline
+                    numberOfLines={4}
+                    editable={!isPending}
                 />
             </View>
         </Screen>

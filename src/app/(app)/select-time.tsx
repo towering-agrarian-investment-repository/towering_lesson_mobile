@@ -1,26 +1,20 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
-import {
-    AppText,
-    EmptyState,
-    ErrorState,
-    Screen,
-    Skeleton,
-} from "@/design-system";
+import { EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
-import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
-import {
-    FlatList,
-    Pressable,
-    RefreshControl,
-    View,
-} from "react-native";
+import { useTranslation } from "react-i18next";
+import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
     return group.baySlots.filter(
@@ -29,8 +23,17 @@ function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
 }
 
 export default function TimeScreen() {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
-    const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } = useLocalSearchParams<{
+    const {
+        date,
+        ticketId,
+        ticketName,
+        ticketType,
+        mode,
+        reservationId,
+        notes,
+    } = useLocalSearchParams<{
         date: string;
         ticketId?: string;
         ticketName: string;
@@ -44,11 +47,7 @@ export default function TimeScreen() {
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const { data, isLoading, isError, refetch, isRefetching } =
-        useMemberBaySlotGroups(
-            date,
-            date,
-            Boolean(date),
-        );
+        useMemberBaySlotGroups(date, date, Boolean(date));
 
     const slotGroups = useMemo(
         () =>
@@ -83,10 +82,7 @@ export default function TimeScreen() {
     };
 
     return (
-        <Screen
-            scroll={false}
-            contentClassName="min-h-0 gap-6"
-        >
+        <Screen maxWidth={960} scroll={false} contentClassName="min-h-0 gap-6">
             <BookingStepHeader
                 step={2}
                 totalSteps={4}
@@ -108,7 +104,11 @@ export default function TimeScreen() {
                 <ErrorState
                     title={t("booking.failedAvailableTimesTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -121,10 +121,19 @@ export default function TimeScreen() {
                     message={t("booking.noAvailableTimesMessage")}
                     actionLabel={t("booking.chooseAnotherDate")}
                     onAction={() => {
-                        runWithNavigationLock(() => router.dismissTo({
-                            pathname: "/select-date",
-                            params: { ticketId, ticketName, ticketType, mode, reservationId, notes },
-                        }));
+                        runWithNavigationLock(() =>
+                            router.dismissTo({
+                                pathname: "/select-date",
+                                params: {
+                                    ticketId,
+                                    ticketName,
+                                    ticketType,
+                                    mode,
+                                    reservationId,
+                                    notes,
+                                },
+                            }),
+                        );
                     }}
                 />
             ) : null}
@@ -149,24 +158,55 @@ export default function TimeScreen() {
                                 disabled={isLocked}
                             >
                                 <View className="min-w-0 flex-1 gap-1">
-                                    <AppText variant="h3" className="text-foreground">
-                                        {formatTimeRange(
-                                            group.startDateTime,
-                                            group.endDateTime,
-                                        )}
-                                    </AppText>
+                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                        <Text
+                                            textStyle={{
+                                                ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                                                color: uiColors.foreground,
+                                                fontSize:
+                                                    typography.h3.fontSize *
+                                                    uiFontScale,
+                                            }}
+                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                            {formatTimeRange(
+                                                group.startDateTime,
+                                                group.endDateTime,
+                                            )}
+                                        </Text>
+                                    </Host>
 
-                                    <AppText variant="meta" className="text-foreground/75">
-                                        {t("booking.baysAvailable", {
-                                            count: availableBayCount,
-                                        })}
-                                    </AppText>
+                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                        <Text
+                                            textStyle={{
+                                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
+                                                color:
+                                                    uiColors.foreground + "bf",
+                                                fontSize:
+                                                    typography.meta.fontSize *
+                                                    uiFontScale,
+                                            }}
+                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                            {t("booking.baysAvailable", {
+                                                count: availableBayCount,
+                                            })}
+                                        </Text>
+                                    </Host>
                                 </View>
 
                                 <View className="rounded-full bg-primary/10 px-3 py-1.5">
-                                    <AppText variant="badge" className="text-primary">
-                                        {t("booking.select")}
-                                    </AppText>
+                                    <Host matchContents ignoreSafeArea="all">
+                                        <Text
+                                            textStyle={{
+                                                ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
+                                                color: uiColors.primary,
+                                                fontSize:
+                                                    typography.badge.fontSize *
+                                                    uiFontScale,
+                                            }}
+                                        >
+                                            {t("booking.select")}
+                                        </Text>
+                                    </Host>
                                 </View>
                             </Pressable>
                         );

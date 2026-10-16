@@ -1,6 +1,6 @@
 import TicketCard from "@/components/golf/TicketCard";
-import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { EmptyState, ErrorState, Skeleton } from "@/design-system";
+import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import { useMemberTickets } from "@/lib/hook/useTicket";
@@ -9,15 +9,15 @@ import { showAppToast } from "@/lib/toast/toast";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { FlatList, RefreshControl, View } from "react-native";
 import Animated, {
     FadeIn,
     FadeOut,
     LinearTransition,
     useReducedMotion,
 } from "react-native-reanimated";
-import { useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { FlatList, RefreshControl, View } from "react-native";
 
 export const TICKET_TABS = ["all", "bay", "lesson"] as const;
 export type TicketTabType = (typeof TICKET_TABS)[number];
@@ -99,10 +99,16 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                 }}
             >
                 <ErrorState
-                    title={isOnline === false ? t("common.offlineTitle") : t("tickets.loadError")}
-                    message={isOnline === false
-                        ? t("common.offlineMessage")
-                        : t("common.pullToRefreshAndTryAgain")}
+                    title={
+                        isOnline === false
+                            ? t("common.offlineTitle")
+                            : t("tickets.loadError")
+                    }
+                    message={
+                        isOnline === false
+                            ? t("common.offlineMessage")
+                            : t("common.pullToRefreshAndTryAgain")
+                    }
                     actionLabel={
                         isRefetching
                             ? t("common.refreshing")
@@ -144,7 +150,11 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                 <Animated.View
                     entering={reduceMotion ? undefined : FadeIn.duration(180)}
                     exiting={reduceMotion ? undefined : FadeOut.duration(140)}
-                    layout={reduceMotion ? undefined : LinearTransition.duration(180)}
+                    layout={
+                        reduceMotion
+                            ? undefined
+                            : LinearTransition.duration(180)
+                    }
                 >
                     <TicketCard
                         item={item}
@@ -190,11 +200,10 @@ function TicketStateList({
         <FlatList
             className="flex-1"
             data={[]}
-            renderItem={null}
+            renderItem={() => null}
             contentContainerStyle={{
                 flexGrow: 1,
                 justifyContent: "center",
-                paddingBottom: 40,
             }}
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

@@ -1,6 +1,14 @@
-import { Controller, FieldValues } from "react-hook-form";
-import { useThemeColors } from "@/design-system";
-import { TextInput } from "react-native";
+import { typography } from "@/design-system/utils/typography";
+import { useTheme } from "@/design-system";
+import { Host, TextInput, useNativeState } from "@expo/ui";
+import {
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame, textFieldStyle } from "@expo/ui/swift-ui/modifiers";
+import { useEffect } from "react";
+import { View } from "react-native";
+import { useController, type FieldValues } from "react-hook-form";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
 
@@ -15,26 +23,50 @@ export function FormTextInput<TFieldValues extends FieldValues>({
     keyboardType = "default",
     multiline = false,
     numberOfLines,
-    textContentType,
     editable = true,
 }: FormInputBaseProps<TFieldValues>) {
-    const colors = useThemeColors();
+    const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
+    const {
+        field: { value: fieldValue, onChange, onBlur, ref: inputRef },
+        fieldState,
+    } = useController({ control, name, rules });
+    const value = String(fieldValue ?? "");
+    const nativeValue = useNativeState(value);
+
+    useEffect(() => {
+        if (nativeValue.get() !== value) nativeValue.set(value);
+    }, [nativeValue, value]);
 
     return (
-        <Controller
-            control={control}
-            name={name}
-            rules={rules}
-            render={({ field: { value, onChange, onBlur, ref }, fieldState }) => (
-                <FormFieldShell
-                    label={label}
-                    errorMessage={fieldState.error?.message}
+        <FormFieldShell label={label} errorMessage={fieldState.error?.message}>
+            <View
+                className={multiline ? "mt-3 min-h-32 overflow-hidden rounded-xl border bg-surface" : "mt-2 min-h-12 border-b"}
+                style={{
+                    borderColor: fieldState.error ? colors.danger : colors.border,
+                }}
+            >
+                <Host
+                    matchContents={{ vertical: true }}
+                    ignoreSafeArea="all"
+                    colorScheme={resolvedScheme}
+                    seedColor={colors.primary}
+                    accessibilityLabel={label}
+                    accessibilityState={{ disabled: !editable }}
+                    style={{ width: "100%" }}
                 >
                     <TextInput
-                        value={typeof value === "string" ? value : value == null ? "" : String(value)}
+                        modifiers={
+                            process.env.EXPO_OS === "ios"
+                                ? [textFieldStyle("plain"), frame({ maxWidth: Infinity, minHeight: multiline ? 128 : 48, alignment: multiline ? "topLeading" : "leading" })]
+                                : [
+                                    fillMaxWidth(),
+                                    defaultMinSize({ minHeight: multiline ? 128 : 48 }),
+                                ]
+                        }
+                        value={nativeValue}
                         onChangeText={onChange}
                         onBlur={onBlur}
-                        ref={ref}
+                        ref={inputRef}
                         placeholder={placeholder}
                         placeholderTextColor={colors.mutedForeground}
                         autoCapitalize={autoCapitalize}
@@ -42,21 +74,17 @@ export function FormTextInput<TFieldValues extends FieldValues>({
                         keyboardType={keyboardType}
                         multiline={multiline}
                         numberOfLines={numberOfLines}
-                        textContentType={textContentType}
                         editable={editable}
-                        accessibilityLabel={label}
-                        accessibilityState={{ disabled: !editable }}
-                        textAlignVertical={multiline ? "top" : "center"}
-                        className="mt-2 border-b pl-1.5 pr-0 pb-3 pt-2 text-base text-foreground"
-                        style={{
-                            borderBottomColor: fieldState.error
-                                ? colors.danger
-                                : colors.border,
-                            borderBottomWidth: 1,
+                        cursorColor={colors.primary}
+                        textStyle={{
+                            fontSize: typography.body.fontSize * uiFontScale,
+                            lineHeight: typography.body.lineHeight * uiFontScale,
+                            color: colors.foreground,
                         }}
+                        style={{ paddingVertical: 12, paddingHorizontal: multiline ? 8 : 6, backgroundColor: "transparent" }}
                     />
-                </FormFieldShell>
-            )}
-        />
+                </Host>
+            </View>
+        </FormFieldShell>
     );
 }

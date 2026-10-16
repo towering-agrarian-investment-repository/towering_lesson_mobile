@@ -1,13 +1,16 @@
-import { AppText, InlineState, Skeleton } from "@/design-system";
-import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { InlineState, Skeleton } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberTicketsQueryOptions,
     useMemberTickets,
 } from "@/lib/hook/useTicket";
 import { showAppToast } from "@/lib/toast/toast";
-import { MemberSelfResponse } from "@/types/member.type";
 import { TicketListItemResponse } from "@/types/member-ticket";
+import { MemberSelfResponse } from "@/types/member.type";
+import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -21,6 +24,7 @@ type Props = {
 };
 
 function MyTicket({ member }: Props) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -81,12 +85,18 @@ function MyTicket({ member }: Props) {
                             });
                         }}
                     >
-                        <AppText
-                            variant="label"
-                            className="text-sm font-semibold text-primary"
-                        >
-                            {t("tickets.viewAll")}
-                        </AppText>
+                        <Host matchContents ignoreSafeArea="all">
+                            <Text
+                                textStyle={{
+                                    ...typography.label, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                    fontSize: typography.subtext.fontSize * uiFontScale,
+                                    fontWeight: "600" as const,
+                                    color: uiColors.primary,
+                                }}
+                            >
+                                {t("tickets.viewAll")}
+                            </Text>
+                        </Host>
                     </Pressable>
                 ) : null}
             </View>
@@ -95,28 +105,32 @@ function MyTicket({ member }: Props) {
                 {isLoading ? (
                     <View className="gap-3">
                         {Array.from({ length: 3 }, (_, index) => (
-                            <Skeleton key={index} className="h-40 w-full rounded-xl" />
+                            <Skeleton
+                                key={index}
+                                className="h-40 w-full rounded-xl"
+                            />
                         ))}
                     </View>
                 ) : isError ? (
-                    <InlineState
-                        title={t("tickets.loadError")}
-                        tone="danger"
-                    />
+                    <InlineState title={t("tickets.loadError")} tone="danger" />
                 ) : tickets.length === 0 ? (
                     <View className="h-40 items-center justify-center">
                         <InlineState title={t("tickets.empty")} />
                     </View>
                 ) : (
-                    <View className="gap-3">
+                    <View className="flex-row flex-wrap gap-3">
                         {tickets.map((ticket) => (
-                            <TicketCard
+                            <View
                                 key={ticket.id}
-                                item={ticket}
-                                disabled={isLocked}
-                                onPress={handleTicketPress}
-                                fullWidth
-                            />
+                                style={{ flexBasis: 280, flexGrow: 1 }}
+                            >
+                                <TicketCard
+                                    item={ticket}
+                                    disabled={isLocked}
+                                    onPress={handleTicketPress}
+                                    fullWidth
+                                />
+                            </View>
                         ))}
                     </View>
                 )}

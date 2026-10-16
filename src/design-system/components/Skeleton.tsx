@@ -1,43 +1,48 @@
-import { MotiView } from "moti";
-import { useReducedMotion } from "react-native-reanimated";
+import type { ReactNode } from "react";
 import { View } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 import { cn } from "../utils/cn";
 
 type SkeletonProps = {
     className?: string;
+    children?: ReactNode;
 };
 
-export function Skeleton({ className }: SkeletonProps) {
+export function Skeleton({ className, children }: SkeletonProps) {
     const reduceMotion = useReducedMotion();
 
     return (
-        <MotiView
-            from={{ opacity: reduceMotion ? 1 : 0.45 }}
-            animate={{ opacity: 1 }}
-            transition={reduceMotion ? { duration: 0 } : {
-                type: "timing",
-                duration: 520,
-                loop: true,
-                repeatReverse: true,
-            }}
+        <Animated.View
+            style={
+                reduceMotion
+                    ? undefined
+                    : {
+                          animationName: {
+                              from: { opacity: 0.45 },
+                              to: { opacity: 1 },
+                          },
+                          animationDuration: "1040ms",
+                          animationIterationCount: "infinite",
+                          animationDirection: "alternate",
+                          animationTimingFunction: "ease-in-out",
+                      }
+            }
             className={cn("overflow-hidden rounded-xl bg-muted", className)}
-        />
+        >
+            {children}
+        </Animated.View>
     );
 }
 
-export function SkeletonLines({
-    lines = 3,
-}: {
-    lines?: number;
-}) {
+export function SkeletonLines({ lines = 3 }: { lines?: number }) {
     return (
-        <View className="gap-3">
+        <Skeleton className="gap-3 rounded-none bg-transparent">
             {Array.from({ length: lines }, (_, index) => (
-                <Skeleton
+                <View
                     key={index}
-                    className={index === lines - 1 ? "h-4 w-2/3" : "h-4 w-full"}
+                    className={cn("rounded-xl bg-muted", index === lines - 1 ? "h-4 w-2/3" : "h-4 w-full")}
                 />
             ))}
-        </View>
+        </Skeleton>
     );
 }

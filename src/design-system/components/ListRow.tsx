@@ -1,9 +1,18 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { Host, Text, type TextProps } from "@expo/ui";
 import { ChevronRight } from "lucide-react-native";
 import { type ReactNode } from "react";
-import { Pressable, View, type GestureResponderEvent, type PressableProps } from "react-native";
-import { AppText } from "./AppText";
+import {
+    Pressable,
+    View,
+    type GestureResponderEvent,
+    type PressableProps,
+} from "react-native";
+
 import { cn } from "../utils/cn";
-import { useThemeColors } from "../utils/theme";
 import { triggerSelectionHaptic } from "../utils/haptics";
 
 type ListRowProps = PressableProps & {
@@ -14,7 +23,7 @@ type ListRowProps = PressableProps & {
     trailing?: ReactNode;
     showChevron?: boolean;
     className?: string;
-    titleClassName?: string;
+    titleStyle?: TextProps["textStyle"];
 };
 
 export function ListRow({
@@ -25,11 +34,12 @@ export function ListRow({
     trailing,
     showChevron = true,
     className,
-    titleClassName,
+    titleStyle,
     disabled,
     onPress,
     ...props
 }: ListRowProps) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const colors = useThemeColors();
 
     const handlePress = (event: GestureResponderEvent) => {
@@ -59,26 +69,55 @@ export function ListRow({
             {leading ? <View className="shrink-0">{leading}</View> : null}
 
             <View className="min-w-0 flex-1 gap-1">
-                <AppText
-                    variant="body"
-                    className={cn("text-base text-foreground", titleClassName)}
-                    numberOfLines={2}
-                >
-                    {title}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        numberOfLines={2}
+                        textStyle={{
+                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
+                            fontSize: typography.body.fontSize * uiFontScale,
+                            color: uiColors.foreground,
+                            ...titleStyle,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {title}
+                    </Text>
+                </Host>
 
                 {subtitle ? (
-                    <AppText variant="caption" numberOfLines={2}>
-                        {subtitle}
-                    </AppText>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            numberOfLines={2}
+                            textStyle={{
+                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                color: uiColors.mutedForeground,
+                                fontSize:
+                                    typography.caption.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {subtitle}
+                        </Text>
+                    </Host>
                 ) : null}
             </View>
 
             {meta ? (
                 typeof meta === "string" ? (
-                    <AppText variant="meta" className="shrink-0 text-foreground/75">
-                        {meta}
-                    </AppText>
+                    <Host
+                        matchContents
+                        ignoreSafeArea="all"
+                        style={{ flexShrink: 0 }}
+                    >
+                        <Text
+                            textStyle={{
+                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
+                                color: uiColors.foreground + "bf",
+                                fontSize:
+                                    typography.meta.fontSize * uiFontScale,
+                            }}
+                        >
+                            {meta}
+                        </Text>
+                    </Host>
                 ) : (
                     <View className="shrink-0">{meta}</View>
                 )

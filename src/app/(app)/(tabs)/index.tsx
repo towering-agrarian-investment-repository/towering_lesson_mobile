@@ -1,162 +1,191 @@
+import { useTheme } from "@/design-system/utils/theme";
+import {
+    getNativeButtonStyle,
+    getNativeButtonTextStyle,
+} from "@/design-system/utils/native-button-styles";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
+import { HomeBanner } from "@/components/golf/HomeBanner";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
-import { HomeBanner } from "@/components/golf/HomeBanner";
 import {
-  AppText,
-  CircleLoader,
-  ErrorState,
-  getPressedScaleStyle,
-  InlineState,
-  Screen,
-  triggerImpactHaptic,
-  useThemeColors,
+    AdaptivePanels,
+    CircleLoader,
+    ErrorState,
+    InlineState,
+    Screen,
 } from "@/design-system";
-import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { usePublishedBanners } from "@/lib/hook/useBanner";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { getMemberReservationsQueryOptions } from "@/lib/hook/useReservation";
+import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { Button, Host, Text } from "@expo/ui";
+import {
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Pressable,
-  RefreshControl,
-  View,
-} from "react-native";
+import { RefreshControl, View } from "react-native";
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const colors = useThemeColors();
-  const { isLocked, runWithNavigationLock } = useNavigationLock();
-  const { data: publishedBanners, refetch: refetchBanners } = usePublishedBanners();
-  const [refreshing, setRefreshing] = useState(false);
-  const {
-    data: memberResponse,
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-  } = useGetMemberProfile();
+    const { t } = useTranslation();
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const { colors, fontScale: uiFontScale } = useTheme();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { data: publishedBanners, refetch: refetchBanners } =
+        usePublishedBanners();
+    const [refreshing, setRefreshing] = useState(false);
+    const {
+        data: memberResponse,
+        isLoading,
+        isError,
+        refetch,
+        isRefetching,
+    } = useGetMemberProfile();
 
-  const member = memberResponse?.data;
+    const member = memberResponse?.data;
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
+    const handleRefresh = async () => {
+        setRefreshing(true);
 
-    try {
-      await Promise.all([
-        refetch(),
-        refetchBanners(),
-        queryClient.refetchQueries({ queryKey: ["member", "tickets"], type: "active" }),
-        queryClient.refetchQueries({
-          queryKey: ["member", "reservations", "today"],
-          type: "active",
-        }),
-      ]);
-    } finally {
-      setRefreshing(false);
+        try {
+            await Promise.all([
+                refetch(),
+                refetchBanners(),
+                queryClient.refetchQueries({
+                    queryKey: ["member", "tickets"],
+                    type: "active",
+                }),
+                queryClient.refetchQueries({
+                    queryKey: ["member", "reservations", "today"],
+                    type: "active",
+                }),
+            ]);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    if (isLoading) {
+        return <CircleLoader fullScreen />;
     }
-  };
 
-  if (isLoading) {
-    return <CircleLoader fullScreen />;
-  }
+    if (isError) {
+        return (
+            <ErrorState
+                title={t("home.couldNotLoadProfile")}
+                message={t("home.checkConnection")}
+                actionLabel={
+                    isRefetching
+                        ? t("common.refreshing")
+                        : t("common.refreshTryAgain")
+                }
+                onAction={() => {
+                    void refetch();
+                }}
+            />
+        );
+    }
 
-  if (isError) {
     return (
-      <ErrorState
-        title={t("home.couldNotLoadProfile")}
-        message={t("home.checkConnection")}
-        actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
-        onAction={() => {
-          void refetch();
-        }}
-      />
+        <Screen
+            headerShown={false}
+            contentClassName="flex-grow"
+            footerSafeArea={false}
+            footer={
+                <View className="py-3">
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        seedColor={colors.primary}
+                        style={{ width: "100%" }}>
+                        <Button
+                            variant="text"
+                            style={getNativeButtonStyle(
+                                colors,
+                                "filled",
+                                isLocked,
+                                colors.primary,
+                            )}
+                            modifiers={
+                                process.env.EXPO_OS === "ios"
+                                    ? [
+                                        frame({
+                                            maxWidth: Infinity,
+                                            minHeight: 48,
+                                        }),
+                                    ]
+                                    : [
+                                        fillMaxWidth(),
+                                        defaultMinSize({ minHeight: 48 }),
+                                    ]
+                            }
+                            disabled={isLocked}
+                            onPress={() => {
+                                if (isLocked) return;
+                                void queryClient.prefetchInfiniteQuery(
+                                    getMemberReservationsQueryOptions("all"),
+                                );
+                                runWithNavigationLock(() =>
+                                    router.push("/reservation"),
+                                );
+                            }}
+                        >
+                            <Text
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}
+                                textStyle={getNativeButtonTextStyle(
+                                    colors,
+                                    "filled",
+                                    uiFontScale,
+                                    colors.primary,
+                                )}
+                            >
+                                {t("home.viewMyReservations")}
+                            </Text>
+                        </Button>
+                    </Host>
+                </View>
+            }
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={() => {
+                        void handleRefresh();
+                    }}
+                />
+            }
+        >
+            <View className="grow gap-4">
+                <HappyGolfLogo
+                    width={120}
+                    height={28}
+                    primaryColor={colors.primary}
+                    accentColor={colors.warning}
+                />
+
+                <View className="gap-6">
+                    <View>
+                        <HomeBanner banners={publishedBanners} />
+                    </View>
+
+                    <AdaptivePanels
+                        primary={
+                            member ? (
+                                <MyTicket member={member} />
+                            ) : (
+                                <InlineState
+                                    title={t("home.noMemberProfile")}
+                                />
+                            )
+                        }
+                        secondary={<TodayReservation />}
+                    />
+                </View>
+            </View>
+        </Screen>
     );
-  }
-
-  return (
-    <Screen
-      headerShown={false}
-      contentClassName="flex-grow"
-      footerSafeArea={false}
-      footer={
-        <View className="py-3">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("home.viewMyReservations")}
-            disabled={isLocked}
-            className="min-h-12 items-center justify-center rounded-xl bg-primary px-4 disabled:opacity-60"
-            style={({ pressed }) => ({
-              opacity: pressed && !isLocked ? 0.86 : 1,
-              ...getPressedScaleStyle(pressed, isLocked),
-            })}
-            onPressIn={() => {
-              if (!isLocked) {
-                void queryClient.prefetchInfiniteQuery(
-                  getMemberReservationsQueryOptions("all"),
-                );
-              }
-            }}
-            onPress={() => {
-              if (isLocked) {
-                return;
-              }
-
-              triggerImpactHaptic();
-              runWithNavigationLock(() => {
-                router.push("/reservation");
-              });
-            }}
-          >
-            <AppText
-              variant="label"
-              className="text-center text-base font-bold text-primary-foreground"
-            >
-              {t("home.viewMyReservations")}
-            </AppText>
-          </Pressable>
-        </View>
-      }
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            void handleRefresh();
-          }}
-        />
-      }
-    >
-      <View className="flex-1 gap-4">
-        <HappyGolfLogo
-          width={120}
-          height={28}
-          primaryColor={colors.primary}
-          accentColor={colors.warning}
-        />
-
-        <View className="gap-6">
-          <View className="-mx-5 px-4">
-            <HomeBanner banners={publishedBanners} />
-          </View>
-
-          <View className="gap-4">
-            {member ? (
-              <MyTicket member={member} />
-            ) : (
-              <InlineState
-                title={t("home.noMemberProfile")}
-              />
-            )}
-
-            <TodayReservation />
-          </View>
-        </View>
-      </View>
-    </Screen>
-  );
 }

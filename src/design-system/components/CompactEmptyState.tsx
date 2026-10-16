@@ -1,8 +1,12 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { Host, Text } from "@expo/ui";
 import { Inbox } from "lucide-react-native";
 import { View } from "react-native";
-import { AppText } from "./AppText";
+
 import { cn } from "../utils/cn";
-import { useThemeColors } from "../utils/theme";
 
 type CompactEmptyStateProps = {
     title: string;
@@ -15,6 +19,7 @@ export function CompactEmptyState({
     message,
     className,
 }: CompactEmptyStateProps) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const colors = useThemeColors();
 
     return (
@@ -25,22 +30,42 @@ export function CompactEmptyState({
             )}
         >
             <View className="h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                <Inbox size={18} color={colors.mutedForeground} strokeWidth={2.2} />
+                <Inbox
+                    size={18}
+                    color={colors.mutedForeground}
+                    strokeWidth={2.2}
+                />
             </View>
 
             <View className="min-w-0 flex-1 gap-0.5">
-                <AppText variant="label" className="font-semibold text-foreground">
-                    {title.trim()}
-                </AppText>
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                            fontWeight: "600" as const,
+                            color: uiColors.foreground,
+                            fontSize: typography.label.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {title.trim()}
+                    </Text>
+                </Host>
 
                 {message ? (
-                    <AppText
-                        variant="caption"
-                        className="leading-5 text-muted-foreground"
-                        numberOfLines={2}
-                    >
-                        {message.trim()}
-                    </AppText>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            numberOfLines={2}
+                            textStyle={{
+                                ...typography.caption,
+                                lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                color: uiColors.mutedForeground,
+                                fontSize:
+                                    typography.caption.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {message.trim()}
+                        </Text>
+                    </Host>
                 ) : null}
             </View>
         </View>

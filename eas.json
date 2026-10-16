@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "pnpm": "10.26.0",
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
@@ -19,7 +20,14 @@
         "buildType": "apk"
       }
     },
+    "development-simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      }
+    },
     "preview": {
+      "pnpm": "10.26.0",
       "environment": "preview",
       "distribution": "internal",
       "channel": "preview",
@@ -28,6 +36,7 @@
       }
     },
     "production": {
+      "pnpm": "10.26.0",
       "environment": "production",
       "channel": "production",
       "autoIncrement": true

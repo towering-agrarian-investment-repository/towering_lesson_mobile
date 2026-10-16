@@ -1,20 +1,24 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     ErrorState,
-    AppText,
     Screen,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
     useThemeColors,
 } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     useMemberBaySlotGroups,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
-import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,15 +29,41 @@ import { Calendar, DateData, LocaleConfig } from "react-native-calendars";
 
 LocaleConfig.locales.en = {
     monthNames: [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ],
     monthNamesShort: [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
     ],
     dayNames: [
-        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
     ],
     dayNamesShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     today: "Today",
@@ -41,15 +71,41 @@ LocaleConfig.locales.en = {
 
 LocaleConfig.locales.ko = {
     monthNames: [
-        "1월", "2월", "3월", "4월", "5월", "6월",
-        "7월", "8월", "9월", "10월", "11월", "12월",
+        "1월",
+        "2월",
+        "3월",
+        "4월",
+        "5월",
+        "6월",
+        "7월",
+        "8월",
+        "9월",
+        "10월",
+        "11월",
+        "12월",
     ],
     monthNamesShort: [
-        "1월", "2월", "3월", "4월", "5월", "6월",
-        "7월", "8월", "9월", "10월", "11월", "12월",
+        "1월",
+        "2월",
+        "3월",
+        "4월",
+        "5월",
+        "6월",
+        "7월",
+        "8월",
+        "9월",
+        "10월",
+        "11월",
+        "12월",
     ],
     dayNames: [
-        "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일",
+        "일요일",
+        "월요일",
+        "화요일",
+        "수요일",
+        "목요일",
+        "금요일",
+        "토요일",
     ],
     dayNamesShort: ["일", "월", "화", "수", "목", "금", "토"],
     today: "오늘",
@@ -57,42 +113,126 @@ LocaleConfig.locales.ko = {
 
 LocaleConfig.locales.ja = {
     monthNames: [
-        "1月", "2月", "3月", "4月", "5月", "6月",
-        "7月", "8月", "9月", "10月", "11月", "12月",
+        "1月",
+        "2月",
+        "3月",
+        "4月",
+        "5月",
+        "6月",
+        "7月",
+        "8月",
+        "9月",
+        "10月",
+        "11月",
+        "12月",
     ],
     monthNamesShort: [
-        "1月", "2月", "3月", "4月", "5月", "6月",
-        "7月", "8月", "9月", "10月", "11月", "12月",
+        "1月",
+        "2月",
+        "3月",
+        "4月",
+        "5月",
+        "6月",
+        "7月",
+        "8月",
+        "9月",
+        "10月",
+        "11月",
+        "12月",
     ],
-    dayNames: ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"],
+    dayNames: [
+        "日曜日",
+        "月曜日",
+        "火曜日",
+        "水曜日",
+        "木曜日",
+        "金曜日",
+        "土曜日",
+    ],
     dayNamesShort: ["日", "月", "火", "水", "木", "金", "土"],
     today: "今日",
 };
 
 LocaleConfig.locales.zh = {
     monthNames: [
-        "一月", "二月", "三月", "四月", "五月", "六月",
-        "七月", "八月", "九月", "十月", "十一月", "十二月",
+        "一月",
+        "二月",
+        "三月",
+        "四月",
+        "五月",
+        "六月",
+        "七月",
+        "八月",
+        "九月",
+        "十月",
+        "十一月",
+        "十二月",
     ],
     monthNamesShort: [
-        "1月", "2月", "3月", "4月", "5月", "6月",
-        "7月", "8月", "9月", "10月", "11月", "12月",
+        "1月",
+        "2月",
+        "3月",
+        "4月",
+        "5月",
+        "6月",
+        "7月",
+        "8月",
+        "9月",
+        "10月",
+        "11月",
+        "12月",
     ],
-    dayNames: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+    dayNames: [
+        "星期日",
+        "星期一",
+        "星期二",
+        "星期三",
+        "星期四",
+        "星期五",
+        "星期六",
+    ],
     dayNamesShort: ["日", "一", "二", "三", "四", "五", "六"],
     today: "今天",
 };
 
 LocaleConfig.locales.km = {
     monthNames: [
-        "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
-        "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
+        "មករា",
+        "កុម្ភៈ",
+        "មីនា",
+        "មេសា",
+        "ឧសភា",
+        "មិថុនា",
+        "កក្កដា",
+        "សីហា",
+        "កញ្ញា",
+        "តុលា",
+        "វិច្ឆិកា",
+        "ធ្នូ",
     ],
     monthNamesShort: [
-        "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
-        "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
+        "មករា",
+        "កុម្ភៈ",
+        "មីនា",
+        "មេសា",
+        "ឧសភា",
+        "មិថុនា",
+        "កក្កដា",
+        "សីហា",
+        "កញ្ញា",
+        "តុលា",
+        "វិច្ឆិកា",
+        "ធ្នូ",
     ],
-    dayNames: ["អាទិត្យ", "ចន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"],
+    dayNames: [
+        "អាទិត្យ",
+        "ចន្ទ",
+        "អង្គារ",
+        "ពុធ",
+        "ព្រហស្បតិ៍",
+        "សុក្រ",
+        "សៅរ៍",
+    ],
     dayNamesShort: ["អា", "ច", "អ", "ព", "ព្រ", "សុ", "ស"],
     today: "ថ្ងៃនេះ",
 };
@@ -115,8 +255,7 @@ function isSameMonth(dateString: string, monthDate: Date) {
     const [year, month] = dateString.split("-").map(Number);
 
     return (
-        year === monthDate.getFullYear() &&
-        month === monthDate.getMonth() + 1
+        year === monthDate.getFullYear() && month === monthDate.getMonth() + 1
     );
 }
 
@@ -133,13 +272,19 @@ function CalendarLoadingSkeleton() {
 
             <View className="mb-4 flex-row justify-between">
                 {CALENDAR_WEEKDAY_PLACEHOLDERS.map((i) => (
-                    <View key={`weekday-${i}`} className="h-3 w-7 rounded-sm bg-muted" />
+                    <View
+                        key={`weekday-${i}`}
+                        className="h-3 w-7 rounded-sm bg-muted"
+                    />
                 ))}
             </View>
 
             <View className="gap-4">
                 {CALENDAR_WEEK_PLACEHOLDERS.map((weekIndex) => (
-                    <View key={`week-${weekIndex}`} className="flex-row justify-between">
+                    <View
+                        key={`week-${weekIndex}`}
+                        className="flex-row justify-between"
+                    >
                         {CALENDAR_WEEKDAY_PLACEHOLDERS.map((dayIndex) => (
                             <View
                                 key={`day-${weekIndex}-${dayIndex}`}
@@ -154,6 +299,7 @@ function CalendarLoadingSkeleton() {
 }
 
 export default function DateScreen() {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { i18n, t } = useTranslation();
     const colors = useThemeColors();
 
@@ -185,7 +331,6 @@ export default function DateScreen() {
     const { startDate, endDate } = useMemo(() => {
         return getMonthRange(visibleMonth);
     }, [visibleMonth]);
-
 
     const {
         data: baySlotGroupData,
@@ -245,18 +390,14 @@ export default function DateScreen() {
         }
 
         return dates;
-    }, [
-        baySlotGroupData,
-        isLessonTicket,
-        lessonSlotData,
-    ]);
+    }, [baySlotGroupData, isLessonTicket, lessonSlotData]);
 
     const handleDayPress = (day: DateData) => {
         const isPast = day.dateString < today;
         const isCurrentMonth = isSameMonth(day.dateString, visibleMonth);
         const isAvailable = availableDates.has(day.dateString);
 
-        if (isPast || !isAvailable && !isCurrentMonth) {
+        if (isPast || (!isAvailable && !isCurrentMonth)) {
             return;
         }
 
@@ -265,7 +406,9 @@ export default function DateScreen() {
 
             runWithNavigationLock(() => {
                 router.push({
-                    pathname: isLessonTicket ? "/select-lesson-slot" : "/select-time",
+                    pathname: isLessonTicket
+                        ? "/select-lesson-slot"
+                        : "/select-time",
                     params: isLessonTicket
                         ? {
                             date: day.dateString,
@@ -315,7 +458,10 @@ export default function DateScreen() {
         void refetchBaySlotGroups();
     };
 
-    const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName || t("common.noTicket");
+    const bookingContext =
+        formatTicketTypeLabel(ticketType, t) ||
+        ticketName ||
+        t("common.noTicket");
     const language = i18n.resolvedLanguage?.toLowerCase() ?? "en";
     const calendarLocale = language.startsWith("ko")
         ? "ko"
@@ -333,6 +479,7 @@ export default function DateScreen() {
 
     return (
         <Screen
+            maxWidth={960}
             contentClassName="gap-6"
             horizontalPadding={false}
             refreshControl={
@@ -360,128 +507,168 @@ export default function DateScreen() {
                 />
             </View>
 
-            <View>
-                    {isInitialLoading ? (
-                        <CalendarLoadingSkeleton />
-                    ) : isError ? (
-                        <View className="min-h-[520px] flex-1 px-6">
-                            <ErrorState
-                                title={t("booking.failedAvailableDatesTitle")}
-                                message={t("booking.failedAvailableDatesMessage")}
-                                actionLabel={
-                                    isLessonTicket
-                                        ? isRefetchingLessonSlots
-                                            ? t("common.refreshing")
-                                            : t("common.refreshTryAgain")
-                                        : isRefetchingBaySlotGroups
-                                            ? t("common.refreshing")
-                                            : t("common.refreshTryAgain")
-                                }
-                                onAction={handleRefresh}
-                            />
-                        </View>
-                    ) : (
-                        <Calendar
-                            key={calendarLocale}
-                            style={[s.calendar, { backgroundColor: colors.card }]}
-                            minDate={today}
-                            disableArrowLeft={!canGoToPreviousMonth}
-                            onDayPress={handleDayPress}
-                            dayComponent={({ date, state }) => {
-                                if (!date) {
-                                    return null;
-                                }
-
-                                const isPast = date.dateString < today;
-                                const isToday = date.dateString === today;
-                                const isAvailable = availableDates.has(date.dateString);
-                                const isOutsideMonth = state === "disabled";
-                                const isAvailableFutureDate = isAvailable && !isPast;
-
-                                return (
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        accessibilityLabel={date.dateString}
-                                        onPress={() => {
-                                            handleDayPress(date);
-                                        }}
-                                        className="h-10 w-10 items-center justify-center"
-                                    >
-                                        <View
-                                            className={`h-10 w-10 items-center justify-center rounded-full ${isToday
-                                                ? "bg-success/15"
-                                                : isAvailableFutureDate
-                                                    ? "bg-primary/10"
-                                                    : ""
-                                                }`}
-                                        >
-                                            <AppText
-                                                variant="body"
-                                                className={`${isToday
-                                                    ? "font-bold text-success"
-                                                    : isPast
-                                                    ? "text-muted-foreground opacity-40"
-                                                    : isAvailableFutureDate
-                                                        ? "font-bold text-primary"
-                                                        : isOutsideMonth
-                                                            ? "text-muted-foreground/70"
-                                                            : "text-foreground"
-                                                    }`}
-                                            >
-                                                {date.day}
-                                            </AppText>
-
-                                            {isAvailableFutureDate ? (
-                                                <View
-                                                    className={`absolute bottom-0.5 h-1.5 w-1.5 rounded-full ${isToday ? "bg-success" : "bg-primary"
-                                                        }`}
-                                                />
-                                            ) : null}
-                                        </View>
-                                    </Pressable>
-                                );
-                            }}
-                            onMonthChange={(month) => {
-                                const nextMonth = new Date(month.year, month.month - 1, 1);
-
-                                if (nextMonth < currentMonthStart) {
-                                    setVisibleMonth(currentMonthStart);
-                                    return;
-                                }
-
-                                setVisibleMonth(nextMonth);
-                            }}
-                            renderArrow={(dir) => (
-                                <Ionicons
-                                    name={dir === "left" ? "chevron-back" : "chevron-forward"}
-                                    size={20}
-                                    color={colors.primary}
-                                />
-                            )}
-                            theme={{
-                                calendarBackground: colors.card,
-                                monthTextColor: colors.foreground,
-                                // @ts-ignore react-native-calendars supports this theme property at runtime.
-                                monthTextFontWeight: "700",
-                                textSectionTitleColor: colors.foreground,
-                                textSectionTitleDisabledColor: colors.foreground,
-                                selectedDayBackgroundColor: colors.primary,
-                                selectedDayTextColor: colors.primaryForeground,
-                                todayTextColor: colors.primary,
-                                textDisabledColor: colors.mutedForeground,
-                                dayTextColor: colors.mutedForeground,
-                                // @ts-ignore
-                                "stylesheet.calendar.main": {
-                                    week: {
-                                        marginTop: 18,
-                                        marginBottom: 18,
-                                        flexDirection: "row",
-                                        justifyContent: "space-between",
-                                    },
-                                },
-                            }}
+            <View className={isError ? "grow" : undefined}>
+                {isInitialLoading ? (
+                    <CalendarLoadingSkeleton />
+                ) : isError ? (
+                    <View className="grow px-6">
+                        <ErrorState
+                            title={t("booking.failedAvailableDatesTitle")}
+                            message={t("booking.failedAvailableDatesMessage")}
+                            actionLabel={
+                                isLessonTicket
+                                    ? isRefetchingLessonSlots
+                                        ? t("common.refreshing")
+                                        : t("common.refreshTryAgain")
+                                    : isRefetchingBaySlotGroups
+                                        ? t("common.refreshing")
+                                        : t("common.refreshTryAgain")
+                            }
+                            onAction={handleRefresh}
                         />
-                    )}
+                    </View>
+                ) : (
+                    <Calendar
+                        key={calendarLocale}
+                        style={[s.calendar, { backgroundColor: colors.card }]}
+                        minDate={today}
+                        disableArrowLeft={!canGoToPreviousMonth}
+                        onDayPress={handleDayPress}
+                        dayComponent={({ date, state }) => {
+                            if (!date) {
+                                return null;
+                            }
+
+                            const isPast = date.dateString < today;
+                            const isToday = date.dateString === today;
+                            const isAvailable = availableDates.has(
+                                date.dateString,
+                            );
+                            const isOutsideMonth = state === "disabled";
+                            const isAvailableFutureDate =
+                                isAvailable && !isPast;
+
+                            return (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={date.dateString}
+                                    onPress={() => {
+                                        handleDayPress(date);
+                                    }}
+                                    className="h-10 w-10 items-center justify-center"
+                                >
+                                    <View
+                                        className={`h-10 w-10 items-center justify-center rounded-full ${isToday
+                                            ? "bg-success/15"
+                                            : isAvailableFutureDate
+                                                ? "bg-primary/10"
+                                                : ""
+                                            }`}
+                                    >
+                                        <Host
+                                            matchContents={{ vertical: true }}
+                                            ignoreSafeArea="all"
+                                            style={{ width: 40, opacity: isPast && !isToday ? 0.4 : 1 }}>
+                                            <Text
+                                                textStyle={{
+                                                    ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
+                                                    textAlign: "center",
+                                                    ...(isToday
+                                                        ? {
+                                                            fontWeight:
+                                                                "700" as const,
+                                                            color: uiColors.success,
+                                                        }
+                                                        : isPast
+                                                            ? {
+                                                                color: uiColors.mutedForeground,
+                                                            }
+                                                            : isAvailableFutureDate
+                                                                ? {
+                                                                    fontWeight:
+                                                                        "700" as const,
+                                                                    color: uiColors.primary,
+                                                                }
+                                                                : isOutsideMonth
+                                                                    ? {
+                                                                        color:
+                                                                            uiColors.mutedForeground +
+                                                                            "b3",
+                                                                    }
+                                                                    : {
+                                                                        color: uiColors.foreground,
+                                                                    }),
+                                                    fontSize:
+                                                        typography.body
+                                                            .fontSize *
+                                                        uiFontScale,
+                                                }}
+                                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                                                {String(date.day ?? "")}
+                                            </Text>
+                                        </Host>
+
+                                        {isAvailableFutureDate ? (
+                                            <View
+                                                className={`absolute bottom-0.5 h-1.5 w-1.5 rounded-full ${isToday
+                                                    ? "bg-success"
+                                                    : "bg-primary"
+                                                    }`}
+                                            />
+                                        ) : null}
+                                    </View>
+                                </Pressable>
+                            );
+                        }}
+                        onMonthChange={(month) => {
+                            const nextMonth = new Date(
+                                month.year,
+                                month.month - 1,
+                                1,
+                            );
+
+                            if (nextMonth < currentMonthStart) {
+                                setVisibleMonth(currentMonthStart);
+                                return;
+                            }
+
+                            setVisibleMonth(nextMonth);
+                        }}
+                        renderArrow={(dir) => (
+                            <Ionicons
+                                name={
+                                    dir === "left"
+                                        ? "chevron-back"
+                                        : "chevron-forward"
+                                }
+                                size={20}
+                                color={colors.primary}
+                            />
+                        )}
+                        theme={{
+                            calendarBackground: colors.card,
+                            monthTextColor: colors.foreground,
+                            // @ts-ignore react-native-calendars supports this theme property at runtime.
+                            monthTextFontWeight: "700",
+                            textSectionTitleColor: colors.foreground,
+                            textSectionTitleDisabledColor: colors.foreground,
+                            selectedDayBackgroundColor: colors.primary,
+                            selectedDayTextColor: colors.primaryForeground,
+                            todayTextColor: colors.primary,
+                            textDisabledColor: colors.mutedForeground,
+                            dayTextColor: colors.mutedForeground,
+                            // @ts-ignore
+                            "stylesheet.calendar.main": {
+                                week: {
+                                    marginTop: 18,
+                                    marginBottom: 18,
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                },
+                            },
+                        }}
+                    />
+                )}
             </View>
         </Screen>
     );

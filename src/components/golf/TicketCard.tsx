@@ -1,14 +1,14 @@
-import {
-    AppText as Text,
-    cn,
-    getPressedScaleStyle,
-    useThemeColors,
-} from "@/design-system";
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import { cn, getPressedScaleStyle, useThemeColors } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
 import {
     formatTicketTypeLabel,
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
+import { typography } from "@/design-system/utils/typography";
 import { TicketListItemResponse } from "@/types/member-ticket";
+import { Host, Text } from "@expo/ui";
 import * as Haptics from "expo-haptics";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
@@ -52,13 +52,19 @@ function getUsageNote(
     return t("tickets.flexibleUsage");
 }
 
-function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Props) {
+function TicketCard({
+    item,
+    disabled = false,
+    onPress,
+    fullWidth = false,
+}: Props) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const colors = useThemeColors();
-    const isInactive = item.status === "EXPIRED" || item.status === "FULLY_USED";
+    const isInactive =
+        item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketTone = getTicketTypeTone(item.type);
-    const isBookingDisabled =
-        disabled || isInactive;
+    const isBookingDisabled = disabled || isInactive;
 
     const badgeLabel = formatTicketTypeLabel(item.type, t) || "-";
     const usageNote = getUsageNote(item, t);
@@ -82,7 +88,9 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
             accessibilityRole="button"
             accessibilityLabel={item.name}
             className={isBookingDisabled ? "opacity-75" : undefined}
-            style={({ pressed }) => getPressedScaleStyle(pressed, isBookingDisabled, 0.988)}
+            style={({ pressed }) =>
+                getPressedScaleStyle(pressed, isBookingDisabled, 0.988)
+            }
         >
             <View
                 className={cn(
@@ -97,64 +105,114 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
             >
                 <View className="flex-col gap-3">
                     <View className="flex-row items-center justify-between gap-3">
-                        <Text
-                            variant="badge"
-                            className={cn(
-                                "self-start rounded-md px-2 py-1",
-                                !isInactive && ticketTone.badgeSolidClassName,
-                                !isInactive && ticketTone.badgeSolidTextClassName,
-                                isInactive && "bg-border text-muted-foreground",
-                            )}
-                        >
-                            {badgeLabel}
-                        </Text>
+                        <View className={cn(
+                            "self-start rounded-md px-2 py-1",
+                            !isInactive && ticketTone.badgeSolidClassName,
+                            isInactive && "bg-border",
+                        )}>
+                            <Host
+                                matchContents
+                                ignoreSafeArea="all"
+
+
+                            >
+                                <Text
+                                    textStyle={{
+                                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
+                                        color: isInactive
+                                            ? uiColors.mutedForeground
+                                            : uiColors.primaryForeground,
+                                        fontSize:
+                                            typography.badge.fontSize * uiFontScale,
+                                    }}
+                                >
+                                    {badgeLabel}
+                                </Text>
+                            </Host>
+                        </View>
 
                         {item.type !== "LESSON_PROGRAM" ? (
                             <ChevronRight
                                 size={18}
-                                color={isInactive ? colors.mutedForeground : colors.foreground}
+                                color={
+                                    isInactive
+                                        ? colors.mutedForeground
+                                        : colors.foreground
+                                }
                                 strokeWidth={2.4}
                             />
                         ) : null}
                     </View>
 
-                    <Text
-                        variant="body"
-                        className="text-foreground"
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {item.name}
-                    </Text>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            numberOfLines={1}
+                            textStyle={{
+                                ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontSize:
+                                    typography.body.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {item.name}
+                        </Text>
+                    </Host>
 
-                    <Text
-                        variant="count"
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        className="text-lg font-extrabold text-foreground"
-                    >
-                        {formatTicketDate(item.startDate)} ~ {formatTicketDate(item.endDate)}
-                    </Text>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Text
+                            numberOfLines={1}
+                            textStyle={{
+                                ...typography.count, lineHeight: typography.h3.lineHeight * uiFontScale,
+                                fontSize: typography.subtitle.fontSize * uiFontScale,
+                                fontWeight: "800" as const,
+                                color: uiColors.foreground,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {formatTicketDate(item.startDate) +
+                                " ~ " +
+                                formatTicketDate(item.endDate)}
+                        </Text>
+                    </Host>
                 </View>
 
                 <View className="flex-row items-center justify-between gap-2">
-                    <Text
-                        variant="caption"
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        className="min-w-0 flex-1 text-foreground"
+                    <Host
+                        matchContents={{ vertical: true }}
+                        ignoreSafeArea="all"
+                        style={{ flex: 1, minWidth: 0 }}
                     >
-                        {usageNote}
-                    </Text>
+                        <Text
+                            numberOfLines={1}
+                            textStyle={{
+                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                color: uiColors.foreground,
+                                fontSize:
+                                    typography.caption.fontSize * uiFontScale,
+                            }}
+                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            {usageNote}
+                        </Text>
+                    </Host>
 
                     {!item.isUnlimited && item.onlyOnePerDay ? (
-                        <Text
-                            variant="caption"
-                            numberOfLines={1}
-                            className="shrink-0 text-foreground"
+                        <Host
+                            matchContents
+                            ignoreSafeArea="all"
+                            style={{ flexShrink: 0 }}
                         >
-                            {t("tickets.useOncePerDay")}
-                        </Text>
+                            <Text
+                                numberOfLines={1}
+                                textStyle={{
+                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                    color: uiColors.foreground,
+                                    fontSize:
+                                        typography.caption.fontSize *
+                                        uiFontScale,
+                                }}
+                            >
+                                {t("tickets.useOncePerDay")}
+                            </Text>
+                        </Host>
                     ) : null}
                 </View>
             </View>

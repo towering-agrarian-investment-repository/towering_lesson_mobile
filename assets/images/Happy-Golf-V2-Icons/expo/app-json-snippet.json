@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "icon": "./assets/icons/icon.png",
+    "ios": {
+      "icon": {
+        "light": "./assets/icons/ios-icon.png"
+      }
+    },
+    "android": {
+      "icon": "./assets/icons/android-icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/android-adaptive-foreground.png",
+        "backgroundColor": "#5FB1FF",
+        "monochromeImage": "./assets/icons/android-adaptive-monochrome.png"
+      }
+    }
+  }
+}

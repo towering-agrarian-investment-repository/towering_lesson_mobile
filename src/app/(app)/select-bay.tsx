@@ -1,26 +1,20 @@
-import {
-    AppText,
-    EmptyState,
-    ErrorState,
-    Screen,
-    Skeleton,
-} from "@/design-system";
-import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
+import { EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
+import { cn } from "@/design-system/utils/cn";
+import { useTheme } from "@/design-system/utils/theme";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
-import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-    Pressable,
-    RefreshControl,
-    View,
-} from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
 
 function chunkItems<T>(items: T[], size: number) {
     const rows: T[][] = [];
@@ -33,6 +27,7 @@ function chunkItems<T>(items: T[], size: number) {
 }
 
 export default function BayScreen() {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const {
         date,
@@ -57,35 +52,25 @@ export default function BayScreen() {
         startTime?: string;
         endTime?: string;
         mode?: string;
-            reservationId?: string;
-            notes?: string;
-            conflictMessage?: string;
-            conflictSlotId?: string;
-            conflictId?: string;
-        }>();
+        reservationId?: string;
+        notes?: string;
+        conflictMessage?: string;
+        conflictSlotId?: string;
+        conflictId?: string;
+    }>();
 
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const [dismissedConflictId, setDismissedConflictId] = useState<string>();
 
-    const {
-        data,
-        isLoading,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberBaySlotGroups(
-        date,
-        date,
-        Boolean(date),
-    );
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberBaySlotGroups(date, date, Boolean(date));
 
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
     );
-    const visibleConflictMessage = dismissedConflictId === conflictId
-        ? undefined
-        : conflictMessage;
+    const visibleConflictMessage =
+        dismissedConflictId === conflictId ? undefined : conflictMessage;
     const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
 
     const loadingRows = chunkItems(
@@ -122,6 +107,7 @@ export default function BayScreen() {
 
     return (
         <Screen
+            maxWidth={960}
             contentClassName="gap-6"
             refreshControl={
                 <RefreshControl
@@ -187,7 +173,11 @@ export default function BayScreen() {
                 <ErrorState
                     title={t("booking.failedBaysTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -200,10 +190,20 @@ export default function BayScreen() {
                     message={t("booking.timeNoLongerAvailableMessage")}
                     actionLabel={t("booking.chooseAnotherTime")}
                     onAction={() => {
-                        runWithNavigationLock(() => router.dismissTo({
-                            pathname: "/select-time",
-                            params: { date, ticketId, ticketName, ticketType, mode, reservationId, notes },
-                        }));
+                        runWithNavigationLock(() =>
+                            router.dismissTo({
+                                pathname: "/select-time",
+                                params: {
+                                    date,
+                                    ticketId,
+                                    ticketName,
+                                    ticketType,
+                                    mode,
+                                    reservationId,
+                                    notes,
+                                },
+                            }),
+                        );
                     }}
                 />
             ) : null}
@@ -222,58 +222,97 @@ export default function BayScreen() {
                                     visibleConflictMessage &&
                                     conflictSlotId === String(bay.id),
                                 );
-                                const isDisabled = isUnavailable || wasJustBooked;
+                                const isDisabled =
+                                    isUnavailable || wasJustBooked;
 
                                 const statusLabel = wasJustBooked
                                     ? t("booking.justBooked")
                                     : isBlocked
-                                    ? t("booking.statusBlocked")
-                                    : isReserved
-                                        ? t("booking.statusBooked")
-                                        : isDisabled
-                                            ? t("booking.statusUnavailable")
-                                            : t("booking.statusAvailable");
+                                        ? t("booking.statusBlocked")
+                                        : isReserved
+                                            ? t("booking.statusBooked")
+                                            : isDisabled
+                                                ? t("booking.statusUnavailable")
+                                                : t("booking.statusAvailable");
 
                                 return (
-                                    <View
-                                        key={bay.id}
-                                        className="flex-1"
-                                    >
+                                    <View key={bay.id} className="flex-1">
                                         <Pressable
                                             accessibilityRole="button"
                                             accessibilityLabel={`${bay.bayName}, ${statusLabel}`}
                                             className={`items-center gap-2 rounded-2xl border px-3 py-4 ${wasJustBooked
-                                                ? "border-warning/40 bg-warning/10 opacity-80"
-                                                : !isDisabled
-                                                    ? "border-border bg-card"
-                                                    : "border-muted bg-muted opacity-55"
+                                                    ? "border-warning/40 bg-warning/10 opacity-80"
+                                                    : !isDisabled
+                                                        ? "border-border bg-card"
+                                                        : "border-muted bg-muted opacity-55"
                                                 }`}
                                             onPress={() =>
                                                 !isDisabled && handleSelect(bay)
                                             }
                                             disabled={isDisabled || isLocked}
                                         >
-                                            <AppText
-                                                variant="label"
-                                                className={`text-center ${!isDisabled
-                                                    ? "text-foreground"
-                                                    : "text-muted-foreground"
-                                                    }`}
+                                            <Host
+                                                matchContents
+                                                ignoreSafeArea="all"
                                             >
-                                                {bay.bayName}
-                                            </AppText>
+                                                <Text
+                                                    textStyle={{
+                                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
+                                                        textAlign:
+                                                            "center" as const,
+                                                        color: !isDisabled
+                                                            ? uiColors.foreground
+                                                            : uiColors.mutedForeground,
+                                                        fontSize:
+                                                            typography.label
+                                                                .fontSize *
+                                                            uiFontScale,
+                                                    }}
+                                                >
+                                                    {bay.bayName}
+                                                </Text>
+                                            </Host>
 
-                                            <AppText
-                                                variant="badge"
-                                                className={`rounded-full px-2.5 py-1 text-center ${wasJustBooked
-                                                    ? "bg-warning/15 text-warning"
+                                            <View className={cn(
+                                                "rounded-full px-2.5 py-1 ",
+                                                wasJustBooked
+                                                    ? "bg-warning/15"
                                                     : !isDisabled
-                                                        ? "bg-primary/10 text-primary"
-                                                        : "bg-muted text-muted-foreground"
-                                                    }`}
-                                            >
-                                                {statusLabel}
-                                            </AppText>
+                                                        ? "bg-primary/10"
+                                                        : "bg-muted",
+                                            )}>
+                                                <Host
+                                                    matchContents
+                                                    ignoreSafeArea="all"
+
+
+                                                >
+                                                    <Text
+                                                        textStyle={{
+                                                            ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
+                                                            textAlign:
+                                                                "center" as const,
+                                                            ...(wasJustBooked
+                                                                ? {
+                                                                    color: uiColors.warning,
+                                                                }
+                                                                : !isDisabled
+                                                                    ? {
+                                                                        color: uiColors.primary,
+                                                                    }
+                                                                    : {
+                                                                        color: uiColors.mutedForeground,
+                                                                    }),
+                                                            fontSize:
+                                                                typography.badge
+                                                                    .fontSize *
+                                                                uiFontScale,
+                                                        }}
+                                                    >
+                                                        {statusLabel}
+                                                    </Text>
+                                                </Host>
+                                            </View>
                                         </Pressable>
                                     </View>
                                 );

@@ -1,12 +1,23 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
+import { typography } from "@/design-system/utils/typography";
+import { Host, Text } from "@expo/ui";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, View, type LayoutChangeEvent, type ViewProps } from "react-native";
+import {
+    FlatList,
+    Pressable,
+    View,
+    type LayoutChangeEvent,
+    type ViewProps,
+} from "react-native";
 import { cn } from "../../utils/cn";
 import { useTheme, type ThemeColors } from "../../utils/theme";
-import { AppText } from "../AppText";
+
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 
-export type ActivityHeatmapStatus = "completed" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
+export type ActivityHeatmapStatus =
+    "completed" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
 export type ActivityHeatmapValue = {
     date: string | number | Date;
     count: number;
@@ -15,24 +26,50 @@ export type ActivityHeatmapValue = {
     typeCounts?: { lesson: number; bay: number };
 };
 
-export function ActivityStatusLegend({ className, includeMixed = true }: { className?: string; includeMixed?: boolean }) {
+export function ActivityStatusLegend({
+    className,
+    includeMixed = true,
+}: {
+    className?: string;
+    includeMixed?: boolean;
+}) {
     const { t } = useTranslation();
-    const { colors } = useTheme();
+    const { colors, fontScale } = useTheme();
+    const statuses = [
+        { label: t("activity.completed"), color: colors.success },
+        { label: t("activity.absent"), color: colors.danger },
+        { label: t("activity.booked"), color: colors.ticketPrivate },
+        ...(includeMixed
+            ? [{ label: t("activity.mixed"), color: colors.warning }]
+            : []),
+    ];
 
     return (
-        <View className={cn("flex-row items-center", className)} style={{ gap: 4 }}>
-            <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.success }} />
-            <AppText variant="caption" className="text-[9px]">{t("activity.done")}</AppText>
-            <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.danger }} />
-            <AppText variant="caption" className="text-[9px]">{t("activity.absent")}</AppText>
-            <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.ticketPrivate }} />
-            <AppText variant="caption" className="text-[9px]">{t("activity.booked")}</AppText>
-            {includeMixed ? (
-                <>
-                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.warning }} />
-                    <AppText variant="caption" className="text-[9px]">{t("activity.mixed")}</AppText>
-                </>
-            ) : null}
+        <View className={cn("flex-row flex-wrap items-center gap-x-4 gap-y-2", className)}>
+            {statuses.map((status) => (
+                <View key={status.label} className="flex-row items-center gap-1.5">
+                    <View
+                        style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 3,
+                            backgroundColor: status.color,
+                        }}
+                    />
+                    <Host matchContents ignoreSafeArea="all">
+                        <Text
+                            textStyle={{
+                                ...typography.subtext,
+                                lineHeight: typography.subtext.lineHeight * fontScale,
+                                color: colors.mutedForeground,
+                                fontSize: typography.subtext.fontSize * fontScale,
+                            }}
+                        >
+                            {status.label}
+                        </Text>
+                    </Host>
+                </View>
+            ))}
         </View>
     );
 }
@@ -45,56 +82,85 @@ type ActivityHeatmapProps = Omit<ViewProps, "children"> & {
     legend?: boolean;
     overallCount?: number;
     overallUnitLabel?: string;
-    yearLabel?: string;
     className?: string;
     onDayPress?: (date: Date, count: number) => void;
 };
 
 const CELL_GAP = 4;
 const CELL_RADIUS = 5;
-const MIN_CELL = 11;
-const DEFAULT_CELL = 13;
-const MAX_CELL = 18;
-const LABEL_COL_WIDTH = 20;
-const LABEL_BUFFER = 24;
-const SCROLL_TRACK_WIDTH = 64;
-const MIN_SCROLL_THUMB_WIDTH = 14;
+const MIN_CELL = 24;
+const MAX_CELL = 36;
+const LABEL_COL_WIDTH = 24;
+const MONTH_LABEL_HEIGHT = 24;
 const WEEKDAY_OFFSETS = [0, 2, 4, 6];
 
-export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, title, legend = true, overallCount, overallUnitLabel = "activities", yearLabel, className, onDayPress, ...props }: ActivityHeatmapProps) {
-    const { t, i18n: { language } } = useTranslation();
-    const { colors } = useTheme();
+export function ActivityHeatmap({
+    values,
+    endDate = new Date(),
+    numDays = 365,
+    title,
+    legend = true,
+    overallCount,
+    overallUnitLabel = "activities",
+    className,
+    onDayPress,
+    ...props
+}: ActivityHeatmapProps) {
+    const { colors: uiColors } = useTheme();
+    const {
+        t,
+        i18n: { language },
+    } = useTranslation();
+    const { colors, fontScale: uiFontScale } = useTheme();
     const todayKey = toDateKey(new Date());
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [containerWidth, setContainerWidth] = useState(0);
-    const weeks = useMemo(() => buildWeeks(values, endDate, numDays, language), [values, endDate, numDays, language]);
-    const weekdayLabels = WEEKDAY_OFFSETS.map((offset) => new Date(2024, 0, 1 + offset).toLocaleDateString(language, { weekday: "narrow" }));
-    const selectedValue = values.find((value) => toDateKey(value.date) === selectedDay);
+    const weeks = useMemo(
+        () => buildWeeks(values, endDate, numDays, language),
+        [values, endDate, numDays, language],
+    );
+    const weekdayLabels = WEEKDAY_OFFSETS.map((offset) =>
+        new Date(2024, 0, 1 + offset).toLocaleDateString(language, {
+            weekday: "narrow",
+        }),
+    );
+    const selectedValue = values.find(
+        (value) => toDateKey(value.date) === selectedDay,
+    );
 
     // Focus the current month for the current year, or January for a historical
     // year, so changing the year always opens at a useful part of the heatmap.
     const focusMonthWeekIndex = useMemo(() => {
         const now = new Date();
         const selectedYear = parseCalendarDate(endDate).getFullYear();
-        const focusYear = selectedYear === now.getFullYear() ? now.getFullYear() : selectedYear;
-        const focusMonth = selectedYear === now.getFullYear() ? now.getMonth() : 0;
+        const focusYear =
+            selectedYear === now.getFullYear()
+                ? now.getFullYear()
+                : selectedYear;
+        const focusMonth =
+            selectedYear === now.getFullYear() ? now.getMonth() : 0;
 
-        return weeks.findIndex((week) => week.days.some((d) => d.date.getFullYear() === focusYear && d.date.getMonth() === focusMonth));
+        return weeks.findIndex((week) =>
+            week.days.some(
+                (d) =>
+                    d.date.getFullYear() === focusYear &&
+                    d.date.getMonth() === focusMonth,
+            ),
+        );
     }, [endDate, weeks]);
 
-    const availableWidth = Math.max(0, containerWidth - LABEL_COL_WIDTH);
-    const fitCellSize = weeks.length > 0 ? Math.floor(availableWidth / weeks.length) - CELL_GAP : DEFAULT_CELL;
-    const cellSize = fitCellSize >= DEFAULT_CELL
-        ? Math.min(MAX_CELL, fitCellSize)
-        : Math.max(MIN_CELL, DEFAULT_CELL);
-    const gridWidth = weeks.length * (cellSize + CELL_GAP) + LABEL_BUFFER;
+    const availableWidth = Math.max(0, containerWidth - LABEL_COL_WIDTH - CELL_GAP);
+    // Keep roughly three months visible without shrinking days into tiny dots.
+    const cellSize = Math.max(
+        MIN_CELL,
+        Math.min(MAX_CELL, Math.floor((availableWidth - 11 * CELL_GAP) / 12)),
+    );
+    const gridWidth = weeks.length * (cellSize + CELL_GAP);
     const needsScroll = containerWidth > 0 && gridWidth > availableWidth;
     const maxScrollX = Math.max(0, gridWidth - availableWidth);
-    const scrollThumbWidth = needsScroll
-        ? Math.max(MIN_SCROLL_THUMB_WIDTH, (availableWidth / gridWidth) * SCROLL_TRACK_WIDTH)
-        : SCROLL_TRACK_WIDTH;
 
-    const handleLayout = (event: LayoutChangeEvent) => setContainerWidth(event.nativeEvent.layout.width);
+    const handleLayout = (event: LayoutChangeEvent) =>
+        setContainerWidth(event.nativeEvent.layout.width);
 
     // Scroll so the current month starts at the left edge of the viewport on
     // first render (only once, so it doesn't fight the user if they scroll away
@@ -105,44 +171,99 @@ export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, t
         ? `${toDateKey(weeks[0].days[0].date)}-${toDateKey(weeks[weeks.length - 1].days[0].date)}`
         : "empty";
     useEffect(() => {
-        if (autoScrolledRange.current === rangeKey || !needsScroll || containerWidth === 0 || focusMonthWeekIndex === -1) return;
-        const targetX = Math.min(maxScrollX, Math.max(0, focusMonthWeekIndex * (cellSize + CELL_GAP)));
+        if (
+            autoScrolledRange.current === rangeKey ||
+            !needsScroll ||
+            containerWidth === 0 ||
+            focusMonthWeekIndex === -1
+        )
+            return;
+        const targetX = Math.min(
+            maxScrollX,
+            Math.max(0, focusMonthWeekIndex * (cellSize + CELL_GAP)),
+        );
         scrollRef.current?.scrollToOffset({ offset: targetX, animated: false });
         autoScrolledRange.current = rangeKey;
-    }, [needsScroll, containerWidth, focusMonthWeekIndex, cellSize, maxScrollX, rangeKey]);
+    }, [
+        needsScroll,
+        containerWidth,
+        focusMonthWeekIndex,
+        cellSize,
+        maxScrollX,
+        rangeKey,
+    ]);
 
-    const handleSelectDay = useCallback((dateKey: string, date: Date, count: number) => {
-        setSelectedDay(dateKey);
-        onDayPress?.(date, count);
-    }, [onDayPress]);
+    const handleSelectDay = useCallback(
+        (dateKey: string, date: Date, count: number) => {
+            setSelectedDay(dateKey);
+            onDayPress?.(date, count);
+        },
+        [onDayPress],
+    );
 
-    const renderWeek = useCallback(({ item: week }: { item: (typeof weeks)[number] }) => (
-        <HeatmapWeekColumn
-            key={toDateKey(week.days[0].date)}
-            week={week}
-            cellSize={cellSize}
-            todayKey={todayKey}
-            selectedDay={selectedDay}
-            colors={colors}
-            onSelectDay={handleSelectDay}
-        />
-    ), [cellSize, colors, handleSelectDay, selectedDay, todayKey]);
+    const renderWeek = useCallback(
+        ({ item: week }: { item: (typeof weeks)[number] }) => (
+            <HeatmapWeekColumn
+                key={toDateKey(week.days[0].date)}
+                week={week}
+                cellSize={cellSize}
+                todayKey={todayKey}
+                selectedDay={selectedDay}
+                colors={colors}
+                onSelectDay={handleSelectDay}
+            />
+        ),
+        [cellSize, colors, handleSelectDay, selectedDay, todayKey],
+    );
 
     return (
-        <View className={cn("w-full gap-3", className)} onLayout={handleLayout} {...props}>
-            {title ? <AppText variant="h3">{title}</AppText> : null}
-            <View className="flex-row items-center justify-between gap-2">
-                <AppText variant="caption" className="font-semibold text-muted-foreground">
-                    {yearLabel ?? parseCalendarDate(endDate).getFullYear()}
-                </AppText>
-                {legend ? <ActivityStatusLegend /> : null}
-            </View>
+        <View
+            className={cn("w-full gap-3", className)}
+            onLayout={handleLayout}
+            {...props}
+        >
+            {title ? (
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    <Text
+                        textStyle={{
+                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
+                            color: uiColors.foreground,
+                            fontSize: typography.h3.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {title}
+                    </Text>
+                </Host>
+            ) : null}
             <View className="flex-row" style={{ gap: CELL_GAP }}>
-                <View style={{ width: LABEL_COL_WIDTH, height: cellSize * 7 + CELL_GAP * 6, marginTop: cellSize + CELL_GAP }}>
+                <View
+                    style={{
+                        width: LABEL_COL_WIDTH,
+                        height: cellSize * 7 + CELL_GAP * 6,
+                        marginTop: MONTH_LABEL_HEIGHT + CELL_GAP,
+                    }}
+                >
                     {weekdayLabels.map((label, i) => (
-                        <AppText key={i} variant="caption" className="text-[9px]" style={{ position: "absolute", top: i * 2 * (cellSize + CELL_GAP) }}>
-                            {label}
-                        </AppText>
+                        <Host
+                            matchContents
+                            ignoreSafeArea="all"
+                            style={{
+                                position: "absolute",
+                                top: i * 2 * (cellSize + CELL_GAP) +
+                                    (cellSize - typography.subtext.lineHeight * uiFontScale) / 2,
+                            }}
+                            key={i}
+                        >
+                            <Text
+                                textStyle={{
+                                    ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                    color: uiColors.mutedForeground,
+                                    fontSize: typography.subtext.fontSize * uiFontScale,
+                                }}
+                            >
+                                {label}
+                            </Text>
+                        </Host>
                     ))}
                 </View>
                 {containerWidth === 0 ? null : needsScroll ? (
@@ -151,43 +272,49 @@ export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, t
                         data={weeks}
                         renderItem={renderWeek}
                         extraData={selectedDay}
-                        initialScrollIndex={needsScroll && focusMonthWeekIndex >= 0 ? focusMonthWeekIndex : undefined}
+                        initialScrollIndex={
+                            needsScroll && focusMonthWeekIndex >= 0
+                                ? focusMonthWeekIndex
+                                : undefined
+                        }
                         keyExtractor={(week) => toDateKey(week.days[0].date)}
-                        getItemLayout={(_, index) => ({ length: cellSize + CELL_GAP, offset: index * (cellSize + CELL_GAP), index })}
+                        getItemLayout={(_, index) => ({
+                            length: cellSize + CELL_GAP,
+                            offset: index * (cellSize + CELL_GAP),
+                            index,
+                        })}
                         horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingRight: LABEL_BUFFER }}
+                        style={{ flex: 1 }}
+                        showsHorizontalScrollIndicator
+                        contentContainerStyle={{ paddingBottom: 12 }}
                     />
                 ) : (
-                    <View className="flex-row" style={{ gap: CELL_GAP }}>
+                    <View className="flex-row">
                         {weeks.map((week) => renderWeek({ item: week }))}
                     </View>
                 )}
             </View>
-            {needsScroll ? (
-                <View
-                    accessible
-                    accessibilityRole="adjustable"
-                    accessibilityLabel={t("activity.horizontalScroll")}
-                    className="self-center rounded-full bg-muted"
-                    style={{ width: SCROLL_TRACK_WIDTH, height: 4 }}
-                >
-                    <View
-                        className="h-1 rounded-full bg-primary"
-                        style={{
-                            width: scrollThumbWidth,
-                        }}
-                    />
-                </View>
-            ) : null}
+            {legend ? <ActivityStatusLegend className="justify-center" /> : null}
             <View className="flex-row items-center justify-between gap-2">
-                <AppText variant="caption" className="min-w-0 flex-1 text-[10px]" numberOfLines={1}>
-                    {selectedValue
-                        ? `${t("activity.activityCount", { count: selectedValue.count })} ${t("activity.onDate", { date: selectedDay })}${formatStatusBreakdown(selectedValue.statusBreakdown)}${formatTypeBreakdown(selectedValue.typeCounts) ? ` · ${formatTypeBreakdown(selectedValue.typeCounts)}` : ""}`
-                        : overallCount !== undefined
-                            ? `${t("activity.overall")} · ${overallCount} ${overallUnitLabel}`
-                        : "-"}
-                </AppText>
+                <Host
+                    matchContents={{ vertical: true }}
+                    ignoreSafeArea="all"
+                    style={{ flex: 1, minWidth: 0 }}
+                >
+                    <Text
+                        textStyle={{
+                            ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                            color: uiColors.mutedForeground,
+                            fontSize: typography.subtext.fontSize * uiFontScale,
+                        }}
+                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        {selectedValue
+                            ? `${t("activity.activityCount", { count: selectedValue.count })} ${t("activity.onDate", { date: selectedDay })}${formatStatusBreakdown(selectedValue.statusBreakdown)}${formatTypeBreakdown(selectedValue.typeCounts) ? ` · ${formatTypeBreakdown(selectedValue.typeCounts)}` : ""}`
+                            : overallCount !== undefined
+                                ? `${t("activity.overall")} · ${overallCount} ${overallUnitLabel}`
+                                : "-"}
+                    </Text>
+                </Host>
             </View>
         </View>
     );
@@ -221,19 +348,36 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     colors: ThemeColors;
     onSelectDay: (dateKey: string, date: Date, count: number) => void;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     return (
-        <View key={toDateKey(week.days[0].date)} style={{ width: cellSize, gap: CELL_GAP, marginRight: CELL_GAP }}>
-            <View style={{ height: cellSize, position: "relative" }}>
+        <View
+            key={toDateKey(week.days[0].date)}
+            style={{ width: cellSize, gap: CELL_GAP, marginRight: CELL_GAP }}
+        >
+            <View style={{ height: MONTH_LABEL_HEIGHT, position: "relative" }}>
                 {week.monthLabel ? (
-                    <AppText
-                        variant="caption"
-                        className="text-[9px]"
-                        numberOfLines={1}
-                        style={{ position: "absolute", left: 0, top: 0, width: 38, zIndex: 1 }}
+                    <Host
+                        matchContents
+                        ignoreSafeArea="all"
+                        style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            zIndex: 1,
+                        }}
                     >
-                        {week.monthLabel}
-                    </AppText>
+                        <Text
+                            numberOfLines={1}
+                            textStyle={{
+                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                color: uiColors.mutedForeground,
+                                fontSize: typography.subtext.fontSize * uiFontScale,
+                            }}
+                        >
+                            {week.monthLabel}
+                        </Text>
+                    </Host>
                 ) : null}
             </View>
             {week.days.map((day) => {
@@ -245,17 +389,26 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
                     <Pressable
                         key={dateKey}
                         accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
                         accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateKey })}${isToday ? ` (${t("activity.today")})` : ""}`}
                         hitSlop={4}
                         style={{
                             width: cellSize,
                             height: cellSize,
                             borderRadius: CELL_RADIUS,
-                            backgroundColor: getCellColor(day.count, colors, day.status),
+                            backgroundColor: getCellColor(
+                                day.count,
+                                colors,
+                                day.status,
+                            ),
                             borderWidth: isSelected || isToday ? 1.5 : 0,
-                            borderColor: isSelected ? colors.foreground : colors.primary,
+                            borderColor: isSelected
+                                ? colors.foreground
+                                : colors.primary,
                         }}
-                        onPress={() => onSelectDay(dateKey, day.date, day.count)}
+                        onPress={() =>
+                            onSelectDay(dateKey, day.date, day.count)
+                        }
                     />
                 );
             })}
@@ -263,25 +416,55 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     );
 });
 
-function buildWeeks(values: ActivityHeatmapValue[], endDate: Date, numDays: number, language: string) {
-    const counts = new Map(values.map((value) => [toDateKey(value.date), value.count]));
-    const statuses = new Map(values.map((value) => [toDateKey(value.date), value.status]));
-    const statusBreakdowns = new Map(values.map((value) => [toDateKey(value.date), value.statusBreakdown]));
-    const typeCounts = new Map(values.map((value) => [toDateKey(value.date), value.typeCounts]));
+function buildWeeks(
+    values: ActivityHeatmapValue[],
+    endDate: Date,
+    numDays: number,
+    language: string,
+) {
+    const counts = new Map(
+        values.map((value) => [toDateKey(value.date), value.count]),
+    );
+    const statuses = new Map(
+        values.map((value) => [toDateKey(value.date), value.status]),
+    );
+    const statusBreakdowns = new Map(
+        values.map((value) => [toDateKey(value.date), value.statusBreakdown]),
+    );
+    const typeCounts = new Map(
+        values.map((value) => [toDateKey(value.date), value.typeCounts]),
+    );
     const end = parseCalendarDate(endDate);
-    const start = new Date(end); start.setDate(start.getDate() - (numDays - 1));
+    const start = new Date(end);
+    start.setDate(start.getDate() - (numDays - 1));
     const dayOfWeek = start.getDay(); // 0 = Sun ... 6 = Sat
     const daysSinceMonday = (dayOfWeek + 6) % 7;
     start.setDate(start.getDate() - daysSinceMonday); // rewind to that week's Monday
     const weeks: ActivityHeatmapWeek[] = [];
-    for (let weekStart = new Date(start); weekStart <= end; weekStart.setDate(weekStart.getDate() + 7)) {
+    for (
+        let weekStart = new Date(start);
+        weekStart <= end;
+        weekStart.setDate(weekStart.getDate() + 7)
+    ) {
         const days = Array.from({ length: 7 }, (_, offset) => {
             const date = new Date(weekStart);
             date.setDate(date.getDate() + offset);
             const key = toDateKey(date);
-            return { date, count: counts.get(key) ?? 0, status: statuses.get(key), statusBreakdown: statusBreakdowns.get(key), typeCounts: typeCounts.get(key) };
+            return {
+                date,
+                count: counts.get(key) ?? 0,
+                status: statuses.get(key),
+                statusBreakdown: statusBreakdowns.get(key),
+                typeCounts: typeCounts.get(key),
+            };
         });
-        weeks.push({ days, monthLabel: weekStart.getDate() <= 7 ? weekStart.toLocaleDateString(language, { month: "short" }) : undefined });
+        weeks.push({
+            days,
+            monthLabel:
+                weekStart.getDate() <= 7
+                    ? weekStart.toLocaleDateString(language, { month: "short" })
+                    : undefined,
+        });
     }
     return weeks;
 }
@@ -294,7 +477,11 @@ function getScaleColor(level: number, colors: ThemeColors) {
     return `${colors.primary}${opacities[Math.min(level, 4) - 1]}`;
 }
 
-function getCellColor(count: number, colors: ThemeColors, status?: ActivityHeatmapStatus) {
+function getCellColor(
+    count: number,
+    colors: ThemeColors,
+    status?: ActivityHeatmapStatus,
+) {
     if (count <= 0) return getScaleColor(0, colors);
 
     switch (status) {
@@ -313,15 +500,25 @@ function getCellColor(count: number, colors: ThemeColors, status?: ActivityHeatm
     }
 }
 
-function formatStatusBreakdown(breakdown?: Partial<Record<ActivityHeatmapStatus, number>>) {
+function formatStatusBreakdown(
+    breakdown?: Partial<Record<ActivityHeatmapStatus, number>>,
+) {
     if (!breakdown) return "";
 
     const labels: Record<ActivityHeatmapStatus, string> = {
-        completed: i18n.t("activity.done"), "no-show": i18n.t("activity.absent"), cancelled: i18n.t("activity.cancelled"), reserved: i18n.t("activity.booked"), mixed: i18n.t("activity.mixed"), unknown: i18n.t("activity.other"),
+        completed: i18n.t("activity.completed"),
+        "no-show": i18n.t("activity.absent"),
+        cancelled: i18n.t("activity.cancelled"),
+        reserved: i18n.t("activity.booked"),
+        mixed: i18n.t("activity.mixed"),
+        unknown: i18n.t("activity.other"),
     };
     const details = Object.entries(breakdown)
         .filter(([, count]) => count && count > 0)
-        .map(([status, count]) => `${count} ${labels[status as ActivityHeatmapStatus]}`)
+        .map(
+            ([status, count]) =>
+                `${count} ${labels[status as ActivityHeatmapStatus]}`,
+        )
         .join(" · ");
 
     return details ? ` · ${details}` : "";
@@ -331,9 +528,15 @@ function formatTypeBreakdown(typeCounts?: { lesson: number; bay: number }) {
     if (!typeCounts) return "";
 
     const details = [
-        typeCounts.bay > 0 ? `${typeCounts.bay} ${i18n.t("activity.bay")}` : null,
-        typeCounts.lesson > 0 ? `${typeCounts.lesson} ${i18n.t("activity.lesson")}` : null,
-    ].filter(Boolean).join(" · ");
+        typeCounts.bay > 0
+            ? `${typeCounts.bay} ${i18n.t("activity.bay")}`
+            : null,
+        typeCounts.lesson > 0
+            ? `${typeCounts.lesson} ${i18n.t("activity.lesson")}`
+            : null,
+    ]
+        .filter(Boolean)
+        .join(" · ");
 
     return details;
 }
@@ -341,7 +544,8 @@ function formatTypeBreakdown(typeCounts?: { lesson: number; bay: number }) {
 function toDateKey(date: string | number | Date) {
     // Trust plain "YYYY-MM-DD" strings as-is — re-parsing them as a Date would
     // route through UTC and could shift the day depending on the caller's timezone.
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))
+        return date;
     const d = new Date(date);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");

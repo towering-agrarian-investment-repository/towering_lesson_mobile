@@ -1,13 +1,16 @@
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    AppText,
     Badge,
-    Card,
     EmptyState,
     ErrorState,
     getPressedScaleStyle,
     Skeleton,
     useThemeColors,
 } from "@/design-system";
+import { cn } from "@/design-system/utils/cn";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import {
     getMemberGroupByIdQueryOptions,
     useMemberGroups,
@@ -15,8 +18,9 @@ import {
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import type { MemberGroupSummaryResponse } from "@/types/member-group";
 import { formatType } from "@/utils/format-enum";
-import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { getGroupName } from "@/utils/member-lesson";
+import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
+import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Href, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -35,7 +39,8 @@ export function MemberGroups({
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberGroups();
+    const { data, isLoading, isError, refetch, isRefetching } =
+        useMemberGroups();
     const groups = data?.data ?? [];
 
     const renderGroup = useCallback(
@@ -68,7 +73,11 @@ export function MemberGroups({
                 <ErrorState
                     title={t("groups.loadError")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -77,7 +86,11 @@ export function MemberGroups({
                 <EmptyState
                     title={t("lessonLog.noPostsTitle")}
                     message={t("groups.joinProgramMessage")}
-                    actionLabel={isRefetching || refreshing ? t("common.refreshing") : t("lessonLog.refresh")}
+                    actionLabel={
+                        isRefetching || refreshing
+                            ? t("common.refreshing")
+                            : t("lessonLog.refresh")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -110,15 +123,21 @@ function GroupCard({
     onPress: () => void;
     onPressIn: () => void;
 }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const colors = useThemeColors();
     const groupName = getGroupName(group);
-    const statusLabel = group.groupStatus ? formatType(group.groupStatus) : null;
+    const statusLabel = group.groupStatus
+        ? formatType(group.groupStatus)
+        : null;
     const startDate = formatDateForDisplay(group.programStartDate ?? null);
     const endDate = formatDateForDisplay(group.programEndDate ?? null);
     const dateRange =
         startDate && endDate ? `${startDate} - ${endDate}` : startDate || "-";
-    const timeRange = formatTimeRange(group.sessionStartTime, group.sessionEndTime);
+    const timeRange = formatTimeRange(
+        group.sessionStartTime,
+        group.sessionEndTime,
+    );
     const lessonType = formatType(group.lessonType);
     const capacity = group.capacity
         ? t("groups.capacity", { value: group.capacity })
@@ -130,28 +149,49 @@ function GroupCard({
             accessibilityLabel={t("groups.openGroup", { name: groupName })}
             disabled={disabled}
             className="disabled:opacity-60"
-            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.992)}
+            style={({ pressed }) =>
+                getPressedScaleStyle(pressed, disabled, 0.992)
+            }
             onPress={onPress}
             onPressIn={onPressIn}
         >
-            <Card className="gap-3 border-border bg-card p-4">
+            <View
+                className={cn(
+                    "rounded-xl border border-border bg-card p-5",
+                    "gap-3 border-border bg-card p-4",
+                )}
+            >
                 <View className="flex-row items-start gap-3">
                     <View className="min-w-0 flex-1 gap-1">
-                        <AppText
-                            variant="h3"
-                            className="text-lg font-semibold leading-7 text-foreground"
-                            numberOfLines={2}
-                        >
-                            {groupName}
-                        </AppText>
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                numberOfLines={2}
+                                textStyle={{
+                                    ...typography.h3,
+                                    fontSize: typography.subtitle.fontSize * uiFontScale,
+                                    fontWeight: "600" as const,
+                                    lineHeight: typography.h3.lineHeight * uiFontScale,
+                                    color: uiColors.foreground,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {groupName}
+                            </Text>
+                        </Host>
 
-                        <AppText
-                            variant="meta"
-                            className="leading-5 text-muted-foreground"
-                            numberOfLines={1}
-                        >
-                            {group.lessonProgramName?.trim() || lessonType}
-                        </AppText>
+                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                            <Text
+                                numberOfLines={1}
+                                textStyle={{
+                                    ...typography.meta,
+                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
+                                    color: uiColors.mutedForeground,
+                                    fontSize:
+                                        typography.meta.fontSize * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {group.lessonProgramName?.trim() || lessonType}
+                            </Text>
+                        </Host>
                     </View>
 
                     <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -168,51 +208,74 @@ function GroupCard({
                         <Badge
                             label={statusLabel}
                             className="bg-primary/10 px-2.5 py-1"
-                            textClassName="text-primary"
+                            color="primary"
                         />
                     ) : null}
 
                     <Badge
                         label={lessonType}
                         className="bg-muted px-2.5 py-1"
-                        textClassName="text-muted-foreground"
+                        color="mutedForeground"
                     />
 
                     <Badge
                         label={capacity}
                         className="bg-muted px-2.5 py-1"
-                        textClassName="text-muted-foreground"
+                        color="mutedForeground"
                     />
                 </View>
 
                 <View className="gap-2 rounded-xl bg-surface px-3 py-3">
-                    <GroupMetaRow label={t("common.schedule")} value={dateRange} />
+                    <GroupMetaRow
+                        label={t("common.schedule")}
+                        value={dateRange}
+                    />
                     <GroupMetaRow label={t("common.time")} value={timeRange} />
                 </View>
-            </Card>
+            </View>
         </Pressable>
     );
 }
 
-function GroupMetaRow({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
+function GroupMetaRow({ label, value }: { label: string; value: string }) {
+    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <AppText variant="caption" className="shrink-0 leading-5 text-muted-foreground">
-                {label}
-            </AppText>
-            <AppText
-                variant="caption"
-                className="min-w-0 flex-1 text-right font-medium leading-5 text-foreground"
-                numberOfLines={1}
+            <Host
+                matchContents
+                ignoreSafeArea="all"
+                style={{ flexShrink: 0 }}
             >
-                {value}
-            </AppText>
+                <Text
+                    textStyle={{
+                        ...typography.caption,
+                        lineHeight: typography.subtext.lineHeight * uiFontScale,
+                        color: uiColors.mutedForeground,
+                        fontSize: typography.caption.fontSize * uiFontScale,
+                    }}
+                >
+                    {label}
+                </Text>
+            </Host>
+            <Host
+                matchContents={{ vertical: true }}
+                ignoreSafeArea="all"
+                style={{ flex: 1, minWidth: 0 }}
+            >
+                <Text
+                    numberOfLines={1}
+                    textStyle={{
+                        ...typography.caption,
+                        textAlign: "right" as const,
+                        fontWeight: "500" as const,
+                        lineHeight: typography.subtext.lineHeight * uiFontScale,
+                        color: uiColors.foreground,
+                        fontSize: typography.caption.fontSize * uiFontScale,
+                    }}
+                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
+                    {value}
+                </Text>
+            </Host>
         </View>
     );
 }

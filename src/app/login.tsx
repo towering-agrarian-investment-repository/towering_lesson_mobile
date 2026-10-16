@@ -1,34 +1,39 @@
-import {
-    FormNumberInput,
-    FormPasswordInput,
-} from "@/components/ui/form";
-import golfFieldImage from "@/assets/images/img_golf_filed.png";
 import goLogoImage from "@/assets/images/img_go.png";
-import { AppText, Screen, useThemeColors } from "@/design-system";
+import golfFieldImage from "@/assets/images/img_golf_filed.png";
+import { FormPasswordInput, FormTextInput } from "@/components/ui/form";
+import { Screen, useThemeColors } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
+import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { signIn } from "@/service/auth";
+import { Button, Host, Text } from "@expo/ui";
+import {
+    defaultMinSize,
+    fillMaxWidth,
+} from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { z } from "zod";
 
 const createLoginSchema = (t: (key: string) => string) =>
     z.object({
-        phoneNumber: z
-            .string()
-            .trim()
-            .min(1, t("login.phoneNumberRequired")),
+        phoneNumber: z.string().trim().min(1, t("login.phoneNumberRequired")),
         password: z.string().min(1, t("login.passwordRequired")),
     });
 
 type LoginFormValues = z.infer<ReturnType<typeof createLoginSchema>>;
 
 export default function LoginScreen() {
+    const { colors: uiColors, resolvedScheme, fontScale: uiFontScale } = useTheme();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isLoginPressed, setIsLoginPressed] = useState(false);
+    const loginPending = useRef(false);
     const colors = useThemeColors();
     const { t } = useTranslation();
     const loginSchema = createLoginSchema(t);
@@ -47,6 +52,8 @@ export default function LoginScreen() {
     };
 
     async function handleLogin(values: LoginFormValues) {
+        if (loginPending.current) return;
+        loginPending.current = true;
         form.clearErrors();
 
         try {
@@ -65,45 +72,54 @@ export default function LoginScreen() {
                         : t("login.genericError"),
             });
         } finally {
+            loginPending.current = false;
             setIsLoggingIn(false);
         }
     }
 
     return (
         <Screen
+            maxWidth={640}
             headerShown={false}
             keyboardAware
             horizontalPadding={false}
             contentClassName="justify-start"
         >
-            <View className="relative flex-1">
+            <View className="relative grow">
                 <View className="gap-10 px-6 pb-40 pt-6">
-                    <View className="items-start gap-5">
+                    <View className="w-full items-start gap-5">
                         <Image
                             source={goLogoImage}
-                            style={{
-                                width: 64,
-                                height: 40,
-                            }}
+                            style={{ width: 64, height: 40 }}
                             contentFit="contain"
                         />
-                        <View className="gap-3">
-                            <AppText selectable variant="h1">
-                                {t("login.title")}
-                            </AppText>
+                        <View className="w-full gap-3">
+                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                                <Text
+                                    textStyle={{
+                                        ...typography.h1, lineHeight: typography.h1.lineHeight * uiFontScale,
+                                        color: uiColors.foreground,
+                                        fontSize:
+                                            typography.h1.fontSize *
+                                            uiFontScale,
+                                    }}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                    {t("login.title")}
+                                </Text>
+                            </Host>
                         </View>
                     </View>
 
                     <View className="gap-6">
                         <View className="gap-5">
-                            <FormNumberInput
+                            <FormTextInput
                                 control={form.control}
                                 name="phoneNumber"
                                 label={t("login.phoneNumberLabel")}
                                 placeholder={t("login.phoneNumberPlaceholder")}
-                                numericMode="phone-pad"
+                                keyboardType="phone-pad"
+                                autoCapitalize="none"
                                 autoComplete="tel"
-                                textContentType="telephoneNumber"
                                 editable={!isLoggingIn}
                             />
 
@@ -113,50 +129,52 @@ export default function LoginScreen() {
                                 label={t("login.passwordLabel")}
                                 placeholder={t("login.passwordPlaceholder")}
                                 autoComplete="current-password"
-                                textContentType="password"
                                 editable={!isLoggingIn}
                             />
                         </View>
 
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={
-                                isLoggingIn
-                                    ? t("login.accessibilitySubmitting")
-                                    : t("login.accessibilitySubmit")
-                            }
-                            disabled={isLoggingIn}
-                            className={isLoggingIn ? "overflow-hidden rounded-xl opacity-50" : "overflow-hidden rounded-xl"}
-                            onPress={form.handleSubmit(handleLogin, handleInvalidLogin)}
-                            onPressIn={() => setIsLoginPressed(true)}
-                            onPressOut={() => setIsLoginPressed(false)}
+                        <LinearGradient
+                            colors={isLoginPressed
+                                ? [colors.btnMainPressedStart, colors.btnMainPressedEnd]
+                                : [colors.btnMainStart, colors.btnMainEnd]}
+                            onTouchStart={() => { if (!isLoggingIn) setIsLoginPressed(true); }}
+                            onTouchEnd={() => setIsLoginPressed(false)}
+                            onTouchCancel={() => setIsLoginPressed(false)}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={{ borderRadius: 12, overflow: "hidden", opacity: isLoggingIn ? 0.5 : 1 }}
                         >
-                            <LinearGradient
-                                colors={
-                                    isLoginPressed
-                                        ? [colors.btnMainPressedStart, colors.btnMainPressedEnd]
-                                        : [colors.btnMainStart, colors.btnMainEnd]
-                                }
-                                start={{ x: 0, y: 0.5 }}
-                                end={{ x: 1, y: 0.5 }}
-                                style={{
-                                    minHeight: 56,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    paddingHorizontal: 24,
-                                    borderRadius: 12,
-                                }}
+                            <Host
+                                matchContents={{ vertical: true }}
+                                ignoreSafeArea="all"
+                                colorScheme={resolvedScheme}
+                                style={{ width: "100%" }}
+                                accessibilityLabel={isLoggingIn ? t("login.accessibilitySubmitting") : t("login.accessibilitySubmit")}
+                                accessibilityState={{ disabled: isLoggingIn, busy: isLoggingIn }}
                             >
-                                <AppText
-                                    variant="label"
-                                    className="text-base font-semibold text-primary-foreground"
+                                <Button
+                                    variant="text"
+                                    style={getNativeButtonStyle(colors, "text")}
+                                    modifiers={process.env.EXPO_OS === "ios"
+                                        ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                                        : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })]}
+                                    disabled={isLoggingIn}
+                                    onPress={() => {
+                                        if (isLoggingIn) return;
+                                        void form.handleSubmit(handleLogin, handleInvalidLogin)();
+                                    }}
                                 >
-                                    {isLoggingIn
-                                        ? t("login.submitting")
-                                        : t("login.submit")}
-                                </AppText>
-                            </LinearGradient>
-                        </Pressable>
+                                    <Text
+                                        modifiers={process.env.EXPO_OS === "ios"
+                                            ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                                            : [fillMaxWidth()]}
+                                        textStyle={{ ...typography.label, lineHeight: typography.body.lineHeight * uiFontScale, fontSize: typography.body.fontSize * uiFontScale, fontWeight: "600", color: colors.primaryForeground, textAlign: "center" }}
+                                    >
+                                        {isLoggingIn ? t("login.submitting") : t("login.submit")}
+                                    </Text>
+                                </Button>
+                            </Host>
+                        </LinearGradient>
                     </View>
                 </View>
 

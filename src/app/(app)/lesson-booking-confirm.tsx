@@ -1,12 +1,10 @@
 import {
-    BookingConfirmationContent,
     BookingConfirmationFooter,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
-import {
-    ReservationDetailField,
-} from "@/components/golf/reservation/ReservationSections";
+import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { Divider, EmptyState, ErrorState, Screen } from "@/design-system";
+import { responseError } from "@/lib/api-response/api-response";
 import {
     getMemberTicketLessonSlotsQueryOptions,
     isReservationSlotUnavailable,
@@ -14,21 +12,18 @@ import {
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
-import { responseError } from "@/lib/api-response/api-response";
-import { useQueryClient } from "@tanstack/react-query";
 import {
     getLessonSlotDisplayName,
-    isLessonSlotBookable,
     isGroupLessonSlot,
+    isLessonSlotBookable,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
-import {
-    RefreshControl,
-} from "react-native";
 import { useTranslation } from "react-i18next";
+import { RefreshControl } from "react-native";
 
 export default function LessonBookingConfirmScreen() {
     const { t } = useTranslation();
@@ -57,7 +52,8 @@ export default function LessonBookingConfirmScreen() {
     }>();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
+    const isGroupTicket =
+        String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const notes = initialNotes?.trim() || null;
     const { mutate: createReservation, isPending: isCreating } =
         useCreateMemberLessonReservation();
@@ -73,16 +69,18 @@ export default function LessonBookingConfirmScreen() {
         Boolean(lessonAvailabilityIdNumber) &&
         Number.isFinite(year) &&
         Number.isFinite(month);
-    const {
-        data,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberTicketLessonSlots(ticketIdNumber, year, month, canLoadSlot);
+    const { data, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
+        ticketIdNumber,
+        year,
+        month,
+        canLoadSlot,
+    );
     const policies = [
         {
             title: t("bookingConfirmation.lessonCancellationPolicyTitle"),
-            description: t("bookingConfirmation.lessonCancellationPolicyDescription"),
+            description: t(
+                "bookingConfirmation.lessonCancellationPolicyDescription",
+            ),
         },
         {
             title: t("bookingConfirmation.lessonNoShowPolicyTitle"),
@@ -96,11 +94,14 @@ export default function LessonBookingConfirmScreen() {
     const isSelectedSlotBookable = selectedSlot
         ? isLessonSlotBookable(selectedSlot)
         : false;
-    const isSelectedSlotFull = selectedSlot ? isLessonSlotFull(selectedSlot) : false;
+    const isSelectedSlotFull = selectedSlot
+        ? isLessonSlotFull(selectedSlot)
+        : false;
     const isGroupSelection = selectedSlot
         ? isGroupLessonSlot(selectedSlot)
         : isGroupTicket;
-    const isMissingRequiredData = !ticketIdNumber || !lessonAvailabilityIdNumber;
+    const isMissingRequiredData =
+        !ticketIdNumber || !lessonAvailabilityIdNumber;
 
     const handleSlotUnavailable = async (error: unknown) => {
         if (!isReservationSlotUnavailable(error) || !ticketIdNumber) {
@@ -133,10 +134,10 @@ export default function LessonBookingConfirmScreen() {
 
     const handleConfirm = () => {
         if (
-            isCreating
-            || !ticketIdNumber
-            || !lessonAvailabilityIdNumber
-            || !selectedSlot
+            isCreating ||
+            !ticketIdNumber ||
+            !lessonAvailabilityIdNumber ||
+            !selectedSlot
         ) {
             return;
         }
@@ -182,13 +183,13 @@ export default function LessonBookingConfirmScreen() {
                         ticketName: response.data.ticket?.name ?? ticketName,
                         ticketRemainingCount:
                             response.data.ticket?.remainingCount,
-                        ticketIsUnlimited:
-                            response.data.ticket?.isUnlimited,
+                        ticketIsUnlimited: response.data.ticket?.isUnlimited,
                         date,
                         startTime: selectedSlot.startTime ?? startTime,
                         endTime: selectedSlot.endTime ?? endTime,
                         reservationName:
-                            getLessonSlotDisplayName(selectedSlot) ?? lessonName,
+                            getLessonSlotDisplayName(selectedSlot) ??
+                            lessonName,
                         coachName: selectedSlot.coachName ?? coachName,
                     }),
                 onError: handleSlotUnavailable,
@@ -199,6 +200,9 @@ export default function LessonBookingConfirmScreen() {
     const reservationName =
         (selectedSlot ? getLessonSlotDisplayName(selectedSlot) : null) ??
         lessonName ??
+        (isGroupSelection
+            ? t("bookingConfirmation.groupLessonFallback")
+            : t("bookingConfirmation.privateLessonFallback")) ??
         (isGroupSelection
             ? t("bookingConfirmation.groupLessonFallback")
             : t("bookingConfirmation.privateLessonFallback"));
@@ -213,27 +217,28 @@ export default function LessonBookingConfirmScreen() {
         isMissingRequiredData ||
         !selectedSlot ||
         isSelectedSlotFull;
-    const disabledReason =
-        isMissingRequiredData
-            ? t("bookingConfirmation.ticketOrSlotMissing")
-            : !selectedSlot
-                ? isGroupSelection
-                    ? t("bookingConfirmation.selectedGroupUnavailable")
-                    : t("bookingConfirmation.selectedLessonSlotUnavailable")
-                : isSelectedSlotFull
-                    ? isSelectedSlotBookable
-                        ? isGroupSelection
-                            ? t("bookingConfirmation.selectedGroupNowFull")
-                            : t("bookingConfirmation.selectedLessonSlotNowFull")
-                        : isGroupSelection
-                            ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
-                            : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
-                    : null;
+    const disabledReason = isMissingRequiredData
+        ? t("bookingConfirmation.ticketOrSlotMissing")
+        : !selectedSlot
+            ? isGroupSelection
+                ? t("bookingConfirmation.selectedGroupUnavailable")
+                : t("bookingConfirmation.selectedLessonSlotUnavailable")
+            : isSelectedSlotFull
+                ? isSelectedSlotBookable
+                    ? isGroupSelection
+                        ? t("bookingConfirmation.selectedGroupNowFull")
+                        : t("bookingConfirmation.selectedLessonSlotNowFull")
+                    : isGroupSelection
+                        ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
+                        : t(
+                            "bookingConfirmation.selectedLessonSlotCurrentlyNotBookable",
+                        )
+                : null;
 
     return (
         <Screen
             keyboardAware
-            contentClassName="flex-1"
+            contentClassName="grow"
             refreshControl={
                 <RefreshControl
                     refreshing={isRefetching}
@@ -266,9 +271,15 @@ export default function LessonBookingConfirmScreen() {
             />
             {isError ? (
                 <ErrorState
-                    title={t("bookingConfirmation.failedReservationDetailsTitle")}
+                    title={t(
+                        "bookingConfirmation.failedReservationDetailsTitle",
+                    )}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
                     onAction={() => {
                         void refetch();
                     }}
@@ -277,17 +288,27 @@ export default function LessonBookingConfirmScreen() {
                 <EmptyState
                     title={
                         isGroupSelection
-                            ? t("bookingConfirmation.selectedGroupUnavailableTitle")
-                            : t("bookingConfirmation.selectedLessonSlotUnavailableTitle")
+                            ? t(
+                                "bookingConfirmation.selectedGroupUnavailableTitle",
+                            )
+                            : t(
+                                "bookingConfirmation.selectedLessonSlotUnavailableTitle",
+                            )
                     }
                     message={
                         isGroupSelection
-                            ? t("bookingConfirmation.selectedGroupUnavailableMessage")
-                            : t("bookingConfirmation.selectedLessonSlotUnavailableMessage")
+                            ? t(
+                                "bookingConfirmation.selectedGroupUnavailableMessage",
+                            )
+                            : t(
+                                "bookingConfirmation.selectedLessonSlotUnavailableMessage",
+                            )
                     }
-                    actionLabel={isGroupSelection
-                        ? t("bookingConfirmation.chooseAnotherGroup")
-                        : t("bookingConfirmation.chooseAnotherSlot")}
+                    actionLabel={
+                        isGroupSelection
+                            ? t("bookingConfirmation.chooseAnotherGroup")
+                            : t("bookingConfirmation.chooseAnotherSlot")
+                    }
                     onAction={() => {
                         router.dismissTo({
                             pathname: "/select-lesson-slot",
@@ -302,7 +323,7 @@ export default function LessonBookingConfirmScreen() {
                     }}
                 />
             ) : (
-                <BookingConfirmationContent
+                <ReservationContent
                     disabledReason={disabledReason}
                     policies={policies}
                 >
@@ -338,7 +359,7 @@ export default function LessonBookingConfirmScreen() {
                             />
                         </>
                     ) : null}
-                </BookingConfirmationContent>
+                </ReservationContent>
             )}
         </Screen>
     );

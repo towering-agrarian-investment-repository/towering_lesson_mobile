@@ -1,6 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SystemUI from "expo-system-ui";
-import { useColorScheme } from "nativewind";
 import {
     createContext,
     createElement,
@@ -9,7 +8,11 @@ import {
     useEffect,
     useState,
 } from "react";
-import { useColorScheme as useSystemColorScheme } from "react-native";
+import {
+    Appearance,
+    useColorScheme as useSystemColorScheme,
+    useWindowDimensions,
+} from "react-native";
 
 export type ThemeColors = {
     background: string;
@@ -100,27 +103,25 @@ const PRIMARY_COLOR_PREFERENCE_STORAGE_KEY = "app-primary-color-preference";
 
 type ThemeContextValue = {
     colors: ThemeColors;
+    /** Compose scales sp itself; SwiftUI's explicit font sizes need this factor. */
+    fontScale: number;
     isReady: boolean;
     preference: ThemePreference;
     resolvedScheme: "light" | "dark";
     setPreference: (preference: ThemePreference) => Promise<void>;
     primaryColorPreference: PrimaryColorPreference;
-    setPrimaryColorPreference: (preference: PrimaryColorPreference) => Promise<void>;
+    setPrimaryColorPreference: (
+        preference: PrimaryColorPreference,
+    ) => Promise<void>;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function applyThemePreference(
-    setColorScheme: (scheme: "light" | "dark" | "unspecified") => void,
-    preference: ThemePreference,
-) {
+function applyThemePreference(preference: ThemePreference) {
     try {
-        if (preference === "system") {
-            setColorScheme("unspecified");
-            return;
-        }
-
-        setColorScheme(preference);
+        Appearance.setColorScheme(
+            preference === "system" ? "auto" : preference,
+        );
     } catch {
         // Fall back to local provider state if the platform setter is unavailable.
     }
@@ -144,9 +145,10 @@ export function getThemeColors(
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const { colorScheme, setColorScheme } = useColorScheme();
     const systemColorScheme = useSystemColorScheme();
-    const [preference, setPreferenceState] = useState<ThemePreference>("system");
+    const { fontScale } = useWindowDimensions();
+    const [preference, setPreferenceState] =
+        useState<ThemePreference>("system");
     const [primaryColorPreference, setPrimaryColorPreferenceState] =
         useState<PrimaryColorPreference>("blue");
     const [isReady, setIsReady] = useState(false);
@@ -176,7 +178,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                 setPrimaryColorPreferenceState(
                     storedPrimaryColor === "green" ? "green" : "blue",
                 );
-                applyThemePreference(setColorScheme, nextPreference);
+                applyThemePreference(nextPreference);
             } finally {
                 if (isMounted) {
                     setIsReady(true);
@@ -189,12 +191,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return () => {
             isMounted = false;
         };
-    }, [setColorScheme]);
+    }, []);
 
     const handleSetPreference = async (nextPreference: ThemePreference) => {
         setPreferenceState(nextPreference);
-        applyThemePreference(setColorScheme, nextPreference);
-        await AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, nextPreference);
+        applyThemePreference(nextPreference);
+        await AsyncStorage.setItem(
+            THEME_PREFERENCE_STORAGE_KEY,
+            nextPreference,
+        );
     };
 
     const handleSetPrimaryColorPreference = async (
@@ -208,16 +213,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
 
     const effectiveColorScheme =
-        preference === "system" ? systemColorScheme : colorScheme;
+        preference === "system" ? systemColorScheme : preference;
     const resolvedScheme = effectiveColorScheme === "dark" ? "dark" : "light";
     const colors = getThemeColors(resolvedScheme, primaryColorPreference);
 
     useEffect(() => {
-        void SystemUI.setBackgroundColorAsync(colors.background).catch(() => { });
+        void SystemUI.setBackgroundColorAsync(colors.background).catch(
+            () => {},
+        );
     }, [colors.background]);
 
     const value: ThemeContextValue = {
         colors,
+        fontScale: process.env.EXPO_OS === "ios" ? fontScale : 1,
         isReady,
         preference,
         resolvedScheme,
