@@ -86,7 +86,7 @@ export function ActivityOverview() {
     if (isError && !activity) {
         return (
             <ErrorState
-                title="Couldn't load activity"
+                title={t("activity.couldNotLoad")}
                 message={t("common.pullToRefreshAndTryAgain")}
                 actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                 onAction={() => {
@@ -124,9 +124,9 @@ export function ActivityOverview() {
             const permission = await MediaLibrary.requestPermissionsAsync(true);
             if (!permission.granted) {
                 const actions = permission.canAskAgain
-                    ? [{ text: "OK" }]
+                    ? [{ text: t("activity.ok") }]
                     : [
-                          { text: "Cancel", style: "cancel" as const },
+                          { text: t("common.cancel"), style: "cancel" as const },
                           { text: t("activity.openSettings"), onPress: () => void Linking.openSettings() },
                       ];
 
@@ -189,7 +189,7 @@ export function ActivityOverview() {
                                 key={year}
                                 accessibilityRole="button"
                                 accessibilityState={{ selected: selectedYear === year }}
-                                accessibilityLabel={`Show activity for ${year}`}
+                                accessibilityLabel={t("activity.showYear", { year })}
                                 className={`rounded-full px-4 py-2 ${selectedYear === year ? "bg-primary" : "bg-muted"}`}
                                 onPress={() => setSelectedYear(year)}
                             >
@@ -204,7 +204,7 @@ export function ActivityOverview() {
                         <Pressable
                             accessibilityRole="button"
                             accessibilityState={{ selected: selectedYear === "all" }}
-                            accessibilityLabel="Show all activity"
+                            accessibilityLabel={t("activity.showAll")}
                             className={`rounded-full px-4 py-2 ${selectedYear === "all" ? "bg-primary" : "bg-muted"}`}
                             onPress={() => setSelectedYear("all")}
                         >
@@ -226,7 +226,7 @@ export function ActivityOverview() {
 
                 <View className="flex-row gap-3">
                     <ActivityStat value={String(activeDays)} label={t("activity.reservationDays")} />
-                    <ActivityStat value={`${totalHours.toFixed(1)}h`} label={t("activity.reservationHours")} divided />
+                    <ActivityStat value={t("activity.hoursValue", { value: totalHours.toFixed(1) })} label={t("activity.reservationHours")} divided />
                     <ActivityStat value={String(totalReservations)} label={t("activity.totalReservations")} divided />
                 </View>
 
@@ -238,7 +238,7 @@ export function ActivityOverview() {
                         numDays={daysInYear}
                         yearLabel={activityLabel}
                         overallCount={totalReservations}
-                        overallUnitLabel="reservations"
+                        overallUnitLabel={t("activity.reservations")}
                     />
                 </View>
 
@@ -251,7 +251,7 @@ export function ActivityOverview() {
                         <ActivityStatusLegend includeMixed={false} />
                     </View>
                     <WeeklySummary
-                        unitLabel="reservations"
+                        unitLabel={t("activity.reservations")}
                         startDate={isAllActivity ? firstDate : new Date(activityYear, 0, 1)}
                         endDate={weeklyEndDate}
                         initialScrollToEnd={activityYear === currentYear}
@@ -290,7 +290,7 @@ export function ActivityOverview() {
                             <AppText variant="h3">{t("activity.preview")}</AppText>
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel="Close screenshot preview"
+                                accessibilityLabel={t("common.closeTitle", { title: t("activity.preview") })}
                                 hitSlop={10}
                                 onPress={() => setShowShareCard(false)}
                             >
@@ -326,10 +326,10 @@ export function ActivityOverview() {
                             </View>
                             <View className="flex-row items-center justify-between">
                                 <AppText variant="label">
-                                    {t("activity.showDayNumbers", { defaultValue: "Show day numbers" })}
+                                    {t("activity.showDayNumbers")}
                                 </AppText>
                                 <Switch
-                                    accessibilityLabel={t("activity.showDayNumbers", { defaultValue: "Show day numbers" })}
+                                    accessibilityLabel={t("activity.showDayNumbers")}
                                     value={showDayNumbers}
                                     onValueChange={setShowDayNumbers}
                                     trackColor={{ false: colors.muted, true: colors.primary }}

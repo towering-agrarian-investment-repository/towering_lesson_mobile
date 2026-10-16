@@ -5,6 +5,7 @@ import { useTheme } from "../../utils/theme";
 import { AppText } from "../AppText";
 import type { ActivityHeatmapStatus } from "./activity-heatmap";
 import i18n from "@/i18n";
+import { useTranslation } from "react-i18next";
 
 export type WeeklySummaryValue = {
     weekStart: string | number | Date;
@@ -47,6 +48,7 @@ const SCROLL_TRACK_WIDTH = 64;
 const MIN_SCROLL_THUMB_WIDTH = 14;
 
 export function WeeklySummary({ values, startDate, endDate = new Date(), numWeeks = 12, initialScrollToEnd = false, overallCount, title, unitLabel = "activities", className, onWeekPress, ...props }: WeeklySummaryProps) {
+    const { t, i18n: { language } } = useTranslation();
     const { colors } = useTheme();
     const [containerWidth, setContainerWidth] = useState(0);
     const startDateKey = startDate ? weekKey(startDate) : "";
@@ -57,8 +59,9 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
             startDateKey ? parseCalendarDate(startDateKey) : undefined,
             parseCalendarDate(endDateKey),
             numWeeks,
+            language,
         ),
-        [values, startDateKey, endDateKey, numWeeks],
+        [values, startDateKey, endDateKey, numWeeks, language],
     );
     const maxTotal = Math.max(1, ...weeks.map((w) => w.total));
     const hasData = weeks.some((week) => week.total > 0);
@@ -150,7 +153,7 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
                 <View
                     accessible
                     accessibilityRole="adjustable"
-                    accessibilityLabel={i18n.t("activity.horizontalScroll")}
+                    accessibilityLabel={t("activity.horizontalScroll")}
                     className="self-center rounded-full bg-muted"
                     style={{ width: SCROLL_TRACK_WIDTH, height: 4 }}
                 >
@@ -165,7 +168,7 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
             {selectedSummary ? (
                 <View className="gap-0.5">
                     <AppText variant="caption" className="text-left">
-                        {i18n.t("activity.weekOf", { date: selectedSummary.label })} · {selectedSummary.total} {unitLabel}{formatStatusBreakdown(selectedSummary.statusBreakdown)}
+                        {t("activity.weekOf", { date: selectedSummary.label })} · {selectedSummary.total} {unitLabel}{formatStatusBreakdown(selectedSummary.statusBreakdown)}
                     </AppText>
                     <AppText variant="caption" className="text-left">
                         {formatTypeBreakdown(selectedSummary.typeCounts) || "-"}
@@ -173,12 +176,12 @@ export function WeeklySummary({ values, startDate, endDate = new Date(), numWeek
                 </View>
             ) : (
                 <AppText variant="caption" className="text-left">
-                    {i18n.t("activity.overall")} · {overallCount !== undefined ? `${overallCount} ${unitLabel}` : "-"}
+                    {t("activity.overall")} · {overallCount !== undefined ? `${overallCount} ${unitLabel}` : "-"}
                 </AppText>
             )}
             {!hasData ? (
                 <AppText variant="caption" className="text-center text-muted-foreground">
-                    {i18n.t("activity.noRecorded", { unit: unitLabel })}
+                    {t("activity.noRecorded", { unit: unitLabel })}
                 </AppText>
             ) : null}
         </View>
@@ -204,6 +207,7 @@ const WeeklyBar = memo(function WeeklyBar({
     colors: ReturnType<typeof useTheme>["colors"];
     onPress: (weekStart: Date, total: number, key: string) => void;
 }) {
+    const { t } = useTranslation();
     const key = weekKey(week.weekStart);
     const isCurrent = key === currentWeekKey;
     const isSelected = key === selectedWeek;
@@ -213,7 +217,7 @@ const WeeklyBar = memo(function WeeklyBar({
     return (
         <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${week.total} ${unitLabel} · ${i18n.t("activity.weekOf", { date: key })}${isCurrent ? ` (${i18n.t("activity.currentWeek")})` : ""}`}
+            accessibilityLabel={`${week.total} ${unitLabel} · ${t("activity.weekOf", { date: key })}${isCurrent ? ` (${t("activity.currentWeek")})` : ""}`}
             onPress={() => onPress(week.weekStart, week.total, key)}
             style={{ width: barWidth, alignItems: "center", gap: 4 }}
         >
@@ -270,7 +274,7 @@ function buildStatusSegments(
     });
 }
 
-function buildWeekSummaries(values: WeeklySummaryValue[], startDate: Date | undefined, endDate: Date, numWeeks: number) {
+function buildWeekSummaries(values: WeeklySummaryValue[], startDate: Date | undefined, endDate: Date, numWeeks: number, language: string) {
     const totals = new Map(values.map((v) => [weekKey(v.weekStart), v]));
     const start = parseCalendarDate(startDate ?? endDate);
     const end = parseCalendarDate(endDate);
@@ -289,7 +293,7 @@ function buildWeekSummaries(values: WeeklySummaryValue[], startDate: Date | unde
         const weekStart = new Date(firstWeekStart); weekStart.setDate(firstWeekStart.getDate() + i * 7);
         const key = weekKey(weekStart);
         const value = totals.get(key);
-        weeks.push({ weekStart, total: value?.total ?? 0, status: value?.status, statusBreakdown: value?.statusBreakdown, typeCounts: value?.typeCounts, label: weekStart.toLocaleDateString(i18n.language, { month: "short", day: "numeric" }) });
+        weeks.push({ weekStart, total: value?.total ?? 0, status: value?.status, statusBreakdown: value?.statusBreakdown, typeCounts: value?.typeCounts, label: weekStart.toLocaleDateString(language, { month: "short", day: "numeric" }) });
     }
     return weeks;
 }

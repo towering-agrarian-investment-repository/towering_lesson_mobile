@@ -21,6 +21,7 @@ import { useAppUpdateContext } from "@/lib/update/update-context";
 import { openStore } from "@/lib/update/app-update";
 import { showAppToast } from "@/lib/toast/toast";
 import { signOut } from "@/service/auth";
+import type { GenderEnum } from "@/types/member.type";
 import { formatType } from "@/utils/format-enum";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -57,6 +58,11 @@ export default function ProfileScreen() {
     } = useGetMemberProfile();
 
     const member = memberResponse?.data;
+    const genderLabels: Record<GenderEnum, string> = {
+        MALE: t("profile.genderMale"),
+        FEMALE: t("profile.genderFemale"),
+        OTHER: t("profile.genderOther"),
+    };
     const handleSignOut = async () => {
         if (isSigningOut) {
             return;
@@ -173,7 +179,10 @@ export default function ProfileScreen() {
                     <View className="flex-col">
                         <InfoRow label={t("profile.phone")} value={member?.phoneNumber} />
                         <Divider className="bg-border" />
-                        <InfoRow label={t("profile.gender")} value={formatType(member?.gender)} />
+                        <InfoRow
+                            label={t("profile.gender")}
+                            value={member?.gender ? genderLabels[member.gender] ?? "-" : "-"}
+                        />
                     </View>
                 </Card>
 

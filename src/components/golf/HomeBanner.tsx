@@ -80,7 +80,6 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
     return (
         <View
             className="self-stretch gap-3"
-            style={{ marginHorizontal: -20 }}
             onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
         >
             <FlatList

@@ -4,6 +4,7 @@ import { cn } from "../../utils/cn";
 import { useTheme, type ThemeColors } from "../../utils/theme";
 import { AppText } from "../AppText";
 import i18n from "@/i18n";
+import { useTranslation } from "react-i18next";
 
 export type ActivityHeatmapStatus = "completed" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
 export type ActivityHeatmapValue = {
@@ -15,20 +16,21 @@ export type ActivityHeatmapValue = {
 };
 
 export function ActivityStatusLegend({ className, includeMixed = true }: { className?: string; includeMixed?: boolean }) {
+    const { t } = useTranslation();
     const { colors } = useTheme();
 
     return (
         <View className={cn("flex-row items-center", className)} style={{ gap: 4 }}>
             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.success }} />
-            <AppText variant="caption" className="text-[9px]">{i18n.t("activity.done")}</AppText>
+            <AppText variant="caption" className="text-[9px]">{t("activity.done")}</AppText>
             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.danger }} />
-            <AppText variant="caption" className="text-[9px]">{i18n.t("activity.absent")}</AppText>
+            <AppText variant="caption" className="text-[9px]">{t("activity.absent")}</AppText>
             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.ticketPrivate }} />
-            <AppText variant="caption" className="text-[9px]">{i18n.t("activity.booked")}</AppText>
+            <AppText variant="caption" className="text-[9px]">{t("activity.booked")}</AppText>
             {includeMixed ? (
                 <>
                     <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.warning }} />
-                    <AppText variant="caption" className="text-[9px]">{i18n.t("activity.mixed")}</AppText>
+                    <AppText variant="caption" className="text-[9px]">{t("activity.mixed")}</AppText>
                 </>
             ) : null}
         </View>
@@ -57,14 +59,16 @@ const LABEL_COL_WIDTH = 20;
 const LABEL_BUFFER = 24;
 const SCROLL_TRACK_WIDTH = 64;
 const MIN_SCROLL_THUMB_WIDTH = 14;
-const WEEKDAY_LABELS = ["M", "W", "F", "S"];
+const WEEKDAY_OFFSETS = [0, 2, 4, 6];
 
 export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, title, legend = true, overallCount, overallUnitLabel = "activities", yearLabel, className, onDayPress, ...props }: ActivityHeatmapProps) {
+    const { t, i18n: { language } } = useTranslation();
     const { colors } = useTheme();
     const todayKey = toDateKey(new Date());
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [containerWidth, setContainerWidth] = useState(0);
-    const weeks = useMemo(() => buildWeeks(values, endDate, numDays), [values, endDate, numDays]);
+    const weeks = useMemo(() => buildWeeks(values, endDate, numDays, language), [values, endDate, numDays, language]);
+    const weekdayLabels = WEEKDAY_OFFSETS.map((offset) => new Date(2024, 0, 1 + offset).toLocaleDateString(language, { weekday: "narrow" }));
     const selectedValue = values.find((value) => toDateKey(value.date) === selectedDay);
 
     // Focus the current month for the current year, or January for a historical
@@ -135,8 +139,8 @@ export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, t
             </View>
             <View className="flex-row" style={{ gap: CELL_GAP }}>
                 <View style={{ width: LABEL_COL_WIDTH, height: cellSize * 7 + CELL_GAP * 6, marginTop: cellSize + CELL_GAP }}>
-                    {WEEKDAY_LABELS.map((label, i) => (
-                        <AppText key={label} variant="caption" className="text-[9px]" style={{ position: "absolute", top: i * 2 * (cellSize + CELL_GAP) }}>
+                    {weekdayLabels.map((label, i) => (
+                        <AppText key={i} variant="caption" className="text-[9px]" style={{ position: "absolute", top: i * 2 * (cellSize + CELL_GAP) }}>
                             {label}
                         </AppText>
                     ))}
@@ -164,7 +168,7 @@ export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, t
                 <View
                     accessible
                     accessibilityRole="adjustable"
-                    accessibilityLabel={i18n.t("activity.horizontalScroll")}
+                    accessibilityLabel={t("activity.horizontalScroll")}
                     className="self-center rounded-full bg-muted"
                     style={{ width: SCROLL_TRACK_WIDTH, height: 4 }}
                 >
@@ -179,9 +183,9 @@ export function ActivityHeatmap({ values, endDate = new Date(), numDays = 365, t
             <View className="flex-row items-center justify-between gap-2">
                 <AppText variant="caption" className="min-w-0 flex-1 text-[10px]" numberOfLines={1}>
                     {selectedValue
-                        ? `${i18n.t("activity.activityCount", { count: selectedValue.count })} ${i18n.t("activity.onDate", { date: selectedDay })}${formatStatusBreakdown(selectedValue.statusBreakdown)}${formatTypeBreakdown(selectedValue.typeCounts) ? ` · ${formatTypeBreakdown(selectedValue.typeCounts)}` : ""}`
+                        ? `${t("activity.activityCount", { count: selectedValue.count })} ${t("activity.onDate", { date: selectedDay })}${formatStatusBreakdown(selectedValue.statusBreakdown)}${formatTypeBreakdown(selectedValue.typeCounts) ? ` · ${formatTypeBreakdown(selectedValue.typeCounts)}` : ""}`
                         : overallCount !== undefined
-                            ? `${i18n.t("activity.overall")} · ${overallCount} ${overallUnitLabel}`
+                            ? `${t("activity.overall")} · ${overallCount} ${overallUnitLabel}`
                         : "-"}
                 </AppText>
             </View>
@@ -217,6 +221,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     colors: ThemeColors;
     onSelectDay: (dateKey: string, date: Date, count: number) => void;
 }) {
+    const { t } = useTranslation();
     return (
         <View key={toDateKey(week.days[0].date)} style={{ width: cellSize, gap: CELL_GAP, marginRight: CELL_GAP }}>
             <View style={{ height: cellSize, position: "relative" }}>
@@ -240,7 +245,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
                     <Pressable
                         key={dateKey}
                         accessibilityRole="button"
-                        accessibilityLabel={`${i18n.t("activity.activityCount", { count: day.count })} ${i18n.t("activity.onDate", { date: dateKey })}${isToday ? ` (${i18n.t("activity.today")})` : ""}`}
+                        accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateKey })}${isToday ? ` (${t("activity.today")})` : ""}`}
                         hitSlop={4}
                         style={{
                             width: cellSize,
@@ -258,7 +263,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     );
 });
 
-function buildWeeks(values: ActivityHeatmapValue[], endDate: Date, numDays: number) {
+function buildWeeks(values: ActivityHeatmapValue[], endDate: Date, numDays: number, language: string) {
     const counts = new Map(values.map((value) => [toDateKey(value.date), value.count]));
     const statuses = new Map(values.map((value) => [toDateKey(value.date), value.status]));
     const statusBreakdowns = new Map(values.map((value) => [toDateKey(value.date), value.statusBreakdown]));
@@ -276,7 +281,7 @@ function buildWeeks(values: ActivityHeatmapValue[], endDate: Date, numDays: numb
             const key = toDateKey(date);
             return { date, count: counts.get(key) ?? 0, status: statuses.get(key), statusBreakdown: statusBreakdowns.get(key), typeCounts: typeCounts.get(key) };
         });
-        weeks.push({ days, monthLabel: weekStart.getDate() <= 7 ? weekStart.toLocaleDateString(undefined, { month: "short" }) : undefined });
+        weeks.push({ days, monthLabel: weekStart.getDate() <= 7 ? weekStart.toLocaleDateString(language, { month: "short" }) : undefined });
     }
     return weeks;
 }

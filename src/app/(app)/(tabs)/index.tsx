@@ -133,14 +133,16 @@ export default function HomeScreen() {
     >
       <View className="flex-1 gap-4">
         <HappyGolfLogo
-          width={148}
-          height={35}
+          width={120}
+          height={28}
           primaryColor={colors.primary}
           accentColor={colors.warning}
         />
 
         <View className="gap-6">
-          <HomeBanner banners={publishedBanners} />
+          <View className="-mx-5 px-4">
+            <HomeBanner banners={publishedBanners} />
+          </View>
 
           <View className="gap-4">
             {member ? (

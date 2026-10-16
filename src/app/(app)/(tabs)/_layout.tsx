@@ -86,7 +86,7 @@ function TabLayout() {
             <Tabs.Screen
                 name='activity'
                 options={{
-                    title: "Your Activity",
+                    title: t("activity.title"),
                     headerShown: true,
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons

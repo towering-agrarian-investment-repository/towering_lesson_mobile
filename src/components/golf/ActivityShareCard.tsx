@@ -36,7 +36,7 @@ export const ActivityShareCard = forwardRef<View, ActivityShareCardProps>(functi
                 </View>
                 <View className="mt-3 flex-row gap-3">
                     <ShareMetric value={String(totalDays)} label={t("activity.daysPlayed")} />
-                    <ShareMetric value={`${totalHours.toFixed(1)}h`} label={t("activity.hoursOnCourse")} divided />
+                    <ShareMetric value={t("activity.hoursValue", { value: totalHours.toFixed(1) })} label={t("activity.hoursOnCourse")} divided />
                 </View>
             </View>
             <View className="px-6 pb-3 pt-3">

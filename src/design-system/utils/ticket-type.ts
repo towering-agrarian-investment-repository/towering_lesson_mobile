@@ -1,4 +1,5 @@
 import type { TicketType } from "@/types/member.type";
+import type { TFunction } from "i18next";
 
 export type TicketTypeToneName =
     | "bayUsage"
@@ -94,17 +95,30 @@ export function getTicketTypeToneName(
     }
 }
 
-export function formatTicketTypeLabel(type?: TicketType | string | null) {
+export function formatTicketTypeLabel(
+    type: TicketType | string | null | undefined,
+    t: TFunction,
+) {
     if (!type) {
         return "";
     }
 
-    return type
-        .toLowerCase()
-        .split("_")
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
+    switch (type.toUpperCase()) {
+        case "BAY_USAGE":
+            return t("tickets.types.bayUsage");
+        case "PRIVATE_LESSON":
+            return t("tickets.types.privateLesson");
+        case "GROUP_LESSON":
+            return t("tickets.types.groupLesson");
+        case "LESSON_PROGRAM":
+            return t("tickets.types.lessonProgram");
+        case "LOCKER_SERVICE":
+            return t("tickets.types.lockerService");
+        case "LOCATION":
+            return t("tickets.types.location");
+        default:
+            return t("tickets.types.other");
+    }
 }
 
 export function getTicketTypeTone(

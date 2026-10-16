@@ -12,7 +12,7 @@ import { AvailabilityConflictNotice } from "@/components/golf/booking/Availabili
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
-import { formatTypeOrNull } from "@/utils/format-enum";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import {
     getLessonSlotDisplayName,
@@ -133,10 +133,10 @@ export default function SelectLessonSlotScreen() {
                     step={2}
                     totalSteps={3}
                     context={
-                        formatTypeOrNull(ticketType) ?? ticketName
+                        formatTicketTypeLabel(ticketType, t) || ticketName
                     }
                     selectionTrail={[
-                        formatTypeOrNull(ticketType) ?? ticketName,
+                        formatTicketTypeLabel(ticketType, t) || ticketName,
                         formatDateValue(date, "M.d"),
                     ]}
                 />

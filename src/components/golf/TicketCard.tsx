@@ -5,10 +5,10 @@ import {
     useThemeColors,
 } from "@/design-system";
 import {
+    formatTicketTypeLabel,
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
 import { TicketListItemResponse } from "@/types/member-ticket";
-import { formatType } from "@/utils/format-enum";
 import * as Haptics from "expo-haptics";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
@@ -60,7 +60,7 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
     const isBookingDisabled =
         disabled || isInactive;
 
-    const badgeLabel = formatType(item.type);
+    const badgeLabel = formatTicketTypeLabel(item.type, t) || "-";
     const usageNote = getUsageNote(item, t);
 
     const handlePress = () => {

@@ -11,7 +11,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
-import { formatTypeOrNull } from "@/utils/format-enum";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -86,7 +86,7 @@ export default function BayScreen() {
     const visibleConflictMessage = dismissedConflictId === conflictId
         ? undefined
         : conflictMessage;
-    const bookingContext = formatTypeOrNull(ticketType) ?? ticketName;
+    const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
 
     const loadingRows = chunkItems(
         Array.from({ length: 6 }, (_, index) => index),

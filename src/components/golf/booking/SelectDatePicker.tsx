@@ -13,7 +13,7 @@ import {
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
-import { formatType } from "@/utils/format-enum";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -315,11 +315,7 @@ export default function DateScreen() {
         void refetchBaySlotGroups();
     };
 
-    const formattedTicketType = formatType(ticketType);
-    const bookingContext =
-        formattedTicketType !== "-"
-            ? formattedTicketType
-            : ticketName || t("common.noTicket");
+    const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName || t("common.noTicket");
     const language = i18n.resolvedLanguage?.toLowerCase() ?? "en";
     const calendarLocale = language.startsWith("ko")
         ? "ko"

@@ -567,6 +567,7 @@ function HeaderSection({
     reservationStatus?: string | null;
     ticketType?: string | null;
 }) {
+    const { t } = useTranslation();
     const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
 
     return (
@@ -574,7 +575,7 @@ function HeaderSection({
             {ticketType && ticketTone ? (
                 <View className="flex-row flex-wrap">
                     <Badge
-                        label={formatTicketTypeLabel(ticketType)}
+                        label={formatTicketTypeLabel(ticketType, t)}
                         className={`${ticketTone.badgeClassName} px-2 py-0.5`}
                         textClassName={`${ticketTone.badgeTextClassName} text-xs font-semibold leading-4`}
                     />

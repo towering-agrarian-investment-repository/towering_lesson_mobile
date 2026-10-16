@@ -10,7 +10,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
-import { formatTypeOrNull } from "@/utils/format-enum";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -60,7 +60,7 @@ export default function TimeScreen() {
                 .filter((item) => item.availableBayCount > 0),
         [data?.data],
     );
-    const bookingContext = formatTypeOrNull(ticketType) ?? ticketName;
+    const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
 
     const handleSelect = (group: BaySlotGroupScheduleResponse) => {
         runWithNavigationLock(() => {
