@@ -3,15 +3,16 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { showAppToast } from "@/lib/toast/toast";
 import type { PublishedBanner } from "@/types/banner";
 import { Image } from "expo-image";
-import { Href, useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Href, useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Linking, Pressable, View } from "react-native";
+import { AppState, FlatList, Linking, Pressable, View } from "react-native";
 
 const BANNER_ASPECT_RATIO = 993 / 250;
 const AUTO_ROTATE_MS = 5000;
+const EMPTY_BANNERS: PublishedBanner[] = [];
 
-export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
+export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBanner[] }) {
     const { t } = useTranslation();
     const router = useRouter();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
@@ -41,17 +42,31 @@ export function HomeBanner({ banners = [] }: { banners?: PublishedBanner[] }) {
         listRef.current?.scrollToIndex({ index: 0, animated: false });
     }, [items.length]);
 
-    useEffect(() => {
+    useFocusEffect(useCallback(() => {
         if (items.length < 2 || width === 0) return;
 
-        const timer = setInterval(() => {
-            const next = (indexRef.current + 1) % items.length;
-            indexRef.current = next;
-            listRef.current?.scrollToIndex({ index: next, animated: true });
-        }, AUTO_ROTATE_MS);
+        let timer: ReturnType<typeof setInterval> | undefined;
+        const stop = () => {
+            if (timer !== undefined) clearInterval(timer);
+            timer = undefined;
+        };
+        const syncTimer = () => {
+            stop();
+            if (AppState.currentState !== "active") return;
+            timer = setInterval(() => {
+                const next = (indexRef.current + 1) % items.length;
+                indexRef.current = next;
+                listRef.current?.scrollToIndex({ index: next, animated: true });
+            }, AUTO_ROTATE_MS);
+        };
+        syncTimer();
+        const subscription = AppState.addEventListener("change", syncTimer);
 
-        return () => clearInterval(timer);
-    }, [items.length, width]);
+        return () => {
+            stop();
+            subscription.remove();
+        };
+    }, [items.length, width]));
 
     const openBanner = (targetUrl: string | null) => {
         if (!targetUrl) return;

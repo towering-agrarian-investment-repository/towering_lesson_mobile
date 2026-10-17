@@ -6,15 +6,19 @@ export function useNetworkStatus() {
 
     useEffect(() => {
         let mounted = true;
+        let receivedEvent = false;
 
         void Network.getNetworkStateAsync().then((state) => {
-            if (mounted) {
-                setIsOnline(state.isConnected ?? false);
+            if (mounted && !receivedEvent) {
+                setIsOnline(state.isConnected ?? null);
             }
+        }).catch(() => {
+            // A failed lookup leaves connectivity unknown; a listener can still recover it.
         });
 
         const subscription = Network.addNetworkStateListener((state) => {
-            setIsOnline(state.isConnected ?? false);
+            receivedEvent = true;
+            if (mounted) setIsOnline(state.isConnected ?? null);
         });
 
         return () => {

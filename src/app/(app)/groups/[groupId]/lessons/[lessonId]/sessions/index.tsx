@@ -1,3 +1,4 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { CompactEmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { LessonSessionsView } from "@/components/golf/LessonSessionsView";
 import { useMemberLessonByGroup } from "@/lib/hook/useMemberLessonFlow";
@@ -24,6 +25,8 @@ export default function GroupLessonSessionsScreen() {
         refetch,
         isRefetching,
     } = useMemberLessonByGroup(numericGroupId, numericLessonId);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const sessions = data?.data.sessions ?? [];
 
@@ -37,16 +40,14 @@ export default function GroupLessonSessionsScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
             <Screen
                 contentClassName="gap-5"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -54,9 +55,7 @@ export default function GroupLessonSessionsScreen() {
                     title={t("lessons.failedSessionsTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
                     actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             </Screen>
         );
@@ -68,10 +67,8 @@ export default function GroupLessonSessionsScreen() {
                 contentClassName="grow"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -88,10 +85,8 @@ export default function GroupLessonSessionsScreen() {
             contentClassName="gap-5"
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
         >

@@ -1,5 +1,5 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     Badge,
     CompactEmptyState,
@@ -9,7 +9,6 @@ import {
     Skeleton,
     useThemeColors,
 } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import {
     getMemberHomeworkByIdQueryOptions,
@@ -32,7 +31,6 @@ import {
     getLessonStatusTone,
 } from "@/utils/status-tone";
 import { fmtDate, fmtTime, formatDateForDisplay } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { BookOpen, Check, ClipboardCheck } from "lucide-react-native";
@@ -45,7 +43,7 @@ type GroupParams = {
 };
 
 export default function GroupDetailScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const { groupId } = useLocalSearchParams<GroupParams>();
     const router = useRouter();
@@ -55,6 +53,8 @@ export default function GroupDetailScreen() {
         useMemberGroupById(Number(groupId));
     const { data: homeworkResponse, refetch: refetchHomeworks } =
         useMemberHomeworks();
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchHomeworks({ cancelRefetch: false })]));
 
     const hasEmbeddedHomeworks = data?.data.homeworks !== undefined;
     const group = data?.data.group;
@@ -87,11 +87,8 @@ export default function GroupDetailScreen() {
 
     const refreshControl = (
         <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => {
-                void refetch();
-                void refetchHomeworks();
-            }}
+            refreshing={isPullRefreshing}
+            onRefresh={handlePullRefresh}
         />
     );
 
@@ -103,7 +100,7 @@ export default function GroupDetailScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <ErrorState
@@ -139,36 +136,18 @@ export default function GroupDetailScreen() {
                 <View className="gap-4 bg-surface px-4 py-4">
                     <View className="gap-3">
                         <View className="gap-2">
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    numberOfLines={2}
-                                    textStyle={{
-                                        ...typography.h3,
-                                        color: uiColors.foreground,
-                                        fontSize: typography.h3.fontSize * uiFontScale,
-                                        fontWeight: "600" as const,
-                                        lineHeight: typography.h3.lineHeight * uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {getGroupName(group)}
-                                </Text>
-                            </Host>
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    numberOfLines={2}
-                                    textStyle={{
-                                        ...typography.meta,
-                                        lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                        color: uiColors.mutedForeground,
-                                        fontSize:
-                                            typography.meta.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {group.lessonProgramName?.trim() ||
-                                        t("groupsFlow.missingValue")}
-                                </Text>
-                            </Host>
+                            <NativeText variant="h3" numberOfLines={2} textStyle={{ fontWeight: "600" as const }}>
+                                {getGroupName(group)}
+                            </NativeText>
+                            <NativeText
+                                variant="meta"
+                                color="mutedForeground"
+                                numberOfLines={2}
+                                textStyle={{ lineHeight: typography.subtext.lineHeight }}
+                            >
+                                {group.lessonProgramName?.trim() ||
+                                    t("groupsFlow.missingValue")}
+                            </NativeText>
                         </View>
 
                         <GroupProgressCard
@@ -420,33 +399,20 @@ function RowIcon({
 }
 
 function SectionHeader({ title, count }: { title: string; count: number }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="flex-row items-center justify-between gap-4">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                        color: uiColors.foreground,
-                        fontSize: typography.subtitle.fontSize * uiFontScale,
-                        fontWeight: "600" as const,
-                    }}
-                >
-                    {title}
-                </Text>
-            </Host>
+            <NativeText
+                variant="h3"
+                wrap={false}
+                textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+            >
+                {title}
+            </NativeText>
             {count > 0 ? (
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.count.fontSize * uiFontScale,
-                        }}
-                    >
-                        {String(count ?? "")}
-                    </Text>
-                </Host>
+                <NativeText variant="count" color="mutedForeground" wrap={false}>
+                    {String(count ?? "")}
+                </NativeText>
             ) : null}
         </View>
     );
@@ -465,60 +431,35 @@ function GroupProgressCard({
     timeframeLabel: string;
     totalLessons: number;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
 
     return (
         <View className="gap-3 rounded-2xl bg-background px-4 py-4">
             <View className="flex-row items-end justify-between gap-4">
                 <View className="min-w-0 flex-1 gap-1">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                letterSpacing: 1.28,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("groupsFlow.progress").toUpperCase()}
-                        </Text>
-                    </Host>
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.body,
-                                fontWeight: "500" as const,
-                                lineHeight: typography.body.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize:
-                                    typography.body.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {progress === 100
-                                ? t("groupsFlow.allLessonsCompleted")
-                                : t("groupsFlow.lessonsCompleted", {
-                                    completed: completedLessons,
-                                    total: totalLessons,
-                                })}
-                        </Text>
-                    </Host>
+                    <NativeText variant="caption" color="mutedForeground" textStyle={{ letterSpacing: 1.28 }}>
+                        {t("groupsFlow.progress").toUpperCase()}
+                    </NativeText>
+                    <NativeText variant="body" textStyle={{ fontWeight: "500" as const }}>
+                        {progress === 100
+                            ? t("groupsFlow.allLessonsCompleted")
+                            : t("groupsFlow.lessonsCompleted", {
+                                completed: completedLessons,
+                                total: totalLessons,
+                            })}
+                    </NativeText>
                 </View>
 
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.value, lineHeight: typography.h2.lineHeight * uiFontScale,
-                            textAlign: "right" as const,
-                            fontSize: typography.h2.fontSize * uiFontScale,
-                            fontWeight: "700" as const,
-                            color: uiColors.primary,
-                        }}
-                    >
-                        {String(progress ?? "") + "%"}
-                    </Text>
-                </Host>
+                <NativeText
+                    variant="value"
+                    color="primary"
+                    align="right"
+                    wrap={false}
+                    textStyle={{ lineHeight: typography.h2.lineHeight, fontSize: typography.h2.fontSize, fontWeight: "700" as const }}
+                >
+                    {String(progress ?? "") + "%"}
+                </NativeText>
             </View>
 
             <View className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -543,44 +484,27 @@ function GroupProgressCard({
 }
 
 function ProgressMetaRow({ label, value }: { label: string; value: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <Host
-                matchContents
-                ignoreSafeArea="all"
+            <NativeText
+                variant="caption"
+                color="mutedForeground"
+                wrap={false}
                 style={{ flexShrink: 0 }}
+                textStyle={{ lineHeight: typography.subtext.lineHeight }}
             >
-                <Text
-                    textStyle={{
-                        ...typography.caption,
-                        lineHeight: typography.subtext.lineHeight * uiFontScale,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                >
-                    {label}
-                </Text>
-            </Host>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
+                {label}
+            </NativeText>
+            <NativeText
+                variant="caption"
+                align="right"
+                numberOfLines={1}
                 style={{ flex: 1, minWidth: 0 }}
+                textStyle={{ fontWeight: "500" as const, lineHeight: typography.subtext.lineHeight }}
             >
-                <Text
-                    numberOfLines={1}
-                    textStyle={{
-                        ...typography.caption,
-                        textAlign: "right" as const,
-                        fontWeight: "500" as const,
-                        lineHeight: typography.subtext.lineHeight * uiFontScale,
-                        color: uiColors.foreground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
-                    {value}
-                </Text>
-            </Host>
+                {value}
+            </NativeText>
         </View>
     );
 }

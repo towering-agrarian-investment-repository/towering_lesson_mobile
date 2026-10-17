@@ -1,8 +1,7 @@
-import { Host, Text } from "@expo/ui";
 import { View } from "react-native";
 import { cn } from "../utils/cn";
-import { useTheme, type ThemeColors } from "../utils/theme";
-import { typography } from "../utils/typography";
+import type { ThemeColors } from "../utils/theme";
+import { NativeText } from "./NativeText";
 
 type BadgeProps = {
     label: string;
@@ -17,7 +16,6 @@ export function Badge({
     className,
     color,
 }: BadgeProps) {
-    const { colors, fontScale: uiFontScale } = useTheme();
     return (
         <View
             className={cn(
@@ -29,22 +27,9 @@ export function Badge({
                 className,
             )}
         >
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                        color: colors[
-                            color ??
-                            (variant === "default"
-                                ? "mutedForeground"
-                                : variant)
-                        ],
-                        fontSize: typography.badge.fontSize * uiFontScale,
-                    }}
-                >
-                    {label}
-                </Text>
-            </Host>
+            <NativeText variant="badge" color={color ?? (variant === "default" ? "mutedForeground" : variant)} wrap={false}>
+                {label}
+            </NativeText>
         </View>
     );
 }

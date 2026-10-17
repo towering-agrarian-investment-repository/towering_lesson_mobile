@@ -99,7 +99,10 @@ function ThemedRoot({
   const { colors, resolvedScheme } = useTheme();
   const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
 
-  usePushNotification(hasAuthorizedSession);
+  usePushNotification(
+    hasAuthorizedSession && isWelcomeReady && hasCompletedWelcome &&
+    !isAuthPending && !update.isChecking && !update.isForceUpdateRequired,
+  );
 
   const themeVariables = useMemo(
     () => ({

@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame, interactiveDismissDisabled, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
@@ -8,7 +9,6 @@ import {
     ErrorState,
     getPressedScaleStyle,
     Screen,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -27,7 +27,7 @@ import {
     type NotificationReferenceType,
 } from "@/service/shared/notification-service";
 import { formatRelativeTime } from "@/utils/relative-time";
-import { BottomSheet, Button, Column, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
+import { BottomSheet, Button, Column, RNHostView, Row, Text, Spacer } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { Bell, MoreVertical } from "lucide-react-native";
@@ -35,29 +35,20 @@ import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
-    FlatList,
     Modal,
     Pressable,
-    RefreshControl,
     View,
 } from "react-native";
+import { FlatList, RefreshControl } from "react-native-gesture-handler";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import Animated, {
-    FadeIn,
-    FadeOut,
-    LinearTransition,
-    useReducedMotion,
-} from "react-native-reanimated";
 
 function NoticeScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const navigation = useNavigation();
-    const colors = useThemeColors();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
-    const reduceMotion = useReducedMotion();
     const {
         data,
         isLoading,
@@ -80,6 +71,8 @@ function NoticeScreen() {
     } = useDeleteAllNotifications();
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const [isDeleteAllConfirmationOpen, setIsDeleteAllConfirmationOpen] = useState(false);
+    const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+    const refreshLocked = useRef(false);
     const deleteAllLocked = useRef(false);
     const closeDeleteAllSheet = () => { if (!deleteAllLocked.current) setIsDeleteAllConfirmationOpen(false); };
     const confirmDeleteAll = () => {
@@ -120,21 +113,11 @@ function NoticeScreen() {
                                 markAllAsRead();
                             }}
                         >
-                            <Host matchContents ignoreSafeArea="all">
-                                <Text
-                                    textStyle={{
-                                        ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                        color: uiColors.primary,
-                                        fontSize:
-                                            typography.meta.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {isMarkingAllAsRead
-                                        ? t("notice.marking")
-                                        : t("notice.markAllRead")}
-                                </Text>
-                            </Host>
+                            <NativeText variant="meta" color="primary" wrap={false}>
+                                {isMarkingAllAsRead
+                                    ? t("notice.marking")
+                                    : t("notice.markAllRead")}
+                            </NativeText>
                         </Pressable>
                     ) : null}
                     {notifications.length > 0 ? (
@@ -198,25 +181,11 @@ function NoticeScreen() {
                                                 setIsDeleteAllConfirmationOpen(true);
                                             }}
                                         >
-                                            <Host
-                                                matchContents
-                                                ignoreSafeArea="all"
-                                            >
-                                                <Text
-                                                    textStyle={{
-                                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                                        color: uiColors.danger,
-                                                        fontSize:
-                                                            typography.label
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                >
-                                                    {isDeletingAllNotifications
-                                                        ? t("notice.deleting")
-                                                        : t("notice.deleteAll")}
-                                                </Text>
-                                            </Host>
+                                            <NativeText variant="label" color="danger" wrap={false}>
+                                                {isDeletingAllNotifications
+                                                    ? t("notice.deleting")
+                                                    : t("notice.deleteAll")}
+                                            </NativeText>
                                         </Pressable>
                                     </View>
                                 </Pressable>
@@ -236,7 +205,7 @@ function NoticeScreen() {
         markAllAsRead,
         navigation,
         notifications.length,
-        uiColors,
+        colors,
         uiFontScale,
         t,
     ]);
@@ -335,38 +304,36 @@ function NoticeScreen() {
     );
 
     const handleRefresh = async () => {
-        await refetch();
+        if (refreshLocked.current || isFetching) return;
+        refreshLocked.current = true;
+        setIsPullRefreshing(true);
+        try {
+            await refetch({ cancelRefetch: false });
+        } finally {
+            refreshLocked.current = false;
+            setIsPullRefreshing(false);
+        }
     };
 
     const handleEndReached = useCallback(() => {
-        if (hasNextPage && !isFetchingNextPage) {
-            void fetchNextPage();
+        if (hasNextPage && !isFetching && !refreshLocked.current) {
+            void fetchNextPage({ cancelRefetch: false });
         }
-    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    }, [fetchNextPage, hasNextPage, isFetching]);
     const renderNotificationItem = useCallback(
         ({ item, index }: { item: NotificationResponse; index: number }) => (
-            <Animated.View
-                entering={reduceMotion ? undefined : FadeIn.duration(180)}
-                exiting={reduceMotion ? undefined : FadeOut.duration(140)}
-                layout={
-                    reduceMotion ? undefined : LinearTransition.duration(180)
+            <MemoNotificationRow
+                item={item}
+                isLast={index === notifications.length - 1}
+                disabled={
+                    isLocked ||
+                    isDeletingNotification ||
+                    isDeletingAllNotifications
                 }
-            >
-                <MemoNotificationRow
-                    item={item}
-                    isLast={index === notifications.length - 1}
-                    disabled={
-                        isLocked ||
-                        isDeletingNotification ||
-                        isDeletingAllNotifications
-                    }
-                    isDeleting={isDeletingNotification}
-                    onDelete={() => deleteNotification(item.id)}
-                    onPress={() => {
-                        void handleNotificationPress(item);
-                    }}
-                />
-            </Animated.View>
+                isDeleting={isDeletingNotification}
+                onDelete={deleteNotification}
+                onPress={handleNotificationPress}
+            />
         ),
         [
             deleteNotification,
@@ -375,7 +342,6 @@ function NoticeScreen() {
             isDeletingNotification,
             isLocked,
             notifications.length,
-            reduceMotion,
         ],
     );
 
@@ -387,26 +353,26 @@ function NoticeScreen() {
                 shouldDismissOnBackPress={!isDeletingAllNotifications}
                 shouldDismissOnClickOutside={!isDeletingAllNotifications}
                 modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(isDeletingAllNotifications), presentationCornerRadius(24)] : undefined}
-                containerColor={uiColors.card}
-                contentColor={uiColors.foreground}
+                containerColor={colors.card}
+                contentColor={colors.foreground}
                 contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
             >
                 <Column spacing={20} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
                     <Column spacing={8} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
-                        <Text textStyle={{ ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale, color: uiColors.danger, fontSize: typography.h3.fontSize * uiFontScale }}>{t("notice.deleteAllTitle")}</Text>
-                        <Text textStyle={{ ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale, color: uiColors.mutedForeground, fontSize: typography.muted.fontSize * uiFontScale }}>{t("notice.deleteAllMessage")}</Text>
+                        <Text textStyle={{ ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale, color: colors.danger, fontSize: typography.h3.fontSize * uiFontScale }}>{t("notice.deleteAllTitle")}</Text>
+                        <Text textStyle={{ ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale, color: colors.mutedForeground, fontSize: typography.muted.fontSize * uiFontScale }}>{t("notice.deleteAllMessage")}</Text>
                     </Column>
                     <Column spacing={12} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
-                        <Button variant="text" disabled={isDeletingAllNotifications} onPress={confirmDeleteAll} style={getNativeButtonStyle(uiColors, "filled", isDeletingAllNotifications, uiColors.danger)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
+                        <Button variant="text" disabled={isDeletingAllNotifications} onPress={confirmDeleteAll} style={getNativeButtonStyle(colors, "filled", isDeletingAllNotifications, colors.danger)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
                             <Row spacing={8} alignment="center" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}>
                                 <Spacer flexible />
-                                {isDeletingAllNotifications ? <RNHostView matchContents><ActivityIndicator color={uiColors.primaryForeground} /></RNHostView> : null}
-                                <Text textStyle={{ textAlign: "center", ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.primaryForeground, fontSize: typography.label.fontSize * uiFontScale }}>{t("notice.deleteAll")}</Text>
+                                {isDeletingAllNotifications ? <RNHostView matchContents><ActivityIndicator color={colors.primaryForeground} /></RNHostView> : null}
+                                <Text textStyle={{ textAlign: "center", ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: colors.primaryForeground, fontSize: typography.label.fontSize * uiFontScale }}>{t("notice.deleteAll")}</Text>
                                 <Spacer flexible />
                             </Row>
                         </Button>
-                        <Button variant="text" disabled={isDeletingAllNotifications} onPress={closeDeleteAllSheet} style={getNativeButtonStyle(uiColors, "text", isDeletingAllNotifications)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
-                            <Text modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]} textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.foreground, fontSize: typography.label.fontSize * uiFontScale, textAlign: "center" }}>{t("common.cancel")}</Text>
+                        <Button variant="text" disabled={isDeletingAllNotifications} onPress={closeDeleteAllSheet} style={getNativeButtonStyle(colors, "text", isDeletingAllNotifications)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
+                            <Text modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]} textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: colors.foreground, fontSize: typography.label.fontSize * uiFontScale, textAlign: "center" }}>{t("common.cancel")}</Text>
                         </Button>
                     </Column>
                 </Column>
@@ -414,7 +380,7 @@ function NoticeScreen() {
             <Screen scroll={false}>
                 {isLoading ? (
                     <CircleLoader fullScreen />
-                ) : isError ? (
+                ) : isError && !data ? (
                     <ErrorState
                         title={t("notice.failedNotificationsTitle")}
                         message={t("common.pullToRefreshAndTryAgain")}
@@ -440,12 +406,13 @@ function NoticeScreen() {
                     />
                 ) : (
                     <FlatList
+                        className="flex-1"
                         data={notifications}
                         keyExtractor={(item) => String(item.id)}
                         renderItem={renderNotificationItem}
                         refreshControl={
                             <RefreshControl
-                                refreshing={isRefetching}
+                                refreshing={isPullRefreshing}
                                 onRefresh={() => {
                                     void handleRefresh();
                                 }}
@@ -458,6 +425,9 @@ function NoticeScreen() {
                         showsVerticalScrollIndicator={false}
                         onEndReached={handleEndReached}
                         onEndReachedThreshold={0.4}
+                        initialNumToRender={6}
+                        maxToRenderPerBatch={4}
+                        windowSize={5}
                         ListHeaderComponent={
                             <NoticeListHeader
                                 count={notifications.length}
@@ -488,33 +458,17 @@ function NoticeListHeader({
     isUpdating: boolean;
     t: (key: string, options?: Record<string, unknown>) => string;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     return (
         <View className="flex-row items-center justify-between pb-3">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                        color: uiColors.foreground + "bf",
-                        fontSize: typography.meta.fontSize * uiFontScale,
-                    }}
-                >
-                    {t("notice.notificationsCount", { count })}
-                </Text>
-            </Host>
+            <NativeText variant="meta" wrap={false} textStyle={{ color: uiColors.foreground + "bf" }}>
+                {t("notice.notificationsCount", { count })}
+            </NativeText>
 
             {isUpdating ? (
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                            color: uiColors.foreground + "bf",
-                            fontSize: typography.meta.fontSize * uiFontScale,
-                        }}
-                    >
-                        {t("notice.updating")}
-                    </Text>
-                </Host>
+                <NativeText variant="meta" wrap={false} textStyle={{ color: uiColors.foreground + "bf" }}>
+                    {t("notice.updating")}
+                </NativeText>
             ) : null}
         </View>
     );
@@ -532,19 +486,21 @@ function NotificationRow({
     isLast: boolean;
     disabled: boolean;
     isDeleting: boolean;
-    onDelete: () => void;
-    onPress: () => void;
+    onDelete: (id: number) => void;
+    onPress: (item: NotificationResponse) => void;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const iconClassName = item.isRead ? "bg-muted" : "bg-primary/10";
     const iconColor = item.isRead ? colors.mutedForeground : colors.primary;
 
     return (
         <Swipeable
+            enabled={!disabled}
             friction={2}
-            rightThreshold={32}
+            dragOffsetFromLeft={24}
+            dragOffsetFromRight={-24}
+            rightThreshold={48}
             renderRightActions={() => (
                 <Pressable
                     accessibilityRole="button"
@@ -554,22 +510,13 @@ function NotificationRow({
                         "w-24 items-center justify-center bg-danger",
                         disabled && "opacity-60",
                     )}
-                    onPress={onDelete}
+                    onPress={() => onDelete(item.id)}
                 >
-                    <Host matchContents ignoreSafeArea="all">
-                        <Text
-                            textStyle={{
-                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                color: "#ffffff",
-                                fontSize:
-                                    typography.label.fontSize * uiFontScale,
-                            }}
-                        >
-                            {isDeleting
-                                ? t("notice.deleting")
-                                : t("notice.delete")}
-                        </Text>
-                    </Host>
+                    <NativeText variant="label" wrap={false} textStyle={{ color: "#ffffff" }}>
+                        {isDeleting
+                            ? t("notice.deleting")
+                            : t("notice.delete")}
+                    </NativeText>
                 </Pressable>
             )}
         >
@@ -587,7 +534,7 @@ function NotificationRow({
                     style={({ pressed }) =>
                         getPressedScaleStyle(pressed, disabled, 0.995)
                     }
-                    onPress={onPress}
+                    onPress={() => onPress(item)}
                 >
                     <View className="flex-row items-start gap-3">
                         <View
@@ -600,78 +547,37 @@ function NotificationRow({
                         </View>
 
                         <View className="min-w-0 flex-1 gap-1.5">
-                            <Host
-                                matchContents={{ vertical: true }}
-                                ignoreSafeArea="all"
-                                style={{ width: "100%" }}
+                            <NativeText
+                                variant="label"
+                                textStyle={{
+                                    fontWeight: "600" as const, lineHeight: typography.subtext.lineHeight, color: item.isRead
+                                        ? colors.foreground + "bf"
+                                        : colors.foreground
+                                }}
                             >
-                                <Text
-                                    textStyle={{
-                                        ...typography.label,
-                                        fontWeight: "600" as const,
-                                        lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                        color: item.isRead
-                                            ? uiColors.foreground + "bf"
-                                            : uiColors.foreground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {item.title}
-                                </Text>
-                            </Host>
+                                {item.title}
+                            </NativeText>
 
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    textStyle={{
-                                        ...typography.meta,
-                                        lineHeight: typography.body.lineHeight * uiFontScale,
-                                        color: item.isRead
-                                            ? uiColors.foreground + "b3"
-                                            : uiColors.foreground + "d9",
-                                        fontSize:
-                                            typography.meta.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {item.message}
-                                </Text>
-                            </Host>
+                            <NativeText
+                                variant="meta"
+                                textStyle={{
+                                    lineHeight: typography.body.lineHeight, color: item.isRead
+                                        ? colors.foreground + "b3"
+                                        : colors.foreground + "d9"
+                                }}
+                            >
+                                {item.message}
+                            </NativeText>
 
                             {!item.isRead ? (
-                                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                    <Text
-                                        textStyle={{
-                                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                            color: uiColors.primary,
-                                            fontSize:
-                                                typography.caption.fontSize *
-                                                uiFontScale,
-                                        }}
-                                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                        {t("notice.unread")}
-                                    </Text>
-                                </Host>
+                                <NativeText variant="caption" color="primary">
+                                    {t("notice.unread")}
+                                </NativeText>
                             ) : null}
 
-                            <Host
-                                matchContents
-                                ignoreSafeArea="all"
-                                style={{ alignSelf: "flex-end" }}
-                            >
-                                <Text
-                                    textStyle={{
-                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                        color: uiColors.mutedForeground,
-                                        fontSize:
-                                            typography.caption.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {formatRelativeTime(item.createdAt)}
-                                </Text>
-                            </Host>
+                            <NativeText variant="caption" color="mutedForeground" wrap={false} style={{ alignSelf: "flex-end" }}>
+                                {formatRelativeTime(item.createdAt)}
+                            </NativeText>
                         </View>
                     </View>
                 </Pressable>

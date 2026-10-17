@@ -1,3 +1,4 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
     BookingConfirmationFooter,
     handleBookingConfirmationSuccess,
@@ -22,6 +23,7 @@ import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl } from "react-native";
 
@@ -51,6 +53,7 @@ export default function LessonBookingConfirmScreen() {
         notes?: string;
     }>();
     const router = useRouter();
+    const submitting = useRef(false);
     const queryClient = useQueryClient();
     const isGroupTicket =
         String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
@@ -75,6 +78,8 @@ export default function LessonBookingConfirmScreen() {
         month,
         canLoadSlot,
     );
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
     const policies = [
         {
             title: t("bookingConfirmation.lessonCancellationPolicyTitle"),
@@ -134,7 +139,7 @@ export default function LessonBookingConfirmScreen() {
 
     const handleConfirm = () => {
         if (
-            isCreating ||
+            submitting.current || isCreating || isError ||
             !ticketIdNumber ||
             !lessonAvailabilityIdNumber ||
             !selectedSlot
@@ -168,6 +173,7 @@ export default function LessonBookingConfirmScreen() {
             return;
         }
 
+        submitting.current = true;
         createReservation(
             {
                 ticketId: ticketIdNumber,
@@ -193,6 +199,7 @@ export default function LessonBookingConfirmScreen() {
                         coachName: selectedSlot.coachName ?? coachName,
                     }),
                 onError: handleSlotUnavailable,
+                onSettled: () => { submitting.current = false; },
             },
         );
     };
@@ -241,10 +248,8 @@ export default function LessonBookingConfirmScreen() {
             contentClassName="grow"
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
             footer={
@@ -280,9 +285,7 @@ export default function LessonBookingConfirmScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             ) : isMissingRequiredData ? (
                 <EmptyState

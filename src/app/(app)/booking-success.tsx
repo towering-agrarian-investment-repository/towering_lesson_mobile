@@ -1,5 +1,6 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { Badge, Divider, Screen, useThemeColors } from "@/design-system";
+import { Badge, Divider, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -54,7 +55,7 @@ function BookingDetailRow({
     label: string;
     value?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     if (!value) {
         return null;
     }
@@ -63,41 +64,19 @@ function BookingDetailRow({
         <View className="flex-row items-center gap-4 py-1">
             <View className="w-6 items-center">{icon}</View>
             <View className="min-w-0 flex-1 gap-1">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                            fontWeight: "500" as const,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.caption.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {label}
-                    </Text>
-                </Host>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                            fontWeight: "600" as const,
-                            color: uiColors.foreground,
-                            fontSize: typography.body.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {value}
-                    </Text>
-                </Host>
+                <NativeText variant="caption" color="mutedForeground" textStyle={{ fontWeight: "500" as const }}>
+                    {label}
+                </NativeText>
+                <NativeText variant="body" textStyle={{ fontWeight: "600" as const }}>
+                    {value}
+                </NativeText>
             </View>
         </View>
     );
 }
 
 export default function BookingSuccessScreen() {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const {
         type,
@@ -115,7 +94,6 @@ export default function BookingSuccessScreen() {
         coachName,
     } = useLocalSearchParams<BookingSuccessParams>();
     const router = useRouter();
-    const colors = useThemeColors();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const parsedRemainingCount =
         ticketRemainingCount == null ? null : Number(ticketRemainingCount);
@@ -203,7 +181,7 @@ export default function BookingSuccessScreen() {
                 matchContents={{ vertical: true }}
                 ignoreSafeArea="all"
                 colorScheme={uiScheme}
-                seedColor={uiColors.primary}
+                seedColor={colors.primary}
                 accessibilityLabel={t("activity.done")}
                 accessibilityState={{ disabled: isLocked, busy: false }}
                 style={{ width: "100%" }}>
@@ -221,10 +199,10 @@ export default function BookingSuccessScreen() {
                     onPress={handleGoHome}
                     style={{
                         ...getNativeButtonStyle(
-                            uiColors,
+                            colors,
                             "filled",
                             isLocked,
-                            uiColors.primary,
+                            colors.primary,
                         ), ...{ borderRadius: 12 }
                     }}
                 >
@@ -237,7 +215,7 @@ export default function BookingSuccessScreen() {
                         textStyle={{
                             ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                             textAlign: "center",
-                            color: uiColors.primaryForeground,
+                            color: colors.primaryForeground,
                             fontSize: typography.label.fontSize * uiFontScale,
                         }}
                     >
@@ -273,37 +251,23 @@ export default function BookingSuccessScreen() {
                     </View>
 
                     <View className="w-full items-center gap-2">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.h1, lineHeight: typography.h2.lineHeight * uiFontScale,
-                                    textAlign: "center" as const,
-                                    fontSize: typography.h2.fontSize * uiFontScale,
-                                    color: uiColors.foreground,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                                {successTitle}
-                            </Text>
-                        </Host>
-
-                        <Host
-                            matchContents={{ vertical: true }}
-                            ignoreSafeArea="all"
-                            style={{ maxWidth: 384, width: "100%" }}
+                        <NativeText
+                            variant="h1"
+                            align="center"
+                            textStyle={{ lineHeight: typography.h2.lineHeight, fontSize: typography.h2.fontSize }}
                         >
-                            <Text
-                                textStyle={{
-                                    ...typography.muted,
-                                    color: uiColors.mutedForeground,
-                                    textAlign: "center" as const,
-                                    lineHeight: typography.body.lineHeight * uiFontScale,
-                                    fontSize:
-                                        typography.muted.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                                {successMessage}
-                            </Text>
-                        </Host>
+                            {successTitle}
+                        </NativeText>
+
+                        <NativeText
+                            variant="muted"
+                            color="mutedForeground"
+                            align="center"
+                            style={{ maxWidth: 384 }}
+                            textStyle={{ lineHeight: typography.body.lineHeight }}
+                        >
+                            {successMessage}
+                        </NativeText>
                     </View>
 
                     <View className="pt-1">
@@ -372,33 +336,16 @@ export default function BookingSuccessScreen() {
                     <>
                         <Divider />
                         <View className="gap-3 py-1">
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    textStyle={{
-                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                        fontWeight: "600" as const,
-                                        color: uiColors.mutedForeground,
-                                        fontSize:
-                                            typography.caption.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {t("bookingConfirmation.ticketLabel")}
-                                </Text>
-                            </Host>
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    textStyle={{
-                                        ...typography.label, lineHeight: typography.body.lineHeight * uiFontScale,
-                                        fontSize: typography.body.fontSize * uiFontScale,
-                                        fontWeight: "700" as const,
-                                        color: uiColors.foreground,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {ticketName +
-                                        (usageLabel ? ` (${usageLabel})` : "")}
-                                </Text>
-                            </Host>
+                            <NativeText variant="caption" color="mutedForeground" textStyle={{ fontWeight: "600" as const }}>
+                                {t("bookingConfirmation.ticketLabel")}
+                            </NativeText>
+                            <NativeText
+                                variant="label"
+                                textStyle={{ lineHeight: typography.body.lineHeight, fontSize: typography.body.fontSize, fontWeight: "700" as const }}
+                            >
+                                {ticketName +
+                                    (usageLabel ? ` (${usageLabel})` : "")}
+                            </NativeText>
                         </View>
                     </>
                 ) : null}

@@ -1,3 +1,5 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
     EmptyState,
@@ -5,7 +7,6 @@ import {
     ListRow,
     Screen,
     Skeleton,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -34,7 +35,7 @@ type LessonLogParams = {
 const VIDEO_BACKGROUND_COLOR = "#000";
 
 function LessonVideo({ videoUrl }: { videoUrl: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
@@ -62,35 +63,20 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
 
             {videoError ? (
                 <View className="px-4 py-3">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.caption,
-                                lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.danger,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("lessonLog.videoLoadFailed")}
-                        </Text>
-                    </Host>
+                    <NativeText variant="caption" color="danger" textStyle={{ lineHeight: typography.subtext.lineHeight }}>
+                        {t("lessonLog.videoLoadFailed")}
+                    </NativeText>
                 </View>
             ) : null}
         </View>
     );
 }
 function LessonLogDetailsScreen() {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const colors = useThemeColors();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const {
@@ -100,6 +86,8 @@ function LessonLogDetailsScreen() {
         refetch,
         isRefetching,
     } = useMemberLessonLogById(Number(id));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const lessonLog = lessonLogResponse?.data;
     const videoUrl = lessonLog?.videoUrl?.trim() || null;
@@ -123,16 +111,14 @@ function LessonLogDetailsScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !lessonLogResponse) {
         return (
             <Screen
                 contentClassName="grow"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -144,9 +130,7 @@ function LessonLogDetailsScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             </Screen>
         );
@@ -158,10 +142,8 @@ function LessonLogDetailsScreen() {
                 contentClassName="grow"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -185,10 +167,8 @@ function LessonLogDetailsScreen() {
             contentClassName="grow gap-5"
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
             footer={
@@ -198,7 +178,7 @@ function LessonLogDetailsScreen() {
                             matchContents={{ vertical: true }}
                             ignoreSafeArea="all"
                             colorScheme={uiScheme}
-                            seedColor={uiColors.primary}
+                            seedColor={colors.primary}
                             accessibilityLabel={t(
                                 "lessonLog.leaveCommentAccessibility",
                             )}
@@ -236,10 +216,10 @@ function LessonLogDetailsScreen() {
                                 }}
                                 style={{
                                     ...getNativeButtonStyle(
-                                        uiColors,
+                                        colors,
                                         "filled",
                                         isLocked,
-                                        uiColors.primary,
+                                        colors.primary,
                                     ), ...{ borderRadius: 12 }
                                 }}
                             >
@@ -252,7 +232,7 @@ function LessonLogDetailsScreen() {
                                     textStyle={{
                                         ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                         textAlign: "center",
-                                        color: uiColors.primaryForeground,
+                                        color: colors.primaryForeground,
                                         fontSize:
                                             typography.label.fontSize *
                                             uiFontScale,
@@ -267,56 +247,23 @@ function LessonLogDetailsScreen() {
             }
         >
             <View className="gap-2">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.h2.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {lessonLog.coachName ?? t("lessonLog.coachFallback")}
-                    </Text>
-                </Host>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.meta.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {formatDateForDisplay(lessonLog.lessonDate)}
-                    </Text>
-                </Host>
+                <NativeText variant="h2">
+                    {lessonLog.coachName ?? t("lessonLog.coachFallback")}
+                </NativeText>
+                <NativeText variant="meta" color="mutedForeground">
+                    {formatDateForDisplay(lessonLog.lessonDate)}
+                </NativeText>
             </View>
 
             <View className="h-px bg-border" />
 
             <View className="gap-3">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.label.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {t("lessonLog.proCommentLabel")}
-                    </Text>
-                </Host>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.body,
-                            color: uiColors.foreground,
-                            lineHeight: typography.h3.lineHeight * uiFontScale,
-                            fontSize: typography.body.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {lessonLog.body?.trim() || t("lessonLog.noProComment")}
-                    </Text>
-                </Host>
+                <NativeText variant="label">
+                    {t("lessonLog.proCommentLabel")}
+                </NativeText>
+                <NativeText variant="body" textStyle={{ lineHeight: typography.h3.lineHeight }}>
+                    {lessonLog.body?.trim() || t("lessonLog.noProComment")}
+                </NativeText>
             </View>
 
             {videoUrl ? (
@@ -324,35 +271,18 @@ function LessonLogDetailsScreen() {
                     <View className="h-px bg-border" />
 
                     <View className="gap-3">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {t("lessonLog.videoLabel")}
-                            </Text>
-                        </Host>
+                        <NativeText variant="label">
+                            {t("lessonLog.videoLabel")}
+                        </NativeText>
                         <LessonVideo videoUrl={videoUrl} />
                     </View>
                 </>
             ) : null}
 
             <View className="gap-3">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.label.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {t("lessonLog.yourReviewLabel")}
-                    </Text>
-                </Host>
+                <NativeText variant="label">
+                    {t("lessonLog.yourReviewLabel")}
+                </NativeText>
 
                 {lessonLog.ratings ? (
                     <View className="flex-row items-center gap-2">
@@ -373,70 +303,38 @@ function LessonLogDetailsScreen() {
                                 strokeWidth={1.8}
                             />
                         ))}
-                        <Host matchContents ignoreSafeArea="all">
-                            <Text
-                                textStyle={{
-                                    ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize:
-                                        typography.meta.fontSize * uiFontScale,
-                                }}
-                            >
-                                {String(lessonLog.ratings ?? "") + "/5"}
-                            </Text>
-                        </Host>
+                        <NativeText variant="meta" color="mutedForeground" wrap={false}>
+                            {String(lessonLog.ratings ?? "") + "/5"}
+                        </NativeText>
                     </View>
                 ) : null}
 
                 {lessonLog.comment?.trim() ? (
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.body,
-                                color: uiColors.foreground,
-                                lineHeight: typography.h3.lineHeight * uiFontScale,
-                                fontSize:
-                                    typography.body.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {lessonLog.comment}
-                        </Text>
-                    </Host>
+                    <NativeText variant="body" textStyle={{ lineHeight: typography.h3.lineHeight }}>
+                        {lessonLog.comment}
+                    </NativeText>
                 ) : (
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.muted,
-                                color: uiColors.mutedForeground,
-                                lineHeight: typography.body.lineHeight * uiFontScale,
-                                fontSize:
-                                    typography.muted.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        <NativeText variant="muted" color="mutedForeground" textStyle={{ lineHeight: typography.body.lineHeight }}>
                             {hasSubmittedReview
                                 ? t("lessonLog.reviewSubmittedMessage")
                                 : canReview
                                     ? t("lessonLog.canLeaveReviewMessage")
                                     : t("lessonLog.reviewSubmittedMessage")}
-                        </Text>
-                    </Host>
+                        </NativeText>
                 )}
 
                 <View className="self-start rounded-full bg-muted px-3 py-1.5">
-                    <Host matchContents ignoreSafeArea="all">
-                        <Text
-                            textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: hasSubmittedReview
-                                    ? uiColors.success
-                                    : uiColors.warning,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                        >
-                            {reviewStateLabel}
-                        </Text>
-                    </Host>
+                    <NativeText
+                        variant="caption"
+                        wrap={false}
+                        textStyle={{
+                            color: hasSubmittedReview
+                                ? colors.success
+                                : colors.warning
+                        }}
+                    >
+                        {reviewStateLabel}
+                    </NativeText>
                 </View>
             </View>
 
@@ -445,18 +343,9 @@ function LessonLogDetailsScreen() {
                     <View className="h-px bg-border" />
 
                     <View className="gap-3">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {t("lessonLog.relatedReservationLabel")}
-                            </Text>
-                        </Host>
+                        <NativeText variant="label">
+                            {t("lessonLog.relatedReservationLabel")}
+                        </NativeText>
 
                         <Link
                             href={{

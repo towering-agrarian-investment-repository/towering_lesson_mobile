@@ -1,5 +1,6 @@
+import { NativeText } from "./NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { Button, Host, Text } from "@expo/ui";
 import {
@@ -21,12 +22,7 @@ export function ErrorState({
     actionLabel?: string;
     onAction?: () => void;
 }) {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
-    const colors = useThemeColors();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
 
     return (
         <StateCardShell>
@@ -38,40 +34,18 @@ export function ErrorState({
                         strokeWidth={2.4}
                     />
                 </View>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                            textAlign: "center" as const,
-                            color: uiColors.danger,
-                            fontSize: typography.h3.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {title}
-                    </Text>
-                </Host>
-                <Host
-                    matchContents={{ vertical: true }}
-                    ignoreSafeArea="all"
-                    style={{ width: "100%", marginTop: 12 }}
-                >
-                    <Text
-                        textStyle={{
-                            ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                            textAlign: "center" as const,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.subtext.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {message}
-                    </Text>
-                </Host>
+                <NativeText variant="h3" color="danger" align="center">
+                    {title}
+                </NativeText>
+                <NativeText variant="subtext" color="mutedForeground" align="center" style={{ marginTop: 12 }}>
+                    {message}
+                </NativeText>
                 {actionLabel && onAction ? (
                     <Host
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
                         accessibilityLabel={actionLabel}
                         accessibilityState={{ disabled: false, busy: false }}
@@ -95,10 +69,10 @@ export function ErrorState({
                             onPress={onAction}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "filled",
                                     false,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -111,7 +85,7 @@ export function ErrorState({
                                 textStyle={{
                                     ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                     textAlign: "center",
-                                    color: uiColors.primaryForeground,
+                                    color: colors.primaryForeground,
                                     fontSize:
                                         typography.label.fontSize * uiFontScale,
                                 }}
@@ -137,12 +111,7 @@ export function EmptyState({
     actionLabel?: string;
     onAction?: () => void;
 }) {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
-    const colors = useThemeColors();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
 
     return (
         <StateCardShell>
@@ -154,43 +123,20 @@ export function EmptyState({
                         strokeWidth={2.2}
                     />
                 </View>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                            textAlign: "center" as const,
-                            color: uiColors.foreground,
-                            fontSize: typography.h3.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {title}
-                    </Text>
-                </Host>
+                <NativeText variant="h3" align="center">
+                    {title}
+                </NativeText>
                 {message ? (
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        style={{ width: "100%", marginTop: 12 }}
-                    >
-                        <Text
-                            textStyle={{
-                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                textAlign: "center" as const,
-                                color: uiColors.mutedForeground,
-                                fontSize:
-                                    typography.subtext.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                            {message}
-                        </Text>
-                    </Host>
+                    <NativeText variant="subtext" color="mutedForeground" align="center" style={{ marginTop: 12 }}>
+                        {message}
+                    </NativeText>
                 ) : null}
                 {actionLabel && onAction ? (
                     <Host
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
                         accessibilityLabel={actionLabel}
                         accessibilityState={{ disabled: false, busy: false }}
@@ -214,10 +160,10 @@ export function EmptyState({
                             onPress={onAction}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "filled",
                                     false,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -230,7 +176,7 @@ export function EmptyState({
                                 textStyle={{
                                     ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                     textAlign: "center",
-                                    color: uiColors.primaryForeground,
+                                    color: colors.primaryForeground,
                                     fontSize:
                                         typography.label.fontSize * uiFontScale,
                                 }}

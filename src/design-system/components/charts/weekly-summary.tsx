@@ -1,37 +1,23 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { typography } from "@/design-system/utils/typography";
 import { Host, Text } from "@expo/ui";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
     FlatList,
     Pressable,
+    Text as RNText,
     View,
     type LayoutChangeEvent,
     type ViewProps,
 } from "react-native";
 import { cn } from "../../utils/cn";
 import { useTheme } from "../../utils/theme";
+import { typography } from "../../utils/typography";
 
-import i18n from "@/i18n";
+import { buildWeekSummaries, getWeekStart, toDateKey as weekKey, parseCalendarDate, formatStatusBreakdown, formatTypeBreakdown, type WeeklySummaryValue, type WeeklyWeek } from "./activity-chart-data";
+import { chartLeadingModifiers, chartCenterModifiers, getChartTextStyles } from "./chart-text-styles";
 import { useTranslation } from "react-i18next";
 import { ActivityStatusLegend, type ActivityHeatmapStatus } from "./activity-heatmap";
 
-export type WeeklySummaryValue = {
-    weekStart: string | number | Date;
-    total: number;
-    status?: ActivityHeatmapStatus;
-    statusBreakdown?: Partial<Record<ActivityHeatmapStatus, number>>;
-    typeCounts?: { lesson: number; bay: number };
-};
-type WeeklyWeek = {
-    weekStart: Date;
-    total: number;
-    status?: ActivityHeatmapStatus;
-    statusBreakdown?: Partial<Record<ActivityHeatmapStatus, number>>;
-    typeCounts?: { lesson: number; bay: number };
-    label: string;
-};
+export type { WeeklySummaryValue } from "./activity-chart-data";
 
 type WeeklySummaryProps = Omit<ViewProps, "children"> & {
     values: WeeklySummaryValue[];
@@ -50,14 +36,14 @@ const BAR_GAP = 8;
 const BAR_WIDTH_DEFAULT = 48;
 const BAR_WIDTH_MIN = 48;
 const BAR_WIDTH_MAX = 72;
-const MIN_BAR_HEIGHT = 3; // thin baseline sliver so zero weeks are still visible/tappable
+const MIN_BAR_HEIGHT = 3
 const Y_AXIS_WIDTH = 32;
 const CHART_GAP = 8;
 
 export function WeeklySummary({
     values,
     startDate,
-    endDate = new Date(),
+    endDate,
     numWeeks = 12,
     initialScrollToEnd = false,
     overallCount,
@@ -65,17 +51,18 @@ export function WeeklySummary({
     unitLabel = "activities",
     className,
     onWeekPress,
+    onLayout,
     ...props
 }: WeeklySummaryProps) {
-    const { colors: uiColors } = useTheme();
     const {
         t,
         i18n: { language },
     } = useTranslation();
     const { colors, fontScale: uiFontScale } = useTheme();
+    const textStyles = getChartTextStyles(colors, uiFontScale);
     const [containerWidth, setContainerWidth] = useState(0);
     const startDateKey = startDate ? weekKey(startDate) : "";
-    const endDateKey = weekKey(endDate);
+    const endDateKey = weekKey(endDate ?? new Date());
     const weeks = useMemo(
         () =>
             buildWeekSummaries(
@@ -87,13 +74,16 @@ export function WeeklySummary({
             ),
         [values, startDateKey, endDateKey, numWeeks, language],
     );
+    const dateFormatter = useMemo(() => new Intl.DateTimeFormat(language, {
+        year: "numeric", month: "short", day: "numeric",
+    }), [language]);
     const maxTotal = Math.max(2, Math.ceil(Math.max(0, ...weeks.map((w) => w.total)) / 2) * 2);
     const hasData = weeks.some((week) => week.total > 0);
     const rangeKey = weeks.length
         ? `${weekKey(weeks[0].weekStart)}-${weekKey(weeks[weeks.length - 1].weekStart)}`
         : "empty";
 
-    const currentWeekKey = weekKey(parseCalendarDate(new Date()));
+    const currentWeekKey = weekKey(getWeekStart(new Date()));
     const [selection, setSelection] = useState<{
         rangeKey: string;
         weekKey: string;
@@ -119,23 +109,12 @@ export function WeeklySummary({
     const plotHeight = Math.max(184, Math.min(256, Math.round(containerWidth * 0.45)));
     const needsScroll =
         chartViewportWidth > 0 && gridWidth > chartViewportWidth;
-    const maxScrollX = Math.max(0, gridWidth - chartViewportWidth);
+    const visibleBars = Math.max(1, Math.ceil(chartViewportWidth / (barWidth + BAR_GAP)) + 1);
 
-    const handleLayout = (event: LayoutChangeEvent) =>
+    const handleLayout = (event: LayoutChangeEvent) => {
         setContainerWidth(event.nativeEvent.layout.width);
-
-    const scrollRef = useRef<FlatList<(typeof weeks)[number]>>(null);
-    const autoScrolledRange = useRef<string | null>(null);
-    useEffect(() => {
-        if (autoScrolledRange.current === rangeKey || containerWidth === 0)
-            return;
-        const initialScrollX = initialScrollToEnd ? maxScrollX : 0;
-        scrollRef.current?.scrollToOffset({
-            offset: initialScrollX,
-            animated: false,
-        });
-        autoScrolledRange.current = rangeKey;
-    }, [containerWidth, initialScrollToEnd, maxScrollX, rangeKey]);
+        onLayout?.(event);
+    };
 
     const handleBarPress = useCallback(
         (weekStart: Date, total: number, key: string) => {
@@ -153,8 +132,9 @@ export function WeeklySummary({
                 plotHeight={plotHeight}
                 maxTotal={maxTotal}
                 currentWeekKey={currentWeekKey}
-                selectedWeek={selectedWeek}
-                unitLabel={unitLabel}
+                isSelected={weekKey(week.weekStart) === selectedWeek}
+                isDimmed={selectedWeek !== null && weekKey(week.weekStart) !== selectedWeek}
+                accessibilityLabel={`${week.total} ${unitLabel} · ${t("activity.weekOf", { date: dateFormatter.format(week.weekStart) })}${weekKey(week.weekStart) === currentWeekKey ? ` (${t("activity.currentWeek")})` : ""}`}
                 colors={colors}
                 onPress={handleBarPress}
             />
@@ -163,11 +143,13 @@ export function WeeklySummary({
             barWidth,
             plotHeight,
             colors,
+            dateFormatter,
             currentWeekKey,
             handleBarPress,
             maxTotal,
             selectedWeek,
             unitLabel,
+            t,
         ],
     );
 
@@ -180,12 +162,8 @@ export function WeeklySummary({
             {title ? (
                 <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
                     <Text
-                        textStyle={{
-                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.h3.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        textStyle={textStyles.title}
+                        modifiers={chartLeadingModifiers}>
                         {title}
                     </Text>
                 </Host>
@@ -213,11 +191,7 @@ export function WeeklySummary({
                             style={{ position: "absolute", top: -6 }}
                         >
                             <Text
-                                textStyle={{
-                                    ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize: typography.subtext.fontSize * uiFontScale,
-                                }}
+                                textStyle={textStyles.muted}
                             >
                                 {String(maxTotal ?? "")}
                             </Text>
@@ -231,11 +205,7 @@ export function WeeklySummary({
                             }}
                         >
                             <Text
-                                textStyle={{
-                                    ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize: typography.subtext.fontSize * uiFontScale,
-                                }}
+                                textStyle={textStyles.muted}
                             >
                                 {String(Math.ceil(maxTotal / 2) ?? "")}
                             </Text>
@@ -246,23 +216,22 @@ export function WeeklySummary({
                             style={{ position: "absolute", bottom: 0 }}
                         >
                             <Text
-                                textStyle={{
-                                    ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize: typography.subtext.fontSize * uiFontScale,
-                                }}
+                                textStyle={textStyles.muted}
                             >
                                 {"0"}
                             </Text>
                         </Host>
                     </View>
                     <FlatList
-                        ref={scrollRef}
+                        key={rangeKey}
                         data={weeks}
                         renderItem={renderBar}
                         extraData={selectedWeek}
+                        initialNumToRender={visibleBars}
+                        maxToRenderPerBatch={visibleBars}
+                        windowSize={5}
                         initialScrollIndex={
-                            initialScrollToEnd && needsScroll
+                            initialScrollToEnd && needsScroll && weeks.length
                                 ? Math.max(0, weeks.length - 1)
                                 : undefined
                         }
@@ -288,14 +257,8 @@ export function WeeklySummary({
                 <View className="gap-0.5">
                     <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
                         <Text
-                            textStyle={{
-                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                textAlign: "left" as const,
-                                fontSize:
-                                    typography.subtext.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                            textStyle={textStyles.muted}
+                            modifiers={chartLeadingModifiers}>
                             {t("activity.weekOf", {
                                 date: selectedSummary.label,
                             }) +
@@ -304,21 +267,15 @@ export function WeeklySummary({
                                 " " +
                                 unitLabel +
                                 formatStatusBreakdown(
-                                    selectedSummary.statusBreakdown,
+                                    selectedSummary.statusBreakdown, t,
                                 )}
                         </Text>
                     </Host>
                     <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
                         <Text
-                            textStyle={{
-                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                textAlign: "left" as const,
-                                fontSize:
-                                    typography.subtext.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {formatTypeBreakdown(selectedSummary.typeCounts) ||
+                            textStyle={textStyles.muted}
+                            modifiers={chartLeadingModifiers}>
+                            {formatTypeBreakdown(selectedSummary.typeCounts, t) ||
                                 "-"}
                         </Text>
                     </Host>
@@ -326,13 +283,8 @@ export function WeeklySummary({
             ) : (
                 <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
                     <Text
-                        textStyle={{
-                            ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            textAlign: "left" as const,
-                            fontSize: typography.subtext.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                        textStyle={textStyles.muted}
+                        modifiers={chartLeadingModifiers}>
                         {overallCount !== undefined
                             ? `${t("activity.overall")} · ${overallCount} ${unitLabel}`
                             : "-"}
@@ -342,13 +294,8 @@ export function WeeklySummary({
             {!hasData ? (
                 <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
                     <Text
-                        textStyle={{
-                            ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                            textAlign: "center" as const,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.subtext.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
+                        textStyle={{ ...textStyles.muted, textAlign: "center" }}
+                        modifiers={chartCenterModifiers}>
                         {t("activity.noRecorded", { unit: unitLabel })}
                     </Text>
                 </Host>
@@ -363,8 +310,9 @@ const WeeklyBar = memo(function WeeklyBar({
     plotHeight,
     maxTotal,
     currentWeekKey,
-    selectedWeek,
-    unitLabel,
+    isSelected,
+    isDimmed,
+    accessibilityLabel,
     colors,
     onPress,
 }: {
@@ -373,16 +321,14 @@ const WeeklyBar = memo(function WeeklyBar({
     plotHeight: number;
     maxTotal: number;
     currentWeekKey: string;
-    selectedWeek: string | null;
-    unitLabel: string;
+    isSelected: boolean;
+    isDimmed: boolean;
+    accessibilityLabel: string;
     colors: ReturnType<typeof useTheme>["colors"];
     onPress: (weekStart: Date, total: number, key: string) => void;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
-    const { t } = useTranslation();
     const key = weekKey(week.weekStart);
     const isCurrent = key === currentWeekKey;
-    const isSelected = key === selectedWeek;
     const barHeight = Math.max(
         MIN_BAR_HEIGHT,
         Math.round((week.total / maxTotal) * plotHeight),
@@ -399,7 +345,7 @@ const WeeklyBar = memo(function WeeklyBar({
         <Pressable
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={`${week.total} ${unitLabel} · ${t("activity.weekOf", { date: key })}${isCurrent ? ` (${t("activity.currentWeek")})` : ""}`}
+            accessibilityLabel={accessibilityLabel}
             onPress={() => onPress(week.weekStart, week.total, key)}
             style={{ width: barWidth, alignItems: "center", gap: 8 }}
         >
@@ -418,7 +364,7 @@ const WeeklyBar = memo(function WeeklyBar({
                         height: barHeight,
                         borderRadius: 6,
                         overflow: "hidden",
-                        opacity: selectedWeek && !isSelected ? 0.4 : 1,
+                        opacity: isDimmed ? 0.4 : 1,
                         borderWidth: isCurrent ? 1.5 : 0,
                         borderColor: colors.foreground,
                     }}
@@ -437,19 +383,12 @@ const WeeklyBar = memo(function WeeklyBar({
                     ))}
                 </View>
             </View>
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: barWidth }}>
-                <Text
-                    textStyle={{
-                        ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.subtext.fontSize * uiFontScale,
-                        textAlign: "center",
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}
-                >
-                    {week.label}
-                </Text>
-            </Host>
+            <RNText
+                accessible={false}
+                style={{ ...typography.subtext, color: colors.mutedForeground, textAlign: "center", includeFontPadding: false, width: barWidth }}
+            >
+                {week.label}
+            </RNText>
         </Pressable>
     );
 });
@@ -495,111 +434,6 @@ function buildStatusSegments(
             color: getStatusColor(entry.status, colors),
         };
     });
-}
-
-function buildWeekSummaries(
-    values: WeeklySummaryValue[],
-    startDate: Date | undefined,
-    endDate: Date,
-    numWeeks: number,
-    language: string,
-) {
-    const totals = new Map(values.map((v) => [weekKey(v.weekStart), v]));
-    const start = parseCalendarDate(startDate ?? endDate);
-    const end = parseCalendarDate(endDate);
-    const startDayOfWeek = (start.getDay() + 6) % 7;
-    const firstWeekStart = new Date(start);
-    firstWeekStart.setDate(start.getDate() - startDayOfWeek);
-    const daysSinceMonday = (end.getDay() + 6) % 7;
-    const lastWeekStart = new Date(end);
-    lastWeekStart.setDate(end.getDate() - daysSinceMonday);
-
-    const weekCount = startDate
-        ? Math.floor(
-            (lastWeekStart.getTime() - firstWeekStart.getTime()) /
-            (7 * 24 * 60 * 60 * 1000),
-        ) + 1
-        : numWeeks;
-
-    const weeks: WeeklyWeek[] = [];
-    for (let i = 0; i < weekCount; i++) {
-        const weekStart = new Date(firstWeekStart);
-        weekStart.setDate(firstWeekStart.getDate() + i * 7);
-        const key = weekKey(weekStart);
-        const value = totals.get(key);
-        weeks.push({
-            weekStart,
-            total: value?.total ?? 0,
-            status: value?.status,
-            statusBreakdown: value?.statusBreakdown,
-            typeCounts: value?.typeCounts,
-            label: weekStart.toLocaleDateString(language, {
-                month: "short",
-                day: "numeric",
-            }),
-        });
-    }
-    return weeks;
-}
-
-function weekKey(date: string | number | Date) {
-    const d = parseCalendarDate(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-}
-
-// Same timezone-safe parsing as ActivityHeatmap — treats plain "YYYY-MM-DD"
-// strings as local calendar dates instead of routing through UTC.
-function parseCalendarDate(date: string | number | Date) {
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.test(date)) {
-        const [year, month, day] = date.slice(0, 10).split("-").map(Number);
-        return new Date(year, month - 1, day);
-    }
-    const parsed = new Date(date);
-    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-}
-
-function formatStatusBreakdown(
-    breakdown?: Partial<Record<ActivityHeatmapStatus, number>>,
-) {
-    if (!breakdown) return "";
-
-    const labels: Record<ActivityHeatmapStatus, string> = {
-        completed: i18n.t("activity.completed"),
-        "no-show": i18n.t("activity.absent"),
-        cancelled: i18n.t("activity.cancelled"),
-        reserved: i18n.t("activity.booked"),
-        mixed: i18n.t("activity.mixed"),
-        unknown: i18n.t("activity.other"),
-    };
-    const details = Object.entries(breakdown)
-        .filter(([, count]) => count && count > 0)
-        .map(
-            ([status, count]) =>
-                `${count} ${labels[status as ActivityHeatmapStatus]}`,
-        )
-        .join(" · ");
-
-    return details ? ` · ${details}` : "";
-}
-
-function formatTypeBreakdown(typeCounts?: { lesson: number; bay: number }) {
-    if (!typeCounts) return "";
-
-    const details = [
-        typeCounts.bay > 0
-            ? `${typeCounts.bay} ${i18n.t("activity.bay")}`
-            : null,
-        typeCounts.lesson > 0
-            ? `${typeCounts.lesson} ${i18n.t("activity.lesson")}`
-            : null,
-    ]
-        .filter(Boolean)
-        .join(" · ");
-
-    return details;
 }
 
 function getStatusColor(

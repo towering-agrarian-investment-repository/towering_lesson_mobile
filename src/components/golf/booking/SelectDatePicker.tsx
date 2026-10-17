@@ -1,16 +1,13 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { NativeText } from "@/design-system/components/NativeText";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     ErrorState,
     Screen,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
-import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     useMemberBaySlotGroups,
@@ -18,13 +15,13 @@ import {
 } from "@/lib/hook/useReservation";
 import { showAppToast } from "@/lib/toast/toast";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { Calendar, DateData, LocaleConfig } from "react-native-calendars";
 
 LocaleConfig.locales.en = {
@@ -299,9 +296,8 @@ function CalendarLoadingSkeleton() {
 }
 
 export default function DateScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { i18n, t } = useTranslation();
-    const colors = useThemeColors();
 
     const { ticketId, ticketName, ticketType, mode, reservationId, notes } =
         useLocalSearchParams<{
@@ -449,14 +445,10 @@ export default function DateScreen() {
 
     const isError = isLessonTicket ? isErrorLessonSlots : isErrorBaySlotGroups;
 
-    const handleRefresh = () => {
-        if (isLessonTicket) {
-            void refetchLessonSlots();
-            return;
-        }
-
-        void refetchBaySlotGroups();
-    };
+    const { refreshing: isPullRefreshing, onRefresh: handleRefresh } =
+        usePullToRefresh(() => isLessonTicket
+            ? refetchLessonSlots({ cancelRefetch: false })
+            : refetchBaySlotGroups({ cancelRefetch: false }));
 
     const bookingContext =
         formatTicketTypeLabel(ticketType, t) ||
@@ -484,11 +476,7 @@ export default function DateScreen() {
             horizontalPadding={false}
             refreshControl={
                 <RefreshControl
-                    refreshing={
-                        isLessonTicket
-                            ? isRefetchingLessonSlots
-                            : isRefetchingBaySlotGroups
-                    }
+                    refreshing={isPullRefreshing}
                     onRefresh={handleRefresh}
                     colors={[colors.primary]}
                     tintColor={colors.primary}
@@ -565,48 +553,40 @@ export default function DateScreen() {
                                                 : ""
                                             }`}
                                     >
-                                        <Host
-                                            matchContents={{ vertical: true }}
-                                            ignoreSafeArea="all"
-                                            style={{ width: 40, opacity: isPast && !isToday ? 0.4 : 1 }}>
-                                            <Text
-                                                textStyle={{
-                                                    ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                                                    textAlign: "center",
-                                                    ...(isToday
+                                        <NativeText
+                                            variant="body"
+                                            align="center"
+                                            style={{ width: 40, opacity: isPast && !isToday ? 0.4 : 1 }}
+                                            textStyle={{
+                                                ...(isToday
+                                                    ? {
+                                                        fontWeight:
+                                                            "700" as const,
+                                                        color: colors.success,
+                                                    }
+                                                    : isPast
                                                         ? {
-                                                            fontWeight:
-                                                                "700" as const,
-                                                            color: uiColors.success,
+                                                            color: colors.mutedForeground,
                                                         }
-                                                        : isPast
+                                                        : isAvailableFutureDate
                                                             ? {
-                                                                color: uiColors.mutedForeground,
+                                                                fontWeight:
+                                                                    "700" as const,
+                                                                color: colors.primary,
                                                             }
-                                                            : isAvailableFutureDate
+                                                            : isOutsideMonth
                                                                 ? {
-                                                                    fontWeight:
-                                                                        "700" as const,
-                                                                    color: uiColors.primary,
+                                                                    color:
+                                                                        colors.mutedForeground +
+                                                                        "b3",
                                                                 }
-                                                                : isOutsideMonth
-                                                                    ? {
-                                                                        color:
-                                                                            uiColors.mutedForeground +
-                                                                            "b3",
-                                                                    }
-                                                                    : {
-                                                                        color: uiColors.foreground,
-                                                                    }),
-                                                    fontSize:
-                                                        typography.body
-                                                            .fontSize *
-                                                        uiFontScale,
-                                                }}
-                                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                                                {String(date.day ?? "")}
-                                            </Text>
-                                        </Host>
+                                                                : {
+                                                                    color: colors.foreground,
+                                                                })
+                                            }}
+                                        >
+                                            {String(date.day ?? "")}
+                                        </NativeText>
 
                                         {isAvailableFutureDate ? (
                                             <View

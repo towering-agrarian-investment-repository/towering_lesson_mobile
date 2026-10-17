@@ -1,16 +1,14 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
-import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +21,7 @@ function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
 }
 
 export default function TimeScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const {
         date,
@@ -48,6 +46,9 @@ export default function TimeScreen() {
 
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberBaySlotGroups(date, date, Boolean(date));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const hasLoadError = isError && !data;
 
     const slotGroups = useMemo(
         () =>
@@ -100,7 +101,7 @@ export default function TimeScreen() {
                 </View>
             ) : null}
 
-            {isError ? (
+            {hasLoadError ? (
                 <ErrorState
                     title={t("booking.failedAvailableTimesTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
@@ -109,13 +110,11 @@ export default function TimeScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             ) : null}
 
-            {!isLoading && !isError && slotGroups.length === 0 ? (
+            {!isLoading && !hasLoadError && slotGroups.length === 0 ? (
                 <EmptyState
                     title={t("booking.noAvailableTimesTitle")}
                     message={t("booking.noAvailableTimesMessage")}
@@ -138,7 +137,7 @@ export default function TimeScreen() {
                 />
             ) : null}
 
-            {!isLoading && !isError && slotGroups.length > 0 ? (
+            {!isLoading && !hasLoadError && slotGroups.length > 0 ? (
                 <FlatList
                     className="min-h-0 flex-1"
                     data={slotGroups}
@@ -158,55 +157,30 @@ export default function TimeScreen() {
                                 disabled={isLocked}
                             >
                                 <View className="min-w-0 flex-1 gap-1">
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                                color: uiColors.foreground,
-                                                fontSize:
-                                                    typography.h3.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {formatTimeRange(
-                                                group.startDateTime,
-                                                group.endDateTime,
-                                            )}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="h3">
+                                        {formatTimeRange(
+                                            group.startDateTime,
+                                            group.endDateTime,
+                                        )}
+                                    </NativeText>
 
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                                color:
-                                                    uiColors.foreground + "bf",
-                                                fontSize:
-                                                    typography.meta.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {t("booking.baysAvailable", {
-                                                count: availableBayCount,
-                                            })}
-                                        </Text>
-                                    </Host>
+                                    <NativeText
+                                        variant="meta"
+                                        textStyle={{
+                                            color:
+                                                uiColors.foreground + "bf"
+                                        }}
+                                    >
+                                        {t("booking.baysAvailable", {
+                                            count: availableBayCount,
+                                        })}
+                                    </NativeText>
                                 </View>
 
                                 <View className="rounded-full bg-primary/10 px-3 py-1.5">
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            textStyle={{
-                                                ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                                                color: uiColors.primary,
-                                                fontSize:
-                                                    typography.badge.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                        >
-                                            {t("booking.select")}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="badge" color="primary" wrap={false}>
+                                        {t("booking.select")}
+                                    </NativeText>
                                 </View>
                             </Pressable>
                         );
@@ -214,10 +188,8 @@ export default function TimeScreen() {
                     ItemSeparatorComponent={() => <View className="h-3" />}
                     refreshControl={
                         <RefreshControl
-                            refreshing={isRefetching}
-                            onRefresh={() => {
-                                void refetch();
-                            }}
+                            refreshing={isPullRefreshing}
+                            onRefresh={handlePullRefresh}
                         />
                     }
                     contentContainerStyle={{ paddingBottom: 24 }}

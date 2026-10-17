@@ -1,16 +1,16 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import { EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
-import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,7 +27,7 @@ function chunkItems<T>(items: T[], size: number) {
 }
 
 export default function BayScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const {
         date,
@@ -65,6 +65,8 @@ export default function BayScreen() {
 
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberBaySlotGroups(date, date, Boolean(date));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const slotGroup = (data?.data ?? []).find(
         (group) => String(group.id) === slotGroupId,
@@ -111,10 +113,8 @@ export default function BayScreen() {
             contentClassName="gap-6"
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
         >
@@ -178,9 +178,7 @@ export default function BayScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             ) : null}
 
@@ -251,27 +249,18 @@ export default function BayScreen() {
                                             }
                                             disabled={isDisabled || isLocked}
                                         >
-                                            <Host
-                                                matchContents
-                                                ignoreSafeArea="all"
+                                            <NativeText
+                                                variant="label"
+                                                align="center"
+                                                wrap={false}
+                                                textStyle={{
+                                                    color: !isDisabled
+                                                        ? uiColors.foreground
+                                                        : uiColors.mutedForeground
+                                                }}
                                             >
-                                                <Text
-                                                    textStyle={{
-                                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                                        textAlign:
-                                                            "center" as const,
-                                                        color: !isDisabled
-                                                            ? uiColors.foreground
-                                                            : uiColors.mutedForeground,
-                                                        fontSize:
-                                                            typography.label
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                >
-                                                    {bay.bayName}
-                                                </Text>
-                                            </Host>
+                                                {bay.bayName}
+                                            </NativeText>
 
                                             <View className={cn(
                                                 "rounded-full px-2.5 py-1 ",
@@ -281,37 +270,26 @@ export default function BayScreen() {
                                                         ? "bg-primary/10"
                                                         : "bg-muted",
                                             )}>
-                                                <Host
-                                                    matchContents
-                                                    ignoreSafeArea="all"
-
-
-                                                >
-                                                    <Text
-                                                        textStyle={{
-                                                            ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                                                            textAlign:
-                                                                "center" as const,
-                                                            ...(wasJustBooked
+                                                <NativeText
+                                                    variant="badge"
+                                                    align="center"
+                                                    wrap={false}
+                                                    textStyle={{
+                                                        ...(wasJustBooked
+                                                            ? {
+                                                                color: uiColors.warning,
+                                                            }
+                                                            : !isDisabled
                                                                 ? {
-                                                                    color: uiColors.warning,
+                                                                    color: uiColors.primary,
                                                                 }
-                                                                : !isDisabled
-                                                                    ? {
-                                                                        color: uiColors.primary,
-                                                                    }
-                                                                    : {
-                                                                        color: uiColors.mutedForeground,
-                                                                    }),
-                                                            fontSize:
-                                                                typography.badge
-                                                                    .fontSize *
-                                                                uiFontScale,
-                                                        }}
-                                                    >
-                                                        {statusLabel}
-                                                    </Text>
-                                                </Host>
+                                                                : {
+                                                                    color: uiColors.mutedForeground,
+                                                                })
+                                                    }}
+                                                >
+                                                    {statusLabel}
+                                                </NativeText>
                                             </View>
                                         </Pressable>
                                     </View>

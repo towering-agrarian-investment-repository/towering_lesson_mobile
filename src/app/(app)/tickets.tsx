@@ -1,8 +1,7 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { TICKET_TABS, TicketTabScene } from "@/components/golf/TicketTabScene";
 import { getPressedScaleStyle, Screen } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { Host, Text } from "@expo/ui";
 import * as Haptics from "expo-haptics";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +14,7 @@ type TicketRoute = {
 };
 
 export default function TicketsScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
@@ -110,37 +109,29 @@ export default function TicketsScreen() {
                                 }
                                 onPress={() => handleTabChange(tabIndex)}
                             >
-                                <Host matchContents ignoreSafeArea="all">
-                                    <Text
-                                        numberOfLines={1}
-                                        textStyle={{
-                                            ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                            fontSize: typography.caption.fontSize * uiFontScale,
-                                            fontWeight: "600" as const,
-                                            color: uiColors.mutedForeground,
-                                        }}
-                                    >
-                                        {t(`tickets.filters.${tab}`)}
-                                    </Text>
-                                </Host>
+                                <NativeText
+                                    variant="body"
+                                    color="mutedForeground"
+                                    wrap={false}
+                                    numberOfLines={1}
+                                    textStyle={{ lineHeight: typography.caption.lineHeight, fontSize: typography.caption.fontSize, fontWeight: "600" as const }}
+                                >
+                                    {t(`tickets.filters.${tab}`)}
+                                </NativeText>
                                 <Animated.View
                                     pointerEvents="none"
                                     className="absolute inset-0 items-center justify-center"
                                     style={{ opacity: activeOpacity }}
                                 >
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            numberOfLines={1}
-                                            textStyle={{
-                                                ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                fontSize: typography.caption.fontSize * uiFontScale,
-                                                fontWeight: "600" as const,
-                                                color: uiColors.primaryForeground,
-                                            }}
-                                        >
-                                            {t(`tickets.filters.${tab}`)}
-                                        </Text>
-                                    </Host>
+                                    <NativeText
+                                        variant="body"
+                                        color="primaryForeground"
+                                        wrap={false}
+                                        numberOfLines={1}
+                                        textStyle={{ lineHeight: typography.caption.lineHeight, fontSize: typography.caption.fontSize, fontWeight: "600" as const }}
+                                    >
+                                        {t(`tickets.filters.${tab}`)}
+                                    </NativeText>
                                 </Animated.View>
                             </Pressable>
                         );
@@ -148,7 +139,7 @@ export default function TicketsScreen() {
                 </View>
             </View>
         ),
-        [activeIndex, handleTabChange, t, tabBarWidth, uiColors, uiFontScale],
+        [activeIndex, handleTabChange, t, tabBarWidth],
     );
 
     return (

@@ -1,3 +1,4 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import TicketCard from "@/components/golf/TicketCard";
 import { EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
@@ -12,12 +13,6 @@ import { useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
-import Animated, {
-    FadeIn,
-    FadeOut,
-    LinearTransition,
-    useReducedMotion,
-} from "react-native-reanimated";
 
 export const TICKET_TABS = ["all", "bay", "lesson"] as const;
 export type TicketTabType = (typeof TICKET_TABS)[number];
@@ -32,12 +27,15 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { isOnline } = useNetworkStatus();
-    const reduceMotion = useReducedMotion();
-    const { data: memberResponse, isLoading: isLoadingMember } =
+    const { data: memberResponse, isLoading: isLoadingMember, isError: isMemberError, refetch: refetchMember, isRefetching: isRefetchingMember } =
         useGetMemberProfile();
     const member = memberResponse?.data;
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberTickets(member?.id);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => member
+            ? refetch({ cancelRefetch: false })
+            : refetchMember({ cancelRefetch: false }));
     const filteredTickets = useMemo(() => {
         const tickets = data?.data ?? [];
 
@@ -90,13 +88,11 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
         );
     }
 
-    if (isError) {
+    if ((isError && !data) || (isMemberError && !member)) {
         return (
             <TicketStateList
-                refreshing={isRefetching}
-                onRefresh={() => {
-                    void refetch();
-                }}
+                refreshing={isPullRefreshing}
+                onRefresh={handlePullRefresh}
             >
                 <ErrorState
                     title={
@@ -110,13 +106,11 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                             : t("common.pullToRefreshAndTryAgain")
                     }
                     actionLabel={
-                        isRefetching
+                        isRefetching || isRefetchingMember
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             </TicketStateList>
         );
@@ -125,17 +119,13 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
     if (filteredTickets.length === 0) {
         return (
             <TicketStateList
-                refreshing={isRefetching}
-                onRefresh={() => {
-                    void refetch();
-                }}
+                refreshing={isPullRefreshing}
+                onRefresh={handlePullRefresh}
             >
                 <EmptyState
                     title={t("tickets.empty")}
                     actionLabel={t("common.refresh")}
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             </TicketStateList>
         );
@@ -147,22 +137,12 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
             data={filteredTickets}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => (
-                <Animated.View
-                    entering={reduceMotion ? undefined : FadeIn.duration(180)}
-                    exiting={reduceMotion ? undefined : FadeOut.duration(140)}
-                    layout={
-                        reduceMotion
-                            ? undefined
-                            : LinearTransition.duration(180)
-                    }
-                >
-                    <TicketCard
-                        item={item}
-                        fullWidth
-                        disabled={isLocked}
-                        onPress={handleTicketPress}
-                    />
-                </Animated.View>
+                <TicketCard
+                    item={item}
+                    fullWidth
+                    disabled={isLocked}
+                    onPress={handleTicketPress}
+                />
             )}
             decelerationRate="normal"
             nestedScrollEnabled
@@ -173,10 +153,8 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
             }}
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
             showsVerticalScrollIndicator={false}

@@ -1,30 +1,32 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { typography } from "@/design-system/utils/typography";
 import { Host, Text } from "@expo/ui";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     FlatList,
     Pressable,
     View,
+    useWindowDimensions,
     type LayoutChangeEvent,
     type ViewProps,
 } from "react-native";
+import Svg, { Text as SvgText } from "react-native-svg";
 import { cn } from "../../utils/cn";
 import { useTheme, type ThemeColors } from "../../utils/theme";
+import { typography } from "../../utils/typography";
+import {
+    buildHeatmapWeeks,
+    formatActivityDate,
+    formatStatusBreakdown,
+    formatTypeBreakdown,
+    getFocusMonthWeekIndex,
+    getHeatmapCellColor,
+    toDateKey,
+    type ActivityHeatmapValue,
+    type ActivityHeatmapWeek,
+} from "./activity-chart-data";
+import { chartLeadingModifiers, getChartTextStyles } from "./chart-text-styles";
 
-import i18n from "@/i18n";
-import { useTranslation } from "react-i18next";
-
-export type ActivityHeatmapStatus =
-    "completed" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
-export type ActivityHeatmapValue = {
-    date: string | number | Date;
-    count: number;
-    status?: ActivityHeatmapStatus;
-    statusBreakdown?: Partial<Record<ActivityHeatmapStatus, number>>;
-    typeCounts?: { lesson: number; bay: number };
-};
+export type { ActivityHeatmapStatus, ActivityHeatmapValue } from "./activity-chart-data";
 
 export function ActivityStatusLegend({
     className,
@@ -35,38 +37,21 @@ export function ActivityStatusLegend({
 }) {
     const { t } = useTranslation();
     const { colors, fontScale } = useTheme();
+    const textStyles = getChartTextStyles(colors, fontScale);
     const statuses = [
-        { label: t("activity.completed"), color: colors.success },
-        { label: t("activity.absent"), color: colors.danger },
-        { label: t("activity.booked"), color: colors.ticketPrivate },
-        ...(includeMixed
-            ? [{ label: t("activity.mixed"), color: colors.warning }]
-            : []),
+        { key: "completed", label: t("activity.completed"), color: colors.success },
+        { key: "absent", label: t("activity.absent"), color: colors.danger },
+        { key: "booked", label: t("activity.booked"), color: colors.ticketPrivate },
+        ...(includeMixed ? [{ key: "mixed", label: t("activity.mixed"), color: colors.warning }] : []),
     ];
 
     return (
         <View className={cn("flex-row flex-wrap items-center gap-x-4 gap-y-2", className)}>
             {statuses.map((status) => (
-                <View key={status.label} className="flex-row items-center gap-1.5">
-                    <View
-                        style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 3,
-                            backgroundColor: status.color,
-                        }}
-                    />
+                <View key={status.key} className="flex-row items-center gap-1.5">
+                    <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: status.color }} />
                     <Host matchContents ignoreSafeArea="all">
-                        <Text
-                            textStyle={{
-                                ...typography.subtext,
-                                lineHeight: typography.subtext.lineHeight * fontScale,
-                                color: colors.mutedForeground,
-                                fontSize: typography.subtext.fontSize * fontScale,
-                            }}
-                        >
-                            {status.label}
-                        </Text>
+                        <Text textStyle={textStyles.muted}>{status.label}</Text>
                     </Host>
                 </View>
             ))}
@@ -96,188 +81,116 @@ const WEEKDAY_OFFSETS = [0, 2, 4, 6];
 
 export function ActivityHeatmap({
     values,
-    endDate = new Date(),
+    endDate,
     numDays = 365,
     title,
     legend = true,
     overallCount,
-    overallUnitLabel = "activities",
+    overallUnitLabel,
     className,
     onDayPress,
+    onLayout,
     ...props
 }: ActivityHeatmapProps) {
-    const { colors: uiColors } = useTheme();
-    const {
-        t,
-        i18n: { language },
-    } = useTranslation();
-    const { colors, fontScale: uiFontScale } = useTheme();
+    const { colors, fontScale } = useTheme();
+    const { fontScale: deviceFontScale } = useWindowDimensions();
+    const { t, i18n: { language } } = useTranslation();
+    const textStyles = getChartTextStyles(colors, fontScale);
     const todayKey = toDateKey(new Date());
-    const [selectedDay, setSelectedDay] = useState<string | null>(null);
+    const endDateKey = endDate ? toDateKey(endDate) : todayKey;
     const [containerWidth, setContainerWidth] = useState(0);
+    const valuesByDate = useMemo(
+        () => new Map(values.map((value) => [toDateKey(value.date), value])),
+        [values],
+    );
     const weeks = useMemo(
-        () => buildWeeks(values, endDate, numDays, language),
-        [values, endDate, numDays, language],
+        () => buildHeatmapWeeks(valuesByDate, endDateKey, numDays, language),
+        [valuesByDate, endDateKey, numDays, language],
     );
-    const weekdayLabels = WEEKDAY_OFFSETS.map((offset) =>
-        new Date(2024, 0, 1 + offset).toLocaleDateString(language, {
-            weekday: "narrow",
-        }),
-    );
-    const selectedValue = values.find(
-        (value) => toDateKey(value.date) === selectedDay,
-    );
-
-    // Focus the current month for the current year, or January for a historical
-    // year, so changing the year always opens at a useful part of the heatmap.
-    const focusMonthWeekIndex = useMemo(() => {
-        const now = new Date();
-        const selectedYear = parseCalendarDate(endDate).getFullYear();
-        const focusYear =
-            selectedYear === now.getFullYear()
-                ? now.getFullYear()
-                : selectedYear;
-        const focusMonth =
-            selectedYear === now.getFullYear() ? now.getMonth() : 0;
-
-        return weeks.findIndex((week) =>
-            week.days.some(
-                (d) =>
-                    d.date.getFullYear() === focusYear &&
-                    d.date.getMonth() === focusMonth,
-            ),
-        );
-    }, [endDate, weeks]);
-
-    const availableWidth = Math.max(0, containerWidth - LABEL_COL_WIDTH - CELL_GAP);
-    // Keep roughly three months visible without shrinking days into tiny dots.
-    const cellSize = Math.max(
-        MIN_CELL,
-        Math.min(MAX_CELL, Math.floor((availableWidth - 11 * CELL_GAP) / 12)),
-    );
-    const gridWidth = weeks.length * (cellSize + CELL_GAP);
-    const needsScroll = containerWidth > 0 && gridWidth > availableWidth;
-    const maxScrollX = Math.max(0, gridWidth - availableWidth);
-
-    const handleLayout = (event: LayoutChangeEvent) =>
-        setContainerWidth(event.nativeEvent.layout.width);
-
-    // Scroll so the current month starts at the left edge of the viewport on
-    // first render (only once, so it doesn't fight the user if they scroll away
-    // afterward).
-    const scrollRef = useRef<FlatList<(typeof weeks)[number]>>(null);
-    const autoScrolledRange = useRef<string | null>(null);
     const rangeKey = weeks.length
-        ? `${toDateKey(weeks[0].days[0].date)}-${toDateKey(weeks[weeks.length - 1].days[0].date)}`
+        ? `${weeks[0].days[0].dateKey}-${weeks[weeks.length - 1].days[6].dateKey}`
         : "empty";
-    useEffect(() => {
-        if (
-            autoScrolledRange.current === rangeKey ||
-            !needsScroll ||
-            containerWidth === 0 ||
-            focusMonthWeekIndex === -1
-        )
-            return;
-        const targetX = Math.min(
-            maxScrollX,
-            Math.max(0, focusMonthWeekIndex * (cellSize + CELL_GAP)),
-        );
-        scrollRef.current?.scrollToOffset({ offset: targetX, animated: false });
-        autoScrolledRange.current = rangeKey;
-    }, [
-        needsScroll,
-        containerWidth,
-        focusMonthWeekIndex,
-        cellSize,
-        maxScrollX,
-        rangeKey,
-    ]);
-
-    const handleSelectDay = useCallback(
-        (dateKey: string, date: Date, count: number) => {
-            setSelectedDay(dateKey);
-            onDayPress?.(date, count);
-        },
-        [onDayPress],
+    const [selection, setSelection] = useState<{ rangeKey: string; dateKey: string } | null>(null);
+    const selectedDay = selection?.rangeKey === rangeKey ? selection.dateKey : null;
+    const selectedValue = selectedDay ? valuesByDate.get(selectedDay) : undefined;
+    const selectedTypes = formatTypeBreakdown(selectedValue?.typeCounts, t);
+    const weekdayLabels = useMemo(() => {
+        const formatter = new Intl.DateTimeFormat(language, { weekday: "narrow" });
+        return WEEKDAY_OFFSETS.map((offset) => formatter.format(new Date(2024, 0, 1 + offset)));
+    }, [language]);
+    const dateFormatter = useMemo(() => new Intl.DateTimeFormat(language, {
+        year: "numeric", month: "short", day: "numeric",
+    }), [language]);
+    const focusMonthWeekIndex = useMemo(
+        () => getFocusMonthWeekIndex(weeks, endDateKey, todayKey),
+        [weeks, endDateKey, todayKey],
     );
-
-    const renderWeek = useCallback(
-        ({ item: week }: { item: (typeof weeks)[number] }) => (
-            <HeatmapWeekColumn
-                key={toDateKey(week.days[0].date)}
-                week={week}
-                cellSize={cellSize}
-                todayKey={todayKey}
-                selectedDay={selectedDay}
-                colors={colors}
-                onSelectDay={handleSelectDay}
-            />
-        ),
-        [cellSize, colors, handleSelectDay, selectedDay, todayKey],
-    );
+    const axisFontSize = typography.subtext.fontSize * deviceFontScale;
+    const labelColumnWidth = Math.max(LABEL_COL_WIDTH, axisFontSize * 1.5);
+    const monthLabelHeight = Math.max(MONTH_LABEL_HEIGHT, axisFontSize * 1.4);
+    const availableWidth = Math.max(0, containerWidth - labelColumnWidth - CELL_GAP);
+    const cellSize = Math.max(MIN_CELL,
+        Math.min(MAX_CELL, Math.floor((availableWidth - 11 * CELL_GAP) / 12)));
+    const visibleWeeks = Math.max(1, Math.ceil(availableWidth / (cellSize + CELL_GAP)) + 1);
+    const handleLayout = (event: LayoutChangeEvent) => {
+        setContainerWidth(event.nativeEvent.layout.width);
+        onLayout?.(event);
+    };
+    const handleSelectDay = useCallback((dateKey: string, date: Date, count: number) => {
+        setSelection({ rangeKey, dateKey });
+        onDayPress?.(date, count);
+    }, [onDayPress, rangeKey]);
+    const renderWeek = useCallback(({ item: week }: { item: ActivityHeatmapWeek }) => (
+        <HeatmapWeekColumn
+            week={week}
+            cellSize={cellSize}
+            axisFontSize={axisFontSize}
+            monthLabelHeight={monthLabelHeight}
+            todayKey={todayKey}
+            selectedDay={selectedDay && selectedDay >= week.days[0].dateKey && selectedDay <= week.days[6].dateKey
+                ? selectedDay : null}
+            colors={colors}
+            dateFormatter={dateFormatter}
+            onSelectDay={handleSelectDay}
+        />
+    ), [cellSize, axisFontSize, monthLabelHeight, todayKey, selectedDay, colors, dateFormatter, handleSelectDay]);
 
     return (
-        <View
-            className={cn("w-full gap-3", className)}
-            onLayout={handleLayout}
-            {...props}
-        >
+        <View {...props} className={cn("w-full gap-3", className)} onLayout={handleLayout}>
             {title ? (
                 <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.h3.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {title}
-                    </Text>
+                    <Text textStyle={textStyles.title} modifiers={chartLeadingModifiers}>{title}</Text>
                 </Host>
             ) : null}
             <View className="flex-row" style={{ gap: CELL_GAP }}>
-                <View
-                    style={{
-                        width: LABEL_COL_WIDTH,
-                        height: cellSize * 7 + CELL_GAP * 6,
-                        marginTop: MONTH_LABEL_HEIGHT + CELL_GAP,
-                    }}
+                <Svg
+                    width={labelColumnWidth}
+                    height={cellSize * 7 + CELL_GAP * 6}
+                    style={{ marginTop: monthLabelHeight + CELL_GAP }}
+                    accessible={false}
                 >
-                    {weekdayLabels.map((label, i) => (
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
-                            style={{
-                                position: "absolute",
-                                top: i * 2 * (cellSize + CELL_GAP) +
-                                    (cellSize - typography.subtext.lineHeight * uiFontScale) / 2,
-                            }}
-                            key={i}
-                        >
-                            <Text
-                                textStyle={{
-                                    ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize: typography.subtext.fontSize * uiFontScale,
-                                }}
-                            >
-                                {label}
-                            </Text>
-                        </Host>
+                    {weekdayLabels.map((label, index) => (
+                        <SvgText
+                            key={WEEKDAY_OFFSETS[index]}
+                            x={0}
+                            y={index * 2 * (cellSize + CELL_GAP) + cellSize / 2}
+                            alignmentBaseline="central"
+                            fontSize={axisFontSize}
+                            fill={colors.mutedForeground}
+                        >{label}</SvgText>
                     ))}
-                </View>
-                {containerWidth === 0 ? null : needsScroll ? (
+                </Svg>
+                {containerWidth > 0 ? (
                     <FlatList
-                        ref={scrollRef}
+                        key={rangeKey}
                         data={weeks}
                         renderItem={renderWeek}
                         extraData={selectedDay}
-                        initialScrollIndex={
-                            needsScroll && focusMonthWeekIndex >= 0
-                                ? focusMonthWeekIndex
-                                : undefined
-                        }
-                        keyExtractor={(week) => toDateKey(week.days[0].date)}
+                        initialScrollIndex={weeks.length ? focusMonthWeekIndex : undefined}
+                        initialNumToRender={visibleWeeks}
+                        maxToRenderPerBatch={visibleWeeks}
+                        windowSize={5}
+                        keyExtractor={(week) => week.days[0].dateKey}
                         getItemLayout={(_, index) => ({
                             length: cellSize + CELL_GAP,
                             offset: index * (cellSize + CELL_GAP),
@@ -288,277 +201,74 @@ export function ActivityHeatmap({
                         showsHorizontalScrollIndicator
                         contentContainerStyle={{ paddingBottom: 12 }}
                     />
-                ) : (
-                    <View className="flex-row">
-                        {weeks.map((week) => renderWeek({ item: week }))}
-                    </View>
-                )}
+                ) : null}
             </View>
             {legend ? <ActivityStatusLegend className="justify-center" /> : null}
-            <View className="flex-row items-center justify-between gap-2">
-                <Host
-                    matchContents={{ vertical: true }}
-                    ignoreSafeArea="all"
-                    style={{ flex: 1, minWidth: 0 }}
-                >
-                    <Text
-                        textStyle={{
-                            ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.subtext.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {selectedValue
-                            ? `${t("activity.activityCount", { count: selectedValue.count })} ${t("activity.onDate", { date: selectedDay })}${formatStatusBreakdown(selectedValue.statusBreakdown)}${formatTypeBreakdown(selectedValue.typeCounts) ? ` · ${formatTypeBreakdown(selectedValue.typeCounts)}` : ""}`
-                            : overallCount !== undefined
-                                ? `${t("activity.overall")} · ${overallCount} ${overallUnitLabel}`
-                                : "-"}
-                    </Text>
-                </Host>
-            </View>
+            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                <Text textStyle={textStyles.muted} modifiers={chartLeadingModifiers}>
+                    {selectedDay
+                        ? `${t("activity.activityCount", { count: selectedValue?.count ?? 0 })} ${t("activity.onDate", { date: formatActivityDate(selectedDay, language) })}${formatStatusBreakdown(selectedValue?.statusBreakdown, t)}${selectedTypes ? ` · ${selectedTypes}` : ""}`
+                        : overallCount !== undefined
+                            ? `${t("activity.overall")} · ${overallCount} ${overallUnitLabel ?? t("activity.reservations")}`
+                            : "-"}
+                </Text>
+            </Host>
         </View>
     );
 }
 
-type ActivityHeatmapDay = {
-    date: Date;
-    count: number;
-    status?: ActivityHeatmapStatus;
-    statusBreakdown?: Partial<Record<ActivityHeatmapStatus, number>>;
-    typeCounts?: { lesson: number; bay: number };
-};
-
-type ActivityHeatmapWeek = {
-    days: ActivityHeatmapDay[];
-    monthLabel?: string;
-};
-
 const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
-    week,
-    cellSize,
-    todayKey,
-    selectedDay,
-    colors,
-    onSelectDay,
+    week, cellSize, axisFontSize, monthLabelHeight, todayKey, selectedDay, colors, dateFormatter, onSelectDay,
 }: {
     week: ActivityHeatmapWeek;
     cellSize: number;
+    axisFontSize: number;
+    monthLabelHeight: number;
     todayKey: string;
     selectedDay: string | null;
     colors: ThemeColors;
+    dateFormatter: Intl.DateTimeFormat;
     onSelectDay: (dateKey: string, date: Date, count: number) => void;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     return (
-        <View
-            key={toDateKey(week.days[0].date)}
-            style={{ width: cellSize, gap: CELL_GAP, marginRight: CELL_GAP }}
-        >
-            <View style={{ height: MONTH_LABEL_HEIGHT, position: "relative" }}>
+        <View style={{ width: cellSize, gap: CELL_GAP, marginRight: CELL_GAP }}>
+            <View style={{ height: monthLabelHeight, overflow: "visible" }}>
                 {week.monthLabel ? (
-                    <Host
-                        matchContents
-                        ignoreSafeArea="all"
-                        style={{
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            zIndex: 1,
-                        }}
+                    <Svg
+                        width={Math.max(cellSize, axisFontSize * week.monthLabel.length)}
+                        height={monthLabelHeight}
+                        style={{ position: "absolute", left: 0, overflow: "visible" }}
+                        accessible={false}
                     >
-                        <Text
-                            numberOfLines={1}
-                            textStyle={{
-                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize: typography.subtext.fontSize * uiFontScale,
-                            }}
-                        >
+                        <SvgText x={0} y={axisFontSize} fontSize={axisFontSize} fill={colors.mutedForeground}>
                             {week.monthLabel}
-                        </Text>
-                    </Host>
+                        </SvgText>
+                    </Svg>
                 ) : null}
             </View>
             {week.days.map((day) => {
-                const dateKey = toDateKey(day.date);
-                const isToday = dateKey === todayKey;
-                const isSelected = selectedDay === dateKey;
-
+                const isToday = day.dateKey === todayKey;
+                const isSelected = day.dateKey === selectedDay;
                 return (
                     <Pressable
-                        key={dateKey}
+                        key={day.dateKey}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
-                        accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateKey })}${isToday ? ` (${t("activity.today")})` : ""}`}
+                        accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateFormatter.format(day.date) })}${isToday ? ` (${t("activity.today")})` : ""}`}
                         hitSlop={4}
                         style={{
                             width: cellSize,
                             height: cellSize,
                             borderRadius: CELL_RADIUS,
-                            backgroundColor: getCellColor(
-                                day.count,
-                                colors,
-                                day.status,
-                            ),
+                            backgroundColor: getHeatmapCellColor(day.count, colors, day.status),
                             borderWidth: isSelected || isToday ? 1.5 : 0,
-                            borderColor: isSelected
-                                ? colors.foreground
-                                : colors.primary,
+                            borderColor: isSelected ? colors.foreground : colors.primary,
                         }}
-                        onPress={() =>
-                            onSelectDay(dateKey, day.date, day.count)
-                        }
+                        onPress={() => onSelectDay(day.dateKey, day.date, day.count)}
                     />
                 );
             })}
         </View>
     );
 });
-
-function buildWeeks(
-    values: ActivityHeatmapValue[],
-    endDate: Date,
-    numDays: number,
-    language: string,
-) {
-    const counts = new Map(
-        values.map((value) => [toDateKey(value.date), value.count]),
-    );
-    const statuses = new Map(
-        values.map((value) => [toDateKey(value.date), value.status]),
-    );
-    const statusBreakdowns = new Map(
-        values.map((value) => [toDateKey(value.date), value.statusBreakdown]),
-    );
-    const typeCounts = new Map(
-        values.map((value) => [toDateKey(value.date), value.typeCounts]),
-    );
-    const end = parseCalendarDate(endDate);
-    const start = new Date(end);
-    start.setDate(start.getDate() - (numDays - 1));
-    const dayOfWeek = start.getDay(); // 0 = Sun ... 6 = Sat
-    const daysSinceMonday = (dayOfWeek + 6) % 7;
-    start.setDate(start.getDate() - daysSinceMonday); // rewind to that week's Monday
-    const weeks: ActivityHeatmapWeek[] = [];
-    for (
-        let weekStart = new Date(start);
-        weekStart <= end;
-        weekStart.setDate(weekStart.getDate() + 7)
-    ) {
-        const days = Array.from({ length: 7 }, (_, offset) => {
-            const date = new Date(weekStart);
-            date.setDate(date.getDate() + offset);
-            const key = toDateKey(date);
-            return {
-                date,
-                count: counts.get(key) ?? 0,
-                status: statuses.get(key),
-                statusBreakdown: statusBreakdowns.get(key),
-                typeCounts: typeCounts.get(key),
-            };
-        });
-        weeks.push({
-            days,
-            monthLabel:
-                weekStart.getDate() <= 7
-                    ? weekStart.toLocaleDateString(language, { month: "short" })
-                    : undefined,
-        });
-    }
-    return weeks;
-}
-
-// 5-step scale: 0 = empty, 1-4 = increasing intensity, derived from the theme's primary color
-// so it stays on-brand while still reading as a gradient like the Dribbble reference.
-function getScaleColor(level: number, colors: ThemeColors) {
-    if (level <= 0) return colors.muted;
-    const opacities = ["33", "66", "99", "FF"];
-    return `${colors.primary}${opacities[Math.min(level, 4) - 1]}`;
-}
-
-function getCellColor(
-    count: number,
-    colors: ThemeColors,
-    status?: ActivityHeatmapStatus,
-) {
-    if (count <= 0) return getScaleColor(0, colors);
-
-    switch (status) {
-        case "completed":
-            return colors.success;
-        case "no-show":
-            return colors.danger;
-        case "cancelled":
-            return colors.mutedForeground;
-        case "reserved":
-            return colors.ticketPrivate;
-        case "mixed":
-            return colors.warning;
-        default:
-            return getScaleColor(Math.min(count, 4), colors);
-    }
-}
-
-function formatStatusBreakdown(
-    breakdown?: Partial<Record<ActivityHeatmapStatus, number>>,
-) {
-    if (!breakdown) return "";
-
-    const labels: Record<ActivityHeatmapStatus, string> = {
-        completed: i18n.t("activity.completed"),
-        "no-show": i18n.t("activity.absent"),
-        cancelled: i18n.t("activity.cancelled"),
-        reserved: i18n.t("activity.booked"),
-        mixed: i18n.t("activity.mixed"),
-        unknown: i18n.t("activity.other"),
-    };
-    const details = Object.entries(breakdown)
-        .filter(([, count]) => count && count > 0)
-        .map(
-            ([status, count]) =>
-                `${count} ${labels[status as ActivityHeatmapStatus]}`,
-        )
-        .join(" · ");
-
-    return details ? ` · ${details}` : "";
-}
-
-function formatTypeBreakdown(typeCounts?: { lesson: number; bay: number }) {
-    if (!typeCounts) return "";
-
-    const details = [
-        typeCounts.bay > 0
-            ? `${typeCounts.bay} ${i18n.t("activity.bay")}`
-            : null,
-        typeCounts.lesson > 0
-            ? `${typeCounts.lesson} ${i18n.t("activity.lesson")}`
-            : null,
-    ]
-        .filter(Boolean)
-        .join(" · ");
-
-    return details;
-}
-
-function toDateKey(date: string | number | Date) {
-    // Trust plain "YYYY-MM-DD" strings as-is — re-parsing them as a Date would
-    // route through UTC and could shift the day depending on the caller's timezone.
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))
-        return date;
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-}
-
-function parseCalendarDate(date: string | number | Date) {
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.test(date)) {
-        const [year, month, day] = date.slice(0, 10).split("-").map(Number);
-        return new Date(year, month - 1, day);
-    }
-
-    const parsed = new Date(date);
-    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-}

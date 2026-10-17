@@ -1,11 +1,8 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { NativeText } from "./NativeText";
 import happyGolfToolbarLogo from "@/assets/images/happygolf_toolbar_logo.png";
-import { Host, Text } from "@expo/ui";
 import { Image, View } from "react-native";
 import Animated, { cubicBezier, useReducedMotion } from "react-native-reanimated";
 import { useTheme } from "../utils/theme";
-import { typography } from "../utils/typography";
 
 type CircleLoaderProps = {
     label?: string;
@@ -18,7 +15,7 @@ export function CircleLoader({
     fullScreen = false,
     logoOnly = false,
 }: CircleLoaderProps) {
-    const { colors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const reduceMotion = useReducedMotion();
     const dotSize = fullScreen ? 12 : 8;
     return (
@@ -66,21 +63,14 @@ export function CircleLoader({
                 </View>
             )}
             {label && !logoOnly ? (
-                <Host
-                    matchContents={{ vertical: true }}
-                    ignoreSafeArea="all"
-                    style={{ width: "100%", marginTop: 12 }}
+                <NativeText
+                    variant="meta"
+                    align="center"
+                    style={{ marginTop: 12 }}
+                    textStyle={{ color: colors.foreground + "bf" }}
                 >
-                    <Text
-                        textStyle={{ textAlign: "center",
-                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                            color: colors.foreground + "bf",
-                            fontSize: typography.meta.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {label}
-                    </Text>
-                </Host>
+                    {label}
+                </NativeText>
             ) : null}
         </View>
     );

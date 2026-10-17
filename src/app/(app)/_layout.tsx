@@ -2,23 +2,36 @@ import {
     AppToastProvider,
     useThemeColors,
 } from "@/design-system";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import i18n from "@/i18n";
+import { showAppToast } from "@/lib/toast/toast";
 import { Stack } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export const unstable_settings = { anchor: "(tabs)" };
 
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 30_000,
-            gcTime: 10 * 60_000,
-            retry: 1,
-        },
-    },
-});
-
 export default function AppLayout() {
+    // The protected layout unmounts on logout. Its cache must end with that session.
+    const [queryClient] = useState(() => new QueryClient({
+        queryCache: new QueryCache({
+            onError: (_error, query) => {
+                if (query.state.data !== undefined) {
+                    showAppToast({
+                        message: i18n.t("common.pullToRefreshAndTryAgain"),
+                        type: "error",
+                    });
+                }
+            },
+        }),
+        defaultOptions: {
+            queries: {
+                staleTime: 30_000,
+                gcTime: 10 * 60_000,
+                retry: 1,
+            },
+        },
+    }));
     const colors = useThemeColors();
     const { t } = useTranslation();
 

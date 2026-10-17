@@ -31,7 +31,7 @@ function TodayReservation() {
                         ))}
                     </View>
                 </View>
-            ) : todayReservationError ? (
+            ) : todayReservationError && todayReservations.length === 0 ? (
                 <View className="justify-center">
                     <InlineState
                         title={t("reservations.loadError")}

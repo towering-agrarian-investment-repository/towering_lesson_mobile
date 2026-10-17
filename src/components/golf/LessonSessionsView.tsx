@@ -1,5 +1,4 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { NativeText } from "@/design-system/components/NativeText";
 import { Badge, EmptyState, getPressedScaleStyle } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -8,7 +7,6 @@ import { formatType } from "@/utils/format-enum";
 import { getSessionTitle } from "@/utils/member-lesson";
 import { getSessionStatusTone, getSessionTypeTone } from "@/utils/status-tone";
 import { fmtDateTime } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,6 +17,11 @@ import {
     View,
 } from "react-native";
 import { SessionResourceSection } from "./SessionResourceSection";
+import Animated, {
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+} from "react-native-reanimated";
 
 type LessonSessionsViewProps = {
     initialSessionId?: number | null;
@@ -29,14 +32,13 @@ export function LessonSessionsView({
     initialSessionId,
     sessions,
 }: LessonSessionsViewProps) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const [selectedSessionId, setSelectedSessionId] = useState<number | null>(
         initialSessionId ?? sessions[0]?.id ?? null,
     );
     const [containerWidth, setContainerWidth] = useState(0);
     const [contentWidth, setContentWidth] = useState(0);
-    const [scrollX, setScrollX] = useState(0);
     const scrollViewRef = useRef<FlatList<SessionInstanceResponse>>(null);
     const itemLayouts = useRef<Record<number, { width: number; x: number }>>(
         {},
@@ -100,47 +102,26 @@ export function LessonSessionsView({
                 onItemLayout={(sessionId, event) => {
                     itemLayouts.current[sessionId] = event.nativeEvent.layout;
                 }}
-                onScroll={(x) => {
-                    setScrollX(x);
-                }}
                 selectedSessionId={selectedSession.id}
                 sessions={sessions}
                 onSelect={setSelectedSessionId}
                 scrollViewRef={scrollViewRef}
-                showRightCue={
-                    contentWidth > containerWidth + 8 &&
-                    scrollX < contentWidth - containerWidth - 12
-                }
             />
 
             <SessionDetailCard session={selectedSession} />
 
             <View className="flex-row items-center justify-between gap-4">
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.subtitle.fontSize * uiFontScale,
-                            fontWeight: "600" as const,
-                        }}
-                    >
-                        {t("lessonSessions.resourcesTitle")}
-                    </Text>
-                </Host>
+                <NativeText
+                    variant="h3"
+                    wrap={false}
+                    textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                >
+                    {t("lessonSessions.resourcesTitle")}
+                </NativeText>
                 {selectedSession.resources.length > 0 ? (
-                    <Host matchContents ignoreSafeArea="all">
-                        <Text
-                            textStyle={{
-                                ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize:
-                                    typography.count.fontSize * uiFontScale,
-                            }}
-                        >
-                            {String(selectedSession.resources.length ?? "")}
-                        </Text>
-                    </Host>
+                    <NativeText variant="count" color="mutedForeground" wrap={false}>
+                        {String(selectedSession.resources.length ?? "")}
+                    </NativeText>
                 ) : null}
             </View>
 
@@ -155,57 +136,48 @@ function SessionSwitcher({
     onContainerLayout,
     onContentSizeChange,
     onItemLayout,
-    onScroll,
     selectedSessionId,
     sessions,
     onSelect,
     scrollViewRef,
-    showRightCue,
 }: {
     contentWidth: number;
     containerWidth: number;
     onContainerLayout: (event: LayoutChangeEvent) => void;
     onContentSizeChange: (width: number) => void;
     onItemLayout: (sessionId: number, event: LayoutChangeEvent) => void;
-    onScroll: (x: number) => void;
     selectedSessionId: number;
     sessions: SessionInstanceResponse[];
     onSelect: (sessionId: number) => void;
     scrollViewRef: RefObject<FlatList<SessionInstanceResponse> | null>;
-    showRightCue: boolean;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
+    const scrollX = useSharedValue(0);
+    const handleScroll = useAnimatedScrollHandler((event) => {
+        scrollX.set(event.contentOffset.x);
+    });
+    const cueStyle = useAnimatedStyle(() => ({
+        opacity: contentWidth > containerWidth + 8 &&
+            scrollX.get() < contentWidth - containerWidth - 12 ? 1 : 0,
+    }));
     return (
         <View className="gap-3">
             <View className="flex-row items-center justify-between gap-4">
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.subtitle.fontSize * uiFontScale,
-                            fontWeight: "600" as const,
-                        }}
-                    >
-                        {t("lessonSessions.sessionsTitle")}
-                    </Text>
-                </Host>
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.count.fontSize * uiFontScale,
-                        }}
-                    >
-                        {String(sessions.length ?? "")}
-                    </Text>
-                </Host>
+                <NativeText
+                    variant="h3"
+                    wrap={false}
+                    textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                >
+                    {t("lessonSessions.sessionsTitle")}
+                </NativeText>
+                <NativeText variant="count" color="mutedForeground" wrap={false}>
+                    {String(sessions.length ?? "")}
+                </NativeText>
             </View>
 
             <View className="relative" onLayout={onContainerLayout}>
-                <FlatList
+                <Animated.FlatList
                     ref={scrollViewRef}
                     data={sessions}
                     keyExtractor={(session) => String(session.id)}
@@ -239,49 +211,39 @@ function SessionSwitcher({
                                 }}
                             >
                                 <View className="gap-1.5">
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                color: isSelected
-                                                    ? uiColors.primary
-                                                    : uiColors.mutedForeground,
-                                                fontSize:
-                                                    typography.caption
-                                                        .fontSize * uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {session.orderIndex != null
-                                                ? t(
-                                                    "lessonSessions.sessionNumber",
-                                                    {
-                                                        value: session.orderIndex,
-                                                    },
-                                                )
-                                                : t(
-                                                    "lessonSessions.sessionSequence",
-                                                    {
-                                                        value: index + 1,
-                                                    },
-                                                )}
-                                        </Text>
-                                    </Host>
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            numberOfLines={2}
-                                            textStyle={{
-                                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                                color: isSelected
-                                                    ? uiColors.primary
-                                                    : uiColors.foreground,
-                                                fontSize:
-                                                    typography.label.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {getSessionTitle(session)}
-                                        </Text>
-                                    </Host>
+                                    <NativeText
+                                        variant="caption"
+                                        textStyle={{
+                                            color: isSelected
+                                                ? uiColors.primary
+                                                : uiColors.mutedForeground
+                                        }}
+                                    >
+                                        {session.orderIndex != null
+                                            ? t(
+                                                "lessonSessions.sessionNumber",
+                                                {
+                                                    value: session.orderIndex,
+                                                },
+                                            )
+                                            : t(
+                                                "lessonSessions.sessionSequence",
+                                                {
+                                                    value: index + 1,
+                                                },
+                                            )}
+                                    </NativeText>
+                                    <NativeText
+                                        variant="label"
+                                        numberOfLines={2}
+                                        textStyle={{
+                                            color: isSelected
+                                                ? uiColors.primary
+                                                : uiColors.foreground
+                                        }}
+                                    >
+                                        {getSessionTitle(session)}
+                                    </NativeText>
                                     {session.status ? (
                                         <Badge
                                             label={formatType(session.status)}
@@ -301,41 +263,30 @@ function SessionSwitcher({
                     onContentSizeChange={(width) => {
                         onContentSizeChange(width);
                     }}
-                    onScroll={(event) => {
-                        onScroll(event.nativeEvent.contentOffset.x);
-                    }}
+                    onScroll={handleScroll}
                     scrollEventThrottle={16}
                 />
 
-                {showRightCue ? (
-                    <View
-                        pointerEvents="none"
-                        className="absolute bottom-0 right-0 top-0 items-end justify-center"
-                    >
-                        <View className="rounded-full bg-background/95 px-2 py-1">
-                            <Host matchContents ignoreSafeArea="all">
-                                <Text
-                                    textStyle={{
-                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                        color: uiColors.mutedForeground,
-                                        fontSize:
-                                            typography.caption.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {t("lessonSessions.more")}
-                                </Text>
-                            </Host>
-                        </View>
+                <Animated.View
+                    pointerEvents="none"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    className="absolute bottom-0 right-0 top-0 items-end justify-center"
+                    style={cueStyle}
+                >
+                    <View className="rounded-full bg-background/95 px-2 py-1">
+                        <NativeText variant="caption" color="mutedForeground" wrap={false}>
+                            {t("lessonSessions.more")}
+                        </NativeText>
                     </View>
-                ) : null}
+                </Animated.View>
             </View>
         </View>
     );
 }
 
 function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const isCompleted = isSessionCompleted(session);
     const score = session.memberSession?.score;
@@ -364,34 +315,17 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
             <View className="gap-3 bg-surface px-4 py-4">
                 <View className="flex-row items-start justify-between gap-3">
                     <View className="min-w-0 flex-1 gap-2">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                numberOfLines={2}
-                                textStyle={{
-                                    ...typography.h3,
-                                    lineHeight: typography.h3.lineHeight * uiFontScale,
-                                    color: isCompleted ? uiColors.foreground + "b3" : uiColors.foreground,
-                                    fontSize:
-                                        typography.h3.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {getSessionTitle(session)}
-                            </Text>
-                        </Host>
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.body,
-                                    lineHeight: typography.body.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.body.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {session.descriptionSnapshot?.trim() ||
-                                    t("lessonSessions.noDescription")}
-                            </Text>
-                        </Host>
+                        <NativeText
+                            variant="h3"
+                            numberOfLines={2}
+                            textStyle={{ color: isCompleted ? uiColors.foreground + "b3" : uiColors.foreground }}
+                        >
+                            {getSessionTitle(session)}
+                        </NativeText>
+                        <NativeText variant="body">
+                            {session.descriptionSnapshot?.trim() ||
+                                t("lessonSessions.noDescription")}
+                        </NativeText>
                     </View>
                     {session.status ? (
                         <Badge
@@ -454,36 +388,12 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
             <View className="px-4 py-4">
                 {memo ? (
                     <View className="rounded-xl bg-background px-3 py-3">
-                        <Host
-                            matchContents={{ vertical: true }}
-                            ignoreSafeArea="all"
-                            style={{ width: "100%", marginBottom: 4 }}
-                        >
-                            <Text
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize:
-                                        typography.caption.fontSize *
-                                        uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {t("lessonSessions.coachNote")}
-                            </Text>
-                        </Host>
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.body,
-                                    lineHeight: typography.body.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.body.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {memo}
-                            </Text>
-                        </Host>
+                        <NativeText variant="caption" color="mutedForeground" style={{ marginBottom: 4 }}>
+                            {t("lessonSessions.coachNote")}
+                        </NativeText>
+                        <NativeText variant="body">
+                            {memo}
+                        </NativeText>
                     </View>
                 ) : null}
             </View>
@@ -492,42 +402,21 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <Host
-                matchContents
-                ignoreSafeArea="all"
-                style={{ flexShrink: 0 }}
-            >
-                <Text
-                    textStyle={{
-                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                >
-                    {label}
-                </Text>
-            </Host>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
+            <NativeText variant="caption" color="mutedForeground" wrap={false} style={{ flexShrink: 0 }}>
+                {label}
+            </NativeText>
+            <NativeText
+                variant="caption"
+                align="right"
+                numberOfLines={1}
                 style={{ flex: 1, minWidth: 0 }}
+                textStyle={{ fontWeight: "500" as const }}
             >
-                <Text
-                    numberOfLines={1}
-                    textStyle={{
-                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                        textAlign: "right" as const,
-                        fontWeight: "500" as const,
-                        color: uiColors.foreground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
-                    {value}
-                </Text>
-            </Host>
+                {value}
+            </NativeText>
         </View>
     );
 }

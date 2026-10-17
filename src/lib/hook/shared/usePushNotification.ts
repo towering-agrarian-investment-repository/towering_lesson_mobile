@@ -122,7 +122,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
 
         void Notifications.getLastNotificationResponseAsync()
             .then((response) => {
-                handleNotificationNavigation(response);
+                if (isActive) handleNotificationNavigation(response);
             })
             .catch((error) => {
                 console.error("[push] Failed to read the last notification response", error);

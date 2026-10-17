@@ -1,7 +1,8 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import goLogoImage from "@/assets/images/img_go.png";
 import golfFieldImage from "@/assets/images/img_golf_filed.png";
 import { FormPasswordInput, FormTextInput } from "@/components/ui/form";
-import { Screen, useThemeColors } from "@/design-system";
+import { Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
@@ -30,11 +31,10 @@ const createLoginSchema = (t: (key: string) => string) =>
 type LoginFormValues = z.infer<ReturnType<typeof createLoginSchema>>;
 
 export default function LoginScreen() {
-    const { colors: uiColors, resolvedScheme, fontScale: uiFontScale } = useTheme();
+    const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isLoginPressed, setIsLoginPressed] = useState(false);
     const loginPending = useRef(false);
-    const colors = useThemeColors();
     const { t } = useTranslation();
     const loginSchema = createLoginSchema(t);
 
@@ -94,19 +94,9 @@ export default function LoginScreen() {
                             contentFit="contain"
                         />
                         <View className="w-full gap-3">
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    textStyle={{
-                                        ...typography.h1, lineHeight: typography.h1.lineHeight * uiFontScale,
-                                        color: uiColors.foreground,
-                                        fontSize:
-                                            typography.h1.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {t("login.title")}
-                                </Text>
-                            </Host>
+                            <NativeText variant="h1">
+                                {t("login.title")}
+                            </NativeText>
                         </View>
                     </View>
 

@@ -3,15 +3,16 @@ import { Host } from "@expo/ui";
 import { Switch } from "@expo/ui/jetpack-compose";
 
 // Universal Switch doesn't expose track/thumb colors in SDK 58.
-export function DayNumbersToggle({ value, onValueChange, label }: {
+export function DayNumbersToggle({ value, onValueChange, label, disabled = false }: {
     value: boolean;
     onValueChange: (value: boolean) => void;
     label: string;
+    disabled?: boolean;
 }) {
     const { colors, resolvedScheme } = useTheme();
     return (
         <Host matchContents ignoreSafeArea="all" colorScheme={resolvedScheme} accessibilityLabel={label}>
-            <Switch value={value} onCheckedChange={onValueChange} colors={{
+            <Switch value={value} enabled={!disabled} onCheckedChange={onValueChange} colors={{
                 checkedTrackColor: colors.primary,
                 uncheckedTrackColor: colors.muted,
                 checkedThumbColor: colors.card,

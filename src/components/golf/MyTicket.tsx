@@ -1,5 +1,5 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { InlineState, Skeleton } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -10,7 +10,6 @@ import {
 import { showAppToast } from "@/lib/toast/toast";
 import { TicketListItemResponse } from "@/types/member-ticket";
 import { MemberSelfResponse } from "@/types/member.type";
-import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -24,7 +23,7 @@ type Props = {
 };
 
 function MyTicket({ member }: Props) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -85,18 +84,14 @@ function MyTicket({ member }: Props) {
                             });
                         }}
                     >
-                        <Host matchContents ignoreSafeArea="all">
-                            <Text
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    fontSize: typography.subtext.fontSize * uiFontScale,
-                                    fontWeight: "600" as const,
-                                    color: uiColors.primary,
-                                }}
-                            >
-                                {t("tickets.viewAll")}
-                            </Text>
-                        </Host>
+                        <NativeText
+                            variant="label"
+                            color="primary"
+                            wrap={false}
+                            textStyle={{ lineHeight: typography.subtext.lineHeight, fontSize: typography.subtext.fontSize, fontWeight: "600" as const }}
+                        >
+                            {t("tickets.viewAll")}
+                        </NativeText>
                     </Pressable>
                 ) : null}
             </View>
@@ -111,7 +106,7 @@ function MyTicket({ member }: Props) {
                             />
                         ))}
                     </View>
-                ) : isError ? (
+                ) : isError && !data ? (
                     <InlineState title={t("tickets.loadError")} tone="danger" />
                 ) : tickets.length === 0 ? (
                     <View className="h-40 items-center justify-center">

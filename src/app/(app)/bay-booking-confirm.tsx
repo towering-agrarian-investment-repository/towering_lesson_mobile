@@ -1,3 +1,4 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
     BookingConfirmationFooter,
     BookingConfirmationLoadingState,
@@ -18,6 +19,7 @@ import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl } from "react-native";
 
@@ -51,6 +53,7 @@ export default function BayBookingConfirmScreen() {
         notes?: string;
     }>();
     const router = useRouter();
+    const submitting = useRef(false);
     const queryClient = useQueryClient();
     const isRescheduleMode = mode === "reschedule";
     const reservationIdNumber = reservationId ? Number(reservationId) : null;
@@ -61,6 +64,8 @@ export default function BayBookingConfirmScreen() {
         useRescheduleMemberBayReservation();
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberBaySlotGroups(date, date, Boolean(date));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
     const policies = [
         {
             title: t("bookingConfirmation.bayCancellationPolicyTitle"),
@@ -116,7 +121,7 @@ export default function BayBookingConfirmScreen() {
     };
 
     const handleConfirm = () => {
-        if (isSubmitting || !baySlotId || !slotGroup || !selectedBaySlot) {
+        if (submitting.current || isSubmitting || isError || !baySlotId || !slotGroup || !selectedBaySlot) {
             return;
         }
 
@@ -148,6 +153,7 @@ export default function BayBookingConfirmScreen() {
                 return;
             }
 
+            submitting.current = true;
             rescheduleReservation(
                 {
                     reservationId: reservationIdNumber,
@@ -175,6 +181,7 @@ export default function BayBookingConfirmScreen() {
                             bayId: selectedBaySlot.bayId,
                         }),
                     onError: handleSlotUnavailable,
+                    onSettled: () => { submitting.current = false; },
                 },
             );
             return;
@@ -184,6 +191,7 @@ export default function BayBookingConfirmScreen() {
             return;
         }
 
+        submitting.current = true;
         createReservation(
             {
                 ticketId: Number(ticketId),
@@ -207,6 +215,7 @@ export default function BayBookingConfirmScreen() {
                         bayId: selectedBaySlot.bayId,
                     }),
                 onError: handleSlotUnavailable,
+                onSettled: () => { submitting.current = false; },
             },
         );
     };
@@ -244,10 +253,8 @@ export default function BayBookingConfirmScreen() {
             contentClassName="grow"
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
             footer={
@@ -278,9 +285,7 @@ export default function BayBookingConfirmScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             ) : isMissingRequiredData ? (
                 <EmptyState

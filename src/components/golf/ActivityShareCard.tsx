@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { ActivityShareCharts } from "@/components/golf/ActivityShareCharts";
@@ -6,7 +7,7 @@ import { useTheme } from "@/design-system";
 import type { ActivityHeatmapValue } from "@/design-system/components/charts/activity-heatmap";
 import { typography } from "@/design-system/utils/typography";
 import { Host, Row, Text } from "@expo/ui";
-import { forwardRef } from "react";
+import { forwardRef, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, View } from "react-native";
 
@@ -24,7 +25,7 @@ type ActivityShareCardProps = {
     memberImage?: string | null;
 };
 
-export const ActivityShareCard = forwardRef<
+export const ActivityShareCard = memo(forwardRef<
     React.ElementRef<typeof View>,
     ActivityShareCardProps
 >(function ActivityShareCard(
@@ -43,7 +44,6 @@ export const ActivityShareCard = forwardRef<
     },
     ref,
 ) {
-    const { colors: uiColors } = useTheme();
     const { colors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
 
@@ -53,19 +53,13 @@ export const ActivityShareCard = forwardRef<
             className="w-full overflow-hidden rounded-[28px] border border-border bg-card"
         >
             <View className="bg-primary px-6 pb-5 pt-6">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                            fontWeight: "700" as const,
-                            letterSpacing: typography.caption.fontSize * 0.16,
-                            color: uiColors.primaryForeground,
-                            fontSize: typography.caption.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {t("activity.myGolfActivity", { period: label }).toUpperCase()}
-                    </Text>
-                </Host>
+                <NativeText
+                    variant="caption"
+                    color="primaryForeground"
+                    textStyle={{ fontWeight: "700" as const, letterSpacing: typography.caption.fontSize * 0.16 }}
+                >
+                    {t("activity.myGolfActivity", { period: label }).toUpperCase()}
+                </NativeText>
                 <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%", marginTop: 4 }}>
                     <Row
                         alignment="center"
@@ -76,7 +70,7 @@ export const ActivityShareCard = forwardRef<
                             textStyle={{
                                 ...typography.h1, lineHeight: typography.display.lineHeight * uiFontScale,
                                 fontSize: typography.display.fontSize * uiFontScale,
-                                color: uiColors.primaryForeground,
+                                color: colors.primaryForeground,
                             }}
                         >
                             {String(totalReservations ?? "")}
@@ -84,7 +78,7 @@ export const ActivityShareCard = forwardRef<
                         <Text
                             textStyle={{
                                 ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                color: uiColors.primaryForeground,
+                                color: colors.primaryForeground,
                                 fontSize: typography.h3.fontSize * uiFontScale,
                             }}
                         >
@@ -124,41 +118,21 @@ export const ActivityShareCard = forwardRef<
                         />
                     ) : (
                         <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
-                            <Host matchContents ignoreSafeArea="all">
-                                <Text
-                                    textStyle={{
-                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                        color: uiColors.mutedForeground,
-                                        fontWeight: "600" as const,
-                                        fontSize:
-                                            typography.caption.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
+                                <NativeText variant="caption" color="mutedForeground" wrap={false} textStyle={{ fontWeight: "600" as const }}>
                                     {(memberName || "G")
                                         .slice(0, 1)
                                         .toUpperCase()}
-                                </Text>
-                            </Host>
+                                </NativeText>
                         </View>
                     )}
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
+                    <NativeText
+                        variant="body"
+                        numberOfLines={2}
                         style={{ flex: 1, minWidth: 0 }}
+                        textStyle={{ lineHeight: typography.subtext.lineHeight, fontSize: typography.subtext.fontSize, fontWeight: "600" as const }}
                     >
-                        <Text
-                            numberOfLines={2}
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize: typography.subtext.fontSize * uiFontScale,
-                                fontWeight: "600" as const,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {memberName || t("activity.golfer")}
-                        </Text>
-                    </Host>
+                        {memberName || t("activity.golfer")}
+                    </NativeText>
                 </View>
                 <HappyGolfLogo
                     width={82}
@@ -169,7 +143,7 @@ export const ActivityShareCard = forwardRef<
             </View>
         </View>
     );
-});
+}));
 
 function ShareMetric({
     value,
@@ -180,33 +154,17 @@ function ShareMetric({
     label: string;
     divided?: boolean;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View
             className={`min-w-0 flex-1 px-2 ${divided ? "border-l border-primary-foreground/20 pl-4" : ""}`}
         >
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                <Text
-                    textStyle={{
-                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                        color: uiColors.primaryForeground,
-                        fontSize: typography.h3.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                    {value}
-                </Text>
-            </Host>
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                <Text
-                    textStyle={{
-                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                        color: uiColors.primaryForeground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                    {label}
-                </Text>
-            </Host>
+            <NativeText variant="h3" color="primaryForeground">
+                {value}
+            </NativeText>
+            <NativeText variant="caption" color="primaryForeground">
+                {label}
+            </NativeText>
         </View>
     );
 }

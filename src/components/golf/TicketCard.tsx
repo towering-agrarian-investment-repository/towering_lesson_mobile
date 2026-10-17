@@ -1,6 +1,5 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { cn, getPressedScaleStyle, useThemeColors } from "@/design-system";
+import { NativeText } from "@/design-system/components/NativeText";
+import { cn, getPressedScaleStyle } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import {
     formatTicketTypeLabel,
@@ -8,7 +7,6 @@ import {
 } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
 import { TicketListItemResponse } from "@/types/member-ticket";
-import { Host, Text } from "@expo/ui";
 import * as Haptics from "expo-haptics";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
@@ -58,9 +56,8 @@ function TicketCard({
     onPress,
     fullWidth = false,
 }: Props) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const isInactive =
         item.status === "EXPIRED" || item.status === "FULLY_USED";
     const ticketTone = getTicketTypeTone(item.type);
@@ -110,25 +107,17 @@ function TicketCard({
                             !isInactive && ticketTone.badgeSolidClassName,
                             isInactive && "bg-border",
                         )}>
-                            <Host
-                                matchContents
-                                ignoreSafeArea="all"
-
-
+                            <NativeText
+                                variant="badge"
+                                wrap={false}
+                                textStyle={{
+                                    color: isInactive
+                                        ? colors.mutedForeground
+                                        : colors.primaryForeground
+                                }}
                             >
-                                <Text
-                                    textStyle={{
-                                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                                        color: isInactive
-                                            ? uiColors.mutedForeground
-                                            : uiColors.primaryForeground,
-                                        fontSize:
-                                            typography.badge.fontSize * uiFontScale,
-                                    }}
-                                >
-                                    {badgeLabel}
-                                </Text>
-                            </Host>
+                                {badgeLabel}
+                            </NativeText>
                         </View>
 
                         {item.type !== "LESSON_PROGRAM" ? (
@@ -144,75 +133,30 @@ function TicketCard({
                         ) : null}
                     </View>
 
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            numberOfLines={1}
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize:
-                                    typography.body.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {item.name}
-                        </Text>
-                    </Host>
+                    <NativeText variant="body" numberOfLines={1}>
+                        {item.name}
+                    </NativeText>
 
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            numberOfLines={1}
-                            textStyle={{
-                                ...typography.count, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                fontSize: typography.subtitle.fontSize * uiFontScale,
-                                fontWeight: "800" as const,
-                                color: uiColors.foreground,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {formatTicketDate(item.startDate) +
-                                " ~ " +
-                                formatTicketDate(item.endDate)}
-                        </Text>
-                    </Host>
+                    <NativeText
+                        variant="count"
+                        numberOfLines={1}
+                        textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "800" as const }}
+                    >
+                        {formatTicketDate(item.startDate) +
+                            " ~ " +
+                            formatTicketDate(item.endDate)}
+                    </NativeText>
                 </View>
 
                 <View className="flex-row items-center justify-between gap-2">
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        style={{ flex: 1, minWidth: 0 }}
-                    >
-                        <Text
-                            numberOfLines={1}
-                            textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {usageNote}
-                        </Text>
-                    </Host>
+                    <NativeText variant="caption" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+                        {usageNote}
+                    </NativeText>
 
                     {!item.isUnlimited && item.onlyOnePerDay ? (
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
-                            style={{ flexShrink: 0 }}
-                        >
-                            <Text
-                                numberOfLines={1}
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.caption.fontSize *
-                                        uiFontScale,
-                                }}
-                            >
-                                {t("tickets.useOncePerDay")}
-                            </Text>
-                        </Host>
+                        <NativeText variant="caption" wrap={false} numberOfLines={1} style={{ flexShrink: 0 }}>
+                            {t("tickets.useOncePerDay")}
+                        </NativeText>
                     ) : null}
                 </View>
             </View>

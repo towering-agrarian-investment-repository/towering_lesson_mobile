@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import ReservationCard from "@/components/golf/ReservationCard";
 import {
     CircleLoader,
@@ -6,7 +7,6 @@ import {
     Skeleton,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import {
@@ -18,18 +18,12 @@ import type {
     MemberReservationResponse,
     MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
-import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, RefreshControl, View } from "react-native";
-import Animated, {
-    FadeIn,
-    FadeOut,
-    LinearTransition,
-    useReducedMotion,
-} from "react-native-reanimated";
+import { View } from "react-native";
+import { FlatList, RefreshControl } from "react-native-gesture-handler";
 
 export const RESERVATION_TABS: MemberReservationType[] = [
     "all",
@@ -55,7 +49,8 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { isOnline } = useNetworkStatus();
-    const reduceMotion = useReducedMotion();
+    const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+    const refreshLocked = useRef(false);
 
     const {
         data,
@@ -108,41 +103,41 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
 
     const renderReservationItem = useCallback(
         ({ item }: { item: ReservationItem }) => (
-            <Animated.View
-                entering={reduceMotion ? undefined : FadeIn.duration(180)}
-                exiting={reduceMotion ? undefined : FadeOut.duration(140)}
-                layout={
-                    reduceMotion ? undefined : LinearTransition.duration(180)
-                }
-            >
-                <ReservationCard
-                    reservation={item}
-                    disabled={isLocked}
-                    onPress={handleReservationPress}
-                />
-            </Animated.View>
+            <ReservationCard
+                reservation={item}
+                disabled={isLocked}
+                onPress={handleReservationPress}
+            />
         ),
-        [handleReservationPress, isLocked, reduceMotion],
+        [handleReservationPress, isLocked],
     );
 
     const handleEndReached = useCallback(() => {
-        if (hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
+        if (hasNextPage && !isFetching && !refreshLocked.current) {
+            void fetchNextPage({ cancelRefetch: false });
         }
-    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    }, [fetchNextPage, hasNextPage, isFetching]);
 
-    const handleRefetch = useCallback(() => {
-        void refetch();
-    }, [refetch]);
+    const handleRefetch = useCallback(async () => {
+        if (refreshLocked.current || isFetching) return;
+        refreshLocked.current = true;
+        setIsPullRefreshing(true);
+        try {
+            await refetch({ cancelRefetch: false });
+        } finally {
+            refreshLocked.current = false;
+            setIsPullRefreshing(false);
+        }
+    }, [isFetching, refetch]);
 
     if (isLoading) {
         return <ReservationLoadingState />;
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
             <ReservationStateList
-                refreshing={isRefetching}
+                refreshing={isPullRefreshing}
                 onRefresh={handleRefetch}
             >
                 <ErrorState
@@ -170,7 +165,7 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     if (reservations.length === 0) {
         return (
             <ReservationStateList
-                refreshing={isRefetching}
+                refreshing={isPullRefreshing}
                 onRefresh={handleRefetch}
             >
                 <EmptyState
@@ -191,7 +186,7 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             style={{ flex: 1 }}
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
+                    refreshing={isPullRefreshing}
                     onRefresh={handleRefetch}
                 />
             }
@@ -202,9 +197,9 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             }}
             ItemSeparatorComponent={ReservationItemSeparator}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={8}
-            maxToRenderPerBatch={8}
-            windowSize={7}
+            initialNumToRender={6}
+            maxToRenderPerBatch={4}
+            windowSize={5}
             removeClippedSubviews
             updateCellsBatchingPeriod={50}
             ListHeaderComponent={
@@ -287,35 +282,19 @@ function ReservationListHeader({
     count: number;
     isUpdating: boolean;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
 
     return (
         <View className="flex-row items-center justify-between pb-4">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
-                        color: uiColors.foreground + "bf",
-                        fontSize: typography.count.fontSize * uiFontScale,
-                    }}
-                >
-                    {t("reservations.count", { count })}
-                </Text>
-            </Host>
+            <NativeText variant="count" wrap={false} textStyle={{ color: uiColors.foreground + "bf" }}>
+                {t("reservations.count", { count })}
+            </NativeText>
 
             {isUpdating ? (
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                            color: uiColors.foreground + "bf",
-                            fontSize: typography.meta.fontSize * uiFontScale,
-                        }}
-                    >
-                        {t("reservations.updating")}
-                    </Text>
-                </Host>
+                <NativeText variant="meta" wrap={false} textStyle={{ color: uiColors.foreground + "bf" }}>
+                    {t("reservations.updating")}
+                </NativeText>
             ) : null}
         </View>
     );

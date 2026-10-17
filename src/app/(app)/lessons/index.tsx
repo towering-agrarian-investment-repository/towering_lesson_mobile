@@ -1,24 +1,16 @@
 import { MemberGroups } from "@/components/golf/MemberGroups";
 import { Screen } from "@/design-system";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 
 export default function LessonsScreen() {
     const queryClient = useQueryClient();
-    const [refreshing, setRefreshing] = useState(false);
-
-    const handleRefresh = async () => {
-        setRefreshing(true);
-
-        try {
-            await queryClient.refetchQueries({
-                queryKey: ["member", "groups"],
-                type: "active",
-            });
-        } finally {
-            setRefreshing(false);
-        }
-    };
+    const { refreshing, onRefresh: handleRefresh } = usePullToRefresh(() =>
+        queryClient.refetchQueries({
+            queryKey: ["member", "groups"],
+            type: "active",
+        }, { cancelRefetch: false }),
+    );
 
     return (
         <Screen

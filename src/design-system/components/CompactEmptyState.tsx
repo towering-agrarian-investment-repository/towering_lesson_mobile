@@ -1,8 +1,6 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { Host, Text } from "@expo/ui";
+import { NativeText } from "./NativeText";
 import { Inbox } from "lucide-react-native";
 import { View } from "react-native";
 
@@ -19,8 +17,7 @@ export function CompactEmptyState({
     message,
     className,
 }: CompactEmptyStateProps) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
-    const colors = useThemeColors();
+    const { colors } = useTheme();
 
     return (
         <View
@@ -38,34 +35,14 @@ export function CompactEmptyState({
             </View>
 
             <View className="min-w-0 flex-1 gap-0.5">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                            fontWeight: "600" as const,
-                            color: uiColors.foreground,
-                            fontSize: typography.label.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {title.trim()}
-                    </Text>
-                </Host>
+                <NativeText variant="label" textStyle={{ fontWeight: "600" }}>
+                    {title.trim()}
+                </NativeText>
 
                 {message ? (
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            numberOfLines={2}
-                            textStyle={{
-                                ...typography.caption,
-                                lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {message.trim()}
-                        </Text>
-                    </Host>
+                    <NativeText variant="caption" color="mutedForeground" numberOfLines={2} textStyle={{ lineHeight: typography.subtext.lineHeight }}>
+                        {message.trim()}
+                    </NativeText>
                 ) : null}
             </View>
         </View>

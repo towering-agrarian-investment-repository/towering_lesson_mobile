@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { FormPasswordInput } from "@/components/ui/form";
 import { Screen, triggerNotificationHaptic } from "@/design-system";
@@ -15,6 +16,7 @@ import { frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useRef } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
@@ -52,6 +54,7 @@ function ChangePasswordScreen() {
     const { t } = useTranslation();
 
     const router = useRouter();
+    const submitting = useRef(false);
     const changePasswordSchema = createChangePasswordSchema(t);
 
     const form = useForm<ChangePasswordFormValues>({
@@ -65,6 +68,8 @@ function ChangePasswordScreen() {
     });
 
     const onSubmit = async (data: ChangePasswordFormValues) => {
+        if (submitting.current) return;
+        submitting.current = true;
         try {
             await changePassword({
                 currentPassword: data.currentPassword,
@@ -96,6 +101,8 @@ function ChangePasswordScreen() {
             }
 
             responseError(error);
+        } finally {
+            submitting.current = false;
         }
     };
 
@@ -159,10 +166,10 @@ function ChangePasswordScreen() {
                                 !form.formState.isValid ||
                                 form.formState.isSubmitting
                             }
-                            onPress={form.handleSubmit(
+                            onPress={() => { void form.handleSubmit(
                                 onSubmit,
                                 handleInvalidSubmit,
-                            )}
+                            )(); }}
                             style={{
                                 ...getNativeButtonStyle(
                                     uiColors,
@@ -215,30 +222,17 @@ function ChangePasswordScreen() {
             }
         >
             <View className="grow flex-col gap-6">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.body.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {t("changePassword.lostPasswordHelp")}
-                    </Text>
-                </Host>
+                <NativeText variant="body">
+                    {t("changePassword.lostPasswordHelp")}
+                </NativeText>
 
                 <View className="flex-col gap-8">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize: typography.subtitle.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("changePassword.enterOldPassword")}
-                        </Text>
-                    </Host>
+                    <NativeText
+                        variant="body"
+                        textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize }}
+                    >
+                        {t("changePassword.enterOldPassword")}
+                    </NativeText>
 
                     <FormPasswordInput
                         control={form.control}
@@ -250,17 +244,12 @@ function ChangePasswordScreen() {
                 </View>
 
                 <View className="flex-col gap-8">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize: typography.subtitle.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("changePassword.enterNewPassword")}
-                        </Text>
-                    </Host>
+                    <NativeText
+                        variant="body"
+                        textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize }}
+                    >
+                        {t("changePassword.enterNewPassword")}
+                    </NativeText>
 
                     <View className="flex-col gap-6">
                         <FormPasswordInput

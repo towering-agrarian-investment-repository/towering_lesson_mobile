@@ -1,5 +1,5 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
@@ -7,11 +7,9 @@ import {
     ErrorState,
     Screen,
     Skeleton,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
-import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
@@ -23,7 +21,6 @@ import {
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { UserRound } from "lucide-react-native";
@@ -50,9 +47,8 @@ function getMinutesUntilStart(slot: MemberLessonSlotResponse) {
 }
 
 export default function SelectLessonSlotScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const {
         date,
         ticketId,
@@ -93,6 +89,9 @@ export default function SelectLessonSlotScreen() {
             month,
             Boolean(ticketIdNumber),
         );
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const hasLoadError = isError && !data;
 
     const slots = (data?.data ?? []).filter(
         (slot) => slot.startTime.split("T")[0] === date,
@@ -162,7 +161,7 @@ export default function SelectLessonSlotScreen() {
                     </View>
                 ) : null}
 
-                {isError ? (
+                {hasLoadError ? (
                     <ErrorState
                         title={t("booking.failedLessonSlotsTitle")}
                         message={t("common.pullToRefreshAndTryAgain")}
@@ -171,13 +170,11 @@ export default function SelectLessonSlotScreen() {
                                 ? t("common.refreshing")
                                 : t("common.refreshTryAgain")
                         }
-                        onAction={() => {
-                            void refetch();
-                        }}
+                        onAction={handlePullRefresh}
                     />
                 ) : null}
 
-                {!isLoading && !isError && slots.length === 0 ? (
+                {!isLoading && !hasLoadError && slots.length === 0 ? (
                     <EmptyState
                         title={
                             isGroupTicket
@@ -206,7 +203,7 @@ export default function SelectLessonSlotScreen() {
                     />
                 ) : null}
 
-                {!isLoading && !isError && slots.length > 0 ? (
+                {!isLoading && !hasLoadError && slots.length > 0 ? (
                     <FlatList
                         className="min-h-0 flex-1"
                         data={slots}
@@ -214,10 +211,8 @@ export default function SelectLessonSlotScreen() {
                         ItemSeparatorComponent={() => <View className="h-3" />}
                         refreshControl={
                             <RefreshControl
-                                refreshing={isRefetching}
-                                onRefresh={() => {
-                                    void refetch();
-                                }}
+                                refreshing={isPullRefreshing}
+                                onRefresh={handlePullRefresh}
                             />
                         }
                         contentContainerStyle={{ paddingBottom: 24 }}
@@ -290,94 +285,60 @@ export default function SelectLessonSlotScreen() {
                                 >
                                     <View className="flex-row items-start justify-between gap-3">
                                         <View className="min-w-0 flex-1 gap-2">
-                                            <Host
-                                                matchContents={{ vertical: true }}
-                                                ignoreSafeArea="all"
-                                                style={{ width: "100%" }}>
-                                                <Text
-                                                    textStyle={{
-                                                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                                        color: disabled
-                                                            ? uiColors.mutedForeground
-                                                            : uiColors.foreground,
-                                                        fontSize:
-                                                            typography.h3
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                                    {formatSlotTime(slot)}
-                                                </Text>
-                                            </Host>
+                                            <NativeText
+                                                variant="h3"
+                                                textStyle={{
+                                                    color: disabled
+                                                        ? colors.mutedForeground
+                                                        : colors.foreground
+                                                }}
+                                            >
+                                                {formatSlotTime(slot)}
+                                            </NativeText>
 
-                                            <Host
-                                                matchContents={{ vertical: true }}
-                                                ignoreSafeArea="all"
-                                                style={{ width: "100%" }}>
-                                                <Text
-                                                    numberOfLines={1}
-                                                    textStyle={{
-                                                        ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                                        color: disabled
-                                                            ? uiColors.mutedForeground
-                                                            : uiColors.foreground +
-                                                            "bf",
-                                                        fontSize:
-                                                            typography.meta
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                                    {lessonTitle}
-                                                </Text>
-                                            </Host>
+                                            <NativeText
+                                                variant="meta"
+                                                numberOfLines={1}
+                                                textStyle={{
+                                                    color: disabled
+                                                        ? colors.mutedForeground
+                                                        : colors.foreground +
+                                                        "bf"
+                                                }}
+                                            >
+                                                {lessonTitle}
+                                            </NativeText>
                                         </View>
 
                                         <View className="shrink-0 items-end">
-                                            <Host
-                                                matchContents
-                                                ignoreSafeArea="all"
+                                            <NativeText
+                                                variant="caption"
+                                                wrap={false}
+                                                textStyle={{
+                                                    color:
+                                                        colors.foreground +
+                                                        "99"
+                                                }}
                                             >
-                                                <Text
-                                                    textStyle={{
-                                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                        color:
-                                                            uiColors.foreground +
-                                                            "99",
-                                                        fontSize:
-                                                            typography.caption
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                >
-                                                    {t("booking.spots")}
-                                                </Text>
-                                            </Host>
-                                            <Host
-                                                matchContents
-                                                ignoreSafeArea="all"
+                                                {t("booking.spots")}
+                                            </NativeText>
+                                            <NativeText
+                                                variant="meta"
+                                                wrap={false}
+                                                textStyle={{
+                                                    color: disabled
+                                                        ? colors.mutedForeground
+                                                        : colors.foreground
+                                                }}
                                             >
-                                                <Text
-                                                    textStyle={{
-                                                        ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                                        color: disabled
-                                                            ? uiColors.mutedForeground
-                                                            : uiColors.foreground,
-                                                        fontSize:
-                                                            typography.meta
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                >
-                                                    {String(
-                                                        slot.bookedCount ?? "",
-                                                    ) +
-                                                        "/" +
-                                                        String(
-                                                            slot.capacity ?? "",
-                                                        )}
-                                                </Text>
-                                            </Host>
+                                                {String(
+                                                    slot.bookedCount ?? "",
+                                                ) +
+                                                    "/" +
+                                                    String(
+                                                        slot.capacity ?? "",
+                                                    )}
+                                            </NativeText>
                                         </View>
                                     </View>
 
@@ -390,89 +351,58 @@ export default function SelectLessonSlotScreen() {
                                                         colors.mutedForeground
                                                     }
                                                 />
-                                                <Host
-                                                    matchContents={{ vertical: true }}
-                                                    ignoreSafeArea="all"
+                                                <NativeText
+                                                    variant="meta"
+                                                    numberOfLines={1}
                                                     style={{ flex: 1, minWidth: 0 }}
+                                                    textStyle={{
+                                                        color:
+                                                            colors.foreground +
+                                                            "bf"
+                                                    }}
                                                 >
-                                                    <Text
-                                                        numberOfLines={1}
-                                                        textStyle={{
-                                                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                                            color:
-                                                                uiColors.foreground +
-                                                                "bf",
-                                                            fontSize:
-                                                                typography.meta
-                                                                    .fontSize *
-                                                                uiFontScale,
-                                                        }}
-                                                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                                        {slot.coachName ||
-                                                            t("booking.tba")}
-                                                    </Text>
-                                                </Host>
+                                                    {slot.coachName ||
+                                                        t("booking.tba")}
+                                                </NativeText>
                                             </View>
                                         </View>
 
                                         <View className="shrink-0 flex-row items-center gap-2">
-                                            <Host
-                                                matchContents
-                                                ignoreSafeArea="all"
-                                            >
-                                                <Text
-                                                    textStyle={{
-                                                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                                                        ...(wasJustBooked
+                                            <NativeText
+                                                variant="badge"
+                                                wrap={false}
+                                                textStyle={{
+                                                    ...(wasJustBooked
+                                                        ? {
+                                                            color: colors.warning,
+                                                        }
+                                                        : disabled
                                                             ? {
-                                                                color: uiColors.warning,
+                                                                color: colors.danger,
                                                             }
-                                                            : disabled
+                                                            : startingSoon
                                                                 ? {
-                                                                    color: uiColors.danger,
+                                                                    color: colors.warning,
                                                                 }
-                                                                : startingSoon
-                                                                    ? {
-                                                                        color: uiColors.warning,
-                                                                    }
-                                                                    : {
-                                                                        color: uiColors.ticketGroup,
-                                                                    }),
-                                                        fontSize:
-                                                            typography.badge
-                                                                .fontSize *
-                                                            uiFontScale,
-                                                    }}
-                                                >
-                                                    {countdownLabel ??
-                                                        statusLabel}
-                                                </Text>
-                                            </Host>
+                                                                : {
+                                                                    color: colors.ticketGroup,
+                                                                })
+                                                }}
+                                            >
+                                                {countdownLabel ??
+                                                    statusLabel}
+                                            </NativeText>
                                         </View>
                                     </View>
 
                                     {disabled ? (
-                                        <Host
-                                            matchContents
-                                            ignoreSafeArea="all"
-                                        >
-                                            <Text
-                                                textStyle={{
-                                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                    color: uiColors.danger,
-                                                    fontSize:
-                                                        typography.caption
-                                                            .fontSize *
-                                                        uiFontScale,
-                                                }}
-                                            >
-                                                {isBookable
-                                                    ? t("booking.fullViewOnly")
-                                                    : t(
-                                                        "booking.unavailableViewOnly",
-                                                    )}
-                                            </Text>
-                                        </Host>
+                                        <NativeText variant="caption" color="danger" wrap={false}>
+                                            {isBookable
+                                                ? t("booking.fullViewOnly")
+                                                : t(
+                                                    "booking.unavailableViewOnly",
+                                                )}
+                                        </NativeText>
                                     ) : null}
                                 </Pressable>
                             ) : (
@@ -492,45 +422,28 @@ export default function SelectLessonSlotScreen() {
                                     disabled={disabled || isLocked}
                                 >
                                     <View className="min-w-0 flex-1 gap-1.5">
-                                        <Host
-                                            matchContents={{ vertical: true }}
-                                            ignoreSafeArea="all"
-                                            style={{ width: "100%" }}>
-                                            <Text
+                                            <NativeText
+                                                variant="h3"
                                                 textStyle={{
-                                                    ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
                                                     color: disabled
-                                                        ? uiColors.mutedForeground
-                                                        : uiColors.foreground,
-                                                    fontSize:
-                                                        typography.h3.fontSize *
-                                                        uiFontScale,
+                                                        ? colors.mutedForeground
+                                                        : colors.foreground
                                                 }}
-                                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                            >
                                                 {formatSlotTime(slot)}
-                                            </Text>
-                                        </Host>
+                                            </NativeText>
 
-                                        <Host
-                                            matchContents={{ vertical: true }}
-                                            ignoreSafeArea="all"
-                                            style={{ width: "100%" }}>
-                                            <Text
+                                            <NativeText
+                                                variant="meta"
                                                 textStyle={{
-                                                    ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
                                                     color: disabled
-                                                        ? uiColors.mutedForeground
-                                                        : uiColors.foreground +
-                                                        "bf",
-                                                    fontSize:
-                                                        typography.meta
-                                                            .fontSize *
-                                                        uiFontScale,
+                                                        ? colors.mutedForeground
+                                                        : colors.foreground +
+                                                        "bf"
                                                 }}
-                                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                            >
                                                 {lessonTitle}
-                                            </Text>
-                                        </Host>
+                                            </NativeText>
 
                                         <View className="flex-row items-center justify-between gap-3">
                                             {slot.coachName ? (
@@ -541,66 +454,48 @@ export default function SelectLessonSlotScreen() {
                                                             colors.mutedForeground
                                                         }
                                                     />
-                                                    <Host
-                                                        matchContents={{ vertical: true }}
-                                                        ignoreSafeArea="all"
-                                                        style={{ flex: 1, minWidth: 0 }}
-                                                    >
-                                                        <Text
+                                                        <NativeText
+                                                            variant="meta"
                                                             numberOfLines={1}
+                                                            style={{ flex: 1, minWidth: 0 }}
                                                             textStyle={{
-                                                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
                                                                 color: disabled
-                                                                    ? uiColors.mutedForeground
-                                                                    : uiColors.foreground +
-                                                                    "bf",
-                                                                fontSize:
-                                                                    typography
-                                                                        .meta
-                                                                        .fontSize *
-                                                                    uiFontScale,
+                                                                    ? colors.mutedForeground
+                                                                    : colors.foreground +
+                                                                    "bf"
                                                             }}
-                                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                                        >
                                                             {slot.coachName}
-                                                        </Text>
-                                                    </Host>
+                                                        </NativeText>
                                                 </View>
                                             ) : (
                                                 <View className="flex-1" />
                                             )}
 
-                                            <Host
-                                                matchContents
-                                                ignoreSafeArea="all"
-                                            >
-                                                <Text
+                                                <NativeText
+                                                    variant="badge"
+                                                    wrap={false}
                                                     textStyle={{
-                                                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
                                                         ...(wasJustBooked
                                                             ? {
-                                                                color: uiColors.warning,
+                                                                color: colors.warning,
                                                             }
                                                             : disabled
                                                                 ? {
-                                                                    color: uiColors.mutedForeground,
+                                                                    color: colors.mutedForeground,
                                                                 }
                                                                 : startingSoon
                                                                     ? {
-                                                                        color: uiColors.warning,
+                                                                        color: colors.warning,
                                                                     }
                                                                     : {
-                                                                        color: uiColors.primary,
-                                                                    }),
-                                                        fontSize:
-                                                            typography.badge
-                                                                .fontSize *
-                                                            uiFontScale,
+                                                                        color: colors.primary,
+                                                                    })
                                                     }}
                                                 >
                                                     {countdownLabel ??
                                                         statusLabel}
-                                                </Text>
-                                            </Host>
+                                                </NativeText>
                                         </View>
                                     </View>
                                 </Pressable>

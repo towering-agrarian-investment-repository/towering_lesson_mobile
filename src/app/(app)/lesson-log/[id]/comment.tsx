@@ -1,3 +1,5 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { FormTextInput } from "@/components/ui/form";
 import {
@@ -7,7 +9,6 @@ import {
     Screen,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -26,6 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Star } from "lucide-react-native";
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
@@ -46,15 +48,10 @@ type LessonLogCommentFormValues = {
 };
 
 function LessonLogCommentScreen() {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
-    const colors = useThemeColors();
     const {
         data: lessonLogResponse,
         isLoading,
@@ -62,7 +59,10 @@ function LessonLogCommentScreen() {
         refetch,
         isRefetching,
     } = useMemberLessonLogById(Number(id));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
     const { mutate: updateLessonLog, isPending } = useUpdateMemberLessonLog();
+    const submitting = useRef(false);
 
     const lessonLog = lessonLogResponse?.data;
     const canReview = lessonLog?.status !== "APPROVED";
@@ -107,16 +107,14 @@ function LessonLogCommentScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !lessonLogResponse) {
         return (
             <Screen
                 contentClassName="grow"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -128,9 +126,7 @@ function LessonLogCommentScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             </Screen>
         );
@@ -142,10 +138,8 @@ function LessonLogCommentScreen() {
                 contentClassName="grow"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -178,7 +172,7 @@ function LessonLogCommentScreen() {
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         accessibilityLabel={t(
                             "lessonLog.submitCommentAccessibility",
                         )}
@@ -203,7 +197,9 @@ function LessonLogCommentScreen() {
                             }
                             variant="text"
                             disabled={isPending || isPending}
-                            onPress={form.handleSubmit((values) => {
+                            onPress={() => { void form.handleSubmit((values) => {
+                                if (submitting.current || isPending || !canReview) return;
+                                submitting.current = true;
                                 updateLessonLog(
                                     {
                                         lessonLogId: Number(lessonLog.id),
@@ -225,15 +221,16 @@ function LessonLogCommentScreen() {
                                                 },
                                             });
                                         },
+                                        onSettled: () => { submitting.current = false; },
                                     },
                                 );
-                            })}
+                            })(); }}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "filled",
                                     isPending || isPending,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -250,7 +247,7 @@ function LessonLogCommentScreen() {
                                 {isPending ? (
                                     <RNHostView matchContents>
                                         <ActivityIndicator
-                                            color={uiColors.primaryForeground}
+                                            color={colors.primaryForeground}
                                         />
                                     </RNHostView>
                                 ) : null}
@@ -259,7 +256,7 @@ function LessonLogCommentScreen() {
                                         textAlign: "center",
                                         ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                         fontWeight: "600",
-                                        color: uiColors.primaryForeground,
+                                        color: colors.primaryForeground,
                                         fontSize:
                                             typography.label.fontSize *
                                             uiFontScale,
@@ -275,58 +272,24 @@ function LessonLogCommentScreen() {
             }
         >
             <View className="gap-2">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.h2.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {formatDateForDisplay(lessonLog.lessonDate)}
-                    </Text>
-                </Host>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.muted.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {t("lessonLog.shareRatingPrompt")}
-                    </Text>
-                </Host>
+                <NativeText variant="h2">
+                    {formatDateForDisplay(lessonLog.lessonDate)}
+                </NativeText>
+                <NativeText variant="muted" color="mutedForeground">
+                    {t("lessonLog.shareRatingPrompt")}
+                </NativeText>
             </View>
 
             <View className="h-px bg-border" />
 
             <View className="gap-4">
                 <View className="gap-2">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize:
-                                    typography.label.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("lessonLog.howWasLesson")}
-                        </Text>
-                    </Host>
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                color: uiColors.danger,
-                                fontSize:
-                                    typography.meta.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("lessonLog.ratingPrivateNotice")}
-                        </Text>
-                    </Host>
+                    <NativeText variant="label">
+                        {t("lessonLog.howWasLesson")}
+                    </NativeText>
+                    <NativeText variant="meta" color="danger">
+                        {t("lessonLog.ratingPrivateNotice")}
+                    </NativeText>
                 </View>
 
                 <Controller
@@ -382,19 +345,9 @@ function LessonLogCommentScreen() {
                             </View>
 
                             {fieldState.error?.message ? (
-                                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                    <Text
-                                        textStyle={{
-                                            ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                            color: colors.danger,
-                                            fontSize:
-                                                typography.meta.fontSize *
-                                                uiFontScale,
-                                        }}
-                                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                        {fieldState.error.message}
-                                    </Text>
-                                </Host>
+                                <NativeText variant="meta" color="danger">
+                                    {fieldState.error.message}
+                                </NativeText>
                             ) : null}
                         </View>
                     )}

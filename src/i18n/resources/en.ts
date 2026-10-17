@@ -95,6 +95,7 @@ const en = {
         viewMyReservations: "VIEW MY RESERVATIONS",
     },
     notice: {
+        moreActions: "More actions",
         markAllAsRead: "Mark all notifications as read",
         marking: "Marking...",
         markAllRead: "Mark all read",
@@ -372,6 +373,7 @@ const en = {
         },
     },
     common: {
+        unableToOpenLink: "Unable to open this link.",
         offlineTitle: "You're offline",
         offlineMessage: "Check your internet connection and try again.",
         cancel: "Cancel",

@@ -1,12 +1,10 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     Badge,
     EmptyState,
     ErrorState,
     getPressedScaleStyle,
     Skeleton,
-    useThemeColors,
 } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
@@ -20,7 +18,6 @@ import type { MemberGroupSummaryResponse } from "@/types/member-group";
 import { formatType } from "@/utils/format-enum";
 import { getGroupName } from "@/utils/member-lesson";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Href, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -69,7 +66,7 @@ export function MemberGroups({
         <View className="flex-1 gap-4">
             {isLoading ? (
                 <GroupListSkeleton />
-            ) : isError ? (
+            ) : isError && !data ? (
                 <ErrorState
                     title={t("groups.loadError")}
                     message={t("common.pullToRefreshAndTryAgain")}
@@ -123,9 +120,8 @@ function GroupCard({
     onPress: () => void;
     onPressIn: () => void;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const groupName = getGroupName(group);
     const statusLabel = group.groupStatus
         ? formatType(group.groupStatus)
@@ -163,35 +159,22 @@ function GroupCard({
             >
                 <View className="flex-row items-start gap-3">
                     <View className="min-w-0 flex-1 gap-1">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                numberOfLines={2}
-                                textStyle={{
-                                    ...typography.h3,
-                                    fontSize: typography.subtitle.fontSize * uiFontScale,
-                                    fontWeight: "600" as const,
-                                    lineHeight: typography.h3.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {groupName}
-                            </Text>
-                        </Host>
+                        <NativeText
+                            variant="h3"
+                            numberOfLines={2}
+                            textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                        >
+                            {groupName}
+                        </NativeText>
 
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                numberOfLines={1}
-                                textStyle={{
-                                    ...typography.meta,
-                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize:
-                                        typography.meta.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {group.lessonProgramName?.trim() || lessonType}
-                            </Text>
-                        </Host>
+                        <NativeText
+                            variant="meta"
+                            color="mutedForeground"
+                            numberOfLines={1}
+                            textStyle={{ lineHeight: typography.subtext.lineHeight }}
+                        >
+                            {group.lessonProgramName?.trim() || lessonType}
+                        </NativeText>
                     </View>
 
                     <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -238,44 +221,27 @@ function GroupCard({
 }
 
 function GroupMetaRow({ label, value }: { label: string; value: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <Host
-                matchContents
-                ignoreSafeArea="all"
+            <NativeText
+                variant="caption"
+                color="mutedForeground"
+                wrap={false}
                 style={{ flexShrink: 0 }}
+                textStyle={{ lineHeight: typography.subtext.lineHeight }}
             >
-                <Text
-                    textStyle={{
-                        ...typography.caption,
-                        lineHeight: typography.subtext.lineHeight * uiFontScale,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                >
-                    {label}
-                </Text>
-            </Host>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
+                {label}
+            </NativeText>
+            <NativeText
+                variant="caption"
+                align="right"
+                numberOfLines={1}
                 style={{ flex: 1, minWidth: 0 }}
+                textStyle={{ fontWeight: "500" as const, lineHeight: typography.subtext.lineHeight }}
             >
-                <Text
-                    numberOfLines={1}
-                    textStyle={{
-                        ...typography.caption,
-                        textAlign: "right" as const,
-                        fontWeight: "500" as const,
-                        lineHeight: typography.subtext.lineHeight * uiFontScale,
-                        color: uiColors.foreground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
-                    {value}
-                </Text>
-            </Host>
+                {value}
+            </NativeText>
         </View>
     );
 }

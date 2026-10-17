@@ -1,9 +1,7 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     getPressedScaleStyle,
     triggerSelectionHaptic,
-    useThemeColors,
 } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
@@ -14,7 +12,6 @@ import type {
     MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
 import { fmtTime } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { format } from "date-fns";
 import { ChevronRight } from "lucide-react-native";
 import { memo, useState } from "react";
@@ -31,9 +28,8 @@ type Props = {
 };
 
 function ReservationCard({ reservation, disabled = false, onPress }: Props) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const startDate = new Date(reservation.startTime);
     const endDate = new Date(reservation.endTime);
     const [referenceTime] = useState(() => Date.now());
@@ -134,58 +130,31 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                         className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`}
                     />
 
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
+                    <NativeText
+                        variant="label"
+                        numberOfLines={1}
                         style={{ flex: 1, minWidth: 0 }}
+                        textStyle={{ fontWeight: "500" as const }}
                     >
-                        <Text
-                            numberOfLines={1}
-                            textStyle={{
-                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontWeight: "500" as const,
-                                fontSize:
-                                    typography.label.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {title}
-                        </Text>
-                    </Host>
+                        {title}
+                    </NativeText>
                 </View>
 
                 <View className="flex-row items-center gap-3">
                     <ReservationDateBadge date={startDate} />
 
                     <View className="min-w-0 flex-1 flex-col justify-center gap-3">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.body, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize: typography.subtitle.fontSize * uiFontScale,
-                                    fontWeight: "600" as const,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {fmtTime(startDate) + " - " + fmtTime(endDate)}
-                            </Text>
-                        </Host>
+                        <NativeText
+                            variant="body"
+                            textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                        >
+                            {fmtTime(startDate) + " - " + fmtTime(endDate)}
+                        </NativeText>
 
                         {secondaryLabel ? (
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    numberOfLines={1}
-                                    textStyle={{
-                                        ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                                        color: secondaryColor,
-                                        fontSize:
-                                            typography.badge.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {secondaryLabel}
-                                </Text>
-                            </Host>
+                            <NativeText variant="badge" numberOfLines={1} textStyle={{ color: secondaryColor }}>
+                                {secondaryLabel}
+                            </NativeText>
                         ) : null}
                     </View>
 
@@ -230,35 +199,17 @@ function areReservationCardsEqual(prev: Props, next: Props) {
 }
 
 function ReservationDateBadge({ date }: { date: Date }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="h-[82px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
             <View className="flex-1 items-center justify-center px-2">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        numberOfLines={1}
-                        textStyle={{ textAlign: "center",
-                            ...typography.badge, lineHeight: typography.badge.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.badge.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {format(date, "MMM").toUpperCase()}
-                    </Text>
-                </Host>
+                <NativeText variant="badge" color="mutedForeground" align="center" numberOfLines={1}>
+                    {format(date, "MMM").toUpperCase()}
+                </NativeText>
 
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        numberOfLines={1}
-                        textStyle={{ textAlign: "center",
-                            ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
-                            color: uiColors.foreground,
-                            fontSize: typography.h2.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {format(date, "dd")}
-                    </Text>
-                </Host>
+                <NativeText variant="h2" align="center" numberOfLines={1}>
+                    {format(date, "dd")}
+                </NativeText>
             </View>
         </View>
     );

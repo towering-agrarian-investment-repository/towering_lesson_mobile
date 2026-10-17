@@ -1,12 +1,11 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     RESERVATION_TABS,
     ReservationTabScene,
 } from "@/components/golf/reservation/ReservationTabScene";
 import { getPressedScaleStyle, Screen } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { MemberReservationType } from "@/service/reservation.service";
-import { Host, Text } from "@expo/ui";
 import * as Haptics from "expo-haptics";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,7 +18,7 @@ type ReservationRoute = {
 };
 
 export default function ReservationScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
@@ -117,37 +116,29 @@ export default function ReservationScreen() {
                                 }
                                 onPress={() => handleTabChange(tabIndex)}
                             >
-                                <Host matchContents ignoreSafeArea="all">
-                                    <Text
-                                        numberOfLines={1}
-                                        textStyle={{
-                                            ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                            fontSize: typography.caption.fontSize * uiFontScale,
-                                            fontWeight: "600" as const,
-                                            color: uiColors.mutedForeground,
-                                        }}
-                                    >
-                                        {t(`reservations.tabs.${tab}`)}
-                                    </Text>
-                                </Host>
+                                <NativeText
+                                    variant="body"
+                                    color="mutedForeground"
+                                    wrap={false}
+                                    numberOfLines={1}
+                                    textStyle={{ lineHeight: typography.caption.lineHeight, fontSize: typography.caption.fontSize, fontWeight: "600" as const }}
+                                >
+                                    {t(`reservations.tabs.${tab}`)}
+                                </NativeText>
                                 <Animated.View
                                     pointerEvents="none"
                                     className="absolute inset-0 items-center justify-center"
                                     style={{ opacity: activeOpacity }}
                                 >
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            numberOfLines={1}
-                                            textStyle={{
-                                                ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                fontSize: typography.caption.fontSize * uiFontScale,
-                                                fontWeight: "600" as const,
-                                                color: uiColors.primaryForeground,
-                                            }}
-                                        >
-                                            {t(`reservations.tabs.${tab}`)}
-                                        </Text>
-                                    </Host>
+                                    <NativeText
+                                        variant="body"
+                                        color="primaryForeground"
+                                        wrap={false}
+                                        numberOfLines={1}
+                                        textStyle={{ lineHeight: typography.caption.lineHeight, fontSize: typography.caption.fontSize, fontWeight: "600" as const }}
+                                    >
+                                        {t(`reservations.tabs.${tab}`)}
+                                    </NativeText>
                                 </Animated.View>
                             </Pressable>
                         );
@@ -155,7 +146,7 @@ export default function ReservationScreen() {
                 </View>
             </View>
         ),
-        [activeIndex, handleTabChange, t, tabBarWidth, uiColors, uiFontScale],
+        [activeIndex, handleTabChange, t, tabBarWidth],
     );
 
     return (

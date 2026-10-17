@@ -1,3 +1,5 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     getNativeButtonStyle,
     getNativeButtonTextStyle,
@@ -8,8 +10,6 @@ import {
     ErrorState,
     ListRow,
     Screen,
-    useThemeColors,
-    useThemePreference,
     type PrimaryColorPreference,
     type ThemePreference,
 } from "@/design-system";
@@ -43,22 +43,22 @@ import { ActivityIndicator, RefreshControl, View } from "react-native";
 const APP_VERSION = Constants.expoConfig?.version;
 
 export default function ProfileScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const {
+        colors,
+        fontScale: uiFontScale,
+        isReady: isThemeReady,
+        preference: themePreference,
+        setPreference: setThemePreference,
+        primaryColorPreference,
+        setPrimaryColorPreference,
+    } = useTheme();
     const { i18n, t } = useTranslation();
-    const colors = useThemeColors();
     const update = useAppUpdateContext();
     const queryClient = useQueryClient();
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
     const signOutLocked = useRef(false);
     const [isChangingLanguage, setIsChangingLanguage] = useState(false);
-    const {
-        isThemeReady,
-        themePreference,
-        setThemePreference,
-        primaryColorPreference,
-        setPrimaryColorPreference,
-    } = useThemePreference();
 
     const {
         data: memberResponse,
@@ -67,6 +67,8 @@ export default function ProfileScreen() {
         refetch,
         isRefetching,
     } = useGetMemberProfile();
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const member = memberResponse?.data;
     const genderLabels: Record<GenderEnum, string> = {
@@ -111,7 +113,7 @@ export default function ProfileScreen() {
         return <CircleLoader fullScreen />;
     }
 
-    if (isError) {
+    if (isError && !memberResponse) {
         return (
             <ErrorState
                 title={t("home.couldNotLoadProfile")}
@@ -121,9 +123,7 @@ export default function ProfileScreen() {
                         ? t("common.refreshing")
                         : t("common.refreshTryAgain")
                 }
-                onAction={() => {
-                    void refetch();
-                }}
+                onAction={handlePullRefresh}
             />
         );
     }
@@ -132,10 +132,8 @@ export default function ProfileScreen() {
         <Screen
             refreshControl={
                 <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={() => {
-                        void refetch();
-                    }}
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
                 />
             }
         >
@@ -145,26 +143,26 @@ export default function ProfileScreen() {
                 shouldDismissOnBackPress={!isSigningOut}
                 shouldDismissOnClickOutside={!isSigningOut}
                 modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(isSigningOut), presentationCornerRadius(24)] : undefined}
-                containerColor={uiColors.card}
-                contentColor={uiColors.foreground}
+                containerColor={colors.card}
+                contentColor={colors.foreground}
                 contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
             >
                 <Column spacing={20} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
                     <Column spacing={8} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
-                        <Text textStyle={{ ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale, color: uiColors.danger, fontSize: typography.h3.fontSize * uiFontScale }}>{t("profile.logOutTitle")}</Text>
-                        <Text textStyle={{ ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale, color: uiColors.mutedForeground, fontSize: typography.muted.fontSize * uiFontScale }}>{t("profile.logOutMessage")}</Text>
+                        <Text textStyle={{ ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale, color: colors.danger, fontSize: typography.h3.fontSize * uiFontScale }}>{t("profile.logOutTitle")}</Text>
+                        <Text textStyle={{ ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale, color: colors.mutedForeground, fontSize: typography.muted.fontSize * uiFontScale }}>{t("profile.logOutMessage")}</Text>
                     </Column>
                     <Column spacing={12} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
-                        <Button variant="text" disabled={isSigningOut} onPress={() => { void handleSignOut(); }} style={getNativeButtonStyle(uiColors, "filled", isSigningOut, uiColors.danger)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
+                        <Button variant="text" disabled={isSigningOut} onPress={() => { void handleSignOut(); }} style={getNativeButtonStyle(colors, "filled", isSigningOut, colors.danger)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
                             <Row spacing={8} alignment="center" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}>
                                 <Spacer flexible />
-                                {isSigningOut ? <RNHostView matchContents><ActivityIndicator color={uiColors.primaryForeground} /></RNHostView> : null}
-                                <Text textStyle={{ textAlign: "center", ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.primaryForeground, fontSize: typography.label.fontSize * uiFontScale }}>{t("profile.logOutTitle")}</Text>
+                                {isSigningOut ? <RNHostView matchContents><ActivityIndicator color={colors.primaryForeground} /></RNHostView> : null}
+                                <Text textStyle={{ textAlign: "center", ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: colors.primaryForeground, fontSize: typography.label.fontSize * uiFontScale }}>{t("profile.logOutTitle")}</Text>
                                 <Spacer flexible />
                             </Row>
                         </Button>
-                        <Button variant="text" disabled={isSigningOut} onPress={closeSignOutSheet} style={getNativeButtonStyle(uiColors, "text", isSigningOut)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
-                            <Text modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]} textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.foreground, fontSize: typography.label.fontSize * uiFontScale, textAlign: "center" }}>{t("common.cancel")}</Text>
+                        <Button variant="text" disabled={isSigningOut} onPress={closeSignOutSheet} style={getNativeButtonStyle(colors, "text", isSigningOut)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
+                            <Text modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]} textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: colors.foreground, fontSize: typography.label.fontSize * uiFontScale, textAlign: "center" }}>{t("common.cancel")}</Text>
                         </Button>
                     </Column>
                 </Column>
@@ -355,16 +353,6 @@ export default function ProfileScreen() {
                                                 await setAppLanguage(
                                                     nextLanguage,
                                                 );
-                                            } catch (error) {
-                                                showAppToast({
-                                                    message:
-                                                        error instanceof Error
-                                                            ? error.message
-                                                            : t(
-                                                                "common.refreshTryAgain",
-                                                            ),
-                                                    type: "error",
-                                                });
                                             } finally {
                                                 setIsChangingLanguage(false);
                                             }
@@ -384,35 +372,27 @@ export default function ProfileScreen() {
                                     <PrimaryColorPreferenceRow
                                         preference={primaryColorPreference}
                                         disabled={!isThemeReady}
-                                        onChange={(nextPreference) => {
-                                            void setPrimaryColorPreference(
-                                                nextPreference,
-                                            );
-                                        }}
+                                        onChange={setPrimaryColorPreference}
                                     />
                                     <Divider className="bg-border" />
                                     <ThemePreferenceRow
                                         preference={themePreference}
                                         disabled={!isThemeReady}
-                                        onChange={(nextPreference) => {
-                                            void setThemePreference(
-                                                nextPreference,
-                                            );
-                                        }}
+                                        onChange={setThemePreference}
                                     />
                                 </View>
                             </View>
                             <Host
                                 matchContents={{ vertical: true }}
                                 ignoreSafeArea="all"
-                                seedColor={uiColors.danger}
+                                seedColor={colors.danger}
                                 style={{ width: "100%", marginTop: 20 }}
                                 accessibilityState={{
                                     disabled: isSigningOut,
                                     busy: isSigningOut,
                                 }}
                             >
-                                <Button style={{ ...getNativeButtonStyle(uiColors, "text", isSigningOut), backgroundColor: uiColors.danger + "1a", borderWidth: 1, borderColor: uiColors.danger + "33", paddingHorizontal: 16 }}
+                                <Button style={{ ...getNativeButtonStyle(colors, "text", isSigningOut), backgroundColor: colors.danger + "1a", borderWidth: 1, borderColor: colors.danger + "33", paddingHorizontal: 16 }}
                                     modifiers={
                                         process.env.EXPO_OS === "ios"
                                             ? [
@@ -434,7 +414,7 @@ export default function ProfileScreen() {
                                 >
                                     <Text
                                         modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "leading" })] : [fillMaxWidth()]}
-                                        textStyle={{ ...getNativeButtonTextStyle(uiColors, "outlined", uiFontScale, uiColors.danger), fontWeight: "500", textAlign: "left" }}
+                                        textStyle={{ ...getNativeButtonTextStyle(colors, "outlined", uiFontScale, colors.danger), fontWeight: "500", textAlign: "left" }}
                                     >
                                         {isSigningOut
                                             ? t("profile.loggingOut")
@@ -443,24 +423,14 @@ export default function ProfileScreen() {
                                 </Button>
                             </Host>
                             {APP_VERSION ? (
-                                <Host
-                                    matchContents={{ vertical: true }}
-                                    ignoreSafeArea="all"
-                                    style={{ width: "100%", marginTop: 16, paddingBottom: 16 }}
+                                <NativeText
+                                    variant="caption"
+                                    color="mutedForeground"
+                                    align="center"
+                                    style={{ marginTop: 16, paddingBottom: 16 }}
                                 >
-                                    <Text
-                                        textStyle={{
-                                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                            textAlign: "center" as const,
-                                            color: uiColors.mutedForeground,
-                                            fontSize:
-                                                typography.caption.fontSize *
-                                                uiFontScale,
-                                        }}
-                                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                                        {"v " + APP_VERSION}
-                                    </Text>
-                                </Host>
+                                    {"v " + APP_VERSION}
+                                </NativeText>
                             ) : null}
                         </View>
                     }
@@ -501,7 +471,7 @@ function ProfileHeader({
     checkinNumber?: string | null;
     imageUrl?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
 
     return (
@@ -510,47 +480,22 @@ function ProfileHeader({
 
             <View className="min-w-0 flex-1 flex-col gap-3">
                 <View className="flex-col gap-1">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            numberOfLines={2}
-                            textStyle={{
-                                ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize: typography.h2.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {name || "-"}
-                        </Text>
-                    </Host>
+                    <NativeText variant="h2" numberOfLines={2}>
+                        {name || "-"}
+                    </NativeText>
 
                     <View className="flex-row items-center gap-1">
-                        <Host matchContents ignoreSafeArea="all">
-                            <Text
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.foreground + "99",
-                                    fontSize:
-                                        typography.caption.fontSize *
-                                        uiFontScale,
-                                }}
-                            >
-                                {t("profile.checkInNo") + ":"}
-                            </Text>
-                        </Host>
-                        <Host matchContents ignoreSafeArea="all">
-                            <Text
-                                numberOfLines={1}
-                                textStyle={{
-                                    ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.foreground + "cc",
-                                    fontSize:
-                                        typography.subtext.fontSize *
-                                        uiFontScale,
-                                }}
-                            >
-                                {checkinNumber || "-"}
-                            </Text>
-                        </Host>
+                        <NativeText variant="caption" wrap={false} textStyle={{ color: uiColors.foreground + "99" }}>
+                            {t("profile.checkInNo") + ":"}
+                        </NativeText>
+                        <NativeText
+                            variant="subtext"
+                            wrap={false}
+                            numberOfLines={1}
+                            textStyle={{ color: uiColors.foreground + "cc" }}
+                        >
+                            {checkinNumber || "-"}
+                        </NativeText>
                     </View>
                 </View>
             </View>
@@ -567,7 +512,7 @@ function ProfileAvatar({
     imageUrl?: string | null;
     size?: "small" | "large";
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const imageSize = size === "large" ? 96 : 48;
     const containerClassName =
         size === "large" ? "h-24 w-24 bg-primary" : "h-12 w-12 bg-primary";
@@ -591,39 +536,29 @@ function ProfileAvatar({
         <View
             className={`shrink-0 items-center justify-center rounded-full ${containerClassName}`}
         >
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography[textVariant], lineHeight: typography[textVariant].lineHeight * uiFontScale,
-                        fontWeight: "700" as const,
-                        color: uiColors.primaryForeground,
-                        fontSize:
-                            typography[textVariant].fontSize * uiFontScale,
-                    }}
-                >
-                    {name?.charAt(0).toUpperCase() || "?"}
-                </Text>
-            </Host>
+            <NativeText
+                variant={textVariant}
+                color="primaryForeground"
+                wrap={false}
+                textStyle={{ fontWeight: "700" as const }}
+            >
+                {name?.charAt(0).toUpperCase() || "?"}
+            </NativeText>
         </View>
     );
 }
 
 function SectionTitle({ title }: { title: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
-        <Host matchContents ignoreSafeArea="all">
-            <Text
-                textStyle={{
-                    ...typography.label, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                    fontSize: typography.subtext.fontSize * uiFontScale,
-                    fontWeight: "600" as const,
-                    letterSpacing: 0.4,
-                    color: uiColors.mutedForeground,
-                }}
-            >
-                {title}
-            </Text>
-        </Host>
+        <NativeText
+            variant="label"
+            color="mutedForeground"
+            wrap={false}
+            textStyle={{ lineHeight: typography.subtext.lineHeight, fontSize: typography.subtext.fontSize, fontWeight: "600" as const, letterSpacing: 0.4 }}
+        >
+            {title}
+        </NativeText>
     );
 }
 
@@ -634,45 +569,25 @@ function InfoRow({
     label: string;
     value: string | null | undefined;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     if (!value) {
         return null;
     }
 
     return (
         <View className="flex-row items-start justify-between gap-4 py-4">
-            <Host
-                matchContents
-                ignoreSafeArea="all"
+            <NativeText
+                variant="meta"
+                wrap={false}
                 style={{ minWidth: 104 }}
+                textStyle={{ color: uiColors.foreground + "bf" }}
             >
-                <Text
-                    textStyle={{
-                        ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                        color: uiColors.foreground + "bf",
-                        fontSize: typography.meta.fontSize * uiFontScale,
-                    }}
-                >
-                    {label}
-                </Text>
-            </Host>
+                {label}
+            </NativeText>
 
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
-                style={{ flex: 1, minWidth: 0 }}
-            >
-                <Text
-                    textStyle={{
-                        ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                        textAlign: "right" as const,
-                        color: uiColors.foreground,
-                        fontSize: typography.body.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
-                    {value}
-                </Text>
-            </Host>
+            <NativeText variant="body" align="right" style={{ flex: 1, minWidth: 0 }}>
+                {value}
+            </NativeText>
         </View>
     );
 }
@@ -688,67 +603,35 @@ function ParentRow({
     phoneNumber?: string | null;
     imageUrl?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
     return (
         <View className="flex-row items-center gap-4 py-4">
             <ProfileAvatar name={name} imageUrl={imageUrl} />
 
             <View className="min-w-0 flex-1 flex-col gap-1">
                 <View className="flex-row items-center justify-between gap-2">
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        style={{ flex: 1, minWidth: 0 }}
-                    >
-                        <Text
-                            numberOfLines={1}
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize:
-                                    typography.body.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {name}
-                        </Text>
-                    </Host>
+                    <NativeText variant="body" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+                        {name}
+                    </NativeText>
 
                     {role ? (
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
+                        <NativeText
+                            variant="caption"
+                            color="mutedForeground"
+                            align="right"
+                            wrap={false}
+                            numberOfLines={1}
                             style={{ flexShrink: 0 }}
                         >
-                            <Text
-                                numberOfLines={1}
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    textAlign: "right" as const,
-                                    color: uiColors.mutedForeground,
-                                    fontSize:
-                                        typography.caption.fontSize *
-                                        uiFontScale,
-                                }}
-                            >
-                                {formatType(role)}
-                            </Text>
-                        </Host>
+                            {formatType(role)}
+                        </NativeText>
                     ) : null}
                 </View>
 
                 {phoneNumber ? (
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.subtext, lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                color: uiColors.foreground + "cc",
-                                fontSize:
-                                    typography.subtext.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {phoneNumber}
-                        </Text>
-                    </Host>
+                    <NativeText variant="subtext" textStyle={{ color: uiColors.foreground + "cc" }}>
+                        {phoneNumber}
+                    </NativeText>
                 ) : null}
             </View>
         </View>

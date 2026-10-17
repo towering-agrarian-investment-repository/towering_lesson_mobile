@@ -4,8 +4,10 @@ import {
     createContext,
     createElement,
     type ReactNode,
+    useCallback,
     useContext,
     useEffect,
+    useMemo,
     useState,
 } from "react";
 import {
@@ -179,6 +181,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                     storedPrimaryColor === "green" ? "green" : "blue",
                 );
                 applyThemePreference(nextPreference);
+            } catch {
+                // Use the system theme and default brand if storage is unavailable.
             } finally {
                 if (isMounted) {
                     setIsReady(true);
@@ -193,16 +197,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const handleSetPreference = async (nextPreference: ThemePreference) => {
+    const handleSetPreference = useCallback(async (nextPreference: ThemePreference) => {
         setPreferenceState(nextPreference);
         applyThemePreference(nextPreference);
         await AsyncStorage.setItem(
             THEME_PREFERENCE_STORAGE_KEY,
             nextPreference,
         );
-    };
+    }, []);
 
-    const handleSetPrimaryColorPreference = async (
+    const handleSetPrimaryColorPreference = useCallback(async (
         nextPreference: PrimaryColorPreference,
     ) => {
         setPrimaryColorPreferenceState(nextPreference);
@@ -210,12 +214,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             PRIMARY_COLOR_PREFERENCE_STORAGE_KEY,
             nextPreference,
         );
-    };
+    }, []);
 
     const effectiveColorScheme =
         preference === "system" ? systemColorScheme : preference;
     const resolvedScheme = effectiveColorScheme === "dark" ? "dark" : "light";
-    const colors = getThemeColors(resolvedScheme, primaryColorPreference);
+    const colors = useMemo(
+        () => getThemeColors(resolvedScheme, primaryColorPreference),
+        [resolvedScheme, primaryColorPreference],
+    );
+    const nativeFontScale = process.env.EXPO_OS === "ios" ? fontScale : 1;
 
     useEffect(() => {
         void SystemUI.setBackgroundColorAsync(colors.background).catch(
@@ -223,16 +231,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         );
     }, [colors.background]);
 
-    const value: ThemeContextValue = {
+    const value = useMemo<ThemeContextValue>(() => ({
         colors,
-        fontScale: process.env.EXPO_OS === "ios" ? fontScale : 1,
+        fontScale: nativeFontScale,
         isReady,
         preference,
         resolvedScheme,
         setPreference: handleSetPreference,
         primaryColorPreference,
         setPrimaryColorPreference: handleSetPrimaryColorPreference,
-    };
+    }), [colors, nativeFontScale, isReady, preference, resolvedScheme,
+        handleSetPreference, primaryColorPreference, handleSetPrimaryColorPreference]);
 
     return createElement(ThemeContext.Provider, { value }, children);
 }

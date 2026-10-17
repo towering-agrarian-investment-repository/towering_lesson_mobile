@@ -1,5 +1,5 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     Badge,
     CompactEmptyState,
@@ -35,7 +35,6 @@ import {
     getLessonStatusTone,
 } from "@/utils/status-tone";
 import { formatDateForDisplay } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -53,9 +52,8 @@ type LessonParams = {
 };
 
 export default function StandaloneLessonDetailScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const { lessonId } = useLocalSearchParams<LessonParams>();
     const numericLessonId = Number(lessonId);
     const router = useRouter();
@@ -63,6 +61,8 @@ export default function StandaloneLessonDetailScreen() {
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberLessonById(numericLessonId);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const detail = data?.data;
     const lesson = detail?.lesson;
@@ -73,10 +73,8 @@ export default function StandaloneLessonDetailScreen() {
 
     const refreshControl = (
         <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => {
-                void refetch();
-            }}
+            refreshing={isPullRefreshing}
+            onRefresh={handlePullRefresh}
         />
     );
 
@@ -88,7 +86,7 @@ export default function StandaloneLessonDetailScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <ErrorState
@@ -99,9 +97,7 @@ export default function StandaloneLessonDetailScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
-                    onAction={() => {
-                        void refetch();
-                    }}
+                    onAction={handlePullRefresh}
                 />
             </Screen>
         );
@@ -128,34 +124,17 @@ export default function StandaloneLessonDetailScreen() {
             >
                 <View className="gap-4 bg-surface px-5 py-5">
                     <View className="gap-2">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                numberOfLines={2}
-                                textStyle={{
-                                    ...typography.h3,
-                                    color: uiColors.foreground,
-                                    fontSize: typography.h3.fontSize * uiFontScale,
-                                    fontWeight: "600" as const,
-                                    lineHeight: typography.h3.lineHeight * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {getLessonName(lesson)}
-                            </Text>
-                        </Host>
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                numberOfLines={2}
-                                textStyle={{
-                                    ...typography.meta,
-                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize:
-                                        typography.meta.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {getLessonMeta(detail)}
-                            </Text>
-                        </Host>
+                        <NativeText variant="h3" numberOfLines={2} textStyle={{ fontWeight: "600" as const }}>
+                            {getLessonName(lesson)}
+                        </NativeText>
+                        <NativeText
+                            variant="meta"
+                            color="mutedForeground"
+                            numberOfLines={2}
+                            textStyle={{ lineHeight: typography.subtext.lineHeight }}
+                        >
+                            {getLessonMeta(detail)}
+                        </NativeText>
                     </View>
 
                     <View className="flex-row flex-wrap gap-2">
@@ -185,19 +164,9 @@ export default function StandaloneLessonDetailScreen() {
 
                 {lesson.description?.trim() ? (
                     <View className="px-5 py-5">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.body,
-                                    lineHeight: typography.body.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.body.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {lesson.description}
-                            </Text>
-                        </Host>
+                        <NativeText variant="body">
+                            {lesson.description}
+                        </NativeText>
                     </View>
                 ) : null}
             </View>
@@ -476,33 +445,20 @@ function RowIcon({
 }
 
 function SectionHeader({ title, count }: { title: string; count: number }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="flex-row items-center justify-between gap-4">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                        color: uiColors.foreground,
-                        fontSize: typography.subtitle.fontSize * uiFontScale,
-                        fontWeight: "600" as const,
-                    }}
-                >
-                    {title}
-                </Text>
-            </Host>
+            <NativeText
+                variant="h3"
+                wrap={false}
+                textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+            >
+                {title}
+            </NativeText>
             {count > 0 ? (
-                <Host matchContents ignoreSafeArea="all">
-                    <Text
-                        textStyle={{
-                            ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.count.fontSize * uiFontScale,
-                        }}
-                    >
-                        {String(count ?? "")}
-                    </Text>
-                </Host>
+                <NativeText variant="count" color="mutedForeground" wrap={false}>
+                    {String(count ?? "")}
+                </NativeText>
             ) : null}
         </View>
     );

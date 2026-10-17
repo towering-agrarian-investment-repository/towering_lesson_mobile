@@ -1,14 +1,12 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { DayNumbersToggle } from "@/components/golf/activity/DayNumbersToggle";
-import { ActivityShareCard } from "@/components/golf/ActivityShareCard";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
+import { ActivitySharePreview } from "@/components/golf/ActivitySharePreview";
 import {
     ActivityHeatmap,
     ErrorState,
     Screen,
     Skeleton,
     WeeklySummary,
-    useThemeColors,
 } from "@/design-system";
 import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
 import { useTheme } from "@/design-system/utils/theme";
@@ -16,39 +14,23 @@ import { typography } from "@/design-system/utils/typography";
 import { useMemberActivity } from "@/lib/hook/useMemberActivity";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import type { MemberActivityStatusCounts } from "@/types/member-activity";
-import { Host, Text } from "@expo/ui";
-import { Ionicons } from "@expo/vector-icons";
-import * as MediaLibrary from "expo-media-library";
-import { Stack } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Alert,
-    Linking,
-    Modal,
     Pressable,
     RefreshControl,
     View,
 } from "react-native";
-import { captureRef } from "react-native-view-shot";
 
 type ActivityFilter = number | "all";
 
 export function ActivityOverview() {
-    const {
-        colors: uiColors,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const currentYear = new Date().getFullYear();
     const firstActivityYear = 2025;
     const [requestedYear, setSelectedYear] =
         useState<ActivityFilter>(currentYear);
-    const [showShareCard, setShowShareCard] = useState(false);
-    const [showDayNumbers, setShowDayNumbers] = useState(true);
-    const [isSavingShareCard, setIsSavingShareCard] = useState(false);
-    const shareCardRef = useRef<React.ElementRef<typeof View>>(null);
     const { data: memberProfile } = useGetMemberProfile();
     const requestedActivityQuery = useMemberActivity(requestedYear);
     const allActivityQuery = useMemberActivity(
@@ -58,7 +40,6 @@ export function ActivityOverview() {
     const {
         data: allActivity,
         refetch: refetchAll,
-        isRefetching: isRefetchingAll,
     } = allActivityQuery;
 
     const availableYears = useMemo(() => {
@@ -95,6 +76,8 @@ export function ActivityOverview() {
         refetch,
         isRefetching,
     } = activityQuery;
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchAll({ cancelRefetch: false })]));
 
     const activityValues = useMemo(
         () =>
@@ -119,44 +102,19 @@ export function ActivityOverview() {
         [activity?.weekly],
     );
 
-    if (isLoading) {
-        return <ActivityLoadingState />;
-    }
-
-    if (isError && !activity) {
-        return (
-            <ErrorState
-                title={t("activity.couldNotLoad")}
-                message={t("common.pullToRefreshAndTryAgain")}
-                actionLabel={
-                    isRefetching
-                        ? t("common.refreshing")
-                        : t("common.refreshTryAgain")
-                }
-                onAction={() => {
-                    void refetch();
-                }}
-            />
-        );
-    }
-
-    if (!activity) {
-        return <ActivityLoadingState />;
-    }
-
     const firstDate =
-        getActivityDate(activity.daily[0]?.date) ??
-        getActivityDate(activity.weekly[0]?.weekStart) ??
+        getActivityDate(activity?.daily[0]?.date) ??
+        getActivityDate(activity?.weekly[0]?.weekStart) ??
         new Date();
     const lastDate =
-        getActivityDate(activity.daily.at(-1)?.date) ??
-        getActivityDate(activity.weekly.at(-1)?.weekEnd) ??
+        getActivityDate(activity?.daily.at(-1)?.date) ??
+        getActivityDate(activity?.weekly.at(-1)?.weekEnd) ??
         firstDate;
-    const activityYear = activity.year ?? firstDate.getFullYear();
+    const activityYear = activity?.year ?? firstDate.getFullYear();
     const isAllActivity = selectedYear === "all";
-    const totalReservations = activity.totalReservations;
-    const totalHours = activity.totalReservationHours;
-    const activeDays = activity.totalReservationDays;
+    const totalReservations = activity?.totalReservations ?? 0;
+    const totalHours = activity?.totalReservationHours ?? 0;
+    const activeDays = activity?.totalReservationDays ?? 0;
     const daysInYear = isAllActivity
         ? daysBetween(firstDate, lastDate)
         : isLeapYear(activityYear)
@@ -174,86 +132,77 @@ export function ActivityOverview() {
         ? t("activity.allTime")
         : String(activityYear);
     const shareFirstDate =
-        getActivityDate(activity.daily[0]?.date) ?? firstDate;
+        getActivityDate(activity?.daily[0]?.date) ?? firstDate;
     const shareLastDate =
-        getActivityDate(activity.daily.at(-1)?.date) ?? lastDate;
+        getActivityDate(activity?.daily.at(-1)?.date) ?? lastDate;
 
-    const handleSaveShareCard = async () => {
-        if (isSavingShareCard || !shareCardRef.current) return;
+    const preview = (
+        <ActivitySharePreview
+            isAvailable={Boolean(activity) && !isLoading}
+            availableYears={availableYears}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+            cardProps={{
+                label: activityLabel,
+                totalReservations,
+                totalDays: activeDays,
+                totalHours,
+                dailyValues: activityValues,
+                heatmapStartDate: shareFirstDate,
+                heatmapEndDate: shareLastDate,
+                numDays: daysBetween(shareFirstDate, shareLastDate),
+                memberName: memberProfile?.data.name,
+                memberImage: memberProfile?.data.profileImage,
+            }}
+        />
+    );
 
-        setIsSavingShareCard(true);
-        try {
-            // Saving a generated card only needs add/write access. Requesting full
-            // library access can be denied even though the platform permits saves.
-            const permission = await MediaLibrary.requestPermissionsAsync(true);
-            if (!permission.granted) {
-                const actions = permission.canAskAgain
-                    ? [{ text: t("activity.ok") }]
-                    : [
-                        {
-                            text: t("common.cancel"),
-                            style: "cancel" as const,
-                        },
-                        {
-                            text: t("activity.openSettings"),
-                            onPress: () => void Linking.openSettings(),
-                        },
-                    ];
+    if (isLoading) {
+        return (
+            <>
+                {preview}
+                <ActivityLoadingState />
+            </>
+        );
+    }
 
-                Alert.alert(
-                    t("activity.permissionTitle"),
-                    t("activity.permissionMessage"),
-                    actions,
-                );
-                return;
-            }
+    if (isError && !activity) {
+        return (
+            <>
+                {preview}
+                <ErrorState
+                    title={t("activity.couldNotLoad")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
+                    onAction={() => {
+                        void refetch();
+                    }}
+                />
+            </>
+        );
+    }
 
-            const uri = await captureRef(shareCardRef.current, {
-                format: "png",
-                quality: 1,
-            });
-            await MediaLibrary.Asset.create(uri);
-            Alert.alert(t("activity.savedTitle"), t("activity.savedMessage"));
-        } catch (error) {
-            if (__DEV__) {
-                console.error("Failed to save activity card", error);
-            }
-            Alert.alert(
-                t("activity.couldNotSaveTitle"),
-                t("activity.couldNotSaveMessage"),
-            );
-        } finally {
-            setIsSavingShareCard(false);
-        }
-    };
+    if (!activity) {
+        return (
+            <>
+                {preview}
+                <ActivityLoadingState />
+            </>
+        );
+    }
 
     return (
         <>
-            <Stack.Screen
-                options={{
-                    headerRight: () => (
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t("activity.preview")}
-                            hitSlop={10}
-                            onPress={() => setShowShareCard(true)}
-                        >
-                            <Ionicons
-                                name="camera-outline"
-                                size={22}
-                                color={colors.mutedForeground}
-                            />
-                        </Pressable>
-                    ),
-                }}
-            />
+            {preview}
             <Screen
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching || isRefetchingAll}
-                        onRefresh={() => {
-                            void Promise.all([refetch(), refetchAll()]);
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
             >
@@ -273,23 +222,19 @@ export function ActivityOverview() {
                                     className={`min-h-12 items-center justify-center rounded-full px-4 py-2 ${selectedYear === year ? "bg-primary" : "bg-muted"}`}
                                     onPress={() => setSelectedYear(year)}
                                 >
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            textStyle={{
-                                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                fontWeight: "600" as const,
-                                                color:
-                                                    selectedYear === year
-                                                        ? uiColors.primaryForeground
-                                                        : uiColors.mutedForeground,
-                                                fontSize:
-                                                    typography.subtext
-                                                        .fontSize * uiFontScale,
-                                            }}
-                                        >
-                                            {String(year ?? "")}
-                                        </Text>
-                                    </Host>
+                                    <NativeText
+                                        variant="caption"
+                                        wrap={false}
+                                        textStyle={{
+                                            fontWeight: "600" as const, color:
+                                                selectedYear === year
+                                                    ? uiColors.primaryForeground
+                                                    : uiColors.mutedForeground, fontSize: typography.subtext
+                                                        .fontSize
+                                        }}
+                                    >
+                                        {String(year ?? "")}
+                                    </NativeText>
                                 </Pressable>
                             ))}
                             <Pressable
@@ -301,39 +246,28 @@ export function ActivityOverview() {
                                 className={`min-h-12 items-center justify-center rounded-full px-4 py-2 ${selectedYear === "all" ? "bg-primary" : "bg-muted"}`}
                                 onPress={() => setSelectedYear("all")}
                             >
-                                <Host matchContents ignoreSafeArea="all">
-                                    <Text
-                                        textStyle={{
-                                            ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                            fontWeight: "600" as const,
-                                            color:
-                                                selectedYear === "all"
-                                                    ? uiColors.primaryForeground
-                                                    : uiColors.mutedForeground,
-                                            fontSize:
-                                                typography.subtext.fontSize *
-                                                uiFontScale,
-                                        }}
-                                    >
-                                        {t("activity.all")}
-                                    </Text>
-                                </Host>
+                                <NativeText
+                                    variant="caption"
+                                    wrap={false}
+                                    textStyle={{
+                                        fontWeight: "600" as const, color:
+                                            selectedYear === "all"
+                                                ? uiColors.primaryForeground
+                                                : uiColors.mutedForeground, fontSize: typography.subtext.fontSize
+                                    }}
+                                >
+                                    {t("activity.all")}
+                                </NativeText>
                             </Pressable>
                         </View>
                     </View>
                     <View className="gap-1">
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.h3,
-                                    color: uiColors.foreground,
-                                    fontSize: typography.subtitle.fontSize * uiFontScale,
-                                    lineHeight: typography.body.lineHeight * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {t("activity.description")}
-                            </Text>
-                        </Host>
+                        <NativeText
+                            variant="h3"
+                            textStyle={{ fontSize: typography.subtitle.fontSize, lineHeight: typography.body.lineHeight }}
+                        >
+                            {t("activity.description")}
+                        </NativeText>
                     </View>
                     <View className="flex-row gap-3">
                         <ActivityStat
@@ -394,174 +328,7 @@ export function ActivityOverview() {
                     />
                 </View>
             </Screen>
-            {showShareCard ? (
-                <Modal
-                    animationType="slide"
-                    presentationStyle="fullScreen"
-                    onRequestClose={() => setShowShareCard(false)}
-                >
-                    <Screen
-                        scroll
-                        headerShown={false}
-                        contentClassName="gap-5"
-                        footer={
-                            <View className="pb-3 pt-3">
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel={t("activity.save")}
-                                    accessibilityState={{
-                                        busy: isSavingShareCard,
-                                        disabled: isSavingShareCard,
-                                    }}
-                                    disabled={isSavingShareCard}
-                                    className="h-12 flex-row items-center justify-center gap-2 rounded-xl bg-primary active:opacity-80 disabled:opacity-60"
-                                    onPress={() => void handleSaveShareCard()}
-                                >
-                                    <Ionicons
-                                        name="download-outline"
-                                        size={20}
-                                        color={colors.primaryForeground}
-                                    />
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            textStyle={{
-                                                ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                                                fontWeight: "600" as const,
-                                                color: uiColors.primaryForeground,
-                                                fontSize:
-                                                    typography.body.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                        >
-                                            {isSavingShareCard
-                                                ? t("activity.saving")
-                                                : t("activity.save")}
-                                        </Text>
-                                    </Host>
-                                </Pressable>
-                            </View>
-                        }
-                    >
-                        <View className="mb-4 w-full flex-row items-center justify-between">
-                            <Host matchContents ignoreSafeArea="all">
-                                <Text
-                                    textStyle={{
-                                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                        color: uiColors.foreground,
-                                        fontSize:
-                                            typography.h3.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {t("activity.preview")}
-                                </Text>
-                            </Host>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel={t("common.closeTitle", {
-                                    title: t("activity.preview"),
-                                })}
-                                hitSlop={10}
-                                onPress={() => setShowShareCard(false)}
-                            >
-                                <Ionicons
-                                    name="close"
-                                    size={24}
-                                    color={colors.mutedForeground}
-                                />
-                            </Pressable>
-                        </View>
-                        <View className="w-full flex-1 items-center justify-center">
-                            <ActivityShareCard
-                                ref={shareCardRef}
-                                label={activityLabel}
-                                totalReservations={totalReservations}
-                                totalDays={activeDays}
-                                totalHours={totalHours}
-                                dailyValues={activityValues}
-                                heatmapStartDate={shareFirstDate}
-                                heatmapEndDate={shareLastDate}
-                                numDays={daysBetween(
-                                    shareFirstDate,
-                                    shareLastDate,
-                                )}
-                                showDayNumbers={showDayNumbers}
-                                memberName={memberProfile?.data.name}
-                                memberImage={memberProfile?.data.profileImage}
-                            />
-                        </View>
-                        <View className="gap-3">
-                            <View className="flex-row flex-wrap gap-2">
-                                {availableYears.map((year) => (
-                                    <Pressable
-                                        key={year}
-                                        accessibilityRole="button"
-                                        accessibilityState={{
-                                            selected: selectedYear === year,
-                                        }}
-                                        className={`rounded-full px-3 py-2 ${selectedYear === year ? "bg-primary" : "bg-muted"}`}
-                                        onPress={() => setSelectedYear(year)}
-                                    >
-                                        <Host
-                                            matchContents
-                                            ignoreSafeArea="all"
-                                        >
-                                            <Text
-                                                textStyle={{
-                                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                    fontWeight: "600" as const,
-                                                    color:
-                                                        selectedYear === year
-                                                            ? uiColors.primaryForeground
-                                                            : uiColors.mutedForeground,
-                                                    fontSize:
-                                                        typography.caption
-                                                            .fontSize *
-                                                        uiFontScale,
-                                                }}
-                                            >
-                                                {String(year ?? "")}
-                                            </Text>
-                                        </Host>
-                                    </Pressable>
-                                ))}
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: selectedYear === "all",
-                                    }}
-                                    className={`rounded-full px-3 py-2 ${selectedYear === "all" ? "bg-primary" : "bg-muted"}`}
-                                    onPress={() => setSelectedYear("all")}
-                                >
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            textStyle={{
-                                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                fontWeight: "600" as const,
-                                                color:
-                                                    selectedYear === "all"
-                                                        ? uiColors.primaryForeground
-                                                        : uiColors.mutedForeground,
-                                                fontSize:
-                                                    typography.caption
-                                                        .fontSize * uiFontScale,
-                                            }}
-                                        >
-                                            {t("activity.all")}
-                                        </Text>
-                                    </Host>
-                                </Pressable>
-                            </View>
-                            <View className="flex-row items-center justify-between gap-3">
-                                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ flex: 1, minWidth: 0 }}>
-                                    <Text textStyle={{ ...typography.label, color: colors.foreground, fontSize: typography.label.fontSize * uiFontScale, lineHeight: typography.label.lineHeight * uiFontScale }} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>{t("activity.showDayNumbers")}</Text>
-                                </Host>
-                                <DayNumbersToggle label={t("activity.showDayNumbers")} value={showDayNumbers} onValueChange={setShowDayNumbers} />
-                            </View>
-                        </View>
-                    </Screen>
-                </Modal>
-            ) : null}
+
         </>
     );
 }
@@ -606,36 +373,22 @@ function daysBetween(start: Date, end: Date) {
 }
 
 function ActivityChartHeader({ title, period }: { title: string; period: string }) {
-    const { colors, fontScale } = useTheme();
+
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                    textStyle={{
-                        ...typography.h3,
-                        fontSize: typography.h3.fontSize * fontScale,
-                        lineHeight: typography.h3.lineHeight * fontScale,
-                        color: colors.foreground,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}
-                >
-                    {title}
-                </Text>
-            </Host>
-            <Host matchContents ignoreSafeArea="all" style={{ flexShrink: 0 }}>
-                <Text
-                    textStyle={{
-                        ...typography.subtext,
-                        fontSize: typography.subtext.fontSize * fontScale,
-                        lineHeight: typography.subtext.lineHeight * fontScale,
-                        fontWeight: "600",
-                        textAlign: "right",
-                        color: colors.mutedForeground,
-                    }}
-                >
-                    {period}
-                </Text>
-            </Host>
+            <NativeText variant="h3" style={{ flex: 1, minWidth: 0 }}>
+                {title}
+            </NativeText>
+            <NativeText
+                variant="subtext"
+                color="mutedForeground"
+                align="right"
+                wrap={false}
+                style={{ flexShrink: 0 }}
+                textStyle={{ fontWeight: "600" }}
+            >
+                {period}
+            </NativeText>
         </View>
     );
 }
@@ -731,31 +484,15 @@ function ActivityStat({
     value: string;
     label: string;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="min-w-0 flex-1 gap-1 py-2">
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                <Text
-                    textStyle={{
-                        ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
-                        color: uiColors.primary,
-                        fontSize: typography.h2.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                    {value}
-                </Text>
-            </Host>
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                <Text
-                    textStyle={{
-                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                    {label}
-                </Text>
-            </Host>
+            <NativeText variant="h2" color="primary">
+                {value}
+            </NativeText>
+            <NativeText variant="caption" color="mutedForeground">
+                {label}
+            </NativeText>
         </View>
     );
 }

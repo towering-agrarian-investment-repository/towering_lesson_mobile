@@ -1,8 +1,9 @@
+import { NativeText } from "./NativeText";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
-import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { Host, Text, type TextProps } from "@expo/ui";
+import { Column, Host, Text, type TextProps } from "@expo/ui";
 import { ChevronRight } from "lucide-react-native";
 import { type ReactNode } from "react";
 import {
@@ -11,7 +12,6 @@ import {
     type GestureResponderEvent,
     type PressableProps,
 } from "react-native";
-
 import { cn } from "../utils/cn";
 import { triggerSelectionHaptic } from "../utils/haptics";
 
@@ -25,6 +25,9 @@ type ListRowProps = PressableProps & {
     className?: string;
     titleStyle?: TextProps["textStyle"];
 };
+
+// Match NativeWind's gap-1 (14-point native rem / 16px browser rem).
+const TEXT_GAP = process.env.EXPO_OS === "web" ? 4 : 3.5;
 
 export function ListRow({
     title,
@@ -40,7 +43,6 @@ export function ListRow({
     ...props
 }: ListRowProps) {
     const { colors: uiColors, fontScale: uiFontScale } = useTheme();
-    const colors = useThemeColors();
 
     const handlePress = (event: GestureResponderEvent) => {
         if (disabled) {
@@ -68,8 +70,8 @@ export function ListRow({
         >
             {leading ? <View className="shrink-0">{leading}</View> : null}
 
-            <View className="min-w-0 flex-1 gap-1">
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ flex: 1, minWidth: 0 }}>
+                <Column spacing={TEXT_GAP} alignment="start" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
                     <Text
                         numberOfLines={2}
                         textStyle={{
@@ -81,10 +83,7 @@ export function ListRow({
                         modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
                         {title}
                     </Text>
-                </Host>
-
-                {subtitle ? (
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                    {subtitle ? (
                         <Text
                             numberOfLines={2}
                             textStyle={{
@@ -96,28 +95,20 @@ export function ListRow({
                             modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
                             {subtitle}
                         </Text>
-                    </Host>
-                ) : null}
-            </View>
+                    ) : null}
+                </Column>
+            </Host>
 
             {meta ? (
                 typeof meta === "string" ? (
-                    <Host
-                        matchContents
-                        ignoreSafeArea="all"
+                    <NativeText
+                        variant="meta"
+                        wrap={false}
                         style={{ flexShrink: 0 }}
+                        textStyle={{ color: uiColors.foreground + "bf" }}
                     >
-                        <Text
-                            textStyle={{
-                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                color: uiColors.foreground + "bf",
-                                fontSize:
-                                    typography.meta.fontSize * uiFontScale,
-                            }}
-                        >
-                            {meta}
-                        </Text>
-                    </Host>
+                        {meta}
+                    </NativeText>
                 ) : (
                     <View className="shrink-0">{meta}</View>
                 )
@@ -129,7 +120,7 @@ export function ListRow({
                 <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
                     <ChevronRight
                         size={18}
-                        color={colors.mutedForeground}
+                        color={uiColors.mutedForeground}
                         strokeWidth={2.25}
                     />
                 </View>

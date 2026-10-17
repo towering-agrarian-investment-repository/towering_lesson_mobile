@@ -1,17 +1,19 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { useTheme } from "@/design-system";
 import type {
     ActivityHeatmapStatus,
     ActivityHeatmapValue,
 } from "@/design-system/components/charts/activity-heatmap";
-import { typography } from "@/design-system/utils/typography";
-import { Host, Text } from "@expo/ui";
-import { useState } from "react";
+
+
+import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     useWindowDimensions,
     View,
     type LayoutChangeEvent,
 } from "react-native";
+import Svg, { Rect, Text as SvgText } from "react-native-svg";
 
 type ActivityShareChartsProps = {
     dailyValues: ActivityHeatmapValue[];
@@ -31,16 +33,20 @@ export function ActivityShareCharts({
     numDays,
     showDayNumbers = true,
 }: ActivityShareChartsProps) {
-    const { colors: uiColors } = useTheme();
-    const { colors, fontScale: uiFontScale } = useTheme();
-    const { i18n } = useTranslation();
-    const { width: screenWidth } = useWindowDimensions();
+    const { colors } = useTheme();
+    const { t, i18n } = useTranslation();
+    const { width: screenWidth, fontScale: deviceFontScale } = useWindowDimensions();
     const [measuredWidth, setMeasuredWidth] = useState(0);
     const chartWidth = measuredWidth || Math.max(180, screenWidth - 96);
     const gridWidth = chartWidth;
-    const weeks = padWeeks(
-        buildWeeks(dailyValues, startDate, endDate, numDays),
-        MIN_WEEKS,
+    const startTime = startDate.getTime();
+    const endTime = endDate.getTime();
+    const weeks = useMemo(
+        () => padWeeks(
+            buildWeeks(dailyValues, new Date(startTime), new Date(endTime), numDays),
+            MIN_WEEKS,
+        ),
+        [dailyValues, startTime, endTime, numDays],
     );
     const cellGap = Math.max(
         1,
@@ -59,7 +65,14 @@ export function ActivityShareCharts({
             ),
         ),
     );
-    const monthLabels = getMonthLabels(weeks, i18n.language);
+    const monthLabels = useMemo(
+        () => getMonthLabels(weeks, i18n.language),
+        [weeks, i18n.language],
+    );
+    // Match the distributed columns without a native layout/text host per day.
+    const columnStep = (gridWidth - cellSize) / Math.max(1, weeks.length - 1);
+    const gridHeight = cellSize * 7 + cellGap * 6;
+    const dayFontSize = Math.max(6, Math.floor(cellSize * 0.32)) * deviceFontScale;
 
     return (
         <View
@@ -69,87 +82,53 @@ export function ActivityShareCharts({
             }
         >
             <View className="gap-2">
-                <View
-                    className="flex-row justify-between"
-                    style={{ gap: cellGap }}
+                <Svg
+                    width={gridWidth}
+                    height={gridHeight}
+                    accessible
+                    accessibilityRole="image"
+                    accessibilityLabel={t("activity.activityCount", {
+                        count: dailyValues.reduce((total, day) => total + day.count, 0),
+                    })}
                 >
-                    {weeks.map((week, weekIndex) => (
-                        <View key={weekIndex} style={{ gap: cellGap }}>
-                            {week.map((day) => (
-                                <View
-                                    key={day.date}
-                                    style={{
-                                        width: cellSize,
-                                        height: cellSize,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        borderRadius: cellSize / 3,
-                                        backgroundColor: getDayColor(
-                                            day,
-                                            colors,
-                                        ),
-                                    }}
-                                >
+                    {weeks.flatMap((week, weekIndex) =>
+                        week.map((day, dayIndex) => {
+                            const x = weekIndex * columnStep;
+                            const y = dayIndex * (cellSize + cellGap);
+                            return (
+                                <Fragment key={day.date}>
+                                    <Rect
+                                        x={x}
+                                        y={y}
+                                        width={cellSize}
+                                        height={cellSize}
+                                        rx={cellSize / 3}
+                                        fill={getDayColor(day, colors)}
+                                    />
                                     {showDayNumbers && cellSize >= 14 ? (
-                                        <Host
-                                            matchContents
-                                            ignoreSafeArea="all"
+                                        <SvgText
+                                            x={x + cellSize / 2}
+                                            y={y + cellSize / 2}
+                                            textAnchor="middle"
+                                            alignmentBaseline="central"
+                                            fontSize={dayFontSize}
+                                            fill={day.count === 0
+                                                ? colors.mutedForeground
+                                                : colors.primaryForeground}
                                         >
-                                            <Text
-                                                numberOfLines={1}
-                                                textStyle={{
-                                                    ...typography.caption,
-                                                    textAlign: "center",
-                                                    fontSize:
-                                                        Math.max(
-                                                            6,
-                                                            Math.floor(
-                                                                cellSize * 0.32,
-                                                            ),
-                                                        ) * uiFontScale,
-                                                    lineHeight:
-                                                        Math.max(
-                                                            7,
-                                                            Math.floor(
-                                                                cellSize * 0.38,
-                                                            ),
-                                                        ) * uiFontScale,
-                                                    color:
-                                                        day.count === 0
-                                                            ? colors.mutedForeground
-                                                            : colors.primaryForeground,
-                                                }}
-                                            >
-                                                {String(
-                                                    Number(day.date.slice(8)) ??
-                                                    "",
-                                                )}
-                                            </Text>
-                                        </Host>
+                                            {Number(day.date.slice(8))}
+                                        </SvgText>
                                     ) : null}
-                                </View>
-                            ))}
-                        </View>
-                    ))}
-                </View>
+                                </Fragment>
+                            );
+                        }),
+                    )}
+                </Svg>
                 <View className="flex-row justify-between">
                     {monthLabels.map((label) => (
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
-
-                            key={label}
-                        >
-                            <Text
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize: 9 * uiFontScale,
-                                }}
-                            >
-                                {label}
-                            </Text>
-                        </Host>
+                        <NativeText variant="caption" key={label} color="mutedForeground" wrap={false} textStyle={{ fontSize: 9 }}>
+                            {label}
+                        </NativeText>
                     ))}
                 </View>
             </View>

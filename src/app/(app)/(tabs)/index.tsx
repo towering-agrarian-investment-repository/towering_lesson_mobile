@@ -26,7 +26,7 @@ import {
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
@@ -38,7 +38,6 @@ export default function HomeScreen() {
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data: publishedBanners, refetch: refetchBanners } =
         usePublishedBanners();
-    const [refreshing, setRefreshing] = useState(false);
     const {
         data: memberResponse,
         isLoading,
@@ -49,32 +48,26 @@ export default function HomeScreen() {
 
     const member = memberResponse?.data;
 
-    const handleRefresh = async () => {
-        setRefreshing(true);
-
-        try {
-            await Promise.all([
-                refetch(),
-                refetchBanners(),
-                queryClient.refetchQueries({
-                    queryKey: ["member", "tickets"],
-                    type: "active",
-                }),
-                queryClient.refetchQueries({
-                    queryKey: ["member", "reservations", "today"],
-                    type: "active",
-                }),
-            ]);
-        } finally {
-            setRefreshing(false);
-        }
-    };
+    const { refreshing, onRefresh: handleRefresh } = usePullToRefresh(() =>
+        Promise.all([
+            refetch({ cancelRefetch: false }),
+            refetchBanners({ cancelRefetch: false }),
+            queryClient.refetchQueries({
+                queryKey: ["member", "tickets"],
+                type: "active",
+            }, { cancelRefetch: false }),
+            queryClient.refetchQueries({
+                queryKey: ["member", "reservations", "today"],
+                type: "active",
+            }, { cancelRefetch: false }),
+        ]),
+    );
 
     if (isLoading) {
         return <CircleLoader fullScreen />;
     }
 
-    if (isError) {
+    if (isError && !memberResponse) {
         return (
             <ErrorState
                 title={t("home.couldNotLoadProfile")}

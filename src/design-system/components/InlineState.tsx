@@ -1,9 +1,6 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
-import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { Host, Text } from "@expo/ui";
+import { NativeText } from "./NativeText";
 
 import { cn } from "../utils/cn";
 
@@ -22,29 +19,16 @@ export function InlineState({
     tone = "neutral",
     className,
 }: InlineStateProps) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
-        <View className={cn("px-1 py-2", className)}>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
-                style={{ width: "100%" }}
+        <View className={cn("w-full px-1 py-2", className)}>
+            <NativeText
+                variant="meta"
+                color={tone === "danger" ? "danger" : "mutedForeground"}
+                align="center"
+                textStyle={{ lineHeight: typography.body.lineHeight }}
             >
-                <Text
-                    textStyle={{
-                        ...typography.meta,
-                        textAlign: "center" as const,
-                        lineHeight: typography.body.lineHeight * uiFontScale,
-                        color:
-                            tone === "danger"
-                                ? uiColors.danger
-                                : uiColors.mutedForeground,
-                        fontSize: typography.meta.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                    {message ? `${title}. ${message}` : title}
-                </Text>
-            </Host>
+                {message ? `${title}. ${message}` : title}
+            </NativeText>
         </View>
     );
 }

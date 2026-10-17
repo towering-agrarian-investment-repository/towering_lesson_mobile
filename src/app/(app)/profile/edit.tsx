@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     getNativeButtonStyle,
 } from "@/design-system/utils/native-button-styles";
@@ -8,7 +9,6 @@ import {
     ListRow,
     Screen,
     triggerNotificationHaptic,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -34,7 +34,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { frame, interactiveDismissDisabled } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -57,18 +57,12 @@ type EditProfileFormValues = z.infer<
 >;
 
 export default function EditProfileScreen() {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const router = useRouter();
     const {
         data: memberResponse,
         isLoading,
-        isError,
         refetch,
         isRefetching,
     } = useGetMemberProfile();
@@ -79,7 +73,10 @@ export default function EditProfileScreen() {
     const { mutate: removeProfileImage, isPending: isRemovingImage } =
         useRemoveMemberProfileImage();
     const removalLock = useRef(false);
-    const isUpdatingImage = isUploadingImage || isRemovingImage;
+    const pickingImage = useRef(false);
+    const submitting = useRef(false);
+    const [isPickingImage, setIsPickingImage] = useState(false);
+    const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
     const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
         useState(false);
 
@@ -110,10 +107,11 @@ export default function EditProfileScreen() {
     }, [form, memberId, memberName, memberNickname]);
 
     const onSubmit = (values: EditProfileFormValues) => {
-        if (!member || isSubmitting || isUpdatingImage) {
+        if (!member || submitting.current || isSubmitting || isUpdatingImage) {
             return;
         }
 
+        submitting.current = true;
         updateProfile(
             {
                 name: values.name.trim(),
@@ -126,6 +124,7 @@ export default function EditProfileScreen() {
                     );
                     router.dismissTo("/(app)/(tabs)/profile");
                 },
+                onSettled: () => { submitting.current = false; },
             },
         );
     };
@@ -163,34 +162,36 @@ export default function EditProfileScreen() {
     };
 
     const handlePickProfileImageFromLibrary = async () => {
-        if (!member?.id || isUpdatingImage || isSubmitting) {
+        if (!member?.id || pickingImage.current || isUpdatingImage || isSubmitting) {
             return;
         }
 
-        const permission =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (!permission.granted) {
-            showAppToast({
-                message: t("profile.photoLibraryPermission"),
-                type: "error",
-            });
-            return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.9,
-        });
-        setIsPhotoSourceSheetVisible(false);
-
-        if (result.canceled || !result.assets[0]) {
-            return;
-        }
-
+        pickingImage.current = true;
+        setIsPickingImage(true);
         try {
+            const permission =
+                await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (!permission.granted) {
+                showAppToast({
+                    message: t("profile.photoLibraryPermission"),
+                    type: "error",
+                });
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.9,
+            });
+            setIsPhotoSourceSheetVisible(false);
+
+            if (result.canceled || !result.assets[0]) {
+                return;
+            }
+
             uploadSelectedProfileImage(member.id, result.assets[0]);
         } catch (uploadError) {
             showAppToast({
@@ -200,37 +201,42 @@ export default function EditProfileScreen() {
                         : t("profile.prepareSelectedImageFailed"),
                 type: "error",
             });
+        } finally {
+            pickingImage.current = false;
+            setIsPickingImage(false);
         }
     };
 
     const handleTakeProfileImage = async () => {
-        if (!member?.id || isUpdatingImage || isSubmitting) {
+        if (!member?.id || pickingImage.current || isUpdatingImage || isSubmitting) {
             return;
         }
 
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-
-        if (!permission.granted) {
-            showAppToast({
-                message: t("profile.cameraPermission"),
-                type: "error",
-            });
-            return;
-        }
-
-        const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.9,
-        });
-        setIsPhotoSourceSheetVisible(false);
-
-        if (result.canceled || !result.assets[0]) {
-            return;
-        }
-
+        pickingImage.current = true;
+        setIsPickingImage(true);
         try {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+            if (!permission.granted) {
+                showAppToast({
+                    message: t("profile.cameraPermission"),
+                    type: "error",
+                });
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.9,
+            });
+            setIsPhotoSourceSheetVisible(false);
+
+            if (result.canceled || !result.assets[0]) {
+                return;
+            }
+
             uploadSelectedProfileImage(member.id, result.assets[0]);
         } catch (uploadError) {
             showAppToast({
@@ -240,6 +246,9 @@ export default function EditProfileScreen() {
                         : t("profile.prepareCapturedImageFailed"),
                 type: "error",
             });
+        } finally {
+            pickingImage.current = false;
+            setIsPickingImage(false);
         }
     };
 
@@ -252,6 +261,7 @@ export default function EditProfileScreen() {
     };
 
     const closePhotoSourceSheet = () => {
+        if (pickingImage.current || removalLock.current || isUpdatingImage) return;
         setIsPhotoSourceSheetVisible(false);
     };
 
@@ -266,9 +276,9 @@ export default function EditProfileScreen() {
         }
 
         removalLock.current = true;
-        setIsPhotoSourceSheetVisible(false);
         removeProfileImage(member.id, {
             onSuccess: () => {
+                setIsPhotoSourceSheetVisible(false);
                 triggerNotificationHaptic(
                     Haptics.NotificationFeedbackType.Success,
                 );
@@ -287,7 +297,7 @@ export default function EditProfileScreen() {
         return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
     }
 
-    if (isError || !member) {
+    if (!member) {
         return (
             <ErrorState
                 title={t("home.couldNotLoadProfile")}
@@ -314,7 +324,7 @@ export default function EditProfileScreen() {
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         style={{ width: "100%" }}
                         accessibilityLabel={
                             isSubmitting
@@ -351,19 +361,19 @@ export default function EditProfileScreen() {
                                 !form.formState.isDirty ||
                                 isSubmitting
                             }
-                            onPress={form.handleSubmit(
+                            onPress={() => { void form.handleSubmit(
                                 onSubmit,
                                 handleInvalidSubmit,
-                            )}
+                            )(); }}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "filled",
                                     isSubmitting ||
                                     isUpdatingImage ||
                                     !form.formState.isDirty ||
                                     isSubmitting,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -380,7 +390,7 @@ export default function EditProfileScreen() {
                                 {isSubmitting ? (
                                     <RNHostView matchContents>
                                         <ActivityIndicator
-                                            color={uiColors.primaryForeground}
+                                            color={colors.primaryForeground}
                                         />
                                     </RNHostView>
                                 ) : null}
@@ -389,7 +399,7 @@ export default function EditProfileScreen() {
                                         textAlign: "center",
                                         ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                         fontWeight: "600",
-                                        color: uiColors.primaryForeground,
+                                        color: colors.primaryForeground,
                                         fontSize:
                                             typography.label.fontSize *
                                             uiFontScale,
@@ -409,6 +419,9 @@ export default function EditProfileScreen() {
             <BottomSheet
                 isPresented={isPhotoSourceSheetVisible}
                 onDismiss={closePhotoSourceSheet}
+                shouldDismissOnBackPress={!isUpdatingImage}
+                shouldDismissOnClickOutside={!isUpdatingImage}
+                modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(isUpdatingImage)] : undefined}
                 containerColor={colors.card}
                 contentColor={colors.foreground}
                 contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
@@ -416,16 +429,12 @@ export default function EditProfileScreen() {
                 <RNHostView matchContents={{ vertical: true }}>
                     <View className="gap-4">
                         <View className="gap-1">
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text textStyle={{ ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale, color: colors.foreground, fontSize: typography.h3.fontSize * uiFontScale }} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {t("profile.changeProfilePhoto")}
-                                </Text>
-                            </Host>
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text textStyle={{ ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale, color: colors.mutedForeground, fontSize: typography.muted.fontSize * uiFontScale }} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {t("profile.changeProfilePhotoDescription")}
-                                </Text>
-                            </Host>
+                            <NativeText variant="h3">
+                                {t("profile.changeProfilePhoto")}
+                            </NativeText>
+                            <NativeText variant="muted" color="mutedForeground">
+                                {t("profile.changeProfilePhotoDescription")}
+                            </NativeText>
                         </View>
                         <View className="gap-3">
                             <ListRow
@@ -463,6 +472,7 @@ export default function EditProfileScreen() {
                         <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={uiScheme} style={{ width: "100%" }}>
                             <Button
                                 variant="text"
+                                disabled={isUpdatingImage}
                                 onPress={closePhotoSourceSheet}
                                 style={getNativeButtonStyle(colors, "text")}
                                 modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}
@@ -490,7 +500,7 @@ export default function EditProfileScreen() {
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         style={{ width: "100%" }}
                         accessibilityLabel={
                             isRemovingImage
@@ -532,12 +542,12 @@ export default function EditProfileScreen() {
                             }}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "outlined",
                                     isUpdatingImage ||
                                     isSubmitting ||
                                     isUpdatingImage,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -554,7 +564,7 @@ export default function EditProfileScreen() {
                                 {isUpdatingImage ? (
                                     <RNHostView matchContents>
                                         <ActivityIndicator
-                                            color={uiColors.foreground}
+                                            color={colors.foreground}
                                         />
                                     </RNHostView>
                                 ) : null}
@@ -563,7 +573,7 @@ export default function EditProfileScreen() {
                                         textAlign: "center",
                                         ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                         fontWeight: "600",
-                                        color: uiColors.foreground,
+                                        color: colors.foreground,
                                         fontSize:
                                             typography.label.fontSize *
                                             uiFontScale,
@@ -582,18 +592,12 @@ export default function EditProfileScreen() {
                 </View>
 
                 <View className="gap-6">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                fontSize: typography.subtitle.fontSize * uiFontScale,
-                                fontWeight: "600" as const,
-                                color: uiColors.foreground,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {t("profile.basicInformation")}
-                        </Text>
-                    </Host>
+                    <NativeText
+                        variant="body"
+                        textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                    >
+                        {t("profile.basicInformation")}
+                    </NativeText>
 
                     <FormTextInput
                         control={form.control}
@@ -669,7 +673,7 @@ function ProfileImagePreview({
     name?: string | null;
     imageUrl?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     if (imageUrl) {
         return (
             <Image
@@ -686,17 +690,9 @@ function ProfileImagePreview({
 
     return (
         <View className="h-28 w-28 items-center justify-center rounded-full bg-primary">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.h1, lineHeight: typography.h1.lineHeight * uiFontScale,
-                        color: uiColors.primaryForeground,
-                        fontSize: typography.h1.fontSize * uiFontScale,
-                    }}
-                >
-                    {name?.charAt(0).toUpperCase() || "?"}
-                </Text>
-            </Host>
+            <NativeText variant="h1" color="primaryForeground" wrap={false}>
+                {name?.charAt(0).toUpperCase() || "?"}
+            </NativeText>
         </View>
     );
 }

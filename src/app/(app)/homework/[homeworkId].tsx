@@ -1,3 +1,5 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
     Badge,
@@ -7,7 +9,6 @@ import {
     Screen,
     Skeleton,
     triggerNotificationHaptic,
-    useThemeColors,
 } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
@@ -54,7 +55,7 @@ import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
@@ -68,18 +69,15 @@ type HomeworkParams = {
 };
 
 export default function HomeworkDetailScreen() {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const { homeworkId } = useLocalSearchParams<HomeworkParams>();
     const numericHomeworkId = Number(homeworkId);
     const [selectedFile, setSelectedFile] =
         useState<HomeworkSubmissionFile | null>(null);
     const [memo, setMemo] = useState("");
+    const submitting = useRef(false);
+    const picking = useRef(false);
     const nativeMemo = useNativeState("");
     useEffect(() => {
         if (nativeMemo.get() !== memo) nativeMemo.set(memo);
@@ -89,8 +87,9 @@ export default function HomeworkDetailScreen() {
     const {
         data: submissionsResponse,
         refetch: refetchSubmissions,
-        isRefetching: isRefetchingSubmissions,
     } = useMemberHomeworkSubmissions(numericHomeworkId);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchSubmissions({ cancelRefetch: false })]));
     const { mutate: submitHomework, isPending: isSubmitting } =
         useSubmitMemberHomework();
 
@@ -130,29 +129,28 @@ export default function HomeworkDetailScreen() {
 
     const refreshControl = (
         <RefreshControl
-            refreshing={isRefetching || isRefetchingSubmissions}
-            onRefresh={() => {
-                void Promise.all([refetch(), refetchSubmissions()]);
-            }}
+            refreshing={isPullRefreshing}
+            onRefresh={handlePullRefresh}
         />
     );
 
     const handlePickFile = async () => {
-        if (isSubmitting) {
+        if (isSubmitting || picking.current) {
             return;
         }
 
-        const result = await DocumentPicker.getDocumentAsync({
-            copyToCacheDirectory: true,
-            multiple: false,
-            type: ["image/jpeg", "image/png", "image/webp", "video/mp4"],
-        });
-
-        if (result.canceled || !result.assets?.[0]) {
-            return;
-        }
-
+        picking.current = true;
         try {
+            const result = await DocumentPicker.getDocumentAsync({
+                copyToCacheDirectory: true,
+                multiple: false,
+                type: ["image/jpeg", "image/png", "image/webp", "video/mp4"],
+            });
+
+            if (result.canceled || !result.assets?.[0]) {
+                return;
+            }
+
             setSelectedFile(createFileFromDocument(result.assets[0], t));
         } catch (error) {
             showAppToast({
@@ -162,14 +160,17 @@ export default function HomeworkDetailScreen() {
                         : t("homework.unsupportedFile"),
                 type: "error",
             });
+        } finally {
+            picking.current = false;
         }
     };
 
     const handleSubmit = () => {
-        if (!homework || !selectedFile || isSubmitting) {
+        if (!homework || !selectedFile || isSubmitting || submitting.current) {
             return;
         }
 
+        submitting.current = true;
         submitHomework(
             {
                 homeworkId: homework.homeworkId,
@@ -185,6 +186,7 @@ export default function HomeworkDetailScreen() {
                     setSelectedFile(null);
                     setMemo("");
                 },
+                onSettled: () => { submitting.current = false; },
             },
         );
     };
@@ -199,7 +201,7 @@ export default function HomeworkDetailScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
                 <ErrorState
@@ -241,7 +243,7 @@ export default function HomeworkDetailScreen() {
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         accessibilityLabel={t("homework.chooseFile")}
                         accessibilityState={{
                             disabled: isSubmitting,
@@ -269,10 +271,10 @@ export default function HomeworkDetailScreen() {
                             }}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "outlined",
                                     isSubmitting,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -285,7 +287,7 @@ export default function HomeworkDetailScreen() {
                                 textStyle={{
                                     ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                     textAlign: "center",
-                                    color: uiColors.foreground,
+                                    color: colors.foreground,
                                     fontSize:
                                         typography.label.fontSize * uiFontScale,
                                 }}
@@ -298,7 +300,7 @@ export default function HomeworkDetailScreen() {
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
                         colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                        seedColor={colors.primary}
                         accessibilityLabel={t("homework.submitHomework")}
                         accessibilityState={{
                             disabled:
@@ -327,10 +329,10 @@ export default function HomeworkDetailScreen() {
                             onPress={handleSubmit}
                             style={{
                                 ...getNativeButtonStyle(
-                                    uiColors,
+                                    colors,
                                     "filled",
                                     !selectedFile || isSubmitting || isSubmitting,
-                                    uiColors.primary,
+                                    colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
                         >
@@ -347,7 +349,7 @@ export default function HomeworkDetailScreen() {
                                 {isSubmitting ? (
                                     <RNHostView matchContents>
                                         <ActivityIndicator
-                                            color={uiColors.primaryForeground}
+                                            color={colors.primaryForeground}
                                         />
                                     </RNHostView>
                                 ) : null}
@@ -356,7 +358,7 @@ export default function HomeworkDetailScreen() {
                                         textAlign: "center",
                                         ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                         fontWeight: "600",
-                                        color: uiColors.primaryForeground,
+                                        color: colors.primaryForeground,
                                         fontSize:
                                             typography.label.fontSize *
                                             uiFontScale,
@@ -399,41 +401,23 @@ export default function HomeworkDetailScreen() {
                         >
                             <View className="gap-4 bg-surface px-4 py-4">
                                 <View className="gap-2">
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            numberOfLines={2}
-                                            textStyle={{
-                                                ...typography.h3,
-                                                color: uiColors.foreground,
-                                                fontSize: typography.h3.fontSize * uiFontScale,
-                                                fontWeight: "600" as const,
-                                                lineHeight: typography.h3.lineHeight * uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {getHomeworkTitle(homework)}
-                                        </Text>
-                                    </Host>
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            numberOfLines={1}
-                                            textStyle={{
-                                                ...typography.meta,
-                                                lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                                color: uiColors.mutedForeground,
-                                                fontSize:
-                                                    typography.meta.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {homework.dueAt
-                                                ? t("homework.dueDate", {
-                                                    date: formatDateForDisplay(
-                                                        homework.dueAt,
-                                                    ),
-                                                })
-                                                : t("homework.noDueDate")}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="h3" numberOfLines={2} textStyle={{ fontWeight: "600" as const }}>
+                                        {getHomeworkTitle(homework)}
+                                    </NativeText>
+                                    <NativeText
+                                        variant="meta"
+                                        color="mutedForeground"
+                                        numberOfLines={1}
+                                        textStyle={{ lineHeight: typography.subtext.lineHeight }}
+                                    >
+                                        {homework.dueAt
+                                            ? t("homework.dueDate", {
+                                                date: formatDateForDisplay(
+                                                    homework.dueAt,
+                                                ),
+                                            })
+                                            : t("homework.noDueDate")}
+                                    </NativeText>
                                 </View>
 
                                 <View className="flex-row flex-wrap gap-2">
@@ -450,21 +434,10 @@ export default function HomeworkDetailScreen() {
                             </View>
 
                             <View className="px-4 py-4">
-                                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                    <Text
-                                        textStyle={{
-                                            ...typography.body,
-                                            lineHeight: typography.body.lineHeight * uiFontScale,
-                                            color: uiColors.foreground,
-                                            fontSize:
-                                                typography.body.fontSize *
-                                                uiFontScale,
-                                        }}
-                                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                        {homework.description?.trim() ||
-                                            t("homework.noDescription")}
-                                    </Text>
-                                </Host>
+                                <NativeText variant="body">
+                                    {homework.description?.trim() ||
+                                        t("homework.noDescription")}
+                                </NativeText>
                             </View>
                         </View>
 
@@ -479,53 +452,25 @@ export default function HomeworkDetailScreen() {
                                     <FileUp size={20} color={colors.primary} />
                                 </View>
                                 <View className="min-w-0 flex-1">
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                                color: uiColors.foreground,
-                                                fontWeight: "600" as const,
-                                                fontSize:
-                                                    typography.label.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {t("homework.submission")}
-                                        </Text>
-                                    </Host>
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            numberOfLines={1}
-                                            textStyle={{
-                                                ...typography.caption,
-                                                color: uiColors.mutedForeground,
-                                                lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                                fontSize:
-                                                    typography.caption
-                                                        .fontSize * uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {selectedFile
-                                                ? `${selectedFile.name} / ${formatFileSize(selectedFile.size)}`
-                                                : t("homework.selectOneFile")}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="label" textStyle={{ fontWeight: "600" as const }}>
+                                        {t("homework.submission")}
+                                    </NativeText>
+                                    <NativeText
+                                        variant="caption"
+                                        color="mutedForeground"
+                                        numberOfLines={1}
+                                        textStyle={{ lineHeight: typography.subtext.lineHeight }}
+                                    >
+                                        {selectedFile
+                                            ? `${selectedFile.name} / ${formatFileSize(selectedFile.size)}`
+                                            : t("homework.selectOneFile")}
+                                    </NativeText>
                                 </View>
                             </View>
 
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text
-                                    textStyle={{
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        color: colors.foreground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {t("homework.memo")}
-                                </Text>
-                            </Host>
+                            <NativeText variant="label">
+                                {t("homework.memo")}
+                            </NativeText>
                             <Host
                                 matchContents={{ vertical: true }}
                                 ignoreSafeArea="all"
@@ -591,104 +536,53 @@ export default function HomeworkDetailScreen() {
                                             color={colors.mutedForeground}
                                         />
                                     </View>
-                                    <Host matchContents ignoreSafeArea="all">
-                                        <Text
-                                            textStyle={{
-                                                ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                                color: uiColors.foreground,
-                                                fontSize: typography.subtitle.fontSize * uiFontScale,
-                                                fontWeight: "600" as const,
-                                            }}
-                                        >
-                                            {t("homework.coachReview")}
-                                        </Text>
-                                    </Host>
+                                    <NativeText
+                                        variant="h3"
+                                        wrap={false}
+                                        textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                                    >
+                                        {t("homework.coachReview")}
+                                    </NativeText>
                                 </View>
 
                                 {latestReview.score != null ? (
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.meta, lineHeight: typography.meta.lineHeight * uiFontScale,
-                                                color: uiColors.mutedForeground,
-                                                fontSize:
-                                                    typography.meta.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {t("homework.score", {
-                                                score: latestReview.score,
-                                            })}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="meta" color="mutedForeground">
+                                        {t("homework.score", {
+                                            score: latestReview.score,
+                                        })}
+                                    </NativeText>
                                 ) : null}
 
                                 <View className="rounded-xl bg-surface px-3 py-3">
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.body,
-                                                lineHeight: typography.body.lineHeight * uiFontScale,
-                                                color: uiColors.foreground,
-                                                fontSize:
-                                                    typography.body.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {latestReview.coachFeedback?.trim() ||
-                                                t("homework.noReviewComment")}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="body">
+                                        {latestReview.coachFeedback?.trim() ||
+                                            t("homework.noReviewComment")}
+                                    </NativeText>
                                 </View>
 
                                 {latestReview.reviewedAt ? (
-                                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                        <Text
-                                            textStyle={{
-                                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                                color: uiColors.mutedForeground,
-                                                fontSize:
-                                                    typography.caption
-                                                        .fontSize * uiFontScale,
-                                            }}
-                                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                            {t("homework.reviewedAt", {
-                                                date: fmtDateTime(
-                                                    latestReview.reviewedAt,
-                                                ),
-                                            })}
-                                        </Text>
-                                    </Host>
+                                    <NativeText variant="caption" color="mutedForeground">
+                                        {t("homework.reviewedAt", {
+                                            date: fmtDateTime(
+                                                latestReview.reviewedAt,
+                                            ),
+                                        })}
+                                    </NativeText>
                                 ) : null}
                             </View>
                         ) : null}
 
                         <View className="flex-row items-center justify-between gap-4">
-                            <Host matchContents ignoreSafeArea="all">
-                                <Text
-                                    textStyle={{
-                                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                                        color: uiColors.foreground,
-                                        fontSize: typography.subtitle.fontSize * uiFontScale,
-                                        fontWeight: "600" as const,
-                                    }}
-                                >
-                                    {t("homework.submissionHistory")}
-                                </Text>
-                            </Host>
-                            <Host matchContents ignoreSafeArea="all">
-                                <Text
-                                    textStyle={{
-                                        ...typography.count, lineHeight: typography.count.lineHeight * uiFontScale,
-                                        color: uiColors.mutedForeground,
-                                        fontSize:
-                                            typography.count.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {String(submissions.length ?? "")}
-                                </Text>
-                            </Host>
+                            <NativeText
+                                variant="h3"
+                                wrap={false}
+                                textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
+                            >
+                                {t("homework.submissionHistory")}
+                            </NativeText>
+                            <NativeText variant="count" color="mutedForeground" wrap={false}>
+                                {String(submissions.length ?? "")}
+                            </NativeText>
                         </View>
 
                         {submissions.length === 0 ? (

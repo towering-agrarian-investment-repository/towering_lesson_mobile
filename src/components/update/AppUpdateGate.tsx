@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { Screen } from "@/design-system";
@@ -47,31 +48,12 @@ export function AppUpdateGate({
 
             <View className="flex-1 justify-center gap-6">
                 <View className="w-full items-center gap-3">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.h2, lineHeight: typography.h2.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                textAlign: "center" as const,
-                                fontSize: typography.h2.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                            {title}
-                        </Text>
-                    </Host>
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                textAlign: "center" as const,
-                                fontSize:
-                                    typography.muted.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                            {description}
-                        </Text>
-                    </Host>
+                    <NativeText variant="h2" align="center">
+                        {title}
+                    </NativeText>
+                    <NativeText variant="muted" color="mutedForeground" align="center">
+                        {description}
+                    </NativeText>
                 </View>
 
                 <Host
@@ -180,38 +162,17 @@ export function AppUpdateGate({
                 ) : null}
 
                 <View className="gap-1">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                textAlign: "center" as const,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                            {t("appUpdate.installedVersion", {
-                                version: state.installedVersion,
-                            })}
-                        </Text>
-                    </Host>
+                    <NativeText variant="caption" color="mutedForeground" align="center">
+                        {t("appUpdate.installedVersion", {
+                            version: state.installedVersion,
+                        })}
+                    </NativeText>
                     {state.latestVersion ? (
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                            <Text
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    textAlign: "center" as const,
-                                    fontSize:
-                                        typography.caption.fontSize *
-                                        uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                                {t("appUpdate.newVersion", {
-                                    version: state.latestVersion,
-                                })}
-                            </Text>
-                        </Host>
+                        <NativeText variant="caption" color="mutedForeground" align="center">
+                            {t("appUpdate.newVersion", {
+                                version: state.latestVersion,
+                            })}
+                        </NativeText>
                     ) : null}
                 </View>
             </View>
@@ -220,7 +181,7 @@ export function AppUpdateGate({
 }
 
 export function AppUpdateCheckingScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
 
     return (
@@ -230,17 +191,9 @@ export function AppUpdateCheckingScreen() {
             </View>
             <View className="flex-1 items-center justify-center gap-3">
                 <ActivityIndicator />
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{ textAlign: "center",
-                            ...typography.muted, lineHeight: typography.muted.lineHeight * uiFontScale,
-                            color: uiColors.mutedForeground,
-                            fontSize: typography.muted.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "center" })] : [fillMaxWidth()]}>
-                        {t("appUpdate.checking")}
-                    </Text>
-                </Host>
+                <NativeText variant="muted" color="mutedForeground" align="center">
+                    {t("appUpdate.checking")}
+                </NativeText>
             </View>
         </Screen>
     );

@@ -1,8 +1,6 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { useTheme, useThemeColors } from "@/design-system/utils/theme";
+import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { Host, Text } from "@expo/ui";
+import { NativeText } from "./NativeText";
 import {
     CircleCheck,
     CircleX,
@@ -75,8 +73,7 @@ const TOAST_ICONS: Record<ToastType, LucideIcon> = {
 };
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
-    const colors = useThemeColors();
+    const { colors } = useTheme();
     const insets = useSafeAreaInsets();
     const [toast, setToast] = useState<ActiveToast | null>(null);
     const activeIdRef = useRef(0);
@@ -221,23 +218,13 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
                             />
                         </View>
 
-                        <Host
-                            matchContents={{ vertical: true }}
-                            ignoreSafeArea="all"
+                        <NativeText
+                            variant="label"
                             style={{ flex: 1, minWidth: 0 }}
+                            textStyle={{ lineHeight: typography.subtext.lineHeight }}
                         >
-                            <Text
-                                textStyle={{
-                                    ...typography.label,
-                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {toast.message}
-                            </Text>
-                        </Host>
+                            {toast.message}
+                        </NativeText>
 
                         <Pressable
                             accessibilityRole="button"

@@ -1,3 +1,4 @@
+import { NativeText } from "@/design-system/components/NativeText";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
@@ -9,6 +10,7 @@ import {
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
+import { showAppToast } from "@/lib/toast/toast";
 import type { SessionResourcesFilesResponse } from "@/types/member-session";
 import {
     getFileExtension,
@@ -33,7 +35,7 @@ type SessionResourceSectionProps = {
 const VIDEO_BACKGROUND_COLOR = "#000";
 
 function ResourceVideo({ videoUrl }: { videoUrl: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
@@ -60,18 +62,9 @@ function ResourceVideo({ videoUrl }: { videoUrl: string }) {
             </View>
 
             {status === "error" ? (
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{
-                            ...typography.caption,
-                            lineHeight: typography.subtext.lineHeight * uiFontScale,
-                            color: uiColors.danger,
-                            fontSize: typography.caption.fontSize * uiFontScale,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {t("sessionResources.videoFailedToLoad")}
-                    </Text>
-                </Host>
+                <NativeText variant="caption" color="danger" textStyle={{ lineHeight: typography.subtext.lineHeight }}>
+                    {t("sessionResources.videoFailedToLoad")}
+                </NativeText>
             ) : null}
         </View>
     );
@@ -102,9 +95,8 @@ function SessionResourceItem({
 }: {
     resource: SessionResourcesFilesResponse;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const url = getResourceUrl(resource);
     const title =
         resource.originalFileName?.trim() ||
@@ -147,7 +139,9 @@ function SessionResourceItem({
                         getPressedScaleStyle(pressed, false, 0.992)
                     }
                     onPress={() => {
-                        void Linking.openURL(url);
+                        void Linking.openURL(url).catch(() => {
+                            showAppToast({ message: t("common.unableToOpenLink"), type: "error" });
+                        });
                     }}
                 >
                     <Image
@@ -176,26 +170,14 @@ function SessionResourceItem({
                             </Text>
                         </Host>
                         <View className="shrink-0 rounded-full bg-black/55 px-2.5 py-1">
-                            <Host
-                                matchContents
-                                ignoreSafeArea="all"
-
-
+                            <NativeText
+                                variant="caption"
+                                wrap={false}
+                                numberOfLines={1}
+                                textStyle={{ fontWeight: "500" as const, color: "#ffffff" }}
                             >
-                                <Text
-                                    numberOfLines={1}
-                                    textStyle={{
-                                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                        fontWeight: "500" as const,
-                                        color: "#ffffff",
-                                        fontSize:
-                                            typography.caption.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {resourceTypeLabel}
-                                </Text>
-                            </Host>
+                                {resourceTypeLabel}
+                            </NativeText>
                         </View>
                     </View>
                 </Pressable>
@@ -207,23 +189,9 @@ function SessionResourceItem({
         return (
             <View className="gap-3">
                 <View className="flex-row items-start justify-between gap-3">
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        style={{ flex: 1, minWidth: 0 }}
-                    >
-                        <Text
-                            numberOfLines={2}
-                            textStyle={{
-                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize:
-                                    typography.label.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {title}
-                        </Text>
-                    </Host>
+                    <NativeText variant="label" numberOfLines={2} style={{ flex: 1, minWidth: 0 }}>
+                        {title}
+                    </NativeText>
                     <BadgePill label={resourceTypeLabel} />
                 </View>
                 <ResourceVideo videoUrl={url} />
@@ -245,7 +213,9 @@ function SessionResourceItem({
             showChevron={Boolean(url)}
             onPress={() => {
                 if (url) {
-                    void Linking.openURL(url);
+                    void Linking.openURL(url).catch(() => {
+                        showAppToast({ message: t("common.unableToOpenLink"), type: "error" });
+                    });
                 }
             }}
         />
@@ -328,22 +298,18 @@ function getFileAccentColor(
 }
 
 function BadgePill({ label }: { label: string }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     return (
         <View className="self-start rounded-full bg-muted px-2.5 py-1">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    numberOfLines={1}
-                    textStyle={{
-                        ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                        fontWeight: "500" as const,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                    }}
-                >
-                    {label}
-                </Text>
-            </Host>
+            <NativeText
+                variant="caption"
+                color="mutedForeground"
+                wrap={false}
+                numberOfLines={1}
+                textStyle={{ fontWeight: "500" as const }}
+            >
+                {label}
+            </NativeText>
         </View>
     );
 }

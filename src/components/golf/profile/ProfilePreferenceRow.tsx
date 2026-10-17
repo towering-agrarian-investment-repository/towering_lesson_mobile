@@ -1,14 +1,14 @@
-import { ListRow, useTheme } from "@/design-system";
+import { NativeText } from "@/design-system/components/NativeText";
+import { InlineState, ListRow, useTheme } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
-import { typography } from "@/design-system/utils/typography";
 import { BottomSheet, Button, Host, RNHostView, Text } from "@expo/ui";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { frame, interactiveDismissDisabled } from "@expo/ui/swift-ui/modifiers";
 import { Check } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, ScrollView, View, useWindowDimensions } from "react-native";
 
 type ProfilePreferenceOption<T extends string> = {
     value: T;
@@ -41,8 +41,27 @@ export function ProfilePreferenceRow<T extends string>({
     const { t } = useTranslation();
     const { height } = useWindowDimensions();
     const [isPresented, setIsPresented] = useState(false);
+    const [pendingValue, setPendingValue] = useState<T | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const selectionLocked = useRef(false);
-    const close = () => setIsPresented(false);
+    const pending = pendingValue !== null;
+    const close = () => { if (!selectionLocked.current) setIsPresented(false); };
+
+    const select = async (nextValue: T) => {
+        if (disabled || selectionLocked.current) return;
+        selectionLocked.current = true;
+        setSaveError(null);
+        setPendingValue(nextValue);
+        try {
+            await onChange(nextValue);
+            setIsPresented(false);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : t("common.refreshTryAgain"));
+        } finally {
+            selectionLocked.current = false;
+            setPendingValue(null);
+        }
+    };
 
     return (
         <>
@@ -50,16 +69,20 @@ export function ProfilePreferenceRow<T extends string>({
                 title={title}
                 meta={options.find((option) => option.value === value)?.label}
                 accessibilityLabel={accessibilityLabel}
-                disabled={disabled}
+                disabled={disabled || pending}
                 className="border-0 bg-transparent px-0 py-3"
                 onPress={() => {
-                    selectionLocked.current = false;
+                    if (selectionLocked.current) return;
+                    setSaveError(null);
                     setIsPresented(true);
                 }}
             />
             <BottomSheet
                 isPresented={isPresented}
                 onDismiss={close}
+                shouldDismissOnBackPress={!pending}
+                shouldDismissOnClickOutside={!pending}
+                modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(pending)] : undefined}
                 containerColor={colors.card}
                 contentColor={colors.foreground}
                 contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
@@ -67,16 +90,12 @@ export function ProfilePreferenceRow<T extends string>({
                 <RNHostView matchContents={{ vertical: true }}>
                     <View className="gap-4">
                         <View className="gap-1">
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text textStyle={{ ...typography.h3, lineHeight: typography.h3.lineHeight * fontScale, color: colors.foreground, fontSize: typography.h3.fontSize * fontScale }} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {sheetTitle}
-                                </Text>
-                            </Host>
-                            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                                <Text textStyle={{ ...typography.muted, lineHeight: typography.muted.lineHeight * fontScale, color: colors.mutedForeground, fontSize: typography.muted.fontSize * fontScale }} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                    {description}
-                                </Text>
-                            </Host>
+                            <NativeText variant="h3">
+                                {sheetTitle}
+                            </NativeText>
+                            <NativeText variant="muted" color="mutedForeground">
+                                {description}
+                            </NativeText>
                         </View>
                         <ScrollView style={{ maxHeight: Math.max(96, height - 240) }} contentContainerStyle={{ gap: 12 }}>
                             {options.map((option) => (
@@ -86,23 +105,20 @@ export function ProfilePreferenceRow<T extends string>({
                                     subtitle={option.description}
                                     titleStyle={{ fontWeight: "500" }}
                                     leading={<View className="h-11 w-11 items-center justify-center rounded-full bg-muted">{option.icon}</View>}
-                                    trailing={option.value === value ? <Check size={20} color={colors.primary} strokeWidth={2.5} /> : undefined}
+                                    trailing={option.value === pendingValue ? <ActivityIndicator color={colors.primary} /> : option.value === value ? <Check size={20} color={colors.primary} strokeWidth={2.5} /> : undefined}
                                     showChevron={false}
                                     className={cn("gap-3", option.value === value ? "border-primary bg-primary/10" : "border-border bg-surface")}
-                                    accessibilityState={{ selected: option.value === value, disabled }}
-                                    disabled={disabled}
-                                    onPress={() => {
-                                        if (disabled || selectionLocked.current) return;
-                                        selectionLocked.current = true;
-                                        close();
-                                        void onChange(option.value);
-                                    }}
+                                    accessibilityState={{ selected: option.value === value, disabled: disabled || pending, busy: option.value === pendingValue }}
+                                    disabled={disabled || pending}
+                                    onPress={() => { void select(option.value); }}
                                 />
                             ))}
                         </ScrollView>
+                        {saveError ? <InlineState title={saveError} tone="danger" /> : null}
                         <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={resolvedScheme} style={{ width: "100%" }}>
                             <Button
                                 variant="text"
+                                disabled={pending}
                                 onPress={close}
                                 style={getNativeButtonStyle(colors, "text")}
                                 modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}

@@ -7,6 +7,7 @@ export * from "./components/Divider";
 export * from "./components/IconButton";
 export * from "./components/InlineState";
 export * from "./components/ListRow";
+export * from "./components/NativeText";
 export * from "./components/Screen";
 export * from "./components/Skeleton";
 export * from "./components/StateCard";

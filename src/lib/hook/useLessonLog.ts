@@ -21,7 +21,7 @@ export function useMemberLessonLogs() {
 export function useMemberLessonLogById(id: number) {
 	return useQuery<ApiResponse<MemberLessonLogResponse>>({
 		...getMemberLessonLogByIdQueryOptions(id),
-		enabled: Number.isFinite(id),
+		enabled: Number.isSafeInteger(id) && id > 0,
 		staleTime: 60_000,
 	});
 }

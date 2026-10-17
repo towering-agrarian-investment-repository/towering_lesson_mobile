@@ -24,6 +24,9 @@ export function WelcomeProvider({ children }: { children: ReactNode }) {
                     setHasCompletedWelcome(value === "true");
                 }
             })
+            .catch(() => {
+                // Leave onboarding available when its saved completion cannot be read.
+            })
             .finally(() => {
                 if (isMounted) {
                     setIsReady(true);

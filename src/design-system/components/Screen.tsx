@@ -82,13 +82,18 @@ export function Screen({
     ) : (
         content
     );
+    // Disabled KeyboardAvoidingView instances still install animation hooks and
+    // measure their native position. Scrolling forms already handle the keyboard
+    // in KeyboardAwareScrollView; other screens only need a plain View.
+    const needsKeyboardAvoidance = keyboardAware && !scroll;
+    const RootContainer = needsKeyboardAvoidance ? KeyboardAvoidingView : View;
 
     return (
-        <KeyboardAvoidingView
+        <RootContainer
             className={cn("flex-1 bg-background", className)}
-            enabled={keyboardAware && !scroll}
-            automaticOffset
-            behavior="padding"
+            {...(needsKeyboardAvoidance
+                ? { automaticOffset: true, behavior: "padding" as const }
+                : {})}
         >
             {keyboardAware ? (
                 <TouchableWithoutFeedback
@@ -120,6 +125,6 @@ export function Screen({
                     </View>
                 </View>
             ) : null}
-        </KeyboardAvoidingView>
+        </RootContainer>
     );
 }

@@ -15,9 +15,10 @@ type JwtResponse = {
     token?: string | null;
 };
 
-async function getJwtToken(): Promise<string | null> {
+async function getJwtToken(signal?: AbortSignal): Promise<string | null> {
     const result = await authClient.$fetch<JwtResponse>("/token", {
         method: "GET",
+        signal,
     });
 
     if (result.error) {
@@ -45,7 +46,9 @@ export async function apiClient<T = unknown>(
     endpoint: string,
     options: RequestInit & { signal?: AbortSignal } = {}
 ): Promise<T> {
-    const jwtToken = await getJwtToken();
+    options.signal?.throwIfAborted();
+    const jwtToken = await getJwtToken(options.signal);
+    options.signal?.throwIfAborted();
 
     if (!jwtToken) {
         throw new Error("No JWT token available");

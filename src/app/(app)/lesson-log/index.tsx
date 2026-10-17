@@ -1,15 +1,13 @@
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import {
     EmptyState,
     ErrorState,
     Screen,
     Skeleton,
     triggerSelectionHaptic,
-    useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import {
     getMemberLessonLogByIdQueryOptions,
     useMemberLessonLogs,
@@ -17,7 +15,6 @@ import {
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import type { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import { formatDateForDisplay } from "@/utils/time-helper";
-import { Host, Text } from "@expo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -31,15 +28,15 @@ function LessonLogScreen() {
     const queryClient = useQueryClient();
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberLessonLogs();
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const lessonLogs = data?.data ?? [];
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const refreshControl = (
         <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => {
-                void refetch();
-            }}
+            refreshing={isPullRefreshing}
+            onRefresh={handlePullRefresh}
         />
     );
     const renderLessonLogItem = useCallback(
@@ -79,7 +76,7 @@ function LessonLogScreen() {
         >
             {isLoading ? (
                 <LessonLogListSkeleton />
-            ) : isError ? (
+            ) : isError && !data ? (
                 <LessonLogStateList
                     refreshControl={refreshControl}
                     emptyComponent={
@@ -91,9 +88,7 @@ function LessonLogScreen() {
                                     ? t("common.refreshing")
                                     : t("common.refreshTryAgain")
                             }
-                            onAction={() => {
-                                void refetch();
-                            }}
+                            onAction={handlePullRefresh}
                         />
                     }
                 />
@@ -105,9 +100,7 @@ function LessonLogScreen() {
                             title={t("lessonLog.noPostsTitle")}
                             message={t("lessonLog.noPostsMessage")}
                             actionLabel={t("lessonLog.refresh")}
-                            onAction={() => {
-                                void refetch();
-                            }}
+                            onAction={handlePullRefresh}
                         />
                     }
                 />
@@ -140,9 +133,8 @@ function LessonLogRow({
     disabled: boolean;
     onPress: () => void;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const reservationName = item.reservation?.name?.trim();
     const hasSubmittedReview =
         Boolean(item.comment?.trim()) || (item.ratings ?? 0) > 0;
@@ -176,48 +168,27 @@ function LessonLogRow({
                     className={`self-start rounded-full px-3 py-1.5 ${hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
                         }`}
                 >
-                    <Host matchContents ignoreSafeArea="all">
-                        <Text
-                            textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: hasSubmittedReview
-                                    ? uiColors.success
-                                    : uiColors.warning,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                        >
-                            {reviewLabel}
-                        </Text>
-                    </Host>
+                    <NativeText
+                        variant="caption"
+                        wrap={false}
+                        textStyle={{
+                            color: hasSubmittedReview
+                                ? colors.success
+                                : colors.warning
+                        }}
+                    >
+                        {reviewLabel}
+                    </NativeText>
                 </View>
 
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        numberOfLines={2}
-                        textStyle={{
-                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                            fontSize: typography.body.fontSize * uiFontScale,
-                            fontWeight: "700" as const,
-                            color: uiColors.foreground,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>{`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}</Text>
-                </Host>
+                <NativeText variant="body" numberOfLines={2} textStyle={{ fontWeight: "700" as const }}>
+                    {`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
+                </NativeText>
 
                 {reservationName ? (
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            numberOfLines={2}
-                            textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {reservationName}
-                        </Text>
-                    </Host>
+                    <NativeText variant="caption" color="mutedForeground" numberOfLines={2}>
+                        {reservationName}
+                    </NativeText>
                 ) : null}
             </View>
 

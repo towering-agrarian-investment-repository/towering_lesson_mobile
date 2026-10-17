@@ -1,3 +1,5 @@
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
     ReservationContent,
@@ -155,6 +157,8 @@ export default function ReservationDetailScreen() {
 
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberReservationById(Number(id), reservationType);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
     const reservation = data?.data;
 
@@ -192,7 +196,7 @@ export default function ReservationDetailScreen() {
         );
     }
 
-    if (isError) {
+    if (isError && !data) {
         return (
             <>
                 <Stack.Screen options={screenOptions} />
@@ -201,10 +205,8 @@ export default function ReservationDetailScreen() {
                     contentClassName="grow"
                     refreshControl={
                         <RefreshControl
-                            refreshing={isRefetching}
-                            onRefresh={() => {
-                                void refetch();
-                            }}
+                            refreshing={isPullRefreshing}
+                            onRefresh={handlePullRefresh}
                         />
                     }
                 >
@@ -216,9 +218,7 @@ export default function ReservationDetailScreen() {
                                 ? t("common.refreshing")
                                 : t("common.refreshTryAgain")
                         }
-                        onAction={() => {
-                            void refetch();
-                        }}
+                        onAction={handlePullRefresh}
                     />
                 </Screen>
             </>
@@ -234,10 +234,8 @@ export default function ReservationDetailScreen() {
                     contentClassName="grow"
                     refreshControl={
                         <RefreshControl
-                            refreshing={isRefetching}
-                            onRefresh={() => {
-                                void refetch();
-                            }}
+                            refreshing={isPullRefreshing}
+                            onRefresh={handlePullRefresh}
                         />
                     }
                 >
@@ -436,10 +434,8 @@ export default function ReservationDetailScreen() {
                 contentClassName="grow"
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={() => {
-                            void refetch();
-                        }}
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
                 }
                 footer={
@@ -718,7 +714,7 @@ function HeaderSection({
     reservationStatus?: string | null;
     ticketType?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     const { t } = useTranslation();
     const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
 
@@ -734,17 +730,9 @@ function HeaderSection({
                 </View>
             ) : null}
 
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                <Text
-                    textStyle={{
-                        ...typography.h3, lineHeight: typography.h3.lineHeight * uiFontScale,
-                        color: uiColors.foreground,
-                        fontSize: typography.h3.fontSize * uiFontScale,
-                    }}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                    {title}
-                </Text>
-            </Host>
+            <NativeText variant="h3">
+                {title}
+            </NativeText>
 
             <ReservationStatusBanner reservationStatus={reservationStatus} />
         </View>
@@ -756,9 +744,8 @@ function ReservationStatusBanner({
 }: {
     reservationStatus?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const statusLabel = formatType(reservationStatus);
     const statusColor = getReservationStatusColor(colors, reservationStatus);
 
@@ -768,30 +755,16 @@ function ReservationStatusBanner({
 
     return (
         <View className="flex-row items-center gap-2">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                        color: uiColors.mutedForeground,
-                        fontSize: typography.label.fontSize * uiFontScale,
-                    }}
-                >
-                    {t("reservations.statusLabel") + ":"}
-                </Text>
-            </Host>
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.h3,
-                        color: statusColor,
-                        fontSize: typography.subtitle.fontSize * uiFontScale,
-                        fontWeight: "700" as const,
-                        lineHeight: typography.h3.lineHeight * uiFontScale,
-                    }}
-                >
-                    {statusLabel}
-                </Text>
-            </Host>
+            <NativeText variant="label" color="mutedForeground" wrap={false}>
+                {t("reservations.statusLabel") + ":"}
+            </NativeText>
+            <NativeText
+                variant="h3"
+                wrap={false}
+                textStyle={{ color: statusColor, fontSize: typography.subtitle.fontSize, fontWeight: "700" as const }}
+            >
+                {statusLabel}
+            </NativeText>
         </View>
     );
 }
@@ -844,8 +817,6 @@ function DetailRow({
     );
 }
 
-
-
 function Avatar({
     name,
     imageUrl,
@@ -853,7 +824,7 @@ function Avatar({
     name: string;
     imageUrl?: string | null;
 }) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+
     if (imageUrl) {
         return (
             <Image
@@ -873,18 +844,14 @@ function Avatar({
 
     return (
         <View className="h-8 w-8 items-center justify-center rounded-full bg-secondary">
-            <Host matchContents ignoreSafeArea="all">
-                <Text
-                    textStyle={{
-                        ...typography.body, lineHeight: typography.caption.lineHeight * uiFontScale,
-                        fontSize: typography.caption.fontSize * uiFontScale,
-                        fontWeight: "700" as const,
-                        color: uiColors.secondaryForeground,
-                    }}
-                >
-                    {name?.charAt(0).toUpperCase() || "?"}
-                </Text>
-            </Host>
+            <NativeText
+                variant="body"
+                color="secondaryForeground"
+                wrap={false}
+                textStyle={{ lineHeight: typography.caption.lineHeight, fontSize: typography.caption.fontSize, fontWeight: "700" as const }}
+            >
+                {name?.charAt(0).toUpperCase() || "?"}
+            </NativeText>
         </View>
     );
 }

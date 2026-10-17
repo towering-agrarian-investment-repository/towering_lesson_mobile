@@ -44,6 +44,7 @@ const km: TranslationResource<typeof en> = {
         viewMyReservations: "មើលការកក់ទុករបស់ខ្ញុំ",
     },
     notice: {
+        moreActions: "សកម្មភាពបន្ថែម",
         markAllAsRead: "ចំណាំថាបានអានទាំងអស់",
         marking: "កំពុងចំណាំ...",
         markAllRead: "បានអានទាំងអស់",
@@ -329,6 +330,7 @@ const km: TranslationResource<typeof en> = {
         ok: "យល់ព្រម",
         title: "សកម្មភាព", description: "សកម្មភាពវាយកូនហ្គោលប្រចាំឆ្នាំ", reservationDays: "ថ្ងៃកក់", reservationHours: "ម៉ោងកក់", totalReservations: "ការកក់សរុប", golfActivity: "សកម្មភាពវាយកូនហ្គោល", weeklyReservations: "ការកក់ប្រចាំសប្តាហ៍", preview: "មើលជាមុន", save: "រក្សាទុក", saving: "កំពុងរក្សាទុក…", savedTitle: "បានរក្សាទុក", savedMessage: "កាតសកម្មភាពរបស់អ្នកត្រូវបានរក្សាទុកក្នុងរូបថត។", permissionTitle: "ត្រូវការការអនុញ្ញាត", permissionMessage: "អនុញ្ញាតការរក្សាទុករូបថត ដើម្បីរក្សាទុកកាតសកម្មភាពរបស់អ្នក។", openSettings: "បើកការកំណត់", couldNotSaveTitle: "មិនអាចរក្សាទុកបាន", couldNotSaveMessage: "មិនអាចរក្សាទុកកាតសកម្មភាពបានទេ។ សូមព្យាយាមម្តងទៀត។", all: "ទាំងអស់", allTime: "គ្រប់ពេល", myGolfActivity: "សកម្មភាពវាយកូនហ្គោល {{period}} របស់ខ្ញុំ", reservations: "ការកក់", daysPlayed: "ថ្ងៃលេង", hoursOnCourse: "ម៉ោងនៅទីលាន", golfer: "អ្នកវាយកូនហ្គោល", done: "បានបញ្ចប់", completed: "បានបញ្ចប់", absent: "អវត្តមាន", booked: "បានកក់", mixed: "ចម្រុះ", activityCount: "សកម្មភាព {{count}}", activityOnDate: "សកម្មភាព {{count}} នៅ {{date}}", onDate: "{{date}}", overall: "សរុប", weekOf: "សប្តាហ៍ {{date}}", noRecorded: "មិនមាន{{unit}}ដែលបានកត់ត្រាក្នុងអំឡុងពេលនេះទេ។", currentWeek: "សប្តាហ៍នេះ", horizontalScroll: "តំបន់រមូរផ្ដេក", today: "ថ្ងៃនេះ", bay: "បេ", lesson: "មេរៀន", other: "ផ្សេងទៀត", cancelled: "បានលុបចោល" },
     common: {
+        unableToOpenLink: "មិនអាចបើកតំណនេះបានទេ។",
         offlineTitle: "អ្នកកំពុងប្រើក្រៅបណ្តាញ",
         offlineMessage: "សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត ហើយព្យាយាមម្តងទៀត។",
         cancel: "បោះបង់",
