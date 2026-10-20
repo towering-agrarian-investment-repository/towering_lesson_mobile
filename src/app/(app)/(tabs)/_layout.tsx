@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useThemeColors } from "@/design-system";
+import { useGetUnreadNotificationCount } from "@/lib/hook/shared/useNotification";
 import { useAppUpdateContext } from "@/lib/update/update-context";
 import { NativeTabs } from "expo-router/native-tabs";
 import { useTranslation } from "react-i18next";
@@ -8,12 +9,15 @@ export default function TabLayout() {
     const colors = useThemeColors();
     const { t } = useTranslation();
     const update = useAppUpdateContext();
+    const { data: unreadNotificationResponse } = useGetUnreadNotificationCount();
+    const unreadNotificationCount = unreadNotificationResponse?.data ?? 0;
     return (
         <NativeTabs
             backBehavior="initialRoute"
             tintColor={colors.primary}
             backgroundColor={colors.background}
-            badgeBackgroundColor={colors.danger}
+            badgeBackgroundColor={colors.primary}
+            badgeTextColor={colors.primaryForeground}
             labelVisibilityMode="labeled"
             disableIndicator
             rippleColor="transparent"
@@ -46,6 +50,9 @@ export default function TabLayout() {
                 <NativeTabs.Trigger.Label>
                     {t("navigation.tabs.notifications")}
                 </NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Badge hidden={unreadNotificationCount === 0}>
+                    {String(unreadNotificationCount)}
+                </NativeTabs.Trigger.Badge>
             </NativeTabs.Trigger>
             <NativeTabs.Trigger name="activity">
                 <NativeTabs.Trigger.Icon sf="chart.bar" src={{

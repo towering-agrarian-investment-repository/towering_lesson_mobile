@@ -1,314 +1,359 @@
-import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import { NativeText } from "@/design-system/components/NativeText";
 import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
-import { EmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
-import { cn } from "@/design-system/utils/cn";
+import {
+  cn,
+  EmptyState,
+  ErrorState,
+  getPressedScaleStyle,
+  Screen,
+  Skeleton,
+} from "@/design-system";
+import { NativeText } from "@/design-system/components/NativeText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotScheduleResponse } from "@/types/member-bay";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, View } from "react-native";
 
+const GRID_COLUMNS = 3;
+const LOADING_ITEMS = Array.from({ length: 6 }, (_, index) => index);
+
 function chunkItems<T>(items: T[], size: number) {
-    const rows: T[][] = [];
+  const rows: T[][] = [];
 
-    for (let index = 0; index < items.length; index += size) {
-        rows.push(items.slice(index, index + size));
-    }
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
 
-    return rows;
+  return rows;
 }
 
-export default function BayScreen() {
-    const { colors: uiColors } = useTheme();
-    const { t } = useTranslation();
-    const {
-        date,
-        ticketId,
-        ticketName,
-        ticketType,
-        slotGroupId,
-        startTime,
-        endTime,
-        mode,
-        reservationId,
-        notes,
-        conflictMessage,
-        conflictSlotId,
-        conflictId,
-    } = useLocalSearchParams<{
-        date: string;
-        ticketId?: string;
-        ticketName: string;
-        ticketType?: string;
-        slotGroupId?: string;
-        startTime?: string;
-        endTime?: string;
-        mode?: string;
-        reservationId?: string;
-        notes?: string;
-        conflictMessage?: string;
-        conflictSlotId?: string;
-        conflictId?: string;
-    }>();
+function BayGrid<T>({
+  items,
+  keyExtractor,
+  renderItem,
+}: {
+  items: T[];
+  keyExtractor: (item: T) => string | number;
+  renderItem: (item: T) => ReactNode;
+}) {
+  const rows = useMemo(() => chunkItems(items, GRID_COLUMNS), [items]);
 
-    const router = useRouter();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const [dismissedConflictId, setDismissedConflictId] = useState<string>();
+  return (
+    <View className="gap-3">
+      {rows.map((row, rowIndex) => (
+        <View key={rowIndex} className="flex-row gap-3">
+          {row.map((item) => (
+            <View key={keyExtractor(item)} className="flex-1">
+              {renderItem(item)}
+            </View>
+          ))}
 
-    const { data, isLoading, isError, refetch, isRefetching } =
-        useMemberBaySlotGroups(date, date, Boolean(date));
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+          {Array.from(
+            { length: GRID_COLUMNS - row.length },
+            (_, fillerIndex) => (
+              <View
+                key={`filler-${rowIndex}-${fillerIndex}`}
+                className="flex-1"
+              />
+            ),
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
 
-    const slotGroup = (data?.data ?? []).find(
-        (group) => String(group.id) === slotGroupId,
-    );
-    const visibleConflictMessage =
-        dismissedConflictId === conflictId ? undefined : conflictMessage;
-    const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
+function BayCardSkeleton() {
+  return (
+    <View className="rounded-xl border border-border bg-card px-3 py-4">
+      <View className="items-center gap-2">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-4 w-20 rounded-full" />
+      </View>
+    </View>
+  );
+}
 
-    const loadingRows = chunkItems(
-        Array.from({ length: 6 }, (_, index) => index),
-        3,
-    );
+type BayCardProps = {
+  bay: BaySlotScheduleResponse;
+  wasJustBooked: boolean;
+  isLocked: boolean;
+  onSelect: (bay: BaySlotScheduleResponse) => void;
+};
 
-    const bayRows = chunkItems(slotGroup?.baySlots ?? [], 3);
+const BayCard = memo(function BayCard({
+  bay,
+  wasJustBooked,
+  isLocked,
+  onSelect,
+}: BayCardProps) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
 
-    const handleSelect = (baySlot: BaySlotScheduleResponse) => {
-        if (!slotGroup) return;
+  const {
+    isBlocked,
+    isReserved,
+    isDisabled: isUnavailable,
+  } = getBaySlotAvailability(bay);
+  const isDisabled = isUnavailable || wasJustBooked;
 
-        runWithNavigationLock(() => {
-            setDismissedConflictId(conflictId);
-            router.push({
-                pathname: "/bay-booking-confirm",
-                params: {
-                    date,
-                    ticketId,
-                    ticketName,
-                    ticketType,
-                    slotGroupId: String(slotGroup.id),
-                    baySlotId: String(baySlot.id),
-                    bayName: baySlot.bayName,
-                    startTime: slotGroup.startDateTime,
-                    endTime: slotGroup.endDateTime,
-                    mode,
-                    reservationId,
-                    notes,
-                },
-            });
-        });
-    };
+  const statusLabel = wasJustBooked
+    ? t("booking.justBooked")
+    : isBlocked
+      ? t("booking.statusBlocked")
+      : isReserved
+        ? t("booking.statusBooked")
+        : isDisabled
+          ? t("booking.statusUnavailable")
+          : t("booking.statusAvailable");
 
-    return (
-        <Screen
-            maxWidth={960}
-            contentClassName="gap-6"
-            refreshControl={
-                <RefreshControl
-                    refreshing={isPullRefreshing}
-                    onRefresh={handlePullRefresh}
-                />
-            }
+  const badgeColor = wasJustBooked
+    ? colors.warning
+    : !isDisabled
+      ? colors.primary
+      : colors.mutedForeground;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${bay.bayName}, ${statusLabel}`}
+      accessibilityState={{ disabled: isDisabled || isLocked }}
+      className={cn(
+        "items-center gap-2 rounded-2xl border px-3 py-4",
+        wasJustBooked
+          ? "border-warning/40 bg-warning/10 opacity-80"
+          : !isDisabled
+            ? "border-border bg-card"
+            : "border-muted bg-muted opacity-55",
+      )}
+      style={({ pressed }) =>
+        getPressedScaleStyle(pressed, isDisabled || isLocked, 0.98)
+      }
+      onPress={() => onSelect(bay)}
+      disabled={isDisabled || isLocked}
+    >
+      <NativeText
+        variant="label"
+        align="center"
+        wrap={false}
+        textStyle={{
+          color: !isDisabled ? colors.foreground : colors.mutedForeground,
+        }}
+      >
+        {bay.bayName}
+      </NativeText>
+
+      <View
+        className={cn(
+          "rounded-full px-2.5 py-1",
+          wasJustBooked
+            ? "bg-warning/15"
+            : !isDisabled
+              ? "bg-primary/10"
+              : "bg-muted",
+        )}
+      >
+        <NativeText
+          variant="badge"
+          align="center"
+          wrap={false}
+          textStyle={{ color: badgeColor }}
         >
-            <BookingStepHeader
-                step={3}
-                totalSteps={4}
-                context={bookingContext}
-                selectionTrail={[
-                    bookingContext,
-                    formatDateValue(date, "M.d"),
-                    formatTimeRange(
-                        startTime ?? slotGroup?.startDateTime,
-                        endTime ?? slotGroup?.endDateTime,
-                    ),
-                ]}
+          {statusLabel}
+        </NativeText>
+      </View>
+    </Pressable>
+  );
+});
+
+export default function BayScreen() {
+  const { t } = useTranslation();
+  const {
+    date,
+    ticketId,
+    ticketName,
+    ticketType,
+    slotGroupId,
+    startTime,
+    endTime,
+    mode,
+    reservationId,
+    notes,
+    conflictMessage,
+    conflictSlotId,
+    conflictId,
+  } = useLocalSearchParams<{
+    date: string;
+    ticketId?: string;
+    ticketName: string;
+    ticketType?: string;
+    slotGroupId?: string;
+    startTime?: string;
+    endTime?: string;
+    mode?: string;
+    reservationId?: string;
+    notes?: string;
+    conflictMessage?: string;
+    conflictSlotId?: string;
+    conflictId?: string;
+  }>();
+
+  const router = useRouter();
+  const { isLocked, runWithNavigationLock } = useNavigationLock();
+  const [dismissedConflictId, setDismissedConflictId] = useState<string>();
+
+  const { data, isLoading, isError, refetch, isRefetching } =
+    useMemberBaySlotGroups(date, date, Boolean(date));
+  const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+    usePullToRefresh(() => refetch({ cancelRefetch: false }));
+  const hasLoadError = isError && !data;
+
+  const slotGroup = (data?.data ?? []).find(
+    (group) => String(group.id) === slotGroupId,
+  );
+  const visibleConflictMessage =
+    dismissedConflictId === conflictId ? undefined : conflictMessage;
+  const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
+
+  const handleSelect = useCallback(
+    (baySlot: BaySlotScheduleResponse) => {
+      if (!slotGroup) return;
+
+      runWithNavigationLock(() => {
+        setDismissedConflictId(conflictId);
+        router.push({
+          pathname: "/bay-booking-confirm",
+          params: {
+            date,
+            ticketId,
+            ticketName,
+            ticketType,
+            slotGroupId: String(slotGroup.id),
+            baySlotId: String(baySlot.id),
+            bayName: baySlot.bayName,
+            startTime: slotGroup.startDateTime,
+            endTime: slotGroup.endDateTime,
+            mode,
+            reservationId,
+            notes,
+          },
+        });
+      });
+    },
+    [
+      conflictId,
+      date,
+      mode,
+      notes,
+      reservationId,
+      router,
+      runWithNavigationLock,
+      slotGroup,
+      ticketId,
+      ticketName,
+      ticketType,
+    ],
+  );
+
+  return (
+    <Screen
+      maxWidth={960}
+      contentClassName="gap-6"
+      refreshControl={
+        <RefreshControl
+          refreshing={isPullRefreshing}
+          onRefresh={handlePullRefresh}
+        />
+      }
+    >
+      <BookingStepHeader
+        step={3}
+        totalSteps={4}
+        context={bookingContext}
+        selectionTrail={[
+          bookingContext,
+          formatDateValue(date, "M.d"),
+          formatTimeRange(
+            startTime ?? slotGroup?.startDateTime,
+            endTime ?? slotGroup?.endDateTime,
+          ),
+        ]}
+      />
+
+      {visibleConflictMessage ? (
+        <AvailabilityConflictNotice
+          key={conflictId}
+          message={visibleConflictMessage}
+        />
+      ) : null}
+
+      {isLoading ? (
+        <BayGrid
+          items={LOADING_ITEMS}
+          keyExtractor={(item) => item}
+          renderItem={() => <BayCardSkeleton />}
+        />
+      ) : null}
+
+      {hasLoadError ? (
+        <ErrorState
+          title={t("booking.failedBaysTitle")}
+          message={t("common.pullToRefreshAndTryAgain")}
+          actionLabel={
+            isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+          }
+          onAction={handlePullRefresh}
+        />
+      ) : null}
+
+      {!isLoading && !hasLoadError && !slotGroup ? (
+        <EmptyState
+          title={t("booking.timeNoLongerAvailableTitle")}
+          message={t("booking.timeNoLongerAvailableMessage")}
+          actionLabel={t("booking.chooseAnotherTime")}
+          onAction={() => {
+            runWithNavigationLock(() =>
+              router.dismissTo({
+                pathname: "/select-time",
+                params: {
+                  date,
+                  ticketId,
+                  ticketName,
+                  ticketType,
+                  mode,
+                  reservationId,
+                  notes,
+                },
+              }),
+            );
+          }}
+        />
+      ) : null}
+
+      {!isLoading && !hasLoadError && slotGroup ? (
+        <BayGrid
+          items={slotGroup.baySlots}
+          keyExtractor={(bay) => bay.id}
+          renderItem={(bay) => (
+            <BayCard
+              bay={bay}
+              wasJustBooked={Boolean(
+                visibleConflictMessage && conflictSlotId === String(bay.id),
+              )}
+              isLocked={isLocked}
+              onSelect={handleSelect}
             />
-
-            {visibleConflictMessage ? (
-                <AvailabilityConflictNotice
-                    key={conflictId}
-                    message={visibleConflictMessage}
-                />
-            ) : null}
-
-            {isLoading ? (
-                <View className="gap-3">
-                    {loadingRows.map((row, rowIndex) => (
-                        <View key={rowIndex} className="flex-row gap-3">
-                            {row.map((item) => (
-                                <View
-                                    key={item}
-                                    className="flex-1 rounded-xl border border-border bg-card px-3 py-4"
-                                >
-                                    <View className="items-center gap-2">
-                                        <Skeleton className="h-5 w-16 rounded-full" />
-                                        <Skeleton className="h-4 w-20 rounded-full" />
-                                    </View>
-                                </View>
-                            ))}
-
-                            {Array.from(
-                                { length: 3 - row.length },
-                                (_, fillerIndex) => (
-                                    <View
-                                        key={`loading-filler-${rowIndex}-${fillerIndex}`}
-                                        className="flex-1"
-                                    />
-                                ),
-                            )}
-                        </View>
-                    ))}
-                </View>
-            ) : null}
-
-            {isError ? (
-                <ErrorState
-                    title={t("booking.failedBaysTitle")}
-                    message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={
-                        isRefetching
-                            ? t("common.refreshing")
-                            : t("common.refreshTryAgain")
-                    }
-                    onAction={handlePullRefresh}
-                />
-            ) : null}
-
-            {!isLoading && !isError && !slotGroup ? (
-                <EmptyState
-                    title={t("booking.timeNoLongerAvailableTitle")}
-                    message={t("booking.timeNoLongerAvailableMessage")}
-                    actionLabel={t("booking.chooseAnotherTime")}
-                    onAction={() => {
-                        runWithNavigationLock(() =>
-                            router.dismissTo({
-                                pathname: "/select-time",
-                                params: {
-                                    date,
-                                    ticketId,
-                                    ticketName,
-                                    ticketType,
-                                    mode,
-                                    reservationId,
-                                    notes,
-                                },
-                            }),
-                        );
-                    }}
-                />
-            ) : null}
-
-            {!isLoading && !isError && slotGroup ? (
-                <View className="gap-3">
-                    {bayRows.map((row, rowIndex) => (
-                        <View key={rowIndex} className="flex-row gap-3">
-                            {row.map((bay) => {
-                                const {
-                                    isBlocked,
-                                    isReserved,
-                                    isDisabled: isUnavailable,
-                                } = getBaySlotAvailability(bay);
-                                const wasJustBooked = Boolean(
-                                    visibleConflictMessage &&
-                                    conflictSlotId === String(bay.id),
-                                );
-                                const isDisabled =
-                                    isUnavailable || wasJustBooked;
-
-                                const statusLabel = wasJustBooked
-                                    ? t("booking.justBooked")
-                                    : isBlocked
-                                        ? t("booking.statusBlocked")
-                                        : isReserved
-                                            ? t("booking.statusBooked")
-                                            : isDisabled
-                                                ? t("booking.statusUnavailable")
-                                                : t("booking.statusAvailable");
-
-                                return (
-                                    <View key={bay.id} className="flex-1">
-                                        <Pressable
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`${bay.bayName}, ${statusLabel}`}
-                                            className={`items-center gap-2 rounded-2xl border px-3 py-4 ${wasJustBooked
-                                                    ? "border-warning/40 bg-warning/10 opacity-80"
-                                                    : !isDisabled
-                                                        ? "border-border bg-card"
-                                                        : "border-muted bg-muted opacity-55"
-                                                }`}
-                                            onPress={() =>
-                                                !isDisabled && handleSelect(bay)
-                                            }
-                                            disabled={isDisabled || isLocked}
-                                        >
-                                            <NativeText
-                                                variant="label"
-                                                align="center"
-                                                wrap={false}
-                                                textStyle={{
-                                                    color: !isDisabled
-                                                        ? uiColors.foreground
-                                                        : uiColors.mutedForeground
-                                                }}
-                                            >
-                                                {bay.bayName}
-                                            </NativeText>
-
-                                            <View className={cn(
-                                                "rounded-full px-2.5 py-1 ",
-                                                wasJustBooked
-                                                    ? "bg-warning/15"
-                                                    : !isDisabled
-                                                        ? "bg-primary/10"
-                                                        : "bg-muted",
-                                            )}>
-                                                <NativeText
-                                                    variant="badge"
-                                                    align="center"
-                                                    wrap={false}
-                                                    textStyle={{
-                                                        ...(wasJustBooked
-                                                            ? {
-                                                                color: uiColors.warning,
-                                                            }
-                                                            : !isDisabled
-                                                                ? {
-                                                                    color: uiColors.primary,
-                                                                }
-                                                                : {
-                                                                    color: uiColors.mutedForeground,
-                                                                })
-                                                    }}
-                                                >
-                                                    {statusLabel}
-                                                </NativeText>
-                                            </View>
-                                        </Pressable>
-                                    </View>
-                                );
-                            })}
-
-                            {Array.from(
-                                { length: 3 - row.length },
-                                (_, fillerIndex) => (
-                                    <View
-                                        key={`bay-filler-${rowIndex}-${fillerIndex}`}
-                                        className="flex-1"
-                                    />
-                                ),
-                            )}
-                        </View>
-                    ))}
-                </View>
-            ) : null}
-        </Screen>
-    );
+          )}
+        />
+      ) : null}
+    </Screen>
+  );
 }

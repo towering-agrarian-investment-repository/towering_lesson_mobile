@@ -17,6 +17,7 @@ import { triggerSelectionHaptic } from "../utils/haptics";
 
 type ListRowProps = PressableProps & {
     title: string;
+    titleContent?: ReactNode;
     subtitle?: string;
     meta?: ReactNode;
     leading?: ReactNode;
@@ -31,6 +32,7 @@ const TEXT_GAP = process.env.EXPO_OS === "web" ? 4 : 3.5;
 
 export function ListRow({
     title,
+    titleContent,
     subtitle,
     meta,
     leading,
@@ -70,34 +72,38 @@ export function ListRow({
         >
             {leading ? <View className="shrink-0">{leading}</View> : null}
 
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ flex: 1, minWidth: 0 }}>
-                <Column spacing={TEXT_GAP} alignment="start" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                    <Text
-                        numberOfLines={2}
-                        textStyle={{
-                            ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                            fontSize: typography.body.fontSize * uiFontScale,
-                            color: uiColors.foreground,
-                            ...titleStyle,
-                        }}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        {title}
-                    </Text>
-                    {subtitle ? (
+            {titleContent ? (
+                <View className="min-w-0 flex-1">{titleContent}</View>
+            ) : (
+                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ flex: 1, minWidth: 0 }}>
+                    <Column spacing={TEXT_GAP} alignment="start" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
                         <Text
                             numberOfLines={2}
                             textStyle={{
-                                ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize:
-                                    typography.caption.fontSize * uiFontScale,
+                                ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
+                                fontSize: typography.body.fontSize * uiFontScale,
+                                color: uiColors.foreground,
+                                ...titleStyle,
                             }}
                             modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {subtitle}
+                            {title}
                         </Text>
-                    ) : null}
-                </Column>
-            </Host>
+                        {subtitle ? (
+                            <Text
+                                numberOfLines={2}
+                                textStyle={{
+                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
+                                    color: uiColors.mutedForeground,
+                                    fontSize:
+                                        typography.caption.fontSize * uiFontScale,
+                                }}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
+                                {subtitle}
+                            </Text>
+                        ) : null}
+                    </Column>
+                </Host>
+            )}
 
             {meta ? (
                 typeof meta === "string" ? (

@@ -1,38 +1,45 @@
-import { NativeText } from "@/design-system/components/NativeText";
-import {
-    getNativeButtonStyle,
-} from "@/design-system/utils/native-button-styles";
 import { FormTextInput } from "@/components/ui/form";
 import {
-    CircleLoader,
-    ErrorState,
-    ListRow,
-    Screen,
-    triggerNotificationHaptic,
+  CircleLoader,
+  ErrorState,
+  getPressedScaleStyle,
+  ListRow,
+  Screen,
+  triggerNotificationHaptic,
 } from "@/design-system";
+import { NativeText } from "@/design-system/components/NativeText";
+import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import {
-    useRemoveMemberProfileImage,
-    useUpdateMemberProfileImage,
+  useRemoveMemberProfileImage,
+  useUpdateMemberProfileImage,
 } from "@/lib/hook/useUploadFile";
 import {
-    useGetMemberProfile,
-    useUpdateMemberProfile,
+  useGetMemberProfile,
+  useUpdateMemberProfile,
 } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import {
-    getProfileImageMimeType,
-    isAllowedExtension,
-    isProfileImageContentType,
-    PROFILE_IMAGE_EXTENSIONS,
-    PROFILE_IMAGE_MAX_SIZE_BYTES,
-    type ProfileImageContentType,
+  getProfileImageMimeType,
+  isAllowedExtension,
+  isProfileImageContentType,
+  PROFILE_IMAGE_EXTENSIONS,
+  PROFILE_IMAGE_MAX_SIZE_BYTES,
+  type ProfileImageContentType,
 } from "@/utils/media";
-import { BottomSheet, Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
 import {
-    defaultMinSize,
-    fillMaxWidth,
+  BottomSheet,
+  Button,
+  Host,
+  RNHostView,
+  Row,
+  Spacer,
+  Text,
+} from "@expo/ui";
+import {
+  defaultMinSize,
+  fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
 import { frame, interactiveDismissDisabled } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,655 +51,599 @@ import { Camera, ImageIcon, Trash2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { z } from "zod";
+
+const isIOS = process.env.EXPO_OS === "ios";
+const buttonSize = isIOS
+  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+  : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })];
+const buttonInnerSize = isIOS
+  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+  : [fillMaxWidth()];
+
 const createEditProfileSchema = (t: (key: string) => string) =>
-    z.object({
-        name: z.string().trim().min(1, t("profile.nameRequired")),
-        nickname: z.string().trim().max(50).optional(),
-    });
+  z.object({
+    name: z.string().trim().min(1, t("profile.nameRequired")),
+    nickname: z.string().trim().max(50).optional(),
+  });
 
 type EditProfileFormValues = z.infer<
-    ReturnType<typeof createEditProfileSchema>
+  ReturnType<typeof createEditProfileSchema>
 >;
 
 export default function EditProfileScreen() {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
-    const { t } = useTranslation();
-    const router = useRouter();
-    const {
-        data: memberResponse,
-        isLoading,
-        refetch,
-        isRefetching,
-    } = useGetMemberProfile();
-    const { mutate: updateProfile, isPending: isSubmitting } =
-        useUpdateMemberProfile();
-    const { mutate: uploadProfileImage, isPending: isUploadingImage } =
-        useUpdateMemberProfileImage();
-    const { mutate: removeProfileImage, isPending: isRemovingImage } =
-        useRemoveMemberProfileImage();
-    const removalLock = useRef(false);
-    const pickingImage = useRef(false);
-    const submitting = useRef(false);
-    const [isPickingImage, setIsPickingImage] = useState(false);
-    const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
-    const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
-        useState(false);
+  const {
+    colors,
+    resolvedScheme: uiScheme,
+    fontScale: uiFontScale,
+  } = useTheme();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const {
+    data: memberResponse,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useGetMemberProfile();
+  const { mutate: updateProfile, isPending: isSubmitting } =
+    useUpdateMemberProfile();
+  const { mutate: uploadProfileImage, isPending: isUploadingImage } =
+    useUpdateMemberProfileImage();
+  const { mutate: removeProfileImage, isPending: isRemovingImage } =
+    useRemoveMemberProfileImage();
+  const removalLock = useRef(false);
+  const pickingImage = useRef(false);
+  const submitting = useRef(false);
+  const [isPickingImage, setIsPickingImage] = useState(false);
+  const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
+  const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
+    useState(false);
 
-    const member = memberResponse?.data;
-    const memberId = member?.id;
-    const memberName = member?.name;
-    const memberNickname = member?.nickname;
-    const editProfileSchema = createEditProfileSchema(t);
+  const member = memberResponse?.data;
+  const memberId = member?.id;
+  const memberName = member?.name;
+  const memberNickname = member?.nickname;
+  const editProfileSchema = createEditProfileSchema(t);
 
-    const form = useForm<EditProfileFormValues>({
-        defaultValues: {
-            name: "",
-            nickname: "",
-        },
-        resolver: zodResolver(editProfileSchema),
-        mode: "onChange",
+  const form = useForm<EditProfileFormValues>({
+    defaultValues: {
+      name: "",
+      nickname: "",
+    },
+    resolver: zodResolver(editProfileSchema),
+    mode: "onChange",
+  });
+  const isSaveDisabled =
+    isSubmitting || isUpdatingImage || !form.formState.isDirty;
+
+  useEffect(() => {
+    if (!memberId) {
+      return;
+    }
+
+    form.reset({
+      name: memberName ?? "",
+      nickname: memberNickname ?? "",
     });
+  }, [form, memberId, memberName, memberNickname]);
 
-    useEffect(() => {
-        if (!memberId) {
-            return;
-        }
-
-        form.reset({
-            name: memberName ?? "",
-            nickname: memberNickname ?? "",
-        });
-    }, [form, memberId, memberName, memberNickname]);
-
-    const onSubmit = (values: EditProfileFormValues) => {
-        if (!member || submitting.current || isSubmitting || isUpdatingImage) {
-            return;
-        }
-
-        submitting.current = true;
-        updateProfile(
-            {
-                name: values.name.trim(),
-                nickname: values.nickname?.trim() || null,
-            },
-            {
-                onSuccess: () => {
-                    triggerNotificationHaptic(
-                        Haptics.NotificationFeedbackType.Success,
-                    );
-                    router.dismissTo("/(app)/(tabs)/profile");
-                },
-                onSettled: () => { submitting.current = false; },
-            },
-        );
-    };
-
-    const handleInvalidSubmit = (
-        errors: FieldErrors<EditProfileFormValues>,
-    ) => {
-        form.setFocus(errors.name ? "name" : "nickname");
-    };
-
-    const uploadSelectedProfileImage = (
-        memberId: number,
-        asset: ImagePicker.ImagePickerAsset,
-    ) => {
-        const image = createProfileImageFromAsset(asset, t);
-
-        uploadProfileImage(
-            {
-                memberId,
-                imageUri: image.uri,
-                contentType: image.contentType,
-            },
-            {
-                onSuccess: () => {
-                    triggerNotificationHaptic(
-                        Haptics.NotificationFeedbackType.Success,
-                    );
-                    showAppToast({
-                        message: t("profile.profileImageUpdated"),
-                        type: "success",
-                    });
-                },
-            },
-        );
-    };
-
-    const handlePickProfileImageFromLibrary = async () => {
-        if (!member?.id || pickingImage.current || isUpdatingImage || isSubmitting) {
-            return;
-        }
-
-        pickingImage.current = true;
-        setIsPickingImage(true);
-        try {
-            const permission =
-                await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-            if (!permission.granted) {
-                showAppToast({
-                    message: t("profile.photoLibraryPermission"),
-                    type: "error",
-                });
-                return;
-            }
-
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"],
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.9,
-            });
-            setIsPhotoSourceSheetVisible(false);
-
-            if (result.canceled || !result.assets[0]) {
-                return;
-            }
-
-            uploadSelectedProfileImage(member.id, result.assets[0]);
-        } catch (uploadError) {
-            showAppToast({
-                message:
-                    uploadError instanceof Error
-                        ? uploadError.message
-                        : t("profile.prepareSelectedImageFailed"),
-                type: "error",
-            });
-        } finally {
-            pickingImage.current = false;
-            setIsPickingImage(false);
-        }
-    };
-
-    const handleTakeProfileImage = async () => {
-        if (!member?.id || pickingImage.current || isUpdatingImage || isSubmitting) {
-            return;
-        }
-
-        pickingImage.current = true;
-        setIsPickingImage(true);
-        try {
-            const permission = await ImagePicker.requestCameraPermissionsAsync();
-
-            if (!permission.granted) {
-                showAppToast({
-                    message: t("profile.cameraPermission"),
-                    type: "error",
-                });
-                return;
-            }
-
-            const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ["images"],
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.9,
-            });
-            setIsPhotoSourceSheetVisible(false);
-
-            if (result.canceled || !result.assets[0]) {
-                return;
-            }
-
-            uploadSelectedProfileImage(member.id, result.assets[0]);
-        } catch (uploadError) {
-            showAppToast({
-                message:
-                    uploadError instanceof Error
-                        ? uploadError.message
-                        : t("profile.prepareCapturedImageFailed"),
-                type: "error",
-            });
-        } finally {
-            pickingImage.current = false;
-            setIsPickingImage(false);
-        }
-    };
-
-    const handleChangeProfileImage = () => {
-        if (!member?.id || isUpdatingImage || isSubmitting) {
-            return;
-        }
-
-        setIsPhotoSourceSheetVisible(true);
-    };
-
-    const closePhotoSourceSheet = () => {
-        if (pickingImage.current || removalLock.current || isUpdatingImage) return;
-        setIsPhotoSourceSheetVisible(false);
-    };
-
-    const handleRemoveProfileImage = () => {
-        if (
-            !member?.profileImage ||
-            isUpdatingImage ||
-            isSubmitting ||
-            removalLock.current
-        ) {
-            return;
-        }
-
-        removalLock.current = true;
-        removeProfileImage(member.id, {
-            onSuccess: () => {
-                setIsPhotoSourceSheetVisible(false);
-                triggerNotificationHaptic(
-                    Haptics.NotificationFeedbackType.Success,
-                );
-                showAppToast({
-                    message: t("profile.profileImageRemoved"),
-                    type: "success",
-                });
-            },
-            onSettled: () => {
-                removalLock.current = false;
-            },
-        });
-    };
-
-    if (isLoading) {
-        return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
+  const onSubmit = (values: EditProfileFormValues) => {
+    if (!member || submitting.current || isSubmitting || isUpdatingImage) {
+      return;
     }
 
-    if (!member) {
-        return (
-            <ErrorState
-                title={t("home.couldNotLoadProfile")}
-                message={t("home.checkConnection")}
-                actionLabel={
-                    isRefetching
-                        ? t("common.refreshing")
-                        : t("common.refreshTryAgain")
-                }
-                onAction={() => {
-                    void refetch();
-                }}
-            />
-        );
-    }
-
-    return (
-        <Screen
-            maxWidth={640}
-            keyboardAware
-            footer={
-                <View className="pb-8 pt-4">
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        style={{ width: "100%" }}
-                        accessibilityLabel={
-                            isSubmitting
-                                ? t("profile.saving")
-                                : t("profile.saveChanges")
-                        }
-                        accessibilityState={{
-                            disabled:
-                                isSubmitting ||
-                                isUpdatingImage ||
-                                !form.formState.isDirty ||
-                                isSubmitting,
-                            busy: isSubmitting,
-                        }}
-                    >
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={
-                                isSubmitting ||
-                                isUpdatingImage ||
-                                !form.formState.isDirty ||
-                                isSubmitting
-                            }
-                            onPress={() => { void form.handleSubmit(
-                                onSubmit,
-                                handleInvalidSubmit,
-                            )(); }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "filled",
-                                    isSubmitting ||
-                                    isUpdatingImage ||
-                                    !form.formState.isDirty ||
-                                    isSubmitting,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Row
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                        : [fillMaxWidth()]
-                                }
-                                spacing={8}
-                                alignment="center"
-                            >
-                                <Spacer flexible />
-                                {isSubmitting ? (
-                                    <RNHostView matchContents>
-                                        <ActivityIndicator
-                                            color={colors.primaryForeground}
-                                        />
-                                    </RNHostView>
-                                ) : null}
-                                <Text
-                                    textStyle={{
-                                        textAlign: "center",
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        fontWeight: "600",
-                                        color: colors.primaryForeground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {isSubmitting
-                                        ? t("profile.saving")
-                                        : t("profile.saveChanges")}
-                                </Text>
-                                <Spacer flexible />
-                            </Row>
-                        </Button>
-                    </Host>
-                </View>
-            }
-        >
-            <BottomSheet
-                isPresented={isPhotoSourceSheetVisible}
-                onDismiss={closePhotoSourceSheet}
-                shouldDismissOnBackPress={!isUpdatingImage}
-                shouldDismissOnClickOutside={!isUpdatingImage}
-                modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(isUpdatingImage)] : undefined}
-                containerColor={colors.card}
-                contentColor={colors.foreground}
-                contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
-            >
-                <RNHostView matchContents={{ vertical: true }}>
-                    <View className="gap-4">
-                        <View className="gap-1">
-                            <NativeText variant="h3">
-                                {t("profile.changeProfilePhoto")}
-                            </NativeText>
-                            <NativeText variant="muted" color="mutedForeground">
-                                {t("profile.changeProfilePhotoDescription")}
-                            </NativeText>
-                        </View>
-                        <View className="gap-3">
-                            <ListRow
-                                title={t("profile.takePhoto")}
-                                subtitle={t("profile.useCamera")}
-                                titleStyle={{ fontWeight: "500" }}
-                                leading={<View className="h-11 w-11 items-center justify-center rounded-full bg-muted"><Camera size={22} color={colors.foreground} /></View>}
-                                showChevron={false}
-                                className="bg-surface"
-                                disabled={isUpdatingImage || isSubmitting}
-                                onPress={() => { void handleTakeProfileImage(); }}
-                            />
-                            <ListRow
-                                title={t("profile.chooseFromLibrary")}
-                                subtitle={t("profile.selectExistingPhoto")}
-                                titleStyle={{ fontWeight: "500" }}
-                                leading={<View className="h-11 w-11 items-center justify-center rounded-full bg-muted"><ImageIcon size={22} color={colors.foreground} /></View>}
-                                showChevron={false}
-                                className="bg-surface"
-                                disabled={isUpdatingImage || isSubmitting}
-                                onPress={() => { void handlePickProfileImageFromLibrary(); }}
-                            />
-                            {member.profileImage ? (
-                                <ListRow
-                                    title={t("profile.removePhoto")}
-                                    titleStyle={{ fontWeight: "500" }}
-                                    leading={<View className="h-11 w-11 items-center justify-center rounded-full bg-muted"><Trash2 size={22} color={colors.danger} /></View>}
-                                    showChevron={false}
-                                    className="bg-surface"
-                                    disabled={isUpdatingImage || isSubmitting}
-                                    onPress={handleRemoveProfileImage}
-                                />
-                            ) : null}
-                        </View>
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={uiScheme} style={{ width: "100%" }}>
-                            <Button
-                                variant="text"
-                                disabled={isUpdatingImage}
-                                onPress={closePhotoSourceSheet}
-                                style={getNativeButtonStyle(colors, "text")}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}
-                            >
-                                <Text
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}
-                                    textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontSize: typography.label.fontSize * uiFontScale, color: colors.foreground, textAlign: "center" }}
-                                >
-                                    {t("common.cancel")}
-                                </Text>
-                            </Button>
-                        </Host>
-                    </View>
-                </RNHostView>
-            </BottomSheet>
-
-            <View className="gap-8">
-                <View className="w-full items-center gap-4">
-                    <ProfileImagePreview
-                        name={member.name}
-                        imageUrl={member.profileImage}
-                    />
-
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        style={{ width: "100%" }}
-                        accessibilityLabel={
-                            isRemovingImage
-                                ? t("profile.removingPhoto")
-                                : isUploadingImage
-                                    ? t("profile.uploading")
-                                    : t("profile.changePhoto")
-                        }
-                        accessibilityState={{
-                            disabled:
-                                isUpdatingImage ||
-                                isSubmitting ||
-                                isUpdatingImage,
-                            busy: isUpdatingImage,
-                        }}
-                    >
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={
-                                isUpdatingImage ||
-                                isSubmitting ||
-                                isUpdatingImage
-                            }
-                            onPress={() => {
-                                handleChangeProfileImage();
-                            }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "outlined",
-                                    isUpdatingImage ||
-                                    isSubmitting ||
-                                    isUpdatingImage,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Row
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                        : [fillMaxWidth()]
-                                }
-                                spacing={8}
-                                alignment="center"
-                            >
-                                <Spacer flexible />
-                                {isUpdatingImage ? (
-                                    <RNHostView matchContents>
-                                        <ActivityIndicator
-                                            color={colors.foreground}
-                                        />
-                                    </RNHostView>
-                                ) : null}
-                                <Text
-                                    textStyle={{
-                                        textAlign: "center",
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        fontWeight: "600",
-                                        color: colors.foreground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {isRemovingImage
-                                        ? t("profile.removingPhoto")
-                                        : isUploadingImage
-                                            ? t("profile.uploading")
-                                            : t("profile.changePhoto")}
-                                </Text>
-                                <Spacer flexible />
-                            </Row>
-                        </Button>
-                    </Host>
-                </View>
-
-                <View className="gap-6">
-                    <NativeText
-                        variant="body"
-                        textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
-                    >
-                        {t("profile.basicInformation")}
-                    </NativeText>
-
-                    <FormTextInput
-                        control={form.control}
-                        name="name"
-                        label={t("profile.fullName")}
-                        placeholder={t("profile.fullNamePlaceholder")}
-                        autoComplete="name"
-                    />
-
-                    <FormTextInput
-                        control={form.control}
-                        name="nickname"
-                        label={t("profile.nickname", {
-                            defaultValue: "Nickname",
-                        })}
-                        placeholder={t("profile.nicknamePlaceholder", {
-                            defaultValue: "Enter a nickname",
-                        })}
-                        autoComplete="nickname"
-                    />
-                </View>
-            </View>
-        </Screen>
+    submitting.current = true;
+    updateProfile(
+      {
+        name: values.name.trim(),
+        nickname: values.nickname?.trim() || null,
+      },
+      {
+        onSuccess: () => {
+          triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
+          router.dismissTo("/(app)/(tabs)/profile");
+        },
+        onSettled: () => {
+          submitting.current = false;
+        },
+      },
     );
+  };
+
+  const handleInvalidSubmit = (errors: FieldErrors<EditProfileFormValues>) => {
+    form.setFocus(errors.name ? "name" : "nickname");
+  };
+
+  const uploadSelectedProfileImage = (
+    memberId: number,
+    asset: ImagePicker.ImagePickerAsset,
+  ) => {
+    const image = createProfileImageFromAsset(asset, t);
+
+    uploadProfileImage(
+      {
+        memberId,
+        imageUri: image.uri,
+        contentType: image.contentType,
+      },
+      {
+        onSuccess: () => {
+          triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
+          showAppToast({
+            message: t("profile.profileImageUpdated"),
+            type: "success",
+          });
+        },
+      },
+    );
+  };
+
+  const handlePickProfileImageFromLibrary = async () => {
+    if (
+      !member?.id ||
+      pickingImage.current ||
+      isUpdatingImage ||
+      isSubmitting
+    ) {
+      return;
+    }
+
+    pickingImage.current = true;
+    setIsPickingImage(true);
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        showAppToast({
+          message: t("profile.photoLibraryPermission"),
+          type: "error",
+        });
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+      setIsPhotoSourceSheetVisible(false);
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      uploadSelectedProfileImage(member.id, result.assets[0]);
+    } catch (uploadError) {
+      showAppToast({
+        message:
+          uploadError instanceof Error
+            ? uploadError.message
+            : t("profile.prepareSelectedImageFailed"),
+        type: "error",
+      });
+    } finally {
+      pickingImage.current = false;
+      setIsPickingImage(false);
+    }
+  };
+
+  const handleTakeProfileImage = async () => {
+    if (
+      !member?.id ||
+      pickingImage.current ||
+      isUpdatingImage ||
+      isSubmitting
+    ) {
+      return;
+    }
+
+    pickingImage.current = true;
+    setIsPickingImage(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permission.granted) {
+        showAppToast({
+          message: t("profile.cameraPermission"),
+          type: "error",
+        });
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+      setIsPhotoSourceSheetVisible(false);
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      uploadSelectedProfileImage(member.id, result.assets[0]);
+    } catch (uploadError) {
+      showAppToast({
+        message:
+          uploadError instanceof Error
+            ? uploadError.message
+            : t("profile.prepareCapturedImageFailed"),
+        type: "error",
+      });
+    } finally {
+      pickingImage.current = false;
+      setIsPickingImage(false);
+    }
+  };
+
+  const handleChangeProfileImage = () => {
+    if (!member?.id || isUpdatingImage || isSubmitting) {
+      return;
+    }
+
+    setIsPhotoSourceSheetVisible(true);
+  };
+
+  const closePhotoSourceSheet = () => {
+    if (pickingImage.current || removalLock.current || isUpdatingImage) return;
+    setIsPhotoSourceSheetVisible(false);
+  };
+
+  const handleRemoveProfileImage = () => {
+    if (
+      !member?.profileImage ||
+      isUpdatingImage ||
+      isSubmitting ||
+      removalLock.current
+    ) {
+      return;
+    }
+
+    removalLock.current = true;
+    removeProfileImage(member.id, {
+      onSuccess: () => {
+        setIsPhotoSourceSheetVisible(false);
+        triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
+        showAppToast({
+          message: t("profile.profileImageRemoved"),
+          type: "success",
+        });
+      },
+      onSettled: () => {
+        removalLock.current = false;
+      },
+    });
+  };
+
+  if (isLoading) {
+    return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
+  }
+
+  if (!member) {
+    return (
+      <ErrorState
+        title={t("home.couldNotLoadProfile")}
+        message={t("home.checkConnection")}
+        actionLabel={
+          isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+        }
+        onAction={() => {
+          void refetch();
+        }}
+      />
+    );
+  }
+
+  const photoActionLabel = isRemovingImage
+    ? t("profile.removingPhoto")
+    : isUploadingImage
+      ? t("profile.uploading")
+      : t("profile.changePhoto");
+
+  return (
+    <Screen
+      maxWidth={640}
+      keyboardAware
+      footer={
+        <View className="pb-8 pt-4">
+          <Host
+            matchContents={{ vertical: true }}
+            ignoreSafeArea="all"
+            colorScheme={uiScheme}
+            seedColor={colors.primary}
+            style={{ width: "100%" }}
+            accessibilityLabel={
+              isSubmitting ? t("profile.saving") : t("profile.saveChanges")
+            }
+            accessibilityState={{
+              disabled: isSaveDisabled,
+              busy: isSubmitting,
+            }}
+          >
+            <Button
+              modifiers={buttonSize}
+              variant="text"
+              disabled={isSaveDisabled}
+              onPress={() => {
+                void form.handleSubmit(onSubmit, handleInvalidSubmit)();
+              }}
+              style={getNativeButtonStyle(colors, "filled")}
+            >
+              <Row modifiers={buttonInnerSize} spacing={8} alignment="center">
+                <Spacer flexible />
+                {isSubmitting ? (
+                  <RNHostView matchContents>
+                    <ActivityIndicator color={colors.primaryForeground} />
+                  </RNHostView>
+                ) : null}
+                <Text
+                  textStyle={{
+                    textAlign: "center",
+                    ...typography.label,
+                    lineHeight: typography.label.lineHeight * uiFontScale,
+                    fontWeight: "600",
+                    color: colors.primaryForeground,
+                    fontSize: typography.label.fontSize * uiFontScale,
+                  }}
+                >
+                  {isSubmitting
+                    ? t("profile.saving")
+                    : t("profile.saveChanges")}
+                </Text>
+                <Spacer flexible />
+              </Row>
+            </Button>
+          </Host>
+        </View>
+      }
+    >
+      <BottomSheet
+        isPresented={isPhotoSourceSheetVisible}
+        onDismiss={closePhotoSourceSheet}
+        shouldDismissOnBackPress={!isUpdatingImage}
+        shouldDismissOnClickOutside={!isUpdatingImage}
+        modifiers={
+          isIOS ? [interactiveDismissDisabled(isUpdatingImage)] : undefined
+        }
+        containerColor={colors.card}
+        contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
+      >
+        <RNHostView matchContents={{ vertical: true }}>
+          <View className="gap-4">
+            <View className="gap-1">
+              <NativeText variant="h3">
+                {t("profile.changeProfilePhoto")}
+              </NativeText>
+              <NativeText variant="muted" color="mutedForeground">
+                {t("profile.changeProfilePhotoDescription")}
+              </NativeText>
+            </View>
+            <View className="gap-3">
+              <ListRow
+                title={t("profile.takePhoto")}
+                subtitle={t("profile.useCamera")}
+                titleStyle={{ fontWeight: "500" }}
+                leading={
+                  <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                    <Camera size={22} color={colors.foreground} />
+                  </View>
+                }
+                showChevron={false}
+                className="bg-surface"
+                disabled={isUpdatingImage || isSubmitting}
+                onPress={() => {
+                  void handleTakeProfileImage();
+                }}
+              />
+              <ListRow
+                title={t("profile.chooseFromLibrary")}
+                subtitle={t("profile.selectExistingPhoto")}
+                titleStyle={{ fontWeight: "500" }}
+                leading={
+                  <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                    <ImageIcon size={22} color={colors.foreground} />
+                  </View>
+                }
+                showChevron={false}
+                className="bg-surface"
+                disabled={isUpdatingImage || isSubmitting}
+                onPress={() => {
+                  void handlePickProfileImageFromLibrary();
+                }}
+              />
+              {member.profileImage ? (
+                <ListRow
+                  title={t("profile.removePhoto")}
+                  titleStyle={{ fontWeight: "500" }}
+                  leading={
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                      <Trash2 size={22} color={colors.danger} />
+                    </View>
+                  }
+                  showChevron={false}
+                  className="bg-surface"
+                  disabled={isUpdatingImage || isSubmitting}
+                  onPress={handleRemoveProfileImage}
+                />
+              ) : null}
+            </View>
+            <Host
+              matchContents={{ vertical: true }}
+              ignoreSafeArea="all"
+              colorScheme={uiScheme}
+              style={{ width: "100%" }}
+            >
+              <Button
+                variant="text"
+                disabled={isUpdatingImage}
+                onPress={closePhotoSourceSheet}
+                style={getNativeButtonStyle(colors, "text")}
+                modifiers={buttonSize}
+              >
+                <Text
+                  modifiers={buttonInnerSize}
+                  textStyle={{
+                    ...typography.label,
+                    lineHeight: typography.label.lineHeight * uiFontScale,
+                    fontSize: typography.label.fontSize * uiFontScale,
+                    color: colors.foreground,
+                    textAlign: "center",
+                  }}
+                >
+                  {t("common.cancel")}
+                </Text>
+              </Button>
+            </Host>
+          </View>
+        </RNHostView>
+      </BottomSheet>
+
+      <View className="gap-8">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={photoActionLabel}
+          accessibilityState={{
+            disabled: isUpdatingImage || isSubmitting,
+            busy: isUpdatingImage,
+          }}
+          disabled={isUpdatingImage || isSubmitting}
+          className="items-center gap-3 self-center"
+          style={({ pressed }) =>
+            getPressedScaleStyle(pressed, isUpdatingImage || isSubmitting, 0.98)
+          }
+          onPress={handleChangeProfileImage}
+        >
+          <View className="h-28 w-28">
+            <ProfileImagePreview
+              name={member.name}
+              imageUrl={member.profileImage}
+            />
+
+            {isUpdatingImage ? (
+              <View className="absolute inset-0 items-center justify-center rounded-full bg-black/40">
+                <ActivityIndicator color="#ffffff" />
+              </View>
+            ) : null}
+
+            <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-primary">
+              <Camera size={16} color={colors.primaryForeground} />
+            </View>
+          </View>
+
+          <NativeText variant="meta" color="primary" wrap={false}>
+            {photoActionLabel}
+          </NativeText>
+        </Pressable>
+
+        <View className="gap-6">
+          <NativeText
+            variant="body"
+            textStyle={{
+              lineHeight: typography.h3.lineHeight,
+              fontSize: typography.subtitle.fontSize,
+              fontWeight: "600" as const,
+            }}
+          >
+            {t("profile.basicInformation")}
+          </NativeText>
+
+          <FormTextInput
+            control={form.control}
+            name="name"
+            label={t("profile.fullName")}
+            placeholder={t("profile.fullNamePlaceholder")}
+            autoComplete="name"
+          />
+
+          <FormTextInput
+            control={form.control}
+            name="nickname"
+            label={t("profile.nickname", {
+              defaultValue: "Nickname",
+            })}
+            placeholder={t("profile.nicknamePlaceholder", {
+              defaultValue: "Enter a nickname",
+            })}
+            autoComplete="nickname"
+          />
+        </View>
+      </View>
+    </Screen>
+  );
 }
 
 function createProfileImageFromAsset(
-    asset: ImagePicker.ImagePickerAsset,
-    t: (key: string) => string,
+  asset: ImagePicker.ImagePickerAsset,
+  t: (key: string) => string,
 ): { uri: string; contentType: ProfileImageContentType } {
-    if (
-        typeof asset.fileSize === "number" &&
-        asset.fileSize > PROFILE_IMAGE_MAX_SIZE_BYTES
-    ) {
-        throw new Error(t("profile.profileImageTooLarge"));
-    }
+  if (
+    typeof asset.fileSize === "number" &&
+    asset.fileSize > PROFILE_IMAGE_MAX_SIZE_BYTES
+  ) {
+    throw new Error(t("profile.profileImageTooLarge"));
+  }
 
-    const rawName =
-        asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
-    const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
-    const hasSupportedExtension = isAllowedExtension(
-        rawName,
-        PROFILE_IMAGE_EXTENSIONS,
-    );
-    const normalizedMimeType = asset.mimeType?.toLowerCase();
-    const hasSupportedMimeType = isProfileImageContentType(normalizedMimeType);
+  const rawName =
+    asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
+  const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
+  const hasSupportedExtension = isAllowedExtension(
+    rawName,
+    PROFILE_IMAGE_EXTENSIONS,
+  );
+  const normalizedMimeType = asset.mimeType?.toLowerCase();
+  const hasSupportedMimeType = isProfileImageContentType(normalizedMimeType);
 
-    if (
-        (normalizedMimeType && !hasSupportedMimeType) ||
-        (!normalizedMimeType && !hasSupportedExtension)
-    ) {
-        throw new Error(t("profile.onlyImageTypesSupported"));
-    }
+  if (
+    (normalizedMimeType && !hasSupportedMimeType) ||
+    (!normalizedMimeType && !hasSupportedExtension)
+  ) {
+    throw new Error(t("profile.onlyImageTypesSupported"));
+  }
 
-    const contentType = hasSupportedMimeType
-        ? normalizedMimeType
-        : getProfileImageMimeType(extension);
+  const contentType = hasSupportedMimeType
+    ? normalizedMimeType
+    : getProfileImageMimeType(extension);
 
-    if (!contentType) {
-        throw new Error(t("profile.onlyImageTypesSupported"));
-    }
+  if (!contentType) {
+    throw new Error(t("profile.onlyImageTypesSupported"));
+  }
 
-    return {
-        uri: asset.uri,
-        contentType,
-    };
+  return {
+    uri: asset.uri,
+    contentType,
+  };
 }
 
 function ProfileImagePreview({
-    name,
-    imageUrl,
+  name,
+  imageUrl,
 }: {
-    name?: string | null;
-    imageUrl?: string | null;
+  name?: string | null;
+  imageUrl?: string | null;
 }) {
-
-    if (imageUrl) {
-        return (
-            <Image
-                source={{ uri: imageUrl }}
-                style={{
-                    width: 112,
-                    height: 112,
-                    borderRadius: 999,
-                }}
-                contentFit="cover"
-            />
-        );
-    }
-
+  if (imageUrl) {
     return (
-        <View className="h-28 w-28 items-center justify-center rounded-full bg-primary">
-            <NativeText variant="h1" color="primaryForeground" wrap={false}>
-                {name?.charAt(0).toUpperCase() || "?"}
-            </NativeText>
-        </View>
+      <Image
+        source={{ uri: imageUrl }}
+        style={{
+          width: 112,
+          height: 112,
+          borderRadius: 999,
+        }}
+        contentFit="cover"
+      />
     );
+  }
+
+  return (
+    <View className="h-28 w-28 items-center justify-center rounded-full bg-primary">
+      <NativeText variant="h1" color="primaryForeground" wrap={false}>
+        {name?.charAt(0).toUpperCase() || "?"}
+      </NativeText>
+    </View>
+  );
 }

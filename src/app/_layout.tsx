@@ -60,12 +60,6 @@ function RootLayout() {
   const hasUnauthorizedSession = !!session && signedInRole !== ALLOWED_APP_ROLE;
 
   useEffect(() => {
-    if (!isAuthPending && !update.isChecking) {
-      void SplashScreen.hideAsync();
-    }
-  }, [isAuthPending, update.isChecking]);
-
-  useEffect(() => {
     if (!hasUnauthorizedSession) {
       return;
     }
@@ -103,8 +97,14 @@ function ThemedRoot({
   hasAuthorizedSession: boolean;
   update: ReturnType<typeof useAppUpdate>;
 }) {
-  const { colors, resolvedScheme } = useTheme();
+  const { colors, resolvedScheme, isReady: isThemeReady } = useTheme();
   const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
+
+  useEffect(() => {
+    if (isThemeReady && !isAuthPending && !update.isChecking) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isThemeReady, isAuthPending, update.isChecking]);
 
   usePushNotification(
     hasAuthorizedSession && isWelcomeReady && hasCompletedWelcome &&
@@ -144,18 +144,20 @@ function ThemedRoot({
   return (
     <>
       <VariableContextProvider value={themeVariables}>
-        {!isWelcomeReady || update.isChecking || isAuthPending ? (
+        {!isThemeReady || !isWelcomeReady || update.isChecking || isAuthPending ? (
           <View className="flex-1 bg-background" />
         ) : null}
 
-        {isWelcomeReady &&
+        {isThemeReady &&
+        isWelcomeReady &&
         !update.isChecking &&
         update.isForceUpdateRequired &&
         update.state ? (
           <AppUpdateGate state={update.state} force />
         ) : null}
 
-        {isWelcomeReady &&
+        {isThemeReady &&
+        isWelcomeReady &&
         !isAuthPending &&
         !update.isChecking &&
         !update.isForceUpdateRequired ? (

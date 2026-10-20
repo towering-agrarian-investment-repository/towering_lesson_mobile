@@ -17,9 +17,11 @@ import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
 import { cn } from "@/design-system/utils/cn";
 import { getThemeColors, useTheme } from "@/design-system/utils/theme";
 import { ProfilePreferenceRow } from "@/components/golf/profile/ProfilePreferenceRow";
+import TitleSectionWithBadge from "@/components/golf/TitleSectionWithBadge";
 import { typography } from "@/design-system/utils/typography";
 import { setAppLanguage, type AppLanguage } from "@/i18n";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import { useMemberLessonLogs } from "@/lib/hook/useLessonLog";
 import { showAppToast } from "@/lib/toast/toast";
 import { openStore } from "@/lib/update/app-update";
 import { useAppUpdateContext } from "@/lib/update/update-context";
@@ -67,8 +69,15 @@ export default function ProfileScreen() {
         refetch,
         isRefetching,
     } = useGetMemberProfile();
+    const {
+        data: lessonLogsResponse,
+        refetch: refetchLessonLogs,
+    } = useMemberLessonLogs();
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+        usePullToRefresh(() => Promise.all([
+            refetch({ cancelRefetch: false }),
+            refetchLessonLogs({ cancelRefetch: false }),
+        ]));
 
     const member = memberResponse?.data;
     const genderLabels: Record<GenderEnum, string> = {
@@ -220,6 +229,7 @@ export default function ProfileScreen() {
                                 <LinkRow
                                     label={t("profile.lessonLog")}
                                     href="/lesson-log"
+                                    count={lessonLogsResponse?.data.length}
                                 />
                             </View>
                             <View
@@ -638,11 +648,15 @@ function ParentRow({
     );
 }
 
-function LinkRow({ label, href }: { label: string; href: Href }) {
+function LinkRow({ label, href, count }: { label: string; href: Href; count?: number }) {
     return (
         <Link href={href} asChild>
             <ListRow
                 title={label}
+                accessibilityLabel={count === undefined ? label : `${label}, ${count}`}
+                titleContent={count === undefined ? undefined : (
+                    <TitleSectionWithBadge label={label} length={count} variant="body" tone="primary" />
+                )}
                 className="px-0 py-3 border-0 bg-transparent"
             />
         </Link>
