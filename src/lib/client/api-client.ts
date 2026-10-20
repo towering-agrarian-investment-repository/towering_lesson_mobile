@@ -1,4 +1,3 @@
-import { authClient } from "../auth-client";
 import { verifyMemberSession } from "../auth-session";
 import { env } from "../config/env";
 import i18n from "../../i18n";
@@ -9,26 +8,9 @@ import {
 } from "../api-response/api-response";
 import { notifyUpdateRequired } from "../update/app-update";
 import { getAppRequestHeaders } from "./app-request-headers";
+import { clearCachedJwtToken, getJwtToken } from "./jwt-token";
 
 const API_BASE_URL = env.apiBaseUrl;
-
-type JwtResponse = {
-    token?: string | null;
-};
-
-async function getJwtToken(signal?: AbortSignal): Promise<string | null> {
-    const result = await authClient.$fetch<JwtResponse>("/token", {
-        method: "GET",
-        signal,
-    });
-
-    if (result.error) {
-        return null;
-    }
-
-    return result.data?.token ?? null;
-}
-
 
 export async function apiClient<T = unknown>(
     endpoint: string,
@@ -61,6 +43,7 @@ export async function apiClient<T = unknown>(
     });
 
     if (response.status === 401) {
+        clearCachedJwtToken();
         await verifyMemberSession();
     }
 

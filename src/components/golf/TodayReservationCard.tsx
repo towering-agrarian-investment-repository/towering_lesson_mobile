@@ -4,10 +4,8 @@ import {
     triggerSelectionHaptic,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatTimeRange } from "@/utils/time-helper";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import React, { memo } from "react";
@@ -20,7 +18,6 @@ type Props = {
 
 function TodayReservationCard({ reservation }: Props) {
     const { colors } = useTheme();
-    const queryClient = useQueryClient();
     const { t } = useTranslation();
     const isBayReservation = reservation.reservationType === "bay";
     const title = isBayReservation
@@ -49,14 +46,6 @@ function TodayReservationCard({ reservation }: Props) {
                 style={({ pressed }) =>
                     getPressedScaleStyle(pressed, false, 0.992)
                 }
-                onPressIn={() => {
-                    void queryClient.prefetchQuery(
-                        getMemberReservationDetailQueryOptions(
-                            reservation.id,
-                            reservation.reservationType,
-                        ),
-                    );
-                }}
                 onPress={() => {
                     triggerSelectionHaptic();
                 }}

@@ -157,12 +157,10 @@ export function useSubmitMemberHomework() {
     return useMutation({
         mutationFn: async ({
             homeworkId,
-            homeworkInstanceId,
             file,
             memberMemo,
         }: {
             homeworkId: number;
-            homeworkInstanceId: number;
             file: HomeworkSubmissionFile;
             memberMemo?: string;
         }) => {
@@ -186,7 +184,7 @@ export function useSubmitMemberHomework() {
 
             const requestUploadTarget = async () => {
                 const uploadResponse = await generateHomeworkSubmissionUpload(homeworkId, {
-                    homeworkInstanceId,
+                    homeworkInstanceId: homeworkId,
                     files: [
                         {
                             originalFileName,
@@ -247,21 +245,11 @@ export function useSubmitMemberHomework() {
                 memberMemo: memberMemo?.trim() || undefined,
             });
         },
-        onSuccess: (res, variables) => {
+        onSuccess: (res) => {
             responseStatus(res);
             queryClient.invalidateQueries({ queryKey: ["member", "homeworks"] });
-            queryClient.invalidateQueries({
-                queryKey: ["member", "homeworks", variables.homeworkId],
-            });
-            queryClient.invalidateQueries({
-                queryKey: [
-                    "member",
-                    "homeworks",
-                    variables.homeworkId,
-                    "submissions",
-                ],
-            });
             queryClient.invalidateQueries({ queryKey: ["member", "groups"] });
+            queryClient.invalidateQueries({ queryKey: ["member", "lessons"] });
         },
         onError: (error: unknown) => {
             responseError(error);

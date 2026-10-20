@@ -24,13 +24,18 @@ import {
     MemberLessonSlotResponse,
 } from "@/types/member-lesson";
 import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
-import { keepPreviousData, QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, keepPreviousData, QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_ERROR_CODE, ApiResponse, ApiErrorResponse, CursorPageResponse, isApiError, responseError, responseStatus } from "../api-response/api-response";
 
 
 export type MemberReservationDetailResponse =
     | MemberLessonReservationResponse
     | MemberBayReservationResponse;
+
+export type MemberReservationDetailPreview = {
+    isListPreview: true;
+    reservation: MemberReservationSummaryResponse;
+};
 
 export function isReservationSlotUnavailable(
     error: unknown,
@@ -176,13 +181,49 @@ function refreshMemberTickets(queryClient: QueryClient) {
     });
 }
 
+function getMemberReservationDetailPreview(
+    queryClient: QueryClient,
+    id: number,
+    domain: MemberReservationDomain,
+): ApiResponse<MemberReservationDetailPreview> | undefined {
+    const today = queryClient.getQueryData<ApiResponse<MemberReservationSummaryResponse[]>>([
+        "member", "reservations", "today",
+    ]);
+    const todayReservation = today?.data.find(
+        (reservation) => reservation.id === id && reservation.reservationType === domain,
+    );
+    if (today && todayReservation) {
+        return { status: today.status, data: { isListPreview: true, reservation: todayReservation } };
+    }
+
+    for (const type of ["all", "bay", "private", "group", "program"] as const) {
+        const list = queryClient.getQueryData<
+            InfiniteData<ApiResponse<CursorPageResponse<MemberReservationResponse>>>
+        >(["member", "reservations", type]);
+        for (const page of list?.pages ?? []) {
+            const reservation = page.data.items.find(
+                (item) => item.id === id && item.reservationType === domain,
+            );
+            if (reservation) {
+                return { status: page.status, data: { isListPreview: true, reservation } };
+            }
+        }
+    }
+
+    return undefined;
+}
+
 export function useMemberReservationById(id: number, domain?: MemberReservationDomain) {
-    return useQuery<ApiResponse<MemberReservationDetailResponse>>({
+    const queryClient = useQueryClient();
+    return useQuery<ApiResponse<MemberReservationDetailResponse | MemberReservationDetailPreview>>({
         ...getMemberReservationDetailQueryOptions(
             id,
             (domain ?? "lesson") as MemberReservationDomain,
         ),
         enabled: Number.isFinite(id) && id > 0 && Boolean(domain),
+        placeholderData: () => domain
+            ? getMemberReservationDetailPreview(queryClient, id, domain)
+            : undefined,
         staleTime: 30_000,
     });
 }

@@ -1,6 +1,7 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
     BookingConfirmationFooter,
+    BookingConfirmationLoadingState,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
 import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
@@ -72,7 +73,7 @@ export default function LessonBookingConfirmScreen() {
         Boolean(lessonAvailabilityIdNumber) &&
         Number.isFinite(year) &&
         Number.isFinite(month);
-    const { data, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
         ticketIdNumber,
         year,
         month,
@@ -106,7 +107,7 @@ export default function LessonBookingConfirmScreen() {
         ? isGroupLessonSlot(selectedSlot)
         : isGroupTicket;
     const isMissingRequiredData =
-        !ticketIdNumber || !lessonAvailabilityIdNumber;
+        !ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot;
 
     const handleSlotUnavailable = async (error: unknown) => {
         if (!isReservationSlotUnavailable(error) || !ticketIdNumber) {
@@ -221,26 +222,16 @@ export default function LessonBookingConfirmScreen() {
     const coachNameValue = selectedSlot?.coachName ?? coachName;
     const isDisabled =
         isCreating ||
-        isMissingRequiredData ||
-        !selectedSlot ||
         isSelectedSlotFull;
-    const disabledReason = isMissingRequiredData
-        ? t("bookingConfirmation.ticketOrSlotMissing")
-        : !selectedSlot
+    const disabledReason = isSelectedSlotFull
+        ? isSelectedSlotBookable
             ? isGroupSelection
-                ? t("bookingConfirmation.selectedGroupUnavailable")
-                : t("bookingConfirmation.selectedLessonSlotUnavailable")
-            : isSelectedSlotFull
-                ? isSelectedSlotBookable
-                    ? isGroupSelection
-                        ? t("bookingConfirmation.selectedGroupNowFull")
-                        : t("bookingConfirmation.selectedLessonSlotNowFull")
-                    : isGroupSelection
-                        ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
-                        : t(
-                            "bookingConfirmation.selectedLessonSlotCurrentlyNotBookable",
-                        )
-                : null;
+                ? t("bookingConfirmation.selectedGroupNowFull")
+                : t("bookingConfirmation.selectedLessonSlotNowFull")
+            : isGroupSelection
+                ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
+                : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
+        : null;
 
     return (
         <Screen
@@ -253,7 +244,7 @@ export default function LessonBookingConfirmScreen() {
                 />
             }
             footer={
-                !isError && !isMissingRequiredData ? (
+                !isLoading && !isError && !isMissingRequiredData ? (
                     <BookingConfirmationFooter
                         title={
                             isGroupSelection
@@ -274,7 +265,9 @@ export default function LessonBookingConfirmScreen() {
                         : t("bookingConfirmation.bookingConfirmationTitle"),
                 }}
             />
-            {isError ? (
+            {isLoading ? (
+                <BookingConfirmationLoadingState fieldCount={5} />
+            ) : isError ? (
                 <ErrorState
                     title={t(
                         "bookingConfirmation.failedReservationDetailsTitle",

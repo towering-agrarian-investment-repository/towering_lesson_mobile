@@ -439,6 +439,7 @@ export default function DateScreen() {
           <Calendar
             key={calendarLocale}
             style={[s.calendar, { backgroundColor: colors.card }]}
+            current={startDate}
             minDate={today}
             disableArrowLeft={!canGoToPreviousMonth}
             onDayPress={(day: DateData) => handleDayPress(day.dateString)}

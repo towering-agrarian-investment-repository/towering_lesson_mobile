@@ -227,9 +227,14 @@ function getResourceUrl(resource: SessionResourcesFilesResponse) {
 }
 
 function isSupportedResource(resource: SessionResourcesFilesResponse) {
-    return isAllowedExtension(
-        resource.originalFileName || resource.fileUrl || resource.externalUrl,
-        RESOURCE_FILE_EXTENSIONS,
+    return (
+        isAllowedExtension(
+            resource.originalFileName || resource.fileUrl || resource.externalUrl,
+            RESOURCE_FILE_EXTENSIONS,
+        ) ||
+        isImageResource(resource) ||
+        isVideoResource(resource) ||
+        isAllowedMimeType(resource.mediaType, ["application/pdf"])
     );
 }
 

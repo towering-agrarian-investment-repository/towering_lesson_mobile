@@ -11,7 +11,6 @@ import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import {
-  getMemberReservationDetailQueryOptions,
   useMemberReservations,
 } from "@/lib/hook/useReservation";
 import type { MemberReservationType } from "@/service/reservation.service";
@@ -22,7 +21,6 @@ import {
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -51,7 +49,6 @@ export function ReservationTabScene({
 }: ReservationTabSceneProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
   const { isOnline } = useNetworkStatus();
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
@@ -87,13 +84,6 @@ export function ReservationTabScene({
 
   const handleReservationPress = useCallback(
     (reservation: MemberReservationResponse) => {
-      void queryClient.prefetchQuery(
-        getMemberReservationDetailQueryOptions(
-          reservation.id,
-          reservation.reservationType,
-        ),
-      );
-
       runWithNavigationLock(() => {
         router.push({
           pathname: "/reservation/[id]",
@@ -104,7 +94,7 @@ export function ReservationTabScene({
         });
       });
     },
-    [queryClient, router, runWithNavigationLock],
+    [router, runWithNavigationLock],
   );
 
   const renderReservationItem = useCallback(

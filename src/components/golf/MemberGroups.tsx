@@ -81,7 +81,7 @@ export function MemberGroups({
                 />
             ) : groups.length === 0 ? (
                 <EmptyState
-                    title={t("lessonLog.noPostsTitle")}
+                    title={t("groups.empty")}
                     message={t("groups.joinProgramMessage")}
                     actionLabel={
                         isRefetching || refreshing

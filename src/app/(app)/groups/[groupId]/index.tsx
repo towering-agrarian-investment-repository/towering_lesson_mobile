@@ -14,7 +14,6 @@ import {
     getMemberHomeworkByIdQueryOptions,
     getMemberLessonByGroupQueryOptions,
     useMemberGroupById,
-    useMemberHomeworks,
 } from "@/lib/hook/useMemberLessonFlow";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import type { MemberHomeworkSummaryResponse } from "@/types/member-homework";
@@ -51,23 +50,16 @@ export default function GroupDetailScreen() {
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberGroupById(Number(groupId));
-    const { data: homeworkResponse, refetch: refetchHomeworks } =
-        useMemberHomeworks();
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchHomeworks({ cancelRefetch: false })]));
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
-    const hasEmbeddedHomeworks = data?.data.homeworks !== undefined;
     const group = data?.data.group;
     const lessons = [...(data?.data.lessons ?? [])].sort(
         (a, b) =>
             (a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
             (b.orderIndex ?? Number.MAX_SAFE_INTEGER),
     );
-    const groupHomeworks = hasEmbeddedHomeworks
-        ? (data?.data.homeworks ?? [])
-        : (homeworkResponse?.data ?? []).filter(
-            (homework) => homework.lessonProgramGroupId === Number(groupId),
-        );
+    const groupHomeworks = data?.data.homeworks ?? [];
     const completedLessons = lessons.filter(
         (lesson) => lesson.lessonStatus === "COMPLETED",
     ).length;

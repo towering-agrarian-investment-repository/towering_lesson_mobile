@@ -1,5 +1,6 @@
 import { authClient } from "@/lib/auth-client";
 import { deactivateCurrentPushInstallation } from "@/lib/config/notification/pushRegistrationStorage";
+import { clearCachedJwtToken } from "@/lib/client/jwt-token";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
 const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid phone number or password";
@@ -33,6 +34,7 @@ export type AuthSession = {
 };
 
 export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; password: string }) => {
+    clearCachedJwtToken();
     const result = await authClient.signIn.phoneNumber({
         phoneNumber: phoneNumber.trim(),
         password,
@@ -50,16 +52,19 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
 
     if (signedInRole !== ALLOWED_APP_ROLE) {
         await authClient.signOut().catch(() => { });
+        clearCachedJwtToken();
         throw new Error(GENERIC_LOGIN_ERROR_MESSAGE);
     }
 
+    clearCachedJwtToken();
     return result.data;
 };
 
 export const signOut = async () => {
     await deactivateCurrentPushInstallation();
+    clearCachedJwtToken();
 
-    const result = await authClient.signOut();
+    const result = await authClient.signOut().finally(clearCachedJwtToken);
 
     if (result.error) {
         throw new Error(result.error.message || "Could not sign out.");

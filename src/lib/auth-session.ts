@@ -1,4 +1,5 @@
 import { authClient } from "./auth-client";
+import { clearCachedJwtToken } from "./client/jwt-token";
 
 let sessionCheck: Promise<void> | null = null;
 let sessionEndedNotice = false;
@@ -39,8 +40,13 @@ export function verifyMemberSession(): Promise<void> {
             }
 
             setSessionEndedNotice(true);
+            clearCachedJwtToken();
             // The Expo auth client clears its stored cookie and session on sign-out.
-            await authClient.signOut();
+            try {
+                await authClient.signOut();
+            } finally {
+                clearCachedJwtToken();
+            }
         } catch {
             // Network and server failures must not end the local session.
         }

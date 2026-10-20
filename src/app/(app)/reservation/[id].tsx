@@ -24,6 +24,7 @@ import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     MemberReservationDetailResponse,
+    MemberReservationDetailPreview,
     useCancelMemberBayReservation,
     useCancelMemberLessonReservation,
     useMemberReservationById,
@@ -196,7 +197,7 @@ export default function ReservationDetailScreen() {
         );
     }
 
-    if (isError && !data) {
+    if (isError && (!data || "isListPreview" in data.data)) {
         return (
             <>
                 <Stack.Screen options={screenOptions} />
@@ -223,6 +224,10 @@ export default function ReservationDetailScreen() {
                 </Screen>
             </>
         );
+    }
+
+    if (reservation && "isListPreview" in reservation) {
+        return <ReservationPreviewScreen preview={reservation} />;
     }
 
     if (!reservation) {
@@ -698,6 +703,69 @@ export default function ReservationDetailScreen() {
                             label={t("reservations.notesLabel")}
                             value={noteValue}
                         />
+                    </ReservationContent>
+                </View>
+            </Screen>
+        </>
+    );
+}
+
+function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetailPreview }) {
+    const { t } = useTranslation();
+    const colors = useThemeColors();
+    const reservation = preview.reservation;
+    const isBayReservation = reservation.reservationType === "bay";
+    const title = (isBayReservation
+        ? reservation.bayName
+        : reservation.lessonAvailabilityName ?? reservation.lessonProgramGroupName ?? reservation.lessonProgramName
+    )?.trim() || t("common.notAvailable");
+    const programValue = isBayReservation
+        ? ""
+        : [reservation.lessonProgramName, reservation.lessonProgramGroupName]
+            .filter(Boolean)
+            .join(" / ");
+    const policies = getReservationPolicies(t);
+
+    return (
+        <>
+            <Stack.Screen options={{ title: t("reservations.reservationDetailTitle") }} />
+            <Screen contentClassName="grow">
+                <View className="grow flex-col gap-6 bg-background">
+                    <HeaderSection
+                        title={title}
+                        reservationStatus={reservation.reservationStatus}
+                        ticketType={reservation.ticketType}
+                    />
+                    <ReservationContent policies={isBayReservation ? policies.bay : policies.lesson}>
+                        <DetailRow
+                            label={t("bookingConfirmation.dateLabel")}
+                            value={formatDateForDisplay(reservation.startTime) || "-"}
+                        />
+                        <Divider className="bg-border" />
+                        <DetailRow
+                            label={t("bookingConfirmation.timeLabel")}
+                            value={formatTimeRange(reservation.startTime, reservation.endTime)}
+                        />
+                        {isBayReservation ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow label={t("reservations.bayLabel")} value={title} />
+                            </>
+                        ) : null}
+                        {programValue ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow label={t("reservations.programLabel")} value={programValue} />
+                            </>
+                        ) : null}
+                        <Divider className="bg-border" />
+                        <DetailRow
+                            label={t("reservations.notesLabel")}
+                            value={reservation.memberNotes?.trim() || "-"}
+                        />
+                        <View className="items-center py-4">
+                            <ActivityIndicator color={colors.primary} />
+                        </View>
                     </ReservationContent>
                 </View>
             </Screen>

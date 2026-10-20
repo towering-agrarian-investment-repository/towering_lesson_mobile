@@ -27,6 +27,7 @@ import {
     HOMEWORK_SUBMISSION_EXTENSIONS,
     HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
     HOMEWORK_SUBMISSION_MIME_TYPES,
+    getFileExtension,
     isAllowedExtension,
     isAllowedMimeType,
 } from "@/utils/media";
@@ -68,6 +69,14 @@ type HomeworkParams = {
     homeworkId: string;
 };
 
+const HOMEWORK_MIME_BY_EXTENSION: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    mp4: "video/mp4",
+};
+
 export default function HomeworkDetailScreen() {
     const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
@@ -92,6 +101,7 @@ export default function HomeworkDetailScreen() {
         usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchSubmissions({ cancelRefetch: false })]));
     const { mutate: submitHomework, isPending: isSubmitting } =
         useSubmitMemberHomework();
+    const isSubmitDisabled = !selectedFile || isSubmitting;
 
     const homeworkDetail = data?.data;
     const homework = homeworkDetail?.homework;
@@ -174,7 +184,6 @@ export default function HomeworkDetailScreen() {
         submitHomework(
             {
                 homeworkId: homework.homeworkId,
-                homeworkInstanceId: homework.homeworkId,
                 file: selectedFile,
                 memberMemo: memo,
             },
@@ -303,8 +312,7 @@ export default function HomeworkDetailScreen() {
                         seedColor={colors.primary}
                         accessibilityLabel={t("homework.submitHomework")}
                         accessibilityState={{
-                            disabled:
-                                !selectedFile || isSubmitting || isSubmitting,
+                            disabled: isSubmitDisabled,
                             busy: isSubmitting,
                         }}
                         style={{ width: "100%" }}>
@@ -323,15 +331,13 @@ export default function HomeworkDetailScreen() {
                                     ]
                             }
                             variant="text"
-                            disabled={
-                                !selectedFile || isSubmitting || isSubmitting
-                            }
+                            disabled={isSubmitDisabled}
                             onPress={handleSubmit}
                             style={{
                                 ...getNativeButtonStyle(
                                     colors,
                                     "filled",
-                                    !selectedFile || isSubmitting || isSubmitting,
+                                    isSubmitDisabled,
                                     colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
@@ -619,12 +625,11 @@ function createFileFromDocument(
         throw new Error(t("homework.supportedFilesOnly"));
     }
 
-    const mimeType = asset.mimeType;
+    const mimeType = hasSupportedMimeType
+        ? asset.mimeType?.toLowerCase()
+        : HOMEWORK_MIME_BY_EXTENSION[getFileExtension(asset.name) ?? ""];
 
-    if (
-        !mimeType ||
-        !isAllowedMimeType(mimeType, HOMEWORK_SUBMISSION_MIME_TYPES)
-    ) {
+    if (!mimeType) {
         throw new Error(t("homework.supportedFilesOnly"));
     }
 
