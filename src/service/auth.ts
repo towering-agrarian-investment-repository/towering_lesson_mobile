@@ -4,6 +4,12 @@ import { deactivateCurrentPushInstallation } from "@/lib/config/notification/pus
 export const ALLOWED_APP_ROLE = "MEMBER";
 const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid phone number or password";
 
+export class BannedUserError extends Error {
+    constructor() {
+        super("BANNED_USER");
+    }
+}
+
 export type AuthSession = {
     session: {
         id: string;
@@ -33,6 +39,9 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
     });
 
     if (result.error) {
+        if (result.error.code === "BANNED_USER") {
+            throw new BannedUserError();
+        }
         throw new Error(GENERIC_LOGIN_ERROR_MESSAGE);
     }
 

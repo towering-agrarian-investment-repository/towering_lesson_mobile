@@ -84,7 +84,6 @@ export function useMemberReservations(type: MemberReservationType) {
         Error,
         {
             items: MemberReservationResponse[];
-            hasMore: boolean;
         },
         ["member", "reservations", MemberReservationType],
         string | null
@@ -92,7 +91,6 @@ export function useMemberReservations(type: MemberReservationType) {
         ...getMemberReservationsQueryOptions(type),
         select: (data) => ({
             items: data.pages.flatMap((page) => page.data.items),
-            hasMore: data.pages[data.pages.length - 1]?.data.hasMore ?? false,
         }),
     });
 }

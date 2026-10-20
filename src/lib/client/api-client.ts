@@ -1,4 +1,5 @@
 import { authClient } from "../auth-client";
+import { verifyMemberSession } from "../auth-session";
 import { env } from "../config/env";
 import i18n from "../../i18n";
 import {
@@ -19,19 +20,6 @@ async function getJwtToken(signal?: AbortSignal): Promise<string | null> {
     const result = await authClient.$fetch<JwtResponse>("/token", {
         method: "GET",
         signal,
-    });
-
-    if (result.error) {
-        return null;
-    }
-
-    return result.data?.token ?? null;
-}
-
-
-export async function getSession(): Promise<string | null> {
-    const result = await authClient.$fetch<JwtResponse>("/get-session", {
-        method: "GET",
     });
 
     if (result.error) {
@@ -71,6 +59,10 @@ export async function apiClient<T = unknown>(
         ...options,
         headers,
     });
+
+    if (response.status === 401) {
+        await verifyMemberSession();
+    }
 
     if (response.status === 204) {
         return undefined as T;

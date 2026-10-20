@@ -9,42 +9,37 @@ import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
 import type {
     MemberReservationResponse,
-    MemberReservationSummaryResponse,
 } from "@/types/member-reservation";
-import { fmtTime } from "@/utils/time-helper";
-import { format } from "date-fns";
+import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { ChevronRight } from "lucide-react-native";
-import { memo, useState } from "react";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 type Props = {
-    reservation: MemberReservationResponse | MemberReservationSummaryResponse;
+    reservation: MemberReservationResponse;
+    referenceTime: number;
     disabled?: boolean;
-    onPress?: (
-        reservation:
-            MemberReservationResponse | MemberReservationSummaryResponse,
-    ) => void;
+    onPress?: (reservation: MemberReservationResponse) => void;
 };
 
-function ReservationCard({ reservation, disabled = false, onPress }: Props) {
+function ReservationCard({ reservation, referenceTime, disabled = false, onPress }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const startDate = new Date(reservation.startTime);
-    const endDate = new Date(reservation.endTime);
-    const [referenceTime] = useState(() => Date.now());
+    const startTime = new Date(reservation.startTime).getTime();
+    const endTime = new Date(reservation.endTime).getTime();
     const tone = getTicketTypeTone(reservation.ticketType);
     const minutesUntilStart = Math.ceil(
-        (startDate.getTime() - referenceTime) / 60000,
+        (startTime - referenceTime) / 60000,
     );
     const reservationStatus = String(
         reservation.reservationStatus,
     ).toUpperCase();
     const isReservedUpcoming =
-        reservationStatus === "RESERVED" && minutesUntilStart >= 0;
+        reservationStatus === "RESERVED" && startTime > referenceTime;
     const isStartingSoon = isReservedUpcoming && minutesUntilStart <= 60;
     const countdownLabel =
-        reservationStatus === "RESERVED" && minutesUntilStart >= 0
+        isReservedUpcoming
             ? minutesUntilStart < 60
                 ? t("booking.startsInMinutes", { count: minutesUntilStart })
                 : minutesUntilStart < 1440
@@ -65,8 +60,10 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                     ? t("reservations.reservationCancelled")
                     : reservationStatus === "NO_SHOW"
                         ? t("reservations.markedAbsent")
-                        : reservationStatus === "RESERVED" && minutesUntilStart < 0
-                            ? t("reservations.sessionTimePassed")
+                        : reservationStatus === "RESERVED" && startTime <= referenceTime
+                            ? endTime > referenceTime
+                                ? t("reservations.awaitingCheckIn")
+                                : t("reservations.sessionTimePassed")
                             : null;
     const secondaryLabel = countdownLabel ?? statusLabel;
     const secondaryColor = countdownLabel
@@ -87,7 +84,7 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
     const cardBackgroundClassName =
         reservationStatus !== "RESERVED"
             ? "bg-muted/80"
-            : minutesUntilStart < 0
+            : startTime <= referenceTime
                 ? "bg-muted/80"
                 : "bg-primary/20";
     const arrowBackgroundClassName = "bg-muted";
@@ -141,14 +138,14 @@ function ReservationCard({ reservation, disabled = false, onPress }: Props) {
                 </View>
 
                 <View className="flex-row items-center gap-3">
-                    <ReservationDateBadge date={startDate} />
+                    <ReservationDateBadge date={reservation.startTime} />
 
                     <View className="min-w-0 flex-1 flex-col justify-center gap-3">
                         <NativeText
                             variant="body"
                             textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
                         >
-                            {fmtTime(startDate) + " - " + fmtTime(endDate)}
+                            {formatTimeRange(reservation.startTime, reservation.endTime)}
                         </NativeText>
 
                         {secondaryLabel ? (
@@ -179,6 +176,7 @@ function areReservationCardsEqual(prev: Props, next: Props) {
 
     return (
         prev.disabled === next.disabled &&
+        prev.referenceTime === next.referenceTime &&
         prev.onPress === next.onPress &&
         previousReservation.id === nextReservation.id &&
         previousReservation.reservationType ===
@@ -198,17 +196,17 @@ function areReservationCardsEqual(prev: Props, next: Props) {
     );
 }
 
-function ReservationDateBadge({ date }: { date: Date }) {
+function ReservationDateBadge({ date }: { date: string }) {
 
     return (
         <View className="h-[82px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
             <View className="flex-1 items-center justify-center px-2">
                 <NativeText variant="badge" color="mutedForeground" align="center" numberOfLines={1}>
-                    {format(date, "MMM").toUpperCase()}
+                    {formatDateValue(date, "MMM").toUpperCase()}
                 </NativeText>
 
                 <NativeText variant="h2" align="center" numberOfLines={1}>
-                    {format(date, "dd")}
+                    {formatDateValue(date, "dd")}
                 </NativeText>
             </View>
         </View>

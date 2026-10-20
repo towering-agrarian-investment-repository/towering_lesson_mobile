@@ -22,7 +22,10 @@ const ko = {
         "accessibilitySubmitting": "\ub85c\uadf8\uc778 \uc911",
         "phoneNumberRequired": "\uc804\ud654\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",
         "passwordRequired": "\ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",
-        "genericError": "\ubb38\uc81c\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694."
+        "genericError": "\ubb38\uc81c\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
+        "deactivatedAccount": "\uacc4\uc815\uc774 \ube44\ud65c\uc131\ud654\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \ub3c4\uc6c0\uc774 \ud544\uc694\ud558\uc2dc\uba74 \uc9c1\uc6d0\uc5d0\uac8c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.",
+        "sessionEndedTitle": "로그아웃되었습니다",
+        "sessionEndedMessage": "다시 로그인하거나 계정 접속에 도움이 필요하면 직원에게 문의해 주세요."
     },
     "welcome": {
         "title": "HappyGolf Go\uc5d0 \uc624\uc2e0 \uac83\uc744 \ud658\uc601\ud569\ub2c8\ub2e4",
@@ -305,10 +308,13 @@ const ko = {
         "markedAbsent": "\uacb0\uc11d \ucc98\ub9ac\ub428",
         "statusUnavailable": "\uc0c1\ud0dc \uc815\ubcf4 \uc5c6\uc74c",
         "failedListTitle": "\uc608\uc57d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
+        "failedMoreTitle": "\ub2e4\uc74c \uc608\uc57d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "noReservationsTitle": "\uc608\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
         "noReservationsMessage": "\ub0b4 \uc608\uc57d\uc774 \uc5ec\uae30\uc5d0 \ud45c\uc2dc\ub429\ub2c8\ub2e4.",
         "showTabAccessibility": "{{label}} \uc608\uc57d \ubcf4\uae30",
         "count": "\uc608\uc57d {{count}}\uac74",
+        "showingCount": "\uc608\uc57d {{count}}\uac74 \ud45c\uc2dc \uc911",
+        "showingCount_other": "\uc608\uc57d {{count}}\uac74 \ud45c\uc2dc \uc911",
         "updating": "\uc5c5\ub370\uc774\ud2b8 \uc911...",
         "tabs": {
             "all": "\uc804\uccb4",

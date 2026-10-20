@@ -13,7 +13,7 @@ import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -44,6 +44,13 @@ void SplashScreen.preventAutoHideAsync();
 function RootLayout() {
   const update = useAppUpdate();
   const { data: session, isPending } = authClient.useSession();
+  // Later auth refreshes must keep the navigator mounted during logout.
+  const [hasBootstrappedAuth, setHasBootstrappedAuth] = useState(!isPending);
+  const isAuthPending = isPending && !hasBootstrappedAuth;
+
+  if (!isPending && !hasBootstrappedAuth) {
+    setHasBootstrappedAuth(true);
+  }
 
   const authSession = session as AuthSession | null;
   const signedInRole = authSession?.user?.role?.toUpperCase?.() ?? null;
@@ -53,10 +60,10 @@ function RootLayout() {
   const hasUnauthorizedSession = !!session && signedInRole !== ALLOWED_APP_ROLE;
 
   useEffect(() => {
-    if (!isPending && !update.isChecking) {
+    if (!isAuthPending && !update.isChecking) {
       void SplashScreen.hideAsync();
     }
-  }, [isPending, update.isChecking]);
+  }, [isAuthPending, update.isChecking]);
 
   useEffect(() => {
     if (!hasUnauthorizedSession) {
@@ -74,7 +81,7 @@ function RootLayout() {
             <WelcomeProvider>
               <AppUpdateProvider value={update}>
                 <ThemedRoot
-                  isAuthPending={isPending}
+                  isAuthPending={isAuthPending}
                   hasAuthorizedSession={hasAuthorizedSession}
                   update={update}
                 />
@@ -171,7 +178,7 @@ function ThemedRoot({
               >
                 <Stack.Screen
                   name="login"
-                  options={{ headerShown: false, animation: "none" }}
+                  options={{ headerShown: false, animation: "fade" }}
                 />
               </Stack.Protected>
 

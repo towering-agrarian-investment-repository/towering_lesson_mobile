@@ -1,4 +1,3 @@
-import bannerFallback from "@/assets/images/banner.png";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { showAppToast } from "@/lib/toast/toast";
 import type { PublishedBanner } from "@/types/banner";
@@ -18,24 +17,18 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
     const listRef = useRef<FlatList<PublishedBanner>>(null);
     const [width, setWidth] = useState(0);
+    const [failedImageUrls, setFailedImageUrls] = useState<string[]>([]);
     const indexRef = useRef(0);
 
-    const items = useMemo(() => {
-        const ordered = [...banners].sort((a, b) => a.displayOrder - b.displayOrder);
-
-        return ordered.length > 0
-            ? ordered
-            : [{ id: 0, title: "Banner", targetUrl: null } as PublishedBanner];
-    }, [banners]);
-
-    useEffect(() => {
-        if (__DEV__) {
-            console.log("[HomeBanner] image URLs:", items.map((banner) => ({
-                id: banner.id,
-                imageUrl: banner.imageUrl,
-            })));
-        }
-    }, [items]);
+    const items = useMemo(
+        () => [...banners]
+            .filter((banner) => {
+                const imageUrl = banner.imageUrl || banner.imageExternalUrl;
+                return imageUrl ? !failedImageUrls.includes(imageUrl) : false;
+            })
+            .sort((a, b) => a.displayOrder - b.displayOrder),
+        [banners, failedImageUrls],
+    );
 
     useEffect(() => {
         indexRef.current = 0;
@@ -94,12 +87,14 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
 
     return (
         <View
-            className="self-stretch gap-3"
+            className="self-stretch"
+            style={{ aspectRatio: BANNER_ASPECT_RATIO }}
             onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
         >
             <FlatList
                 ref={listRef}
                 data={items}
+                style={{ flex: 1 }}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
@@ -112,29 +107,42 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
                     index: itemIndex,
                 })}
                 renderItem={({ item: banner }) => {
-                    const imageUrl = banner.isActive ? banner.imageUrl : null;
+                    const imageUrl = banner.imageUrl || banner.imageExternalUrl;
+                    if (!imageUrl) return null;
+
                     const image = (
                         <Image
-                            source={imageUrl ? { uri: imageUrl } : bannerFallback}
-                            contentFit="contain"
-                            style={{ width: "100%", aspectRatio: BANNER_ASPECT_RATIO }}
-                            accessibilityLabel={banner.title || "Banner"}
+                            source={{ uri: imageUrl }}
+                            contentFit="cover"
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                borderRadius: 16,
+                                borderCurve: "continuous",
+                            }}
+                            onError={() => setFailedImageUrls((previous) =>
+                                previous.includes(imageUrl) ? previous : [...previous, imageUrl]
+                            )}
+                            accessibilityLabel={banner.title}
                         />
                     );
 
                     return (
-                        <View style={{ width: width || "100%" }}>
+                        <View style={{ width: width || "100%", height: "100%" }}>
                             {banner.targetUrl ? (
                                 <Pressable
                                     accessibilityRole="link"
-                                    accessibilityLabel={banner.title || "Banner"}
+                                    accessibilityLabel={banner.title}
                                     disabled={isLocked}
                                     className="active:opacity-85 disabled:opacity-60"
+                                    style={{ flex: 1 }}
                                     onPress={() => openBanner(banner.targetUrl)}
                                 >
                                     {image}
                                 </Pressable>
-                            ) : image}
+                            ) : (
+                                image
+                            )}
                         </View>
                     );
                 }}
@@ -146,7 +154,6 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
                     }
                 }}
             />
-
         </View>
     );
 }

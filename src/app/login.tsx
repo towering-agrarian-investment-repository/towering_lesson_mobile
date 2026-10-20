@@ -6,7 +6,12 @@ import { Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { signIn } from "@/service/auth";
+import { BannedUserError, signIn } from "@/service/auth";
+import {
+    clearSessionEndedNotice,
+    getSessionEndedNotice,
+    subscribeToSessionEndedNotice,
+} from "@/lib/auth-session";
 import { Button, Host, Text } from "@expo/ui";
 import {
     defaultMinSize,
@@ -16,7 +21,7 @@ import { frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -36,6 +41,11 @@ export default function LoginScreen() {
     const [isLoginPressed, setIsLoginPressed] = useState(false);
     const loginPending = useRef(false);
     const { t } = useTranslation();
+    const showSessionEndedNotice = useSyncExternalStore(
+        subscribeToSessionEndedNotice,
+        getSessionEndedNotice,
+        getSessionEndedNotice,
+    );
     const loginSchema = createLoginSchema(t);
 
     const form = useForm<LoginFormValues>({
@@ -54,6 +64,7 @@ export default function LoginScreen() {
     async function handleLogin(values: LoginFormValues) {
         if (loginPending.current) return;
         loginPending.current = true;
+        clearSessionEndedNotice();
         form.clearErrors();
 
         try {
@@ -67,7 +78,9 @@ export default function LoginScreen() {
             form.setError("password", {
                 type: "server",
                 message:
-                    error instanceof Error
+                    error instanceof BannedUserError
+                        ? t("login.deactivatedAccount")
+                        : error instanceof Error
                         ? error.message
                         : t("login.genericError"),
             });
@@ -101,6 +114,16 @@ export default function LoginScreen() {
                     </View>
 
                     <View className="gap-6">
+                        {showSessionEndedNotice ? (
+                            <View className="gap-2 rounded-xl border border-warning/30 bg-warning/10 p-4">
+                                <NativeText variant="label" accessibilityRole="header">
+                                    {t("login.sessionEndedTitle")}
+                                </NativeText>
+                                <NativeText variant="body" accessibilityLiveRegion="polite">
+                                    {t("login.sessionEndedMessage")}
+                                </NativeText>
+                            </View>
+                        ) : null}
                         <View className="gap-5">
                             <FormTextInput
                                 control={form.control}

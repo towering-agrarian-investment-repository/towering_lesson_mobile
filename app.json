@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "HappyGolfCam",
+    "name": "HappyGolf GO",
     "slug": "golf-lesson-system-mobile",
     "version": "1.0.0",
     "orientation": "default",
@@ -35,10 +35,8 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.toweringinvest.happygolfmobile",
       "googleServicesFile": "./google-services.json",
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
+      "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ]
     },
@@ -77,7 +75,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "Allow Golf Lesson System to use your camera to take a profile photo.",
-          "photosPermission": "Allow Golf Lesson System to access your photos to choose a profile photo."
+          "photosPermission": "Allow Golf Lesson System to access your photos to choose a profile photo.",
+          "microphonePermission": false
         }
       ],
       [

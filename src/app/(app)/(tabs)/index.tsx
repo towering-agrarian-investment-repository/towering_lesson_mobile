@@ -25,8 +25,9 @@ import {
 } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
@@ -36,8 +37,34 @@ export default function HomeScreen() {
     const queryClient = useQueryClient();
     const { colors, fontScale: uiFontScale } = useTheme();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data: publishedBanners, refetch: refetchBanners } =
-        usePublishedBanners();
+    const {
+        data: publishedBanners,
+        dataUpdatedAt: bannersUpdatedAt,
+        error: bannersError,
+        status: bannersStatus,
+        refetch: refetchBanners,
+    } = usePublishedBanners();
+    useFocusEffect(useCallback(() => {
+        void refetchBanners({ cancelRefetch: false });
+    }, [refetchBanners]));
+    useEffect(() => {
+        if (!__DEV__ || (!bannersUpdatedAt && !bannersError)) return;
+
+        console.log("[HomeBanner] /banner/published", {
+            status: bannersStatus,
+            count: publishedBanners?.length ?? 0,
+            error: bannersError?.message ?? null,
+            banners: publishedBanners?.map((banner) => ({
+                id: banner.id,
+                branchId: banner.branchId,
+                isActive: banner.isActive,
+                startsAt: banner.startsAt,
+                endsAt: banner.endsAt,
+                hasImageUrl: Boolean(banner.imageUrl),
+                hasExternalUrl: Boolean(banner.imageExternalUrl),
+            })) ?? [],
+        });
+    }, [bannersUpdatedAt, bannersError, bannersStatus, publishedBanners]);
     const {
         data: memberResponse,
         isLoading,
@@ -161,9 +188,7 @@ export default function HomeScreen() {
                 />
 
                 <View className="gap-6">
-                    <View>
-                        <HomeBanner banners={publishedBanners} />
-                    </View>
+                    <HomeBanner banners={publishedBanners} />
 
                     <AdaptivePanels
                         primary={

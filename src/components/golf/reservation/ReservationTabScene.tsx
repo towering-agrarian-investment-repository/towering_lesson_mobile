@@ -6,6 +6,7 @@ import {
     ErrorState,
     Skeleton,
 } from "@/design-system";
+import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
@@ -14,10 +15,10 @@ import {
     useMemberReservations,
 } from "@/lib/hook/useReservation";
 import type { MemberReservationType } from "@/service/reservation.service";
-import type {
-    MemberReservationResponse,
-    MemberReservationSummaryResponse,
-} from "@/types/member-reservation";
+import type { MemberReservationResponse } from "@/types/member-reservation";
+import { Button, Host, Text } from "@expo/ui";
+import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -33,17 +34,15 @@ export const RESERVATION_TABS: MemberReservationType[] = [
     "program",
 ];
 
-type ReservationItem =
-    MemberReservationResponse | MemberReservationSummaryResponse;
-
-const reservationKeyExtractor = (item: ReservationItem) =>
+const reservationKeyExtractor = (item: MemberReservationResponse) =>
     `${item.reservationType}:${item.id}`;
 
 type ReservationTabSceneProps = {
     type: MemberReservationType;
+    referenceTime: number;
 };
 
-export function ReservationTabScene({ type }: ReservationTabSceneProps) {
+export function ReservationTabScene({ type, referenceTime }: ReservationTabSceneProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -62,6 +61,7 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
+        isFetchNextPageError,
     } = useMemberReservations(type);
 
     const reservations = useMemo(() => {
@@ -80,7 +80,7 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     }, [data?.items]);
 
     const handleReservationPress = useCallback(
-        (reservation: ReservationItem) => {
+        (reservation: MemberReservationResponse) => {
             void queryClient.prefetchQuery(
                 getMemberReservationDetailQueryOptions(
                     reservation.id,
@@ -102,21 +102,25 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     );
 
     const renderReservationItem = useCallback(
-        ({ item }: { item: ReservationItem }) => (
+        ({ item }: { item: MemberReservationResponse }) => (
             <ReservationCard
                 reservation={item}
+                referenceTime={referenceTime}
                 disabled={isLocked}
                 onPress={handleReservationPress}
             />
         ),
-        [handleReservationPress, isLocked],
+        [handleReservationPress, isLocked, referenceTime],
     );
 
-    const handleEndReached = useCallback(() => {
+    const handleFetchNextPage = useCallback(() => {
         if (hasNextPage && !isFetching && !refreshLocked.current) {
             void fetchNextPage({ cancelRefetch: false });
         }
     }, [fetchNextPage, hasNextPage, isFetching]);
+    const handleEndReached = useCallback(() => {
+        if (!isFetchNextPageError) handleFetchNextPage();
+    }, [handleFetchNextPage, isFetchNextPageError]);
 
     const handleRefetch = useCallback(async () => {
         if (refreshLocked.current || isFetching) return;
@@ -181,6 +185,7 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
     return (
         <FlatList
             data={reservations}
+            extraData={referenceTime}
             keyExtractor={reservationKeyExtractor}
             renderItem={renderReservationItem}
             style={{ flex: 1 }}
@@ -205,13 +210,18 @@ export function ReservationTabScene({ type }: ReservationTabSceneProps) {
             ListHeaderComponent={
                 <ReservationListHeader
                     count={reservations.length}
+                    hasMore={hasNextPage}
                     isUpdating={isFetching && !isFetchingNextPage}
                 />
             }
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.4}
             ListFooterComponent={
-                isFetchingNextPage ? <ReservationListFooter /> : undefined
+                isFetchingNextPage ? (
+                    <ReservationListFooter />
+                ) : isFetchNextPageError ? (
+                    <ReservationListFooter onRetry={handleFetchNextPage} />
+                ) : undefined
             }
         />
     );
@@ -277,18 +287,20 @@ function ReservationCardSkeleton() {
 
 function ReservationListHeader({
     count,
+    hasMore,
     isUpdating,
 }: {
     count: number;
+    hasMore: boolean;
     isUpdating: boolean;
 }) {
     const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
 
     return (
-        <View className="flex-row items-center justify-between pb-4">
-            <NativeText variant="count" wrap={false} textStyle={{ color: uiColors.foreground + "bf" }}>
-                {t("reservations.count", { count })}
+        <View className="flex-row items-center justify-between gap-2 pb-4">
+            <NativeText variant="count" style={{ flex: 1, minWidth: 0 }} textStyle={{ color: uiColors.foreground + "bf" }}>
+                {t(hasMore ? "reservations.showingCount" : "reservations.count", { count })}
             </NativeText>
 
             {isUpdating ? (
@@ -300,10 +312,40 @@ function ReservationListHeader({
     );
 }
 
-function ReservationListFooter() {
+function ReservationListFooter({ onRetry }: { onRetry?: () => void }) {
+    const { colors, fontScale } = useTheme();
+    const { t } = useTranslation();
+
     return (
-        <View className="py-5">
-            <CircleLoader />
+        <View className="items-center gap-3 py-5">
+            {onRetry ? (
+                <>
+                    <NativeText variant="meta" color="mutedForeground" align="center">
+                        {t("reservations.failedMoreTitle")}
+                    </NativeText>
+                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
+                        <Button
+                            variant="text"
+                            onPress={onRetry}
+                            style={getNativeButtonStyle(colors, "outlined")}
+                            modifiers={process.env.EXPO_OS === "ios"
+                                ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}
+                        >
+                            <Text
+                                modifiers={process.env.EXPO_OS === "ios"
+                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                    : [fillMaxWidth()]}
+                                textStyle={getNativeButtonTextStyle(colors, "outlined", fontScale)}
+                            >
+                                {t("common.refreshTryAgain")}
+                            </Text>
+                        </Button>
+                    </Host>
+                </>
+            ) : (
+                <CircleLoader />
+            )}
         </View>
     );
 }

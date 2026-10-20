@@ -5,9 +5,11 @@ import {
 import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n";
 import { showAppToast } from "@/lib/toast/toast";
+import { verifyMemberSession } from "@/lib/auth-session";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AppState } from "react-native";
 
 export const unstable_settings = { anchor: "(tabs)" };
 
@@ -34,6 +36,21 @@ export default function AppLayout() {
     }));
     const colors = useThemeColors();
     const { t } = useTranslation();
+
+    useEffect(() => {
+        let previousState = AppState.currentState;
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state === "active" && previousState !== "active") {
+                void verifyMemberSession();
+            }
+            previousState = state;
+        });
+
+        return () => {
+            subscription.remove();
+            queryClient.clear();
+        };
+    }, [queryClient]);
 
     return (
         <QueryClientProvider client={queryClient}>

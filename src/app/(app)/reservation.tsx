@@ -7,9 +7,10 @@ import { getPressedScaleStyle, Screen } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
 import { MemberReservationType } from "@/service/reservation.service";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, Pressable, View } from "react-native";
+import { Animated, AppState, Pressable, View } from "react-native";
 import { TabView, type TabBarProps } from "react-native-tab-view";
 
 type ReservationRoute = {
@@ -22,6 +23,24 @@ export default function ReservationScreen() {
     const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
+    const [referenceTime, setReferenceTime] = useState(Date.now);
+    useFocusEffect(useCallback(() => {
+        let timer: ReturnType<typeof setInterval> | undefined;
+        const syncClock = () => {
+            if (timer !== undefined) clearInterval(timer);
+            timer = undefined;
+            if (AppState.currentState !== "active") return;
+            setReferenceTime(Date.now());
+            timer = setInterval(() => setReferenceTime(Date.now()), 60_000);
+        };
+
+        syncClock();
+        const subscription = AppState.addEventListener("change", syncClock);
+        return () => {
+            if (timer !== undefined) clearInterval(timer);
+            subscription.remove();
+        };
+    }, []));
     const routes = useMemo(
         () =>
             RESERVATION_TABS.map((key) => ({
@@ -43,9 +62,12 @@ export default function ReservationScreen() {
     );
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
-            <ReservationTabScene type={route.key as MemberReservationType} />
+            <ReservationTabScene
+                type={route.key as MemberReservationType}
+                referenceTime={referenceTime}
+            />
         ),
-        [],
+        [referenceTime],
     );
     const renderTabBar = useCallback(
         ({ position }: TabBarProps<ReservationRoute>) => (

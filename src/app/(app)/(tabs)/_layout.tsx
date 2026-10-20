@@ -16,6 +16,7 @@ export default function TabLayout() {
             badgeBackgroundColor={colors.danger}
             labelVisibilityMode="labeled"
             disableIndicator
+            rippleColor="transparent"
             iconColor={{ default: colors.mutedForeground, selected: colors.primary }}
             labelStyle={{
                 default: { fontSize: 11, fontWeight: "700", color: colors.mutedForeground },
