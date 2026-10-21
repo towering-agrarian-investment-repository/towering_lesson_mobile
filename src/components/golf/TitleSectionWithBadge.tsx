@@ -1,5 +1,4 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import { cn } from "@/design-system/utils/cn";
 import { typography } from "@/design-system/utils/typography";
 import { View } from "react-native";
 
@@ -7,10 +6,9 @@ type Props = {
     label: string;
     length: number;
     variant?: "h3" | "body";
-    tone?: "notification" | "primary";
 };
 
-function TitleSectionWithBadge({ label, length, variant = "h3", tone = "notification" }: Props) {
+function TitleSectionWithBadge({ label, length, variant = "h3" }: Props) {
 
     return (
         <View className="min-w-0 flex-row items-center gap-2">
@@ -24,10 +22,7 @@ function TitleSectionWithBadge({ label, length, variant = "h3", tone = "notifica
                 {label}
             </NativeText>
 
-            <View className={cn(
-                "min-w-[24px] shrink-0 items-center justify-center rounded-full px-1.5 py-1",
-                tone === "primary" ? "bg-primary" : "bg-notification",
-            )}>
+            <View className="min-w-[24px] shrink-0 items-center justify-center rounded-full bg-notification px-1.5 py-1">
                 <NativeText
                     variant="count"
                     color="primaryForeground"

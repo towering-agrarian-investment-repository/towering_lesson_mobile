@@ -8,6 +8,8 @@ import {
     PROFILE_IMAGE_MAX_SIZE_BYTES,
     type ProfileImageContentType,
 } from "@/utils/media";
+import { fetch as expoFetch } from "expo/fetch";
+import { File } from "expo-file-system";
 
 export const getMemberProfile = async (
     signal?: AbortSignal,
@@ -44,14 +46,13 @@ export const updateMemberProfileImage = async (
     imageUri: string,
     contentType: ProfileImageContentType,
 ): Promise<ApiResponse<MemberSelfResponse>> => {
-    const imageResponse = await fetch(imageUri);
-    const imageBlob = await imageResponse.blob();
+    const imageFile = new File(imageUri);
 
-    if (imageBlob.size <= 0) {
+    if (!imageFile.exists || imageFile.size <= 0) {
         throw new Error("The selected profile image is empty.");
     }
 
-    if (imageBlob.size > PROFILE_IMAGE_MAX_SIZE_BYTES) {
+    if (imageFile.size > PROFILE_IMAGE_MAX_SIZE_BYTES) {
         throw new Error("Profile images must be 10 MiB or smaller.");
     }
 
@@ -63,7 +64,7 @@ export const updateMemberProfileImage = async (
                 body: JSON.stringify({
                     purpose: "PROFILE_IMAGE",
                     contentType,
-                    sizeBytes: imageBlob.size,
+                    sizeBytes: imageFile.size,
                 }),
             },
         );
@@ -85,11 +86,11 @@ export const updateMemberProfileImage = async (
         staged = await stageUpload();
     }
 
-    let uploadResponse = await putProfileImage(staged, imageBlob, contentType);
+    let uploadResponse = await putProfileImage(staged, imageFile, contentType);
 
     if (!uploadResponse.ok && hasExpired(staged.expiresAt)) {
         staged = await stageUpload();
-        uploadResponse = await putProfileImage(staged, imageBlob, contentType);
+        uploadResponse = await putProfileImage(staged, imageFile, contentType);
     }
 
     if (!uploadResponse.ok) {
@@ -107,13 +108,13 @@ export const updateMemberProfileImage = async (
 
 function putProfileImage(
     staged: StagedUpload,
-    imageBlob: Blob,
+    imageFile: File,
     contentType: ProfileImageContentType,
 ) {
-    return fetch(staged.uploadUrl, {
+    return expoFetch(staged.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": contentType },
-        body: imageBlob,
+        body: imageFile,
     });
 }
 

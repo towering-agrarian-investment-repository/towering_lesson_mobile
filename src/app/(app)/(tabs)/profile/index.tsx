@@ -655,7 +655,7 @@ function LinkRow({ label, href, count }: { label: string; href: Href; count?: nu
                 title={label}
                 accessibilityLabel={count === undefined ? label : `${label}, ${count}`}
                 titleContent={count === undefined ? undefined : (
-                    <TitleSectionWithBadge label={label} length={count} variant="body" tone="primary" />
+                    <TitleSectionWithBadge label={label} length={count} variant="body" />
                 )}
                 className="px-0 py-3 border-0 bg-transparent"
             />

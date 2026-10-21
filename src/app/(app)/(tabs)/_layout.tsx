@@ -16,7 +16,7 @@ export default function TabLayout() {
             backBehavior="initialRoute"
             tintColor={colors.primary}
             backgroundColor={colors.background}
-            badgeBackgroundColor={colors.primary}
+            badgeBackgroundColor={colors.notification}
             badgeTextColor={colors.primaryForeground}
             labelVisibilityMode="labeled"
             disableIndicator
