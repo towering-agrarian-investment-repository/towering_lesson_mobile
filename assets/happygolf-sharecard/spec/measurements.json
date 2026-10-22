@@ -1,0 +1,284 @@
+{
+  "description": "HappyGolf October 2026 card specification, measured approximately from supplied 511x637 raster. All coordinates are design pixels; values are not device dp.",
+  "referenceSize": {
+    "width": 511,
+    "height": 637
+  },
+  "preferredExportSize": {
+    "width": 1080,
+    "height": 1350
+  },
+  "colorTokens": {
+    "cyan": "#5FDCFC",
+    "paper": "#FEFEFE",
+    "ink": "#061630",
+    "heading": "#485C7F",
+    "muted": "#617291",
+    "grid": "#F1F3F5",
+    "green": "#00B875",
+    "orange": "#FFAA12",
+    "separator": "#E2EAF0",
+    "sun": "#FFF0B3",
+    "sky": "#BDEFFA",
+    "sky2": "#D4F6FC",
+    "hill-light": "#79E3A6",
+    "hill": "#44D991",
+    "hill2": "#26CD85",
+    "hill-dark": "#009D68",
+    "flag": "#FF536E"
+  },
+  "assets": [
+    {
+      "file": "all_decorations",
+      "x": 0,
+      "y": 0,
+      "width": 511,
+      "height": 637,
+      "layer": 0,
+      "note": "Use alone as combined static background instead of placing all individual art pieces"
+    },
+    {
+      "file": "frame_background",
+      "x": 0,
+      "y": 0,
+      "width": 511,
+      "height": 637,
+      "layer": 0
+    },
+    {
+      "file": "sky_clouds",
+      "x": 258,
+      "y": 23,
+      "width": 236,
+      "height": 137,
+      "layer": 1
+    },
+    {
+      "file": "flag_hills",
+      "x": 355,
+      "y": 75,
+      "width": 139,
+      "height": 169,
+      "layer": 2
+    },
+    {
+      "file": "bottom_hills",
+      "x": 0,
+      "y": 539,
+      "width": 511,
+      "height": 98,
+      "layer": 3
+    },
+    {
+      "file": "golf_ball",
+      "x": 0,
+      "y": 563,
+      "width": 58,
+      "height": 74,
+      "layer": 4
+    },
+    {
+      "file": "sparkles",
+      "x": 0,
+      "y": 0,
+      "width": 511,
+      "height": 637,
+      "layer": 5
+    },
+    {
+      "file": "clock_badge",
+      "x": 244,
+      "y": 149,
+      "width": 50,
+      "height": 50,
+      "layer": 11
+    }
+  ],
+  "textBoxes": [
+    {
+      "name": "monthYear",
+      "x": 52,
+      "y": 46,
+      "width": 215,
+      "height": 23,
+      "fontSize": 15,
+      "lineHeight": 19,
+      "weight": "700",
+      "letterSpacing": 3.6,
+      "color": "#485C7F"
+    },
+    {
+      "name": "reservationCount",
+      "x": 66,
+      "y": 73,
+      "width": 112,
+      "height": 113,
+      "fontSize": 132,
+      "lineHeight": 127,
+      "weight": "900",
+      "color": "#00B66E"
+    },
+    {
+      "name": "reservationsLabel",
+      "x": 42,
+      "y": 176,
+      "width": 185,
+      "height": 33,
+      "fontSize": 25,
+      "lineHeight": 29,
+      "weight": "900",
+      "color": "#061630"
+    },
+    {
+      "name": "statsSeparator",
+      "x": 227,
+      "y": 119,
+      "width": 1.5,
+      "height": 93,
+      "color": "#E2EAF0"
+    },
+    {
+      "name": "timeValue",
+      "x": 303,
+      "y": 153,
+      "width": 84,
+      "height": 38,
+      "fontSize": 32,
+      "lineHeight": 37,
+      "weight": "850",
+      "color": "#061630"
+    },
+    {
+      "name": "timeLabel",
+      "x": 303,
+      "y": 187,
+      "width": 84,
+      "height": 16,
+      "fontSize": 9,
+      "lineHeight": 13,
+      "weight": "800",
+      "letterSpacing": 0.55,
+      "color": "#485C7F"
+    },
+    {
+      "name": "weekdayHeader",
+      "x": 74,
+      "y": 228,
+      "width": 360,
+      "height": 16,
+      "fontSize": 9.5,
+      "lineHeight": 12,
+      "weight": "800",
+      "color": "#485C7F"
+    },
+    {
+      "name": "footerDivider",
+      "x": 49,
+      "y": 515,
+      "width": 414,
+      "height": 1,
+      "color": "#E2EAF0"
+    },
+    {
+      "name": "avatar",
+      "x": 58,
+      "y": 528,
+      "width": 56,
+      "height": 56,
+      "borderRadius": 28
+    },
+    {
+      "name": "memberName",
+      "x": 124,
+      "y": 538,
+      "width": 192,
+      "height": 27,
+      "fontSize": 20,
+      "lineHeight": 25,
+      "weight": "800",
+      "color": "#061630"
+    },
+    {
+      "name": "memberSubtitle",
+      "x": 124,
+      "y": 566,
+      "width": 170,
+      "height": 15,
+      "fontSize": 9,
+      "lineHeight": 12,
+      "weight": "700",
+      "letterSpacing": 2.4,
+      "color": "#485C7F"
+    },
+    {
+      "name": "existingHappyGolfLogo",
+      "x": 320,
+      "y": 535,
+      "width": 136,
+      "height": 43,
+      "fit": "contain",
+      "generate": false
+    }
+  ],
+  "calendar": {
+    "x": 74,
+    "y": 250,
+    "columns": 7,
+    "rowsForOctober2026": 5,
+    "firstDayOfWeek": "monday",
+    "cellWidth": 45,
+    "cellHeight": 45,
+    "cellRadius": 8,
+    "columnGap": 7.7,
+    "rowGap": 4.5,
+    "weekdayHeaderCenters": [
+      96.5,
+      149.2,
+      201.8,
+      254.4,
+      307.0,
+      359.6,
+      412.2
+    ],
+    "weekdays": [
+      "MON",
+      "TUE",
+      "WED",
+      "THU",
+      "FRI",
+      "SAT",
+      "SUN"
+    ],
+    "exampleMarkedDays": {
+      "2": "green",
+      "6": "green",
+      "13": "orange",
+      "21": "green",
+      "28": "orange"
+    },
+    "placeholderFill": "#F1F3F5",
+    "greenFill": "#00B875",
+    "orangeFill": "#FFAA12",
+    "dateFontSize": 12.5,
+    "dateFontWeight": "500",
+    "selectedDateFontWeight": "750",
+    "dateTextColor": "#485C7F",
+    "selectedDateTextColor": "#FFFFFF",
+    "sixWeekMonths": "Use 38px square cells, 5px vertical gaps, center same 7 column slots, keeping bottom limit <=497."
+  },
+  "example": {
+    "year": 2026,
+    "month": 10,
+    "reservationCount": 8,
+    "hoursOnCourse": 6.7,
+    "displayName": "Alexis DE",
+    "daysWithActivity": [
+      2,
+      6,
+      13,
+      21,
+      28
+    ],
+    "explanation": "Numbers and marked days in screenshot are demonstrative; derive from actual backend data when used in app."
+  }
+}

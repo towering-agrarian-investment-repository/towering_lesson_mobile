@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="58" height="74" viewBox="0 563 58 74" fill="none">
+
+<!-- The lower-left dimply ball is a crop of a white circular asset, not a photo. -->
+<defs>
+  <clipPath id="ballshape"><circle cx="10" cy="610" r="46"/></clipPath>
+  <pattern id="dimples" width="14" height="13" patternUnits="userSpaceOnUse">
+     <circle cx="5" cy="5" r="3.1" fill="#E5ECEF"/><circle cx="12" cy="11" r="1.2" fill="#EFF3F5"/>
+  </pattern>
+</defs>
+<circle cx="10" cy="610" r="46" fill="#FFFFFF" stroke="#E3EBEC" stroke-width="1.2"/>
+<circle cx="10" cy="610" r="45" fill="url(#dimples)" clip-path="url(#ballshape)"/>
+
+</svg>

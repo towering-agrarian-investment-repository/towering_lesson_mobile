@@ -17,12 +17,20 @@ export type MemberActivityWeek = {
     typeCounts: MemberActivityTypeCounts;
 };
 
+export type MonthlyActivity = {
+    year: number;
+    month: number;
+    totalReservations: number;
+    totalReservationHours: number;
+};
+
 export type MemberActivityResponse = {
     year: number | null;
     range?: "all" | "year";
     totalReservationDays: number;
     totalReservationHours: number;
     totalReservations: number;
+    monthly: MonthlyActivity[];
     daily: MemberActivityDay[];
     weekly: MemberActivityWeek[];
 };

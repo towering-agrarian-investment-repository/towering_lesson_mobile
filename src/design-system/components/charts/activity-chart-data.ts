@@ -1,9 +1,10 @@
 import type { TFunction } from "i18next";
 import { colorWithOpacity } from "../../utils/color";
 import type { ThemeColors } from "../../utils/theme";
+import { getReservationStatusColor, getReservationStatusLabel } from "../../../utils/status-tone";
 
 export type ActivityHeatmapStatus =
-    "completed" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
+    "completed" | "checked-in" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
 export type ActivityHeatmapValue = {
     date: string | number | Date;
     count: number;
@@ -78,7 +79,7 @@ export function parseCalendarDate(date: string | number | Date) {
 
 export function formatActivityDate(dateKey: string, language: string) {
     return parseCalendarDate(dateKey).toLocaleDateString(language, {
-        year: "numeric", month: "short", day: "numeric",
+        weekday: "long", year: "numeric", month: "short", day: "numeric",
     });
 }
 
@@ -132,17 +133,15 @@ export function getFocusMonthWeekIndex(
 
 export function getHeatmapCellColor(count: number, colors: ThemeColors, status?: ActivityHeatmapStatus) {
     if (count <= 0) return colors.muted;
-    switch (status) {
-        case "completed": return colors.success;
-        case "no-show": return colors.danger;
-        case "cancelled": return colors.mutedForeground;
-        case "reserved": return colors.ticketPrivate;
-        case "mixed": return colors.warning;
-        default: {
-            const level = Math.min(4, Math.max(1, Math.floor(count)));
-            return colorWithOpacity(colors.primary, level === 4 ? 1 : level / 5);
-        }
-    }
+    if (status && status !== "unknown") return getActivityStatusColor(status, colors);
+    const level = Math.min(4, Math.max(1, Math.floor(count)));
+    return colorWithOpacity(colors.primary, level === 4 ? 1 : level / 5);
+}
+
+export function getActivityStatusColor(status: ActivityHeatmapStatus | undefined, colors: ThemeColors) {
+    if (status === "mixed") return colors.warning;
+    if (!status || status === "unknown") return colors.primary;
+    return getReservationStatusColor(colors, status);
 }
 
 export function formatStatusBreakdown(
@@ -151,10 +150,11 @@ export function formatStatusBreakdown(
 ) {
     if (!breakdown) return "";
     const labels: Record<ActivityHeatmapStatus, string> = {
-        completed: t("activity.completed"),
-        "no-show": t("activity.absent"),
-        cancelled: t("activity.cancelled"),
-        reserved: t("activity.booked"),
+        completed: getReservationStatusLabel("COMPLETED", t),
+        "checked-in": getReservationStatusLabel("CHECKED_IN", t),
+        "no-show": getReservationStatusLabel("NO_SHOW", t),
+        cancelled: getReservationStatusLabel("CANCELLED", t),
+        reserved: getReservationStatusLabel("RESERVED", t),
         mixed: t("activity.mixed"),
         unknown: t("activity.other"),
     };

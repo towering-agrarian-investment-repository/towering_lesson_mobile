@@ -1,0 +1,13 @@
+{
+  "en": {"reservations": "reservations", "onCourse": "ON COURSE", "onHappyGolf": "ON HAPPY GOLF", "hourShort": "h"},
+  "km": {"reservations": "ការកក់", "onCourse": "នៅទីលាន", "onHappyGolf": "នៅ HappyGolf", "hourShort": "ម៉ោង"},
+  "zh-Hans": {"reservations": "预约", "onCourse": "球场时长", "onHappyGolf": "在 HappyGolf", "hourShort": "小时"},
+  "zh-Hant": {"reservations": "預約", "onCourse": "球場時數", "onHappyGolf": "在 HappyGolf", "hourShort": "小時"},
+  "ja": {"reservations": "予約", "onCourse": "コース利用時間", "onHappyGolf": "HappyGolfでプレー", "hourShort": "時間"},
+  "ko": {"reservations": "예약", "onCourse": "코스 이용 시간", "onHappyGolf": "HappyGolf에서", "hourShort": "시간"},
+  "th": {"reservations": "การจอง", "onCourse": "เวลาในสนาม", "onHappyGolf": "บน HappyGolf", "hourShort": "ชม."},
+  "vi": {"reservations": "lượt đặt chỗ", "onCourse": "TRÊN SÂN", "onHappyGolf": "TRÊN HAPPYGOLF", "hourShort": "giờ"},
+  "fr": {"reservations": "réservations", "onCourse": "SUR LE PARCOURS", "onHappyGolf": "SUR HAPPYGOLF", "hourShort": "h"},
+  "es": {"reservations": "reservas", "onCourse": "EN EL CAMPO", "onHappyGolf": "EN HAPPYGOLF", "hourShort": "h"},
+  "id": {"reservations": "reservasi", "onCourse": "DI LAPANGAN", "onHappyGolf": "DI HAPPYGOLF", "hourShort": "jam"}
+}

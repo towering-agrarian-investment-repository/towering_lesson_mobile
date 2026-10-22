@@ -432,6 +432,7 @@ export default function DateScreen() {
                   ? t("common.refreshing")
                   : t("common.refreshTryAgain")
               }
+              actionPending={isRefetching || isPullRefreshing}
               onAction={handleRefresh}
             />
           </View>

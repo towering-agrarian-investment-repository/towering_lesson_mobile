@@ -10,7 +10,12 @@ import { useWelcome, WelcomeProvider } from "@/lib/welcome/welcome-context";
 import { ALLOWED_APP_ROLE, type AuthSession } from "@/service/auth";
 
 import * as Sentry from "@sentry/react-native";
-import { Stack } from "expo-router";
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider as NavigationThemeProvider,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
@@ -140,9 +145,23 @@ function ThemedRoot({
     }),
     [colors],
   );
+  const navigationTheme = useMemo(
+    () => ({
+      ...(resolvedScheme === "dark" ? DarkTheme : DefaultTheme),
+      colors: {
+        primary: colors.primary,
+        background: colors.background,
+        card: colors.card,
+        text: colors.foreground,
+        border: colors.border,
+        notification: colors.notification,
+      },
+    }),
+    [colors, resolvedScheme],
+  );
 
   return (
-    <>
+    <NavigationThemeProvider value={navigationTheme}>
       <VariableContextProvider value={themeVariables}>
         {!isThemeReady || !isWelcomeReady || update.isChecking || isAuthPending ? (
           <View className="flex-1 bg-background" />
@@ -153,7 +172,12 @@ function ThemedRoot({
         !update.isChecking &&
         update.isForceUpdateRequired &&
         update.state ? (
-          <AppUpdateGate state={update.state} force />
+          <AppUpdateGate
+            state={update.state}
+            force
+            isCheckingAgain={update.isCheckingAgain}
+            onCheckAgain={update.checkAgain}
+          />
         ) : null}
 
         {isThemeReady &&
@@ -198,7 +222,7 @@ function ThemedRoot({
       </VariableContextProvider>
 
       <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
-    </>
+    </NavigationThemeProvider>
   );
 }
 

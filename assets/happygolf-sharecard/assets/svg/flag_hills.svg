@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="139" height="169" viewBox="355 75 139 169" fill="none">
+
+<!-- Right-hand layered golf green and flag. -->
+<path d="M 356 206 C 377 202 386 171 406 156 C 427 141 458 143 476 131 C 483 126 488 123 493 122 L 493 244 C 474 225 443 225 423 223 C 401 222 377 220 356 206 Z" fill="#7BE7A8"/>
+<path d="M 359 207 C 392 202 393 167 427 162 C 453 159 472 143 493 154 L 493 243 C 473 222 438 220 412 219 C 387 218 371 214 359 207 Z" fill="#44D995"/>
+<path d="M 358 210 C 388 211 409 187 443 183 C 462 181 482 183 493 187 L 493 243 C 470 227 445 224 418 223 C 389 222 370 219 358 210 Z" fill="#00B978"/>
+<ellipse cx="416.5" cy="181.2" rx="19" ry="5.4" fill="#06895F" opacity="0.75"/>
+<path d="M 416 81 L 416 180" stroke="#061630" stroke-width="7.4" stroke-linecap="round"/>
+<path d="M 419.5 88 L 456.5 105.5 Q 458 107 455.4 109 L 419.5 122 Z" fill="#FF526D"/>
+<g stroke="#00B77C" stroke-width="5.5" stroke-linecap="round">
+<path d="M 452 84 L 459 69"/><path d="M 465 87 L 475 78"/>
+</g>
+
+</svg>

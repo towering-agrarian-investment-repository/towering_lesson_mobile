@@ -1,3 +1,4 @@
+import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
@@ -32,14 +33,14 @@ import {
 import { MemberBayReservationResponse } from "@/types/member-bay";
 import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
-import { formatType } from "@/utils/format-enum";
+import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { BottomSheet, Button, Column, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
+import { Button, Column, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
 import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame, interactiveDismissDisabled, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
+import { frame, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -85,26 +86,6 @@ function getReservationTitle(
         : reservation.lessonAvailability?.name;
 
     return name?.trim() || t("common.notAvailable");
-}
-
-function getReservationStatusColor(
-    colors: ReturnType<typeof useThemeColors>,
-    value?: string | null,
-) {
-    switch (value) {
-        case "RESERVED":
-            return colors.primary;
-        case "CHECKED_IN":
-        case "COMPLETED":
-            return colors.success;
-        case "CANCELLED":
-        case "CANCELED":
-            return colors.danger;
-        case "NO_SHOW":
-            return colors.warning;
-        default:
-            return colors.foreground;
-    }
 }
 
 function getReservationPolicies(t: (key: string) => string) {
@@ -219,6 +200,7 @@ export default function ReservationDetailScreen() {
                                 ? t("common.refreshing")
                                 : t("common.refreshTryAgain")
                         }
+                        actionPending={isRefetching || isPullRefreshing}
                         onAction={handlePullRefresh}
                     />
                 </Screen>
@@ -405,12 +387,11 @@ export default function ReservationDetailScreen() {
     return (
         <>
             <Stack.Screen options={screenOptions} />
-            <BottomSheet
+            <PendingBottomSheet
                 isPresented={isCancelSheetVisible}
                 onDismiss={closeCancelSheet}
-                shouldDismissOnBackPress={!isCancelling}
-                shouldDismissOnClickOutside={!isCancelling}
-                modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(isCancelling), presentationCornerRadius(24)] : undefined}
+                dismissDisabled={isCancelling}
+                modifiers={process.env.EXPO_OS === "ios" ? [presentationCornerRadius(24)] : undefined}
                 containerColor={uiColors.card}
                 contentColor={uiColors.foreground}
                 contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
@@ -434,7 +415,7 @@ export default function ReservationDetailScreen() {
                         </Button>
                     </Column>
                 </Column>
-            </BottomSheet>
+            </PendingBottomSheet>
             <Screen
                 contentClassName="grow"
                 refreshControl={
@@ -763,8 +744,16 @@ function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetai
                             label={t("reservations.notesLabel")}
                             value={reservation.memberNotes?.trim() || "-"}
                         />
-                        <View className="items-center py-4">
+                        <View className="flex-row items-center gap-3 py-2">
                             <ActivityIndicator color={colors.primary} />
+                            <NativeText
+                                variant="subtext"
+                                color="mutedForeground"
+                                style={{ flex: 1 }}
+                                accessibilityLiveRegion="polite"
+                            >
+                                {t("reservations.loadingDetail")}
+                            </NativeText>
                         </View>
                     </ReservationContent>
                 </View>
@@ -814,7 +803,7 @@ function ReservationStatusBanner({
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const statusLabel = formatType(reservationStatus);
+    const statusLabel = getReservationStatusLabel(reservationStatus, t);
     const statusColor = getReservationStatusColor(colors, reservationStatus);
 
     if (statusLabel === "-") {

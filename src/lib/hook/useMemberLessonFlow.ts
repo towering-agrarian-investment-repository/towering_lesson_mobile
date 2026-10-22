@@ -30,10 +30,12 @@ import {
 } from "@/utils/media";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
+import i18n from "@/i18n";
 import {
     ApiResponse,
     responseError,
     responseStatus,
+    UserFacingError,
 } from "../api-response/api-response";
 
 export function getMemberGroupsQueryOptions() {
@@ -168,15 +170,15 @@ export function useSubmitMemberHomework() {
             const mediaType = file.type;
 
             if (!isAllowedMimeType(mediaType, HOMEWORK_SUBMISSION_MIME_TYPES)) {
-                throw new Error("Only JPEG, PNG, WebP, and MP4 files are supported.");
+                throw new UserFacingError(i18n.t("homework.supportedFilesOnly"));
             }
 
             if (!nativeFile.exists || nativeFile.size <= 0) {
-                throw new Error("The selected homework file is empty.");
+                throw new UserFacingError(i18n.t("homework.emptyFile"));
             }
 
             if (nativeFile.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
-                throw new Error("Homework files must be 100 MiB or smaller.");
+                throw new UserFacingError(i18n.t("homework.fileTooLarge"));
             }
 
             const originalFileName = file.name || nativeFile.name;
@@ -201,7 +203,7 @@ export function useSubmitMemberHomework() {
                     || !uploadTarget.uploadUrl
                     || !uploadTarget.expiresAt
                 ) {
-                    throw new Error("Could not prepare homework upload.");
+                    throw new UserFacingError(i18n.t("homework.prepareUploadError"));
                 }
 
                 return uploadTarget;
@@ -215,7 +217,7 @@ export function useSubmitMemberHomework() {
                 }
 
                 if (hasExpired(uploadTarget.expiresAt)) {
-                    throw new Error("Could not prepare a valid homework upload URL.");
+                    throw new UserFacingError(i18n.t("homework.prepareUploadError"));
                 }
 
                 return uploadTarget;

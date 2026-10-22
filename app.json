@@ -101,7 +101,8 @@
       "expo-secure-store",
       "expo-status-bar",
       "expo-web-browser",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

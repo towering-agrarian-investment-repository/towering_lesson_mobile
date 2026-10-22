@@ -1,0 +1,165 @@
+{
+  "version": 4,
+  "sourceImage": {
+    "width": 1122,
+    "height": 1402,
+    "relativePath": "reference/SIMPLIFIED_VISUAL_DIRECTION.png"
+  },
+  "exportSize": {
+    "width": 1080,
+    "height": 1350
+  },
+  "canvasBackground": "#FFFFFF",
+  "components": {
+    "month": {
+      "x": 79,
+      "y": 101,
+      "text": "OCTOBER 2026",
+      "fontPxApprox": 35
+    },
+    "reservationNumber": {
+      "x": 120,
+      "y": 157,
+      "display": "8",
+      "fontPxApprox": 270
+    },
+    "reservationLabel": {
+      "x": 78,
+      "y": 394,
+      "w": 366,
+      "h": 64,
+      "fontPxApprox": 56
+    },
+    "statDivider": {
+      "x": 472,
+      "y": 323,
+      "w": 2,
+      "h": 135
+    },
+    "clockBadge": {
+      "x": 513,
+      "y": 343,
+      "w": 112,
+      "h": 112
+    },
+    "hours": {
+      "x": 640,
+      "y": 351,
+      "display": "6.7h",
+      "fontPxApprox": 70
+    },
+    "hoursDescription": {
+      "x": 642,
+      "y": 415,
+      "display": "ON COURSE",
+      "fontPxApprox": 22
+    },
+    "calendarWeekdays": {
+      "centersX": [
+        114,
+        260,
+        405,
+        552,
+        697,
+        845,
+        992
+      ],
+      "y": 511,
+      "fontPxApprox": 21
+    },
+    "calendarGrid": {
+      "x": 48,
+      "y": 550,
+      "columns": 7,
+      "sampleRows": 5,
+      "cellW": 133,
+      "cellH": 98,
+      "columnStride": 146.6,
+      "rowStride": 107.5,
+      "cornerRadius": 15
+    },
+    "footerDivider": {
+      "x": 68,
+      "y": 1110,
+      "w": 964,
+      "h": 2
+    },
+    "avatar": {
+      "x": 88,
+      "y": 1130,
+      "w": 126,
+      "h": 126
+    },
+    "displayName": {
+      "x": 244,
+      "y": 1153,
+      "fontPxApprox": 45
+    },
+    "footerSubtitle": {
+      "x": 244,
+      "y": 1206,
+      "fontPxApprox": 18
+    },
+    "originalLogoSlot": {
+      "x": 696,
+      "y": 1138,
+      "w": 324,
+      "h": 104,
+      "fit": "contain"
+    },
+    "bottomHills": {
+      "x": 0,
+      "y": 1172,
+      "w": 1122,
+      "h": 230,
+      "asset": "assets/bottom_hills_minimal_v4.png",
+      "editableSvg": "assets/bottom_hills_minimal_v4.svg",
+      "layers": 2,
+      "notes": "Exactly two broad gentle hill layers, at most two modest grass tufts, one partial golf ball. Do not use v3 or older hills. Decoration has no logo/text/avatar."
+    },
+    "topFlagHills": {
+      "x": 535,
+      "y": 0,
+      "w": 587,
+      "h": 530
+    },
+    "sparks": {
+      "x": 25,
+      "y": 187,
+      "w": 410,
+      "h": 143
+    }
+  },
+  "sample": {
+    "year": 2026,
+    "month": 10,
+    "reservations": 8,
+    "hours": 6.7,
+    "greenDates": [
+      6,
+      21
+    ],
+    "orangeDates": [
+      13,
+      28
+    ],
+    "firstWeekday": "Thursday",
+    "october31Weekday": "Saturday"
+  },
+  "style": {
+    "textDark": "#0B1B38",
+    "textMuted": "#51607E",
+    "neutralCell": "#F0F2F5",
+    "satCell": "#E8F2FF",
+    "satText": "#0866CD",
+    "sunCell": "#FDEAF0",
+    "sunText": "#FB426C",
+    "greenCell": "#00B76A",
+    "orangeCell": "#FFB20B"
+  },
+  "assets": {
+    "combinedDecorations": "assets/decorations_minimal_v4.png",
+    "topAndSparks": "retained from V3, without any older bottom hills",
+    "logo": "use existing production app logo; not included"
+  }
+}

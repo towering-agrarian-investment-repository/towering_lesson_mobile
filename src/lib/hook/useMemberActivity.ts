@@ -2,7 +2,11 @@ import { getMemberActivity } from "@/service/member-activity.service";
 import type { MemberActivityResponse } from "@/types/member-activity";
 import { useQuery } from "@tanstack/react-query";
 
-export function useMemberActivity(year: number | "all", enabled = true) {
+export function useMemberActivity(
+    year: number | "all",
+    enabled = true,
+    refetchInterval: number | false = false,
+) {
     return useQuery<MemberActivityResponse, Error>({
         queryKey: ["member", "activity", year],
         queryFn: async ({ signal }) => {
@@ -13,8 +17,6 @@ export function useMemberActivity(year: number | "all", enabled = true) {
             return response.data;
         },
         enabled,
-        staleTime: 5 * 60_000,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
+        refetchInterval,
     });
 }

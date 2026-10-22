@@ -310,6 +310,7 @@ export default function BayScreen() {
           actionLabel={
             isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
           }
+          actionPending={isRefetching || isPullRefreshing}
           onAction={handlePullRefresh}
         />
       ) : null}

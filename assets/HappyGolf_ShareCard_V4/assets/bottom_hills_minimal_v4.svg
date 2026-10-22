@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1122" height="230" viewBox="0 0 1122 230">
+ <defs>
+  <clipPath id="golfball"><circle cx="-1" cy="190" r="109"/></clipPath>
+ </defs>
+ <!-- Layer 1: gently rolling far fairway, one shape -->
+ <path fill="#8FEB95" d="M0 111 C124 102 180 111 285 133 C412 158 455 166 562 159 C696 152 735 126 849 119 C963 112 1039 139 1122 153 L1122 230 L0 230 Z"/>
+ <!-- Layer 2: one foreground hill, no extra overlapping stripes -->
+ <path fill="#18C979" d="M0 137 C104 134 181 149 289 182 C420 221 522 230 665 204 C809 179 871 159 989 169 C1041 173 1080 174 1122 170 L1122 230 L0 230 Z"/>
+ <!-- Two small understated tufts, not a field of repeated leaves -->
+ <g fill="#00B46C">
+  <path d="M206 154 Q194 136 183 140 Q178 143 188 156 Q169 148 167 157 Q168 165 207 166 Q226 151 222 144 Q218 138 206 154 Z"/>
+  <path d="M1011 175 Q1000 153 990 155 Q986 158 995 177 Q976 165 972 176 Q976 187 1018 189 Q1041 177 1037 165 Q1032 157 1011 175 Z"/>
+ </g>
+ <!-- Small partial golf ball in the lower-left; no photo, logo, or footer embedded -->
+ <circle cx="-1" cy="190" r="109" fill="#FBFDFF" stroke="#E5EDF2" stroke-width="4"/>
+ <g clip-path="url(#golfball)" fill="#E4EAF0" opacity="0.83">
+  <ellipse cx="16" cy="111" rx="11" ry="10"/><ellipse cx="54" cy="124" rx="9" ry="9"/><ellipse cx="88" cy="148" rx="10" ry="9"/>
+  <ellipse cx="-11" cy="143" rx="11" ry="10"/><ellipse cx="24" cy="164" rx="12" ry="11"/><ellipse cx="59" cy="184" rx="11" ry="10"/>
+  <ellipse cx="94" cy="199" rx="9" ry="9"/><ellipse cx="-19" cy="193" rx="12" ry="11"/><ellipse cx="11" cy="209" rx="11" ry="10"/>
+  <ellipse cx="45" cy="225" rx="10" ry="10"/><ellipse cx="77" cy="245" rx="11" ry="11"/>
+  <ellipse cx="-27" cy="239" rx="10" ry="9"/><ellipse cx="5" cy="262" rx="11" ry="10"/>
+ </g>
+ </svg>

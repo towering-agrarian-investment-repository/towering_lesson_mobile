@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="236" height="137" viewBox="258 23 236 137" fill="none">
+
+<!-- Wavy upper-right sky; this edge is purposefully within the card, not clipped flat. -->
+<path d="M 260 23 H 472 Q 493 23 493 45 L 493 123 C 475 108 459 114 443 116 C 420 118 408 131 392 127 C 375 121 361 98 342 93 C 315 87 300 88 287 70 C 278 57 280 37 260 23 Z" fill="#BCEFFA"/>
+<path d="M 279 23 C 292 41 291 64 317 81 C 335 91 352 88 364 102 C 374 113 380 122 394 124" fill="none" stroke="#D3F6FB" stroke-width="4" opacity="0.22" />
+<path d="M 353 63 C 355 57 359 55 364 56 C 365 49 371 45 378 46 C 381 39 388 37 394 42 C 402 42 404 47 405 53 C 412 51 418 57 420 63 Z" fill="#F4FBFE"/>
+<path d="M 286 123 C 289 117 295 115 300 117 C 302 109 308 105 316 109 C 321 111 321 116 323 116 C 329 114 333 118 335 124 Z" fill="#DEF6FC"/>
+<path d="M 380 128 C 383 122 391 121 396 124 C 398 116 405 110 413 115 C 417 118 418 125 418 128 Z" fill="#F6FCFD"/>
+<path d="M 468 75 C 473 66 481 66 487 73 C 491 71 493 72 493 76 L 493 81 L 465 81 Z" fill="#F2FBFF"/>
+
+</svg>

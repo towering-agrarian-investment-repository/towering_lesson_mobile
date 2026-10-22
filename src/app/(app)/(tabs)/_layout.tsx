@@ -50,9 +50,11 @@ export default function TabLayout() {
                 <NativeTabs.Trigger.Label>
                     {t("navigation.tabs.notifications")}
                 </NativeTabs.Trigger.Label>
-                <NativeTabs.Trigger.Badge hidden={unreadNotificationCount === 0}>
-                    {String(unreadNotificationCount)}
-                </NativeTabs.Trigger.Badge>
+                {unreadNotificationCount > 0 ? (
+                    <NativeTabs.Trigger.Badge>
+                        {String(unreadNotificationCount)}
+                    </NativeTabs.Trigger.Badge>
+                ) : null}
             </NativeTabs.Trigger>
             <NativeTabs.Trigger name="activity">
                 <NativeTabs.Trigger.Icon sf="chart.bar" src={{

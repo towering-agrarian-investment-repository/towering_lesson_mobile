@@ -215,6 +215,7 @@ export default function SelectLessonSlotScreen() {
                 ? t("common.refreshing")
                 : t("common.refreshTryAgain")
             }
+            actionPending={isRefetching || isPullRefreshing}
             onAction={handlePullRefresh}
           />
         ) : null}

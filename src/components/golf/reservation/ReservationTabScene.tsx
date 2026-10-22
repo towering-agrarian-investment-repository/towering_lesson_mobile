@@ -9,7 +9,6 @@ import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import {
   useMemberReservations,
 } from "@/lib/hook/useReservation";
@@ -22,7 +21,7 @@ import {
 } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { FlatList, RefreshControl } from "react-native-gesture-handler";
@@ -43,14 +42,13 @@ type ReservationTabSceneProps = {
   referenceTime: number;
 };
 
-export function ReservationTabScene({
+function ReservationTabSceneContent({
   type,
   referenceTime,
 }: ReservationTabSceneProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
-  const { isOnline } = useNetworkStatus();
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const refreshLocked = useRef(false);
 
@@ -142,19 +140,12 @@ export function ReservationTabScene({
         onRefresh={handleRefetch}
       >
         <ErrorState
-          title={
-            isOnline === false
-              ? t("common.offlineTitle")
-              : t("reservations.failedListTitle")
-          }
-          message={
-            isOnline === false
-              ? t("common.offlineMessage")
-              : t("common.pullToRefreshAndTryAgain")
-          }
+          title={t("reservations.failedListTitle")}
+          message={t("common.pullToRefreshAndTryAgain")}
           actionLabel={
             isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
           }
+          actionPending={isRefetching}
           onAction={handleRefetch}
         />
       </ReservationStateList>
@@ -171,6 +162,7 @@ export function ReservationTabScene({
           title={t("reservations.noReservationsTitle")}
           message={t("reservations.noReservationsMessage")}
           actionLabel={t("common.refresh")}
+          actionPending={isRefetching}
           onAction={handleRefetch}
         />
       </ReservationStateList>
@@ -215,6 +207,8 @@ export function ReservationTabScene({
     />
   );
 }
+
+export const ReservationTabScene = memo(ReservationTabSceneContent);
 
 function ReservationLoadingState() {
   return (

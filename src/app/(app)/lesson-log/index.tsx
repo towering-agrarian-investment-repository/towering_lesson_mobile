@@ -88,6 +88,7 @@ function LessonLogScreen() {
                                     ? t("common.refreshing")
                                     : t("common.refreshTryAgain")
                             }
+                            actionPending={isRefetching || isPullRefreshing}
                             onAction={handlePullRefresh}
                         />
                     }
@@ -100,6 +101,7 @@ function LessonLogScreen() {
                             title={t("lessonLog.noPostsTitle")}
                             message={t("lessonLog.noPostsMessage")}
                             actionLabel={t("lessonLog.refresh")}
+                            actionPending={isRefetching || isPullRefreshing}
                             onAction={handlePullRefresh}
                         />
                     }

@@ -1,10 +1,11 @@
+import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { NativeText } from "@/design-system/components/NativeText";
 import { InlineState, ListRow, useTheme } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
-import { BottomSheet, Button, Host, RNHostView, Text } from "@expo/ui";
+import { Button, Host, RNHostView, Text } from "@expo/ui";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame, interactiveDismissDisabled } from "@expo/ui/swift-ui/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { Check } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,8 +56,8 @@ export function ProfilePreferenceRow<T extends string>({
         try {
             await onChange(nextValue);
             setIsPresented(false);
-        } catch (error) {
-            setSaveError(error instanceof Error ? error.message : t("common.refreshTryAgain"));
+        } catch {
+            setSaveError(t("common.refreshTryAgain"));
         } finally {
             selectionLocked.current = false;
             setPendingValue(null);
@@ -77,12 +78,11 @@ export function ProfilePreferenceRow<T extends string>({
                     setIsPresented(true);
                 }}
             />
-            <BottomSheet
+            <PendingBottomSheet
                 isPresented={isPresented}
                 onDismiss={close}
-                shouldDismissOnBackPress={!pending}
-                shouldDismissOnClickOutside={!pending}
-                modifiers={process.env.EXPO_OS === "ios" ? [interactiveDismissDisabled(pending)] : undefined}
+                dismissDisabled={pending}
+
                 containerColor={colors.card}
                 contentColor={colors.foreground}
                 contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
@@ -133,7 +133,7 @@ export function ProfilePreferenceRow<T extends string>({
                         </Host>
                     </View>
                 </RNHostView>
-            </BottomSheet>
+            </PendingBottomSheet>
         </>
     );
 }

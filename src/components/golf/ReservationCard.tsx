@@ -4,6 +4,7 @@ import {
     triggerSelectionHaptic,
 } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
+import { colorWithOpacity } from "@/design-system/utils/color";
 import { useTheme } from "@/design-system/utils/theme";
 import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
@@ -11,6 +12,7 @@ import type {
     MemberReservationResponse,
 } from "@/types/member-reservation";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,7 +29,6 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
     const { colors } = useTheme();
     const { t } = useTranslation();
     const startTime = new Date(reservation.startTime).getTime();
-    const endTime = new Date(reservation.endTime).getTime();
     const tone = getTicketTypeTone(reservation.ticketType);
     const minutesUntilStart = Math.ceil(
         (startTime - referenceTime) / 60000,
@@ -37,7 +38,6 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
     ).toUpperCase();
     const isReservedUpcoming =
         reservationStatus === "RESERVED" && startTime > referenceTime;
-    const isStartingSoon = isReservedUpcoming && minutesUntilStart <= 60;
     const countdownLabel =
         isReservedUpcoming
             ? minutesUntilStart < 60
@@ -50,43 +50,14 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                         count: Math.ceil(minutesUntilStart / 1440),
                     })
             : null;
-    const statusLabel =
-        reservationStatus === "CHECKED_IN"
-            ? t("reservations.checkedIn")
-            : reservationStatus === "COMPLETED"
-                ? t("reservations.sessionCompleted")
-                : reservationStatus === "CANCELLED" ||
-                    reservationStatus === "CANCELED"
-                    ? t("reservations.reservationCancelled")
-                    : reservationStatus === "NO_SHOW"
-                        ? t("reservations.markedAbsent")
-                        : reservationStatus === "RESERVED" && startTime <= referenceTime
-                            ? endTime > referenceTime
-                                ? t("reservations.awaitingCheckIn")
-                                : t("reservations.sessionTimePassed")
-                            : null;
-    const secondaryLabel = countdownLabel ?? statusLabel;
-    const secondaryColor = countdownLabel
-        ? isStartingSoon
-            ? colors.warning
-            : colors.primary
-        : reservationStatus === "CHECKED_IN" ||
-            reservationStatus === "COMPLETED"
-            ? colors.success
-            : reservationStatus === "CANCELLED" ||
-                reservationStatus === "CANCELED"
-                ? colors.danger
-                : reservationStatus === "NO_SHOW"
-                    ? colors.warning
-                    : colors.mutedForeground;
+    const statusLabel = getReservationStatusLabel(reservation.reservationStatus, t);
+    const secondaryLabel = countdownLabel
+        ? `${statusLabel} · ${countdownLabel}`
+        : statusLabel;
+    const secondaryColor = getReservationStatusColor(colors, reservation.reservationStatus);
     // Keep the card surface calm. Status and ticket type are communicated by
     // the small dot and the supporting label instead of coloring the whole card.
-    const cardBackgroundClassName =
-        reservationStatus !== "RESERVED"
-            ? "bg-muted/80"
-            : startTime <= referenceTime
-                ? "bg-muted/80"
-                : "bg-primary/20";
+    const cardBackgroundClassName = isReservedUpcoming ? "" : "bg-muted/80";
     const arrowBackgroundClassName = "bg-muted";
     const arrowColor = colors.mutedForeground;
 
@@ -117,6 +88,7 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
             }
         >
             <View
+                style={isReservedUpcoming ? { backgroundColor: colorWithOpacity(secondaryColor, 0.2) } : undefined}
                 className={cn(
                     "rounded-xl border border-border bg-card p-5",
                     `flex-col gap-3 overflow-hidden rounded-2xl border-border p-5 ${cardBackgroundClassName}`,

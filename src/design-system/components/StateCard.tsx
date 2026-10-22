@@ -10,19 +10,24 @@ import {
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { CircleAlert, Inbox } from "lucide-react-native";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 export function ErrorState({
     title,
     message,
     actionLabel,
     onAction,
+    actionPending = false,
 }: {
     title: string;
     message: string;
     actionLabel?: string;
     onAction?: () => void;
+    actionPending?: boolean;
 }) {
     const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { t } = useTranslation();
+    const buttonLabel = actionPending ? t("common.refreshing") : actionLabel;
 
     return (
         <StateCardShell>
@@ -47,8 +52,8 @@ export function ErrorState({
                         colorScheme={uiScheme}
                         seedColor={colors.primary}
                         style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
-                        accessibilityLabel={actionLabel}
-                        accessibilityState={{ disabled: false, busy: false }}
+                        accessibilityLabel={buttonLabel}
+                        accessibilityState={{ disabled: actionPending, busy: actionPending }}
                     >
                         <Button
                             modifiers={
@@ -65,13 +70,13 @@ export function ErrorState({
                                     ]
                             }
                             variant="text"
-                            disabled={false}
-                            onPress={onAction}
+                            disabled={actionPending}
+                            onPress={() => { if (!actionPending) onAction(); }}
                             style={{
                                 ...getNativeButtonStyle(
                                     colors,
                                     "filled",
-                                    false,
+                                    actionPending,
                                     colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
@@ -90,7 +95,7 @@ export function ErrorState({
                                         typography.label.fontSize * uiFontScale,
                                 }}
                             >
-                                {actionLabel}
+                                {buttonLabel}
                             </Text>
                         </Button>
                     </Host>
@@ -105,13 +110,17 @@ export function EmptyState({
     message,
     actionLabel,
     onAction,
+    actionPending = false,
 }: {
     title: string;
     message?: string;
     actionLabel?: string;
     onAction?: () => void;
+    actionPending?: boolean;
 }) {
     const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { t } = useTranslation();
+    const buttonLabel = actionPending ? t("common.refreshing") : actionLabel;
 
     return (
         <StateCardShell>
@@ -138,8 +147,8 @@ export function EmptyState({
                         colorScheme={uiScheme}
                         seedColor={colors.primary}
                         style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
-                        accessibilityLabel={actionLabel}
-                        accessibilityState={{ disabled: false, busy: false }}
+                        accessibilityLabel={buttonLabel}
+                        accessibilityState={{ disabled: actionPending, busy: actionPending }}
                     >
                         <Button
                             modifiers={
@@ -156,13 +165,13 @@ export function EmptyState({
                                     ]
                             }
                             variant="text"
-                            disabled={false}
-                            onPress={onAction}
+                            disabled={actionPending}
+                            onPress={() => { if (!actionPending) onAction(); }}
                             style={{
                                 ...getNativeButtonStyle(
                                     colors,
                                     "filled",
-                                    false,
+                                    actionPending,
                                     colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}
@@ -181,7 +190,7 @@ export function EmptyState({
                                         typography.label.fontSize * uiFontScale,
                                 }}
                             >
-                                {actionLabel}
+                                {buttonLabel}
                             </Text>
                         </Button>
                     </Host>

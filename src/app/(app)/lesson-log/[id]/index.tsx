@@ -130,6 +130,7 @@ function LessonLogDetailsScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
             </Screen>

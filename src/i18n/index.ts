@@ -62,9 +62,10 @@ if (!i18n.isInitialized) {
     void i18n.use(initReactI18next).init({
         compatibilityJSON: "v4",
         resources,
+        defaultNS: "translation",
         lng: detectLanguage(),
         fallbackLng: "en",
-        supportedLngs: ["en", "ko", "ja", "zh", "km"],
+        supportedLngs: Object.keys(resources),
         interpolation: {
             escapeValue: false,
         },

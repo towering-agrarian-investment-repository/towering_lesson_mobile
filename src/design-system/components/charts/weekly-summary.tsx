@@ -12,7 +12,7 @@ import { cn } from "../../utils/cn";
 import { useTheme } from "../../utils/theme";
 import { typography } from "../../utils/typography";
 
-import { buildWeekSummaries, getWeekStart, toDateKey as weekKey, parseCalendarDate, formatStatusBreakdown, formatTypeBreakdown, type WeeklySummaryValue, type WeeklyWeek } from "./activity-chart-data";
+import { buildWeekSummaries, getActivityStatusColor, getWeekStart, toDateKey as weekKey, parseCalendarDate, formatStatusBreakdown, formatTypeBreakdown, type WeeklySummaryValue, type WeeklyWeek } from "./activity-chart-data";
 import { chartLeadingModifiers, chartCenterModifiers, getChartTextStyles } from "./chart-text-styles";
 import { useTranslation } from "react-i18next";
 import { ActivityStatusLegend, type ActivityHeatmapStatus } from "./activity-heatmap";
@@ -252,7 +252,13 @@ export function WeeklySummary({
                     />
                 </View>
             )}
-            <ActivityStatusLegend className="justify-center" includeMixed={false} />
+            <ActivityStatusLegend
+                className="justify-center"
+                includeMixed={false}
+                includeCancelled={values.some((value) =>
+                    value.status === "cancelled" || (value.statusBreakdown?.cancelled ?? 0) > 0
+                )}
+            />
             {selectedSummary ? (
                 <View className="gap-0.5">
                     <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
@@ -374,7 +380,7 @@ const WeeklyBar = memo(function WeeklyBar({
                             key={segment.status}
                             style={{
                                 flex: segment.height,
-                                backgroundColor: week.total === 0 ? colors.muted : getStatusColor(
+                                backgroundColor: week.total === 0 ? colors.muted : getActivityStatusColor(
                                     segment.status,
                                     colors,
                                 ),
@@ -401,6 +407,7 @@ function buildStatusSegments(
     colors: ReturnType<typeof useTheme>["colors"],
 ) {
     const statusOrder: ActivityHeatmapStatus[] = [
+        "checked-in",
         "completed",
         "no-show",
         "reserved",
@@ -416,7 +423,7 @@ function buildStatusSegments(
             {
                 status: fallbackStatus ?? "unknown",
                 height: barHeight,
-                color: getStatusColor(fallbackStatus, colors),
+                color: getActivityStatusColor(fallbackStatus, colors),
             },
         ];
     }
@@ -431,28 +438,7 @@ function buildStatusSegments(
         return {
             status: entry.status,
             height: Math.max(0, height),
-            color: getStatusColor(entry.status, colors),
+            color: getActivityStatusColor(entry.status, colors),
         };
     });
-}
-
-function getStatusColor(
-    status: ActivityHeatmapStatus | undefined,
-    colors: ReturnType<typeof useTheme>["colors"],
-) {
-    switch (status) {
-        case "completed":
-            return colors.success;
-        case "no-show":
-            return colors.danger;
-        case "cancelled":
-            return colors.mutedForeground;
-        case "reserved":
-            return colors.ticketPrivate;
-        case "mixed":
-            return colors.warning;
-        case "unknown":
-        default:
-            return colors.primary;
-    }
 }

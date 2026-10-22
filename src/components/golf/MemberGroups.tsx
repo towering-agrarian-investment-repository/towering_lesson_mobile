@@ -75,6 +75,7 @@ export function MemberGroups({
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || refreshing}
                     onAction={() => {
                         void refetch();
                     }}
@@ -88,6 +89,7 @@ export function MemberGroups({
                             ? t("common.refreshing")
                             : t("lessonLog.refresh")
                     }
+                    actionPending={isRefetching || refreshing}
                     onAction={() => {
                         void refetch();
                     }}

@@ -3,14 +3,13 @@ import TicketCard from "@/components/golf/TicketCard";
 import { EmptyState, ErrorState, Skeleton } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useNetworkStatus } from "@/lib/hook/useNetworkStatus";
 import { useMemberTickets } from "@/lib/hook/useTicket";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
@@ -21,12 +20,11 @@ type TicketTabSceneProps = {
     type: TicketTabType;
 };
 
-export function TicketTabScene({ type }: TicketTabSceneProps) {
+function TicketTabSceneContent({ type }: TicketTabSceneProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { isOnline } = useNetworkStatus();
     const { data: memberResponse, isLoading: isLoadingMember, isError: isMemberError, refetch: refetchMember, isRefetching: isRefetchingMember } =
         useGetMemberProfile();
     const member = memberResponse?.data;
@@ -95,21 +93,14 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                 onRefresh={handlePullRefresh}
             >
                 <ErrorState
-                    title={
-                        isOnline === false
-                            ? t("common.offlineTitle")
-                            : t("tickets.loadError")
-                    }
-                    message={
-                        isOnline === false
-                            ? t("common.offlineMessage")
-                            : t("common.pullToRefreshAndTryAgain")
-                    }
+                    title={t("tickets.loadError")}
+                    message={t("common.pullToRefreshAndTryAgain")}
                     actionLabel={
                         isRefetching || isRefetchingMember
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || isRefetchingMember || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
             </TicketStateList>
@@ -125,6 +116,7 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
                 <EmptyState
                     title={t("tickets.empty")}
                     actionLabel={t("common.refresh")}
+                    actionPending={isRefetching || isRefetchingMember || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
             </TicketStateList>
@@ -164,6 +156,8 @@ export function TicketTabScene({ type }: TicketTabSceneProps) {
         />
     );
 }
+
+export const TicketTabScene = memo(TicketTabSceneContent);
 
 function TicketStateList({
     children,

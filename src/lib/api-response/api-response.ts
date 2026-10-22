@@ -1,4 +1,5 @@
 import { showAppToast } from "../toast/toast";
+import i18n from "@/i18n";
 
 export type CursorPageResponse<T> = {
     items: T[];
@@ -91,10 +92,13 @@ export function responseStatus<T>(res: ApiResponse<T>): void {
     });
 }
 
+/** Only explicitly localized app errors are safe to display verbatim. */
+export class UserFacingError extends Error {}
+
 export function responseError(error: unknown): void {
-    const message = isApiErrorResponse(error)
+    const message = isApiErrorResponse(error) || error instanceof UserFacingError
         ? error.message
-        : "Unable to connect to the server.";
+        : i18n.t("common.requestError");
 
     showAppToast({
         message,

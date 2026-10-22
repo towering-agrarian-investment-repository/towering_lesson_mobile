@@ -20,8 +20,10 @@ export const savePushToken = async (
 
 export const deactivatePushInstallation = async (
     deviceId: string,
+    signal: AbortSignal,
 ): Promise<ApiResponse<null>> => {
     return apiClient(`/push-tokens/installations/${encodeURIComponent(deviceId)}`, {
         method: "DELETE",
+        signal,
     });
 };

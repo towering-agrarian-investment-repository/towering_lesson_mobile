@@ -278,6 +278,7 @@ export default function LessonBookingConfirmScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
             ) : isMissingRequiredData ? (

@@ -1,4 +1,6 @@
-import { format, isMatch, isValid, parse } from "date-fns";
+import { format, isMatch, isValid, parse, type Day } from "date-fns";
+import i18n from "@/i18n";
+import { getDateLocale } from "./date-locale";
 import { getAppTimeZoneDateParts, toAppTimeZoneDate } from "./timezone";
 
 const NO_VALUE = "—";
@@ -16,7 +18,7 @@ function formatAppDate(
 
     if (!date || !isValid(date)) return null;
 
-    return format(date, pattern);
+    return format(date, pattern, { locale: getDateLocale(i18n.resolvedLanguage ?? i18n.language) });
 }
 
 export const formatDateValue = (
@@ -54,7 +56,7 @@ export const fmtTime = (value?: string | Date | null) => {
         const parsedClock = parseClockValue(value);
 
         if (parsedClock) {
-            return format(parsedClock, "h:mm a");
+            return format(parsedClock, "h:mm a", { locale: getDateLocale(i18n.resolvedLanguage ?? i18n.language) });
         }
     }
 
@@ -85,15 +87,18 @@ export const shortDateTimeWithWeekday = (value?: string | Date | null) =>
         ? formatAppDate(value, "EEE, MMM d, yyyy hh:mm aa") ?? NO_VALUE
         : NO_VALUE;
 
-export const fmtDays = (days?: string[]) =>
-    days && days.length > 0
-        ? days
-            .map((day) =>
-                day.charAt(0).toUpperCase() +
-                day.slice(1).toLowerCase().slice(0, 2),
-            )
-            .join(", ")
-        : NO_VALUE;
+const WEEKDAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+
+export const fmtDays = (days?: string[]) => {
+    if (!days?.length) return NO_VALUE;
+    const locale = getDateLocale(i18n.resolvedLanguage ?? i18n.language);
+    return days.map((day) => {
+        const index = WEEKDAYS.findIndex((name) => name === day.toUpperCase() || name.slice(0, 3) === day.toUpperCase());
+        return index >= 0
+            ? locale.localize.day(index as Day, { width: "abbreviated" })
+            : day.charAt(0).toUpperCase() + day.slice(1, 3).toLowerCase();
+    }).join(", ");
+};
 
 export const parseDateSafely = (dateStr?: string): Date => {
     if (!dateStr) return new Date();

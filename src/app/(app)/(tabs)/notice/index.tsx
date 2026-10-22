@@ -1,3 +1,4 @@
+import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import {
   CircleLoader,
   cn,
@@ -26,7 +27,6 @@ import {
 } from "@/service/shared/notification-service";
 import { formatRelativeTime } from "@/utils/relative-time";
 import {
-  BottomSheet,
   Button,
   Column,
   Host,
@@ -41,7 +41,6 @@ import {
 } from "@expo/ui/jetpack-compose/modifiers";
 import {
   frame,
-  interactiveDismissDisabled,
   presentationCornerRadius,
 } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
@@ -336,15 +335,13 @@ function NoticeScreen() {
         </Pressable>
       </Modal>
 
-      <BottomSheet
+      <PendingBottomSheet
         isPresented={isDeleteAllConfirmationOpen}
         onDismiss={closeDeleteAllSheet}
-        shouldDismissOnBackPress={!isDeletingAllNotifications}
-        shouldDismissOnClickOutside={!isDeletingAllNotifications}
+        dismissDisabled={isDeletingAllNotifications}
         modifiers={
           isIOS
             ? [
-                interactiveDismissDisabled(isDeletingAllNotifications),
                 presentationCornerRadius(24),
               ]
             : undefined
@@ -439,9 +436,9 @@ function NoticeScreen() {
             </Button>
           </Column>
         </Column>
-      </BottomSheet>
+      </PendingBottomSheet>
 
-      <Screen scroll={false}>
+      <Screen scroll={false} bottomPadding={0}>
         {isLoading ? (
           <CircleLoader fullScreen />
         ) : isError && !data ? (
@@ -453,6 +450,7 @@ function NoticeScreen() {
                 ? t("common.refreshing")
                 : t("common.refreshTryAgain")
             }
+            actionPending={isRefetching}
             onAction={() => {
               void refetch();
             }}
@@ -464,6 +462,7 @@ function NoticeScreen() {
             actionLabel={t("common.refresh", {
               defaultValue: "Refresh",
             })}
+            actionPending={isRefetching}
             onAction={() => {
               void refetch();
             }}
@@ -482,9 +481,6 @@ function NoticeScreen() {
                 }}
               />
             }
-            contentContainerStyle={{
-              paddingBottom: 32,
-            }}
             contentInsetAdjustmentBehavior="automatic"
             showsVerticalScrollIndicator={false}
             onEndReached={handleEndReached}
@@ -560,7 +556,7 @@ function NotificationRow({
   onPress: (item: NotificationResponse) => void;
 }) {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const iconClassName = item.isRead ? "bg-muted" : "bg-primary/10";
   const iconColor = item.isRead ? colors.mutedForeground : colors.primary;
 
@@ -653,7 +649,7 @@ function NotificationRow({
                 wrap={false}
                 style={{ alignSelf: "flex-end" }}
               >
-                {formatRelativeTime(item.createdAt)}
+                {formatRelativeTime(item.createdAt, i18n.resolvedLanguage ?? i18n.language)}
               </NativeText>
             </View>
           </View>

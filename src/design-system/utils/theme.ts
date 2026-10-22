@@ -31,6 +31,11 @@ export type ThemeColors = {
     danger: string;
     success: string;
     warning: string;
+    reservationReserved: string;
+    reservationCheckedIn: string;
+    reservationCompleted: string;
+    reservationCancelled: string;
+    reservationNoShow: string;
     notification: string;
     ticketBay: string;
     ticketPrivate: string;
@@ -45,6 +50,16 @@ export type ThemeColors = {
 
 export type ThemePreference = "system" | "light" | "dark";
 export type PrimaryColorPreference = "blue" | "green";
+
+// Fixed reservation status colors shared by both themes. The OKLCH values
+// supplied for Completed, Cancelled, and No Show are mapped to sRGB for native.
+const reservationStatusColors = {
+    reservationReserved: "#3B4EC5",
+    reservationCheckedIn: "#52D8AC",
+    reservationCompleted: "#00A071", // oklch(0.62 0.14 165)
+    reservationCancelled: "#D73246", // oklch(0.58 0.20 20)
+    reservationNoShow: "#FF4964", // oklch(0.69 0.24 18)
+} as const;
 
 const lightThemeColors = {
     background: "#ffffff",
@@ -61,6 +76,7 @@ const lightThemeColors = {
     danger: "#dc2626",
     success: "#16a34a",
     warning: "#f59e0b",
+    ...reservationStatusColors,
     notification: "#dc2626",
     ticketBay: "#26a9e0",
     ticketPrivate: "#4071c0",
@@ -88,6 +104,7 @@ const darkThemeColors = {
     danger: "#f87171",
     success: "#4ade80",
     warning: "#fbbf24",
+    ...reservationStatusColors,
     notification: "#f87171",
     ticketBay: "#4cc3f0",
     ticketPrivate: "#5b8def",

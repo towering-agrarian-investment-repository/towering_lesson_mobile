@@ -165,9 +165,9 @@ export default function HomeworkDetailScreen() {
         } catch (error) {
             showAppToast({
                 message:
-                    error instanceof Error
+                    error instanceof HomeworkFileValidationError
                         ? error.message
-                        : t("homework.unsupportedFile"),
+                        : t("homework.fileSelectionFailed"),
                 type: "error",
             });
         } finally {
@@ -221,6 +221,7 @@ export default function HomeworkDetailScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || isPullRefreshing}
                     onAction={() => {
                         void refetch();
                     }}
@@ -607,6 +608,8 @@ export default function HomeworkDetailScreen() {
     );
 }
 
+class HomeworkFileValidationError extends Error {}
+
 function createFileFromDocument(
     asset: DocumentPicker.DocumentPickerAsset,
     t: (key: string) => string,
@@ -622,7 +625,7 @@ function createFileFromDocument(
     );
 
     if (!hasSupportedExtension && !hasSupportedMimeType) {
-        throw new Error(t("homework.supportedFilesOnly"));
+        throw new HomeworkFileValidationError(t("homework.supportedFilesOnly"));
     }
 
     const mimeType = hasSupportedMimeType
@@ -630,17 +633,15 @@ function createFileFromDocument(
         : HOMEWORK_MIME_BY_EXTENSION[getFileExtension(asset.name) ?? ""];
 
     if (!mimeType) {
-        throw new Error(t("homework.supportedFilesOnly"));
+        throw new HomeworkFileValidationError(t("homework.supportedFilesOnly"));
     }
 
     if (!file.exists || file.size <= 0) {
-        throw new Error(
-            "The selected homework file is empty or its size is unavailable.",
-        );
+        throw new HomeworkFileValidationError(t("homework.emptyFile"));
     }
 
     if (file.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
-        throw new Error("Homework files must be 100 MiB or smaller.");
+        throw new HomeworkFileValidationError(t("homework.fileTooLarge"));
     }
 
     return {

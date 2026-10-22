@@ -104,6 +104,7 @@ export default function HomeScreen() {
                         ? t("common.refreshing")
                         : t("common.refreshTryAgain")
                 }
+                actionPending={isRefetching}
                 onAction={() => {
                     void refetch();
                 }}

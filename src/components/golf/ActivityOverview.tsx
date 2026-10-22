@@ -6,69 +6,83 @@ import {
     ErrorState,
     Screen,
     Skeleton,
-    WeeklySummary,
+    getPressedScaleStyle,
+    triggerSelectionHaptic,
 } from "@/design-system";
-import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useMemberActivity } from "@/lib/hook/useMemberActivity";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { useMemberReservationsForDay } from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import type { MemberActivityStatusCounts } from "@/types/member-activity";
+import { parseCalendarDate, toDateKey } from "@/design-system/components/charts/activity-chart-data";
+import { HEATMAP_CELL_GAP, HEATMAP_CELL_RADIUS, getActivityHeatmapLayout } from "@/design-system/components/charts/activity-heatmap-layout";
+import type { MemberActivityDay, MemberActivityStatusCounts } from "@/types/member-activity";
+import { formatDateForAPI, formatTimeRange } from "@/utils/time-helper";
+import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
+import { useIsFocused, useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Pressable,
     RefreshControl,
     View,
+    useWindowDimensions,
+    type LayoutChangeEvent,
 } from "react-native";
 
 type ActivityFilter = number | "all";
+const ACTIVITY_REFETCH_INTERVAL_MS = 30_000;
+
+function mapActivityDays(days: MemberActivityDay[]) {
+    return days.map(day => ({
+        date: day.date,
+        count: day.count,
+        status: getDisplayStatus(day.statusCounts),
+        statusBreakdown: toStatusBreakdown(day.statusCounts),
+        typeCounts: day.typeCounts,
+    }));
+}
 
 export function ActivityOverview() {
     const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
-    const currentYear = new Date().getFullYear();
-    const firstActivityYear = 2025;
-    const [requestedYear, setSelectedYear] =
+    const isFocused = useIsFocused();
+    const todayKey = formatDateForAPI(new Date());
+    const currentYear = Number(todayKey.slice(0, 4));
+    const [selectedYear, setSelectedYear] =
         useState<ActivityFilter>(currentYear);
+    const [daySelection, setDaySelection] = useState<{
+        filter: ActivityFilter;
+        dateKey: string;
+    } | null>(null);
     const { data: memberProfile } = useGetMemberProfile();
-    const requestedActivityQuery = useMemberActivity(requestedYear);
+    const selectedActivityQuery = useMemberActivity(
+        selectedYear,
+        isFocused && selectedYear !== "all",
+        selectedYear !== "all" ? ACTIVITY_REFETCH_INTERVAL_MS : false,
+    );
     const allActivityQuery = useMemberActivity(
         "all",
-        Boolean(requestedActivityQuery.data),
+        isFocused,
+        selectedYear === "all" ? ACTIVITY_REFETCH_INTERVAL_MS : false,
     );
     const {
         data: allActivity,
         refetch: refetchAll,
     } = allActivityQuery;
 
-    const availableYears = useMemo(() => {
-        if (!allActivity) {
-            return Array.from(
-                { length: Math.max(1, currentYear - firstActivityYear + 1) },
-                (_, index) => currentYear - index,
-            );
-        }
+    const years = new Set([currentYear]);
+    if (typeof selectedYear === "number") years.add(selectedYear);
+    allActivity?.daily.forEach((entry) => {
+        const year = getActivityDate(entry.date)?.getFullYear();
+        if (year !== undefined) years.add(year);
+    });
+    const availableYears = Array.from(years).sort((a, b) => b - a);
 
-        return Array.from(
-            new Set(
-                allActivity.daily.map((entry) =>
-                    getActivityDate(entry.date)?.getFullYear(),
-                ),
-            ),
-        )
-            .filter((year): year is number => year !== undefined)
-            .sort((a, b) => b - a);
-    }, [allActivity, currentYear, firstActivityYear]);
-
-    const selectedYear =
-        allActivity &&
-            requestedYear !== "all" &&
-            !availableYears.includes(requestedYear)
-            ? "all"
-            : requestedYear;
     const activityQuery =
-        selectedYear === "all" ? allActivityQuery : requestedActivityQuery;
+        selectedYear === "all" ? allActivityQuery : selectedActivityQuery;
     const {
         data: activity,
         isLoading,
@@ -76,32 +90,14 @@ export function ActivityOverview() {
         refetch,
         isRefetching,
     } = activityQuery;
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchAll({ cancelRefetch: false })]));
-
     const activityValues = useMemo(
-        () =>
-            (activity?.daily ?? []).map((day) => ({
-                date: day.date,
-                count: day.count,
-                status: getDisplayStatus(day.statusCounts),
-                statusBreakdown: toStatusBreakdown(day.statusCounts),
-                typeCounts: day.typeCounts,
-            })),
+        () => mapActivityDays(activity?.daily ?? []),
         [activity?.daily],
     );
-    const weeklySessionValues = useMemo(
-        () =>
-            (activity?.weekly ?? []).map((week) => ({
-                weekStart: week.weekStart,
-                total: week.count,
-                status: getDisplayStatus(week.statusCounts),
-                statusBreakdown: toStatusBreakdown(week.statusCounts),
-                typeCounts: week.typeCounts,
-            })),
-        [activity?.weekly],
+    const shareActivityValues = useMemo(
+        () => mapActivityDays(allActivity?.daily ?? []),
+        [allActivity?.daily],
     );
-
     const firstDate =
         getActivityDate(activity?.daily[0]?.date) ??
         getActivityDate(activity?.weekly[0]?.weekStart) ??
@@ -123,34 +119,41 @@ export function ActivityOverview() {
     const heatmapEndDate = isAllActivity
         ? lastDate
         : new Date(activityYear, 11, 31);
-    const weeklyEndDate = isAllActivity
-        ? lastDate
-        : activityYear === currentYear
-            ? new Date()
-            : heatmapEndDate;
     const activityLabel = isAllActivity
         ? t("activity.allTime")
         : String(activityYear);
-    const shareFirstDate =
-        getActivityDate(activity?.daily[0]?.date) ?? firstDate;
-    const shareLastDate =
-        getActivityDate(activity?.daily.at(-1)?.date) ?? lastDate;
+    const selectedDateKey = daySelection?.filter === selectedYear
+        ? daySelection.dateKey
+        : selectedYear === currentYear ||
+            (selectedYear === "all" &&
+                todayKey >= toDateKey(firstDate) &&
+                todayKey <= toDateKey(lastDate))
+            ? todayKey
+            : null;
+    const dayReservationsQuery = useMemberReservationsForDay(
+        activity ? selectedDateKey : null,
+        isFocused,
+        ACTIVITY_REFETCH_INTERVAL_MS,
+    );
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+        usePullToRefresh(() => Promise.all([
+            refetch({ cancelRefetch: false }),
+            ...(selectedYear === "all" ? [] : [refetchAll({ cancelRefetch: false })]),
+            ...(selectedDateKey ? [dayReservationsQuery.refetch({ cancelRefetch: false })] : []),
+        ]));
 
     const preview = (
         <ActivitySharePreview
-            isAvailable={Boolean(activity) && !isLoading}
+            isAvailable={Boolean(allActivity)}
+            isLoading={allActivityQuery.isLoading}
+            isRefetching={allActivityQuery.isRefetching}
+            isError={allActivityQuery.isError && !allActivity}
+            onRetry={() => { void refetchAll(); }}
             availableYears={availableYears}
             selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
+            monthlyActivity={allActivity?.monthly ?? []}
             cardProps={{
-                label: activityLabel,
-                totalReservations,
-                totalDays: activeDays,
-                totalHours,
-                dailyValues: activityValues,
-                heatmapStartDate: shareFirstDate,
-                heatmapEndDate: shareLastDate,
-                numDays: daysBetween(shareFirstDate, shareLastDate),
+                dailyValues: shareActivityValues,
                 memberName: memberProfile?.data.name,
                 memberImage: memberProfile?.data.profileImage,
             }}
@@ -161,7 +164,7 @@ export function ActivityOverview() {
         return (
             <>
                 {preview}
-                <ActivityLoadingState />
+                <ActivityLoadingState yearCount={availableYears.length} showSelectedDay={Boolean(selectedDateKey)} />
             </>
         );
     }
@@ -178,6 +181,7 @@ export function ActivityOverview() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || isPullRefreshing}
                     onAction={() => {
                         void refetch();
                     }}
@@ -190,7 +194,7 @@ export function ActivityOverview() {
         return (
             <>
                 {preview}
-                <ActivityLoadingState />
+                <ActivityLoadingState yearCount={availableYears.length} showSelectedDay={Boolean(selectedDateKey)} />
             </>
         );
     }
@@ -261,14 +265,6 @@ export function ActivityOverview() {
                             </Pressable>
                         </View>
                     </View>
-                    <View className="gap-1">
-                        <NativeText
-                            variant="h3"
-                            textStyle={{ fontSize: typography.subtitle.fontSize, lineHeight: typography.body.lineHeight }}
-                        >
-                            {t("activity.description")}
-                        </NativeText>
-                    </View>
                     <View className="flex-row gap-3">
                         <ActivityStat
                             value={String(activeDays)}
@@ -285,47 +281,29 @@ export function ActivityOverview() {
                             label={t("activity.totalReservations")}
                         />
                     </View>
-                    <AdaptivePanels
-                        primary={
-                            <View className="gap-4">
-                                <ActivityChartHeader
-                                    title={t("activity.golfActivity")}
-                                    period={activityLabel}
-                                />
-                                <ActivityHeatmap
-                                    values={activityValues}
-                                    endDate={heatmapEndDate}
-                                    numDays={daysInYear}
-                                    overallCount={totalReservations}
-                                    overallUnitLabel={t(
-                                        "activity.reservations",
-                                    )}
-                                />
-                            </View>
-                        }
-                        secondary={
-                            <View className="gap-4">
-                                <ActivityChartHeader
-                                    title={t("activity.weeklyReservations")}
-                                    period={activityLabel}
-                                />
-                                <WeeklySummary
-                                    unitLabel={t("activity.reservations")}
-                                    startDate={
-                                        isAllActivity
-                                            ? firstDate
-                                            : new Date(activityYear, 0, 1)
-                                    }
-                                    endDate={weeklyEndDate}
-                                    initialScrollToEnd={
-                                        activityYear === currentYear
-                                    }
-                                    overallCount={totalReservations}
-                                    values={weeklySessionValues}
-                                />
-                            </View>
-                        }
-                    />
+                    <View className="gap-4">
+                        <ActivityChartHeader
+                            title={t("activity.golfActivity")}
+                            period={activityLabel}
+                        />
+                        <ActivityHeatmap
+                            values={activityValues}
+                            endDate={heatmapEndDate}
+                            numDays={daysInYear}
+                            selectedDateKey={selectedDateKey}
+                            onDayPress={(date) => setDaySelection({
+                                filter: selectedYear,
+                                dateKey: toDateKey(date),
+                            })}
+                            onTodayPress={() => {
+                                setDaySelection({ filter: currentYear, dateKey: todayKey });
+                                setSelectedYear(currentYear);
+                            }}
+                        />
+                        {selectedDateKey ? (
+                            <ActivityDayReservations query={dayReservationsQuery} />
+                        ) : null}
+                    </View>
                 </View>
             </Screen>
 
@@ -333,10 +311,124 @@ export function ActivityOverview() {
     );
 }
 
+function ActivityDayReservations({
+    query,
+}: {
+    query: ReturnType<typeof useMemberReservationsForDay>;
+}) {
+    const { colors } = useTheme();
+    const { t, i18n } = useTranslation();
+    const weekdayFormatter = new Intl.DateTimeFormat(i18n.language, { weekday: "short" });
+    const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { data, isError, isRefetching, refetch } = query;
+
+    if (!data && !isError) {
+        return (
+            <View className="gap-2" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
+                <ActivityReservationRowSkeleton />
+                <ActivityReservationRowSkeleton />
+            </View>
+        );
+    }
+
+    if (!data) {
+        return (
+            <ErrorState
+                title={t("reservations.failedListTitle")}
+                message={t("common.pullToRefreshAndTryAgain")}
+                actionLabel={t("common.refreshTryAgain")}
+                actionPending={isRefetching}
+                onAction={() => { void refetch(); }}
+            />
+        );
+    }
+
+    return (
+        <View className="gap-3">
+            {isError ? (
+                <Pressable
+                    accessibilityRole="button"
+                    disabled={isRefetching}
+                    accessibilityState={{ disabled: isRefetching, busy: isRefetching }}
+                    className="min-h-12 justify-center rounded-xl bg-muted px-4"
+                    onPress={() => { void refetch(); }}
+                >
+                    <NativeText variant="subtext" color="mutedForeground">
+                        {`${t("reservations.failedListTitle")} · ${t(isRefetching ? "common.refreshing" : "common.refreshTryAgain")}`}
+                    </NativeText>
+                </Pressable>
+            ) : null}
+            {data.length === 0 ? (
+                <NativeText variant="subtext" color="mutedForeground">
+                    {t("reservations.noReservationsTitle")}
+                </NativeText>
+            ) : data.map((reservation) => {
+                const title = reservation.bayName ??
+                    reservation.lessonAvailabilityName ??
+                    reservation.lessonProgramGroupName ??
+                    reservation.lessonProgramName ??
+                    t("reservations.reservationFallbackWithId", { id: reservation.id });
+                const date = parseCalendarDate(reservation.reservationDate);
+                const backendStatusLabel = getReservationStatusLabel(reservation.reservationStatus, t);
+                const statusLabel = backendStatusLabel === "-"
+                    ? t("reservations.statusUnavailable")
+                    : backendStatusLabel;
+                const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
+                return (
+                    <Pressable
+                        key={`${reservation.reservationType}:${reservation.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("reservations.openLabel", { title })}
+                        accessibilityState={{ disabled: isLocked }}
+                        disabled={isLocked}
+                        className="min-h-16 flex-row items-center gap-3 rounded-xl bg-card px-2 py-2"
+                        style={({ pressed }) => getPressedScaleStyle(pressed, isLocked, 0.99)}
+                        onPress={() => {
+                            runWithNavigationLock(() => {
+                                triggerSelectionHaptic();
+                                router.push({
+                                    pathname: "/reservation/[id]",
+                                    params: {
+                                        id: String(reservation.id),
+                                        type: reservation.reservationType,
+                                    },
+                                });
+                            });
+                        }}
+                    >
+                        <View className="h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <NativeText variant="label" wrap={false} textStyle={{ fontWeight: "700" }}>
+                                {String(date.getDate())}
+                            </NativeText>
+                            <NativeText variant="badge" color="mutedForeground" wrap={false}>
+                                {weekdayFormatter.format(date)}
+                            </NativeText>
+                        </View>
+                        <View className="min-w-0 flex-1 gap-1">
+                            <NativeText variant="label" numberOfLines={1}>{title}</NativeText>
+                            <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
+                                <NativeText variant="subtext" wrap={false} textStyle={{ color: statusColor, fontWeight: "700" }}>
+                                    {statusLabel}
+                                </NativeText>
+                                <NativeText variant="subtext" color="mutedForeground" wrap={false}>
+                                    {formatTimeRange(reservation.startTime, reservation.endTime)}
+                                </NativeText>
+                            </View>
+                        </View>
+                        <ChevronRight size={18} color={colors.mutedForeground} />
+                    </Pressable>
+                );
+            })}
+        </View>
+    );
+}
+
 function toStatusBreakdown(statusCounts: MemberActivityStatusCounts) {
     return {
         reserved: statusCounts.RESERVED,
-        completed: statusCounts.COMPLETED + statusCounts.CHECKED_IN,
+        "checked-in": statusCounts.CHECKED_IN,
+        completed: statusCounts.COMPLETED,
         cancelled: statusCounts.CANCELLED,
         "no-show": statusCounts.NO_SHOW,
     } as const;
@@ -352,6 +444,7 @@ function getDisplayStatus(statusCounts: MemberActivityStatusCounts) {
     if (statusCounts.NO_SHOW > 0) return "no-show" as const;
     if (statusCounts.CANCELLED > 0) return "cancelled" as const;
     if (statusCounts.RESERVED > 0) return "reserved" as const;
+    if (statusCounts.CHECKED_IN > 0) return "checked-in" as const;
     return "completed" as const;
 }
 
@@ -393,87 +486,129 @@ function ActivityChartHeader({ title, period }: { title: string; period: string 
     );
 }
 
-function ActivityLoadingState() {
+function ActivityLoadingState({
+    yearCount,
+    showSelectedDay,
+}: {
+    yearCount: number;
+    showSelectedDay: boolean;
+}) {
+    const { t } = useTranslation();
+
     return (
         <Screen>
-            <View className="gap-5">
-                <View className="flex-row gap-2">
-                    {Array.from({ length: 3 }, (_, index) => (
-                        <Skeleton key={index} className="h-12 w-20 rounded-full" />
-                    ))}
+            <View className="gap-5" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
+                <View className="gap-2">
+                    <View className="flex-row flex-wrap gap-2">
+                        {Array.from({ length: yearCount }, (_, index) => (
+                            <Skeleton key={index} className="h-12 w-20 rounded-full" />
+                        ))}
+                        <Skeleton className="h-12 w-16 rounded-full" />
+                    </View>
                 </View>
-                <Skeleton className="h-6 w-64" />
                 <View className="flex-row gap-3">
                     {Array.from({ length: 3 }, (_, index) => (
-                        <View key={index} className="min-w-0 flex-1 gap-2 py-2">
+                        <View key={index} className="min-w-0 flex-1 gap-1 py-2">
                             <Skeleton className="h-8 w-14" />
-                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-20 max-w-full" />
                         </View>
                     ))}
                 </View>
-                <AdaptivePanels
-                    primary={
-                        <View className="gap-4">
-                            <View className="flex-row items-center justify-between gap-3">
-                                <Skeleton className="h-6 w-32" />
-                                <Skeleton className="h-4 w-12" />
-                            </View>
-                            <HeatmapSkeleton />
-                            <Skeleton className="h-4 w-56 self-center" />
-                            <Skeleton className="h-4 w-40" />
+                <View className="gap-4">
+                    <View className="flex-row items-center justify-between gap-3">
+                        <Skeleton className="h-7 w-36" />
+                        <Skeleton className="h-4 w-14" />
+                    </View>
+                    <View className="gap-3">
+                        <HeatmapSkeleton />
+                        <View className="h-12 flex-row items-center justify-center gap-3 overflow-hidden">
+                            {["w-10", "w-14", "w-16", "w-12"].map((widthClass, index) => (
+                                <View key={index} className="flex-row items-center gap-1.5">
+                                    <Skeleton className="h-2.5 w-2.5 rounded-[3px]" />
+                                    <Skeleton className={`h-4 ${widthClass}`} />
+                                </View>
+                            ))}
                         </View>
-                    }
-                    secondary={
-                        <View className="gap-4">
+                        {showSelectedDay ? (
                             <View className="flex-row items-center justify-between gap-3">
-                                <Skeleton className="h-6 w-44" />
-                                <Skeleton className="h-4 w-12" />
+                                <Skeleton className="h-7 w-48 max-w-[70%]" />
+                                <Skeleton className="h-4 w-16" />
                             </View>
-                            <WeeklySummarySkeleton />
-                            <Skeleton className="h-4 w-56 self-center" />
-                            <Skeleton className="h-4 w-40" />
+                        ) : null}
+                    </View>
+                    {showSelectedDay ? (
+                        <View className="gap-3">
+                            <ActivityReservationRowSkeleton />
+                            <ActivityReservationRowSkeleton />
                         </View>
-                    }
-                />
+                    ) : null}
+                </View>
             </View>
         </Screen>
     );
 }
 
 function HeatmapSkeleton() {
+    const { width: windowWidth, fontScale } = useWindowDimensions();
+    const { i18n } = useTranslation();
+    const [measuredWidth, setMeasuredWidth] = useState(0);
+    const containerWidth = measuredWidth || Math.min(1280, windowWidth - (windowWidth >= 768 ? 48 : 32));
+    const { labelColumnWidth, monthLabelHeight, availableWidth, cellSize } =
+        getActivityHeatmapLayout(containerWidth, fontScale, i18n.language);
+    const gridHeight = cellSize * 7 + HEATMAP_CELL_GAP * 6;
+
     return (
-        <Skeleton className="rounded-none bg-transparent">
-            <View className="mb-2 flex-row gap-12">
-                <View className="h-4 w-10 rounded-xl bg-muted" />
-                <View className="h-4 w-10 rounded-xl bg-muted" />
-                <View className="h-4 w-10 rounded-xl bg-muted" />
-            </View>
-            <View className="flex-row gap-1">
-                {Array.from({ length: 14 }, (_, weekIndex) => (
-                    <View key={weekIndex} className="gap-1">
-                        {Array.from({ length: 7 }, (_, dayIndex) => (
-                            <View key={dayIndex} className="h-6 w-6 rounded-[5px] bg-muted" />
+        <View
+            className="w-full overflow-hidden"
+            onLayout={(event: LayoutChangeEvent) => setMeasuredWidth(event.nativeEvent.layout.width)}
+        >
+            <Skeleton className="gap-1 rounded-none bg-transparent">
+                <View className="flex-row" style={{ gap: HEATMAP_CELL_GAP }}>
+                    <View style={{ width: labelColumnWidth }} />
+                    <View className="flex-row items-start justify-between" style={{ width: availableWidth, height: monthLabelHeight }}>
+                        {[40, 32, 40].map((width, index) => (
+                            <View key={index} className="h-4 rounded-xl bg-muted" style={{ width }} />
                         ))}
                     </View>
-                ))}
-            </View>
-        </Skeleton>
+                </View>
+                <View className="flex-row" style={{ gap: HEATMAP_CELL_GAP }}>
+                    <View className="justify-between" style={{ width: labelColumnWidth, height: gridHeight }}>
+                        {Array.from({ length: 7 }, (_, index) => (
+                            <View key={index} className="justify-center" style={{ height: cellSize }}>
+                                <View className="h-2.5 rounded-md bg-muted" style={{ width: labelColumnWidth * 0.7 }} />
+                            </View>
+                        ))}
+                    </View>
+                    <View className="flex-row overflow-hidden" style={{ width: availableWidth, gap: HEATMAP_CELL_GAP }}>
+                        {Array.from({ length: 12 }, (_, weekIndex) => (
+                            <View key={weekIndex} style={{ width: cellSize, gap: HEATMAP_CELL_GAP }}>
+                                {Array.from({ length: 7 }, (_, dayIndex) => (
+                                    <View
+                                        key={dayIndex}
+                                        className="bg-muted"
+                                        style={{ width: cellSize, height: cellSize, borderRadius: HEATMAP_CELL_RADIUS }}
+                                    />
+                                ))}
+                            </View>
+                        ))}
+                    </View>
+                </View>
+                <View className="h-3" />
+            </Skeleton>
+        </View>
     );
 }
 
-function WeeklySummarySkeleton() {
-    const barHeights = [72, 128, 96, 164, 112, 184];
+function ActivityReservationRowSkeleton() {
     return (
-        <View style={{ height: 216 }}>
-            <Skeleton className="h-full w-full flex-row items-end gap-3 rounded-none bg-transparent">
-                {barHeights.map((height, index) => (
-                    <View key={index} className="min-w-0 flex-1 items-center gap-2">
-                        <View className="w-8 rounded-md bg-muted" style={{ height }} />
-                        <View className="h-4 w-10 rounded-xl bg-muted" />
-                    </View>
-                ))}
-            </Skeleton>
-        </View>
+        <Skeleton className="h-16 flex-row items-center gap-3 rounded-xl bg-card px-2 py-2">
+            <View className="h-12 w-12 shrink-0 rounded-lg bg-muted" />
+            <View className="min-w-0 flex-1 gap-2">
+                <View className="h-4 w-28 max-w-full rounded-md bg-muted" />
+                <View className="h-3 w-40 max-w-full rounded-md bg-muted" />
+            </View>
+            <View className="h-4 w-2 rounded-md bg-muted" />
+        </Skeleton>
     );
 }
 
@@ -487,7 +622,7 @@ function ActivityStat({
 
     return (
         <View className="min-w-0 flex-1 gap-1 py-2">
-            <NativeText variant="h2" color="primary">
+            <NativeText variant="h1" color="primary">
                 {value}
             </NativeText>
             <NativeText variant="caption" color="mutedForeground">

@@ -55,6 +55,7 @@ export default function GroupLessonSessionsScreen() {
                     title={t("lessons.failedSessionsTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
                     actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionPending={isRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
             </Screen>

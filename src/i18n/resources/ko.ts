@@ -1,5 +1,9 @@
 const ko = {
     "appUpdate": {
+        "checkAgain": "다시 확인",
+        "checkFailed": "업데이트를 확인할 수 없습니다. 다시 시도해 주세요.",
+        "openStoreError": "앱 스토어를 열 수 없습니다. 다시 시도해 주세요.",
+        "openingStore": "스토어 여는 중...",
         "updateRequired": "업데이트가 필요합니다",
         "updateAvailable": "업데이트 가능",
         "updateRequiredMessage": "계속하려면 앱을 업데이트해 주세요.",
@@ -23,6 +27,7 @@ const ko = {
         "phoneNumberRequired": "\uc804\ud654\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",
         "passwordRequired": "\ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud574 \uc8fc\uc138\uc694.",
         "genericError": "\ubb38\uc81c\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
+        "invalidCredentials": "\uc804\ud654\ubc88\ud638 \ub610\ub294 \ube44\ubc00\ubc88\ud638\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.",
         "deactivatedAccount": "\uacc4\uc815\uc774 \ube44\ud65c\uc131\ud654\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \ub3c4\uc6c0\uc774 \ud544\uc694\ud558\uc2dc\uba74 \uc9c1\uc6d0\uc5d0\uac8c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.",
         "sessionEndedTitle": "로그아웃되었습니다",
         "sessionEndedMessage": "다시 로그인하거나 계정 접속에 도움이 필요하면 직원에게 문의해 주세요."
@@ -132,13 +137,13 @@ const ko = {
         "removePhoto": "사진 삭제",
         "removingPhoto": "사진 삭제 중…",
         "profileImageRemoved": "프로필 사진이 삭제되었습니다.",
-        "photoLibraryPermission": "\ud504\ub85c\ud544 \uc774\ubbf8\uc9c0 \uc5c5\ub85c\ub4dc\ub97c \uc704\ud574 \uc0ac\uc9c4 \ub77c\uc774\ube0c\ub7ec\ub9ac \uad8c\ud55c\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.",
         "prepareSelectedImageFailed": "\uc120\ud0dd\ud55c \uc774\ubbf8\uc9c0\ub97c \uc900\ube44\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
         "cameraPermission": "\ud504\ub85c\ud544 \uc774\ubbf8\uc9c0 \ucd2c\uc601\uc744 \uc704\ud574 \uce74\uba54\ub77c \uad8c\ud55c\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.",
         "prepareCapturedImageFailed": "\ucd2c\uc601\ud55c \uc774\ubbf8\uc9c0\ub97c \uc900\ube44\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
         "saving": "\uc800\uc7a5 \uc911...",
         "saveChanges": "\ubcc0\uacbd \uc800\uc7a5",
         "changeProfilePhoto": "\ud504\ub85c\ud544 \uc0ac\uc9c4 \ubcc0\uacbd",
+        "viewProfilePhoto": "\ud504\ub85c\ud544 \uc0ac\uc9c4 \ubcf4\uae30",
         "changeProfilePhotoDescription": "\uc0c8 \uc0ac\uc9c4\uc744 \ucc0d\uac70\ub098 \ub77c\uc774\ube0c\ub7ec\ub9ac\uc5d0\uc11c \uc120\ud0dd\ud558\uc138\uc694.",
         "takePhoto": "\uc0ac\uc9c4 \ucc0d\uae30",
         "useCamera": "\uce74\uba54\ub77c \uc0ac\uc6a9",
@@ -204,7 +209,11 @@ const ko = {
         "missingValue": "-"
     },
     "homework": {
+        "prepareUploadError": "업로드를 준비할 수 없습니다. 다시 시도해 주세요.",
         "unsupportedFile": "\uc9c0\uc6d0\ud558\uc9c0 \uc54a\ub294 \ud30c\uc77c \ud615\uc2dd\uc785\ub2c8\ub2e4.",
+        "fileSelectionFailed": "\ud30c\uc77c\uc744 \uc120\ud0dd\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
+        "emptyFile": "\uc120\ud0dd\ud55c \ud30c\uc77c\uc774 \ube44\uc5b4 \uc788\uac70\ub098 \ud06c\uae30\ub97c \ud655\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
+        "fileTooLarge": "\uc219\uc81c \ud30c\uc77c\uc740 100 MiB \uc774\ud558\uc5ec\uc57c \ud569\ub2c8\ub2e4.",
         "failedTitle": "\uacfc\uc81c\ub97c \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "notAvailableTitle": "\uacfc\uc81c\ub97c \ud655\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4",
         "notFoundMessage": "\uc694\uccad\ud55c \uacfc\uc81c\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
@@ -277,6 +286,7 @@ const ko = {
         "bayReservationWithId": "\ud0c0\uc11d \uc608\uc57d #{{id}}",
         "bayWithId": "\ud0c0\uc11d #{{id}}",
         "reservationDetailTitle": "\uc608\uc57d \uc0c1\uc138",
+        "loadingDetail": "\uc608\uc57d \uc0c1\uc138 \uc815\ubcf4\ub97c \ubd88\ub7ec\uc624\ub294 \uc911...",
         "statusLabel": "\uc0c1\ud0dc",
         "confirmedTitle": "\uc608\uc57d \ud655\uc815",
         "confirmedMessage": "\uc608\uc57d\uc774 \uc131\uacf5\uc801\uc73c\ub85c \uc644\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",
@@ -307,6 +317,13 @@ const ko = {
         "reschedule": "\uc77c\uc815 \ubcc0\uacbd",
         "markedAbsent": "\uacb0\uc11d \ucc98\ub9ac\ub428",
         "statusUnavailable": "\uc0c1\ud0dc \uc815\ubcf4 \uc5c6\uc74c",
+        "statuses": {
+            "reserved": "\uc608\uc57d\ub428",
+            "checkedIn": "\uccb4\ud06c\uc778 \uc644\ub8cc",
+            "completed": "\uc644\ub8cc",
+            "cancelled": "\ucde8\uc18c\ub428",
+            "noShow": "\ub178\uc1fc"
+        },
         "failedListTitle": "\uc608\uc57d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "failedMoreTitle": "\ub2e4\uc74c \uc608\uc57d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "noReservationsTitle": "\uc608\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
@@ -324,17 +341,31 @@ const ko = {
             "program": "\ud504\ub85c\uadf8\ub7a8"
         }
     },
+    "shareCard": {
+        "reservations": "예약",
+        "played": "플레이",
+        "member": "회원",
+        "hourShort": "시간",
+        "share": "공유",
+        "sharing": "공유 중…",
+        "shareFailed": "카드를 공유하지 못했습니다. 다시 시도해 주세요.",
+        "shareUnavailable": "이 기기에서는 공유할 수 없습니다."
+    },
     "activity": {
+        "sessionCount": "{{count}}개 세션",
+        "sessionCount_other": "{{count}}개 세션",
         couldNotLoad: "활동을 불러오지 못했습니다",
         showYear: "{{year}}년 활동 보기",
         showAll: "모든 활동 보기",
-        showDayNumbers: "날짜 숫자 표시",
-        hoursValue: "{{value}}시간",
+        hoursValue: "{{value}}",
         ok: "확인",
-        "title": "활동", "description": "연간 골프 활동", "reservationDays": "예약 일수", "reservationHours": "예약 시간", "totalReservations": "총 예약 수", "golfActivity": "골프 활동", "weeklyReservations": "주간 예약", "preview": "미리보기", "save": "저장", "saving": "저장 중…", "savedTitle": "저장됨", "savedMessage": "활동 카드가 사진에 저장되었습니다.", "permissionTitle": "권한 필요", "permissionMessage": "활동 카드를 저장하려면 사진 저장 권한을 허용해 주세요.", "openSettings": "설정 열기", "couldNotSaveTitle": "저장할 수 없음", "couldNotSaveMessage": "활동 카드를 저장하지 못했습니다. 다시 시도해 주세요.", "all": "전체", "allTime": "전체 기간", "myGolfActivity": "나의 {{period}} 골프 활동", "reservations": "예약", "daysPlayed": "플레이 일수", "hoursOnCourse": "필드 시간", "golfer": "골퍼", "done": "완료", "completed": "완료", "absent": "결석", "booked": "예약됨", "mixed": "혼합", "activityCount": "활동 {{count}}개", "activityOnDate": "{{date}} 활동 {{count}}개", "onDate": "{{date}}", "overall": "전체", "weekOf": "{{date}} 주", "noRecorded": "이 기간에 기록된 {{unit}}이(가) 없습니다.", "currentWeek": "이번 주", "horizontalScroll": "가로 스크롤 영역", "today": "오늘", "bay": "베이", "lesson": "레슨", "other": "기타", "cancelled": "취소됨" },
+        loading: "활동 불러오는 중…",
+        emptyTitle: "이 기간에는 활동이 없습니다",
+        emptyMessage: "이 기간에 예약하면 여기에 표시됩니다.",
+        "title": "활동", "reservationDays": "예약한 일수", "reservationHours": "플레이 시간", "totalReservations": "세션 수", "golfActivity": "골프 활동", "preview": "미리보기", "save": "사진에 저장", "saving": "저장 중…", "savedTitle": "저장됨", "savedMessage": "활동 카드가 사진에 저장되었습니다.", "permissionTitle": "권한 필요", "permissionMessage": "활동 카드를 저장하려면 사진 저장 권한을 허용해 주세요.", "openSettings": "설정 열기", "couldNotSaveTitle": "저장할 수 없음", "couldNotSaveMessage": "활동 카드를 저장하지 못했습니다. 다시 시도해 주세요.", "all": "전체", "allTime": "전체 기간", "myGolfActivity": "나의 {{period}} 골프 활동", "reservations": "예약", "daysPlayed": "플레이 일수", "hoursOnCourse": "필드 시간", "golfer": "골퍼", "done": "완료", "completed": "완료", "absent": "결석", "booked": "예약됨", "mixed": "혼합", "activityCount": "활동 {{count}}개", "activityOnDate": "{{date}} 활동 {{count}}개", "onDate": "{{date}}", "overall": "전체", "weekOf": "{{date}} 주", "noRecorded": "이 기간에 기록된 {{unit}}이(가) 없습니다.", "currentWeek": "이번 주", "horizontalScroll": "가로 스크롤 영역", "today": "오늘", "bay": "베이", "lesson": "레슨", "other": "기타", "cancelled": "취소됨" },
     "common": {
+        "requestError": "문제가 발생했습니다. 다시 시도해 주세요.",
         "unableToOpenLink": "이 링크를 열 수 없습니다.",
-        offlineTitle: "오프라인 상태입니다",
         offlineMessage: "인터넷 연결을 확인한 후 다시 시도해 주세요.",
         "refresh": "새로고침",
         "cancel": "\ucde8\uc18c",
@@ -534,7 +565,7 @@ const ko = {
         "tabs": {
             "home": "\ud648",
             "notifications": "\uc54c\ub9bc",
-            "lessons": "\ub808\uc2a8",
+            "lessons": "\uadf8\ub8f9",
             "profile": "\ud504\ub85c\ud544"
         },
         "screens": {

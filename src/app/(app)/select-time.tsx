@@ -137,6 +137,7 @@ export default function TimeScreen() {
           actionLabel={
             isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
           }
+          actionPending={isRefetching || isPullRefreshing}
           onAction={handlePullRefresh}
         />
       ) : null}

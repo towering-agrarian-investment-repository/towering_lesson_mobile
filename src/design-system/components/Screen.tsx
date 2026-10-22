@@ -21,6 +21,7 @@ type ScreenProps = {
     footer?: ReactNode;
     /** Disable when a bottom tab bar already handles the safe area. */
     footerSafeArea?: boolean;
+    bottomPadding?: number;
     headerShown?: boolean;
     horizontalPadding?: boolean;
     keyboardAware?: boolean;
@@ -35,6 +36,7 @@ export function Screen({
     contentClassName,
     footer,
     footerSafeArea = true,
+    bottomPadding = 24,
     headerShown = true,
     horizontalPadding = true,
     keyboardAware = false,
@@ -50,7 +52,7 @@ export function Screen({
         maxWidth,
         alignSelf: "center",
         paddingTop: headerShown ? 16 : insets.top + 16,
-        paddingBottom: 24,
+        paddingBottom: bottomPadding,
         paddingLeft: Math.max(edgePadding, insets.left),
         paddingRight: Math.max(edgePadding, insets.right),
     } as const;

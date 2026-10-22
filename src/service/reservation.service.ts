@@ -58,6 +58,17 @@ export async function getMemberReservationCalendar({
     });
 }
 
+export async function getMemberReservationsByDate(date: string, signal?: AbortSignal): Promise<
+    ApiResponse<MemberReservationSummaryResponse[]>
+> {
+    const params = new URLSearchParams({ date });
+
+    return apiClient(`/member/reservations/by-date?${params.toString()}`, {
+        method: "GET",
+        signal,
+    });
+}
+
 export async function getTodayMemberReservations(signal?: AbortSignal): Promise<
     ApiResponse<MemberReservationSummaryResponse[]>
 > {

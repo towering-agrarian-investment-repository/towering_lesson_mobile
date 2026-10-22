@@ -1,5 +1,8 @@
 # Local development
 
+For copy-and-paste build commands for Android and iOS, see
+[Build and run the mobile app](build-and-run.md).
+
 Use a local backend for everyday development. The `development` EAS build
 profile specifies local URLs, `preview` uses the staging environment, and
 `production` uses the production environment.
@@ -20,7 +23,7 @@ EXPO_PUBLIC_SENTRY_ENVIRONMENT=local
 Then start Metro and open your installed development client:
 
 ```sh
-npx expo start --dev-client
+pnpm start --dev-client
 ```
 
 Expo uses `.env` and `.env.local` when serving the JavaScript bundle locally.

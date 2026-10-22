@@ -3,7 +3,12 @@ import { deactivateCurrentPushInstallation } from "@/lib/config/notification/pus
 import { clearCachedJwtToken } from "@/lib/client/jwt-token";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
-const GENERIC_LOGIN_ERROR_MESSAGE = "Invalid phone number or password";
+const PUSH_CLEANUP_TIMEOUT_MS = 1_500;
+export class InvalidCredentialsError extends Error {
+    constructor() {
+        super("INVALID_CREDENTIALS");
+    }
+}
 
 export class BannedUserError extends Error {
     constructor() {
@@ -44,7 +49,10 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
         if (result.error.code === "BANNED_USER") {
             throw new BannedUserError();
         }
-        throw new Error(GENERIC_LOGIN_ERROR_MESSAGE);
+        if (result.error.code === "INVALID_PHONE_NUMBER_OR_PASSWORD" || result.error.code === "INVALID_PHONE_NUMBER") {
+            throw new InvalidCredentialsError();
+        }
+        throw result.error;
     }
 
     const signedInUser = result.data?.user as { role?: string | null } | undefined;
@@ -53,7 +61,7 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
     if (signedInRole !== ALLOWED_APP_ROLE) {
         await authClient.signOut().catch(() => { });
         clearCachedJwtToken();
-        throw new Error(GENERIC_LOGIN_ERROR_MESSAGE);
+        throw new InvalidCredentialsError();
     }
 
     clearCachedJwtToken();
@@ -61,13 +69,26 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
 };
 
 export const signOut = async () => {
-    await deactivateCurrentPushInstallation();
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const cleanup = deactivateCurrentPushInstallation(controller.signal).catch((error) => {
+        console.warn("[push] Could not deactivate this installation during sign-out", error);
+    });
+    const timeout = new Promise<void>((resolve) => {
+        timeoutId = setTimeout(() => {
+            controller.abort();
+            resolve();
+        }, PUSH_CLEANUP_TIMEOUT_MS);
+    });
+
+    await Promise.race([cleanup, timeout]);
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
     clearCachedJwtToken();
 
     const result = await authClient.signOut().finally(clearCachedJwtToken);
 
     if (result.error) {
-        throw new Error(result.error.message || "Could not sign out.");
+        throw result.error;
     }
 
     return result.data;

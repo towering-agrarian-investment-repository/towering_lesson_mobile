@@ -103,6 +103,7 @@ export default function GroupDetailScreen() {
                             ? t("common.refreshing")
                             : t("common.refreshTryAgain")
                     }
+                    actionPending={isRefetching || isPullRefreshing}
                     onAction={() => {
                         void refetch();
                     }}

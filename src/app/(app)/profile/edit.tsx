@@ -1,6 +1,8 @@
+import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { FormTextInput } from "@/components/ui/form";
 import {
   CircleLoader,
+  cn,
   ErrorState,
   getPressedScaleStyle,
   ListRow,
@@ -29,7 +31,6 @@ import {
   type ProfileImageContentType,
 } from "@/utils/media";
 import {
-  BottomSheet,
   Button,
   Host,
   RNHostView,
@@ -41,7 +42,7 @@ import {
   defaultMinSize,
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame, interactiveDismissDisabled } from "@expo/ui/swift-ui/modifiers";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -192,17 +193,6 @@ export default function EditProfileScreen() {
     pickingImage.current = true;
     setIsPickingImage(true);
     try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permission.granted) {
-        showAppToast({
-          message: t("profile.photoLibraryPermission"),
-          type: "error",
-        });
-        return;
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: true,
@@ -219,7 +209,7 @@ export default function EditProfileScreen() {
     } catch (uploadError) {
       showAppToast({
         message:
-          uploadError instanceof Error
+          uploadError instanceof ProfileImageValidationError
             ? uploadError.message
             : t("profile.prepareSelectedImageFailed"),
         type: "error",
@@ -269,7 +259,7 @@ export default function EditProfileScreen() {
     } catch (uploadError) {
       showAppToast({
         message:
-          uploadError instanceof Error
+          uploadError instanceof ProfileImageValidationError
             ? uploadError.message
             : t("profile.prepareCapturedImageFailed"),
         type: "error",
@@ -331,6 +321,7 @@ export default function EditProfileScreen() {
         actionLabel={
           isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
         }
+        actionPending={isRefetching}
         onAction={() => {
           void refetch();
         }}
@@ -343,6 +334,7 @@ export default function EditProfileScreen() {
     : isUploadingImage
       ? t("profile.uploading")
       : t("profile.changePhoto");
+  const isPhotoActionDisabled = isUpdatingImage || isSubmitting;
 
   return (
     <Screen
@@ -401,14 +393,10 @@ export default function EditProfileScreen() {
         </View>
       }
     >
-      <BottomSheet
+      <PendingBottomSheet
         isPresented={isPhotoSourceSheetVisible}
         onDismiss={closePhotoSourceSheet}
-        shouldDismissOnBackPress={!isUpdatingImage}
-        shouldDismissOnClickOutside={!isUpdatingImage}
-        modifiers={
-          isIOS ? [interactiveDismissDisabled(isUpdatingImage)] : undefined
-        }
+        dismissDisabled={isUpdatingImage}
         containerColor={colors.card}
         contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
       >
@@ -500,37 +488,43 @@ export default function EditProfileScreen() {
             </Host>
           </View>
         </RNHostView>
-      </BottomSheet>
+      </PendingBottomSheet>
 
-      <View className="gap-8">
+      <View className="gap-6">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={photoActionLabel}
           accessibilityState={{
-            disabled: isUpdatingImage || isSubmitting,
+            disabled: isPhotoActionDisabled,
             busy: isUpdatingImage,
           }}
-          disabled={isUpdatingImage || isSubmitting}
-          className="items-center gap-3 self-center"
+          disabled={isPhotoActionDisabled}
+          hitSlop={8}
+          className={cn(
+            "items-center gap-2.5 self-center",
+            isSubmitting && "opacity-60",
+          )}
           style={({ pressed }) =>
-            getPressedScaleStyle(pressed, isUpdatingImage || isSubmitting, 0.98)
+            getPressedScaleStyle(pressed, isPhotoActionDisabled, 0.97)
           }
           onPress={handleChangeProfileImage}
         >
-          <View className="h-28 w-28">
-            <ProfileImagePreview
-              name={member.name}
-              imageUrl={member.profileImage}
-            />
+          <View className="h-24 w-24">
+            <View className="h-24 w-24 overflow-hidden rounded-full bg-muted">
+              <ProfileImagePreview
+                name={member.name}
+                imageUrl={member.profileImage}
+              />
 
-            {isUpdatingImage ? (
-              <View className="absolute inset-0 items-center justify-center rounded-full bg-black/40">
-                <ActivityIndicator color="#ffffff" />
-              </View>
-            ) : null}
+              {isUpdatingImage ? (
+                <View className="absolute inset-0 items-center justify-center bg-black/40">
+                  <ActivityIndicator color="#ffffff" />
+                </View>
+              ) : null}
+            </View>
 
-            <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-primary">
-              <Camera size={16} color={colors.primaryForeground} />
+            <View className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary">
+              <Camera size={15} color={colors.primaryForeground} />
             </View>
           </View>
 
@@ -539,7 +533,7 @@ export default function EditProfileScreen() {
           </NativeText>
         </Pressable>
 
-        <View className="gap-6">
+        <View className="gap-5">
           <NativeText
             variant="body"
             textStyle={{
@@ -576,6 +570,8 @@ export default function EditProfileScreen() {
   );
 }
 
+class ProfileImageValidationError extends Error {}
+
 function createProfileImageFromAsset(
   asset: ImagePicker.ImagePickerAsset,
   t: (key: string) => string,
@@ -584,7 +580,7 @@ function createProfileImageFromAsset(
     typeof asset.fileSize === "number" &&
     asset.fileSize > PROFILE_IMAGE_MAX_SIZE_BYTES
   ) {
-    throw new Error(t("profile.profileImageTooLarge"));
+    throw new ProfileImageValidationError(t("profile.profileImageTooLarge"));
   }
 
   const rawName =
@@ -601,7 +597,7 @@ function createProfileImageFromAsset(
     (normalizedMimeType && !hasSupportedMimeType) ||
     (!normalizedMimeType && !hasSupportedExtension)
   ) {
-    throw new Error(t("profile.onlyImageTypesSupported"));
+    throw new ProfileImageValidationError(t("profile.onlyImageTypesSupported"));
   }
 
   const contentType = hasSupportedMimeType
@@ -609,7 +605,7 @@ function createProfileImageFromAsset(
     : getProfileImageMimeType(extension);
 
   if (!contentType) {
-    throw new Error(t("profile.onlyImageTypesSupported"));
+    throw new ProfileImageValidationError(t("profile.onlyImageTypesSupported"));
   }
 
   return {
@@ -629,18 +625,14 @@ function ProfileImagePreview({
     return (
       <Image
         source={{ uri: imageUrl }}
-        style={{
-          width: 112,
-          height: 112,
-          borderRadius: 999,
-        }}
+        style={{ width: "100%", height: "100%" }}
         contentFit="cover"
       />
     );
   }
 
   return (
-    <View className="h-28 w-28 items-center justify-center rounded-full bg-primary">
+    <View className="h-full w-full items-center justify-center bg-primary">
       <NativeText variant="h1" color="primaryForeground" wrap={false}>
         {name?.charAt(0).toUpperCase() || "?"}
       </NativeText>

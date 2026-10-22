@@ -6,7 +6,7 @@ import { Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { BannedUserError, signIn } from "@/service/auth";
+import { BannedUserError, InvalidCredentialsError, signIn } from "@/service/auth";
 import {
     clearSessionEndedNotice,
     getSessionEndedNotice,
@@ -80,8 +80,8 @@ export default function LoginScreen() {
                 message:
                     error instanceof BannedUserError
                         ? t("login.deactivatedAccount")
-                        : error instanceof Error
-                        ? error.message
+                        : error instanceof InvalidCredentialsError
+                        ? t("login.invalidCredentials")
                         : t("login.genericError"),
             });
         } finally {

@@ -11,7 +11,7 @@ import {
     getLessonReservationById,
     getTicketLessonSlots,
 } from "@/service/member-lesson-reservation.service";
-import { getMemberReservations, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
+import { getMemberReservations, getMemberReservationsByDate, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
 import {
     BaySlotGroupScheduleResponse,
     MemberBayReservationResponse,
@@ -109,6 +109,25 @@ export function useTodayMemberReservations() {
     >({
         queryKey: ["member", "reservations", "today"],
         queryFn: ({ signal }) => getTodayMemberReservations(signal),
+        select: (response) => response.data,
+        staleTime: 30_000,
+    });
+}
+
+export function useMemberReservationsForDay(
+    dateKey: string | null,
+    enabled = true,
+    refetchInterval: number | false = false,
+) {
+    return useQuery<
+        ApiResponse<MemberReservationSummaryResponse[]>,
+        Error,
+        MemberReservationSummaryResponse[]
+    >({
+        queryKey: ["member", "reservations", "by-date", dateKey],
+        queryFn: ({ signal }) => getMemberReservationsByDate(dateKey!, signal),
+        enabled: enabled && Boolean(dateKey),
+        refetchInterval,
         select: (response) => response.data,
         staleTime: 30_000,
     });

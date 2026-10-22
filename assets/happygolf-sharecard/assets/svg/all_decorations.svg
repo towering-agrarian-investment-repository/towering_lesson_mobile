@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="511" height="637" viewBox="0 0 511 637" fill="none">
+<rect width="511" height="637" fill="#5FDCFC"/>
+<rect x="19" y="23" width="475" height="591" rx="21" fill="#FEFEFE"/>
+<!-- Wavy upper-right sky; this edge is purposefully within the card, not clipped flat. -->
+<path d="M 260 23 H 472 Q 493 23 493 45 L 493 123 C 475 108 459 114 443 116 C 420 118 408 131 392 127 C 375 121 361 98 342 93 C 315 87 300 88 287 70 C 278 57 280 37 260 23 Z" fill="#BCEFFA"/>
+<path d="M 279 23 C 292 41 291 64 317 81 C 335 91 352 88 364 102 C 374 113 380 122 394 124" fill="none" stroke="#D3F6FB" stroke-width="4" opacity="0.22" />
+<path d="M 353 63 C 355 57 359 55 364 56 C 365 49 371 45 378 46 C 381 39 388 37 394 42 C 402 42 404 47 405 53 C 412 51 418 57 420 63 Z" fill="#F4FBFE"/>
+<path d="M 286 123 C 289 117 295 115 300 117 C 302 109 308 105 316 109 C 321 111 321 116 323 116 C 329 114 333 118 335 124 Z" fill="#DEF6FC"/>
+<path d="M 380 128 C 383 122 391 121 396 124 C 398 116 405 110 413 115 C 417 118 418 125 418 128 Z" fill="#F6FCFD"/>
+<path d="M 468 75 C 473 66 481 66 487 73 C 491 71 493 72 493 76 L 493 81 L 465 81 Z" fill="#F2FBFF"/>
+
+<!-- Right-hand layered golf green and flag. -->
+<path d="M 356 206 C 377 202 386 171 406 156 C 427 141 458 143 476 131 C 483 126 488 123 493 122 L 493 244 C 474 225 443 225 423 223 C 401 222 377 220 356 206 Z" fill="#7BE7A8"/>
+<path d="M 359 207 C 392 202 393 167 427 162 C 453 159 472 143 493 154 L 493 243 C 473 222 438 220 412 219 C 387 218 371 214 359 207 Z" fill="#44D995"/>
+<path d="M 358 210 C 388 211 409 187 443 183 C 462 181 482 183 493 187 L 493 243 C 470 227 445 224 418 223 C 389 222 370 219 358 210 Z" fill="#00B978"/>
+<ellipse cx="416.5" cy="181.2" rx="19" ry="5.4" fill="#06895F" opacity="0.75"/>
+<path d="M 416 81 L 416 180" stroke="#061630" stroke-width="7.4" stroke-linecap="round"/>
+<path d="M 419.5 88 L 456.5 105.5 Q 458 107 455.4 109 L 419.5 122 Z" fill="#FF526D"/>
+<g stroke="#00B77C" stroke-width="5.5" stroke-linecap="round">
+<path d="M 452 84 L 459 69"/><path d="M 465 87 L 475 78"/>
+</g>
+
+<!-- Contained lower landscape. White card remains visible around profile/logo. -->
+<path d="M 19 542 C 46 546 64 574 79 600 C 99 616 141 626 189 618 C 227 611 246 599 277 596 C 313 592 353 609 383 611 C 412 611 441 583 468 574 C 477 570 486 569 493 570 L 493 613 L 19 613 Z" fill="#82E7A9" />
+<path d="M 19 562 C 46 573 62 603 85 615 C 123 627 174 630 213 613 C 245 600 263 596 291 601 C 321 605 335 616 371 617 C 411 617 450 584 493 584 L 493 613 L 19 613 Z" fill="#4BD993" />
+<path d="M 19 594 C 58 595 69 633 115 635 C 164 637 201 622 238 609 C 275 597 302 605 332 616 C 352 625 363 632 386 634 C 421 641 454 607 493 605 L 493 637 L 19 637 Z" fill="#2ACD83"/>
+<path d="M 0 541 C 31 545 44 558 53 587 C 65 611 82 619 93 637 L 0 637 Z" fill="#008B67" />
+<path d="M 0 573 C 36 577 58 605 76 637 L 0 637 Z" fill="#0AA879" />
+<path d="M 165 637 C 218 624 243 605 287 598 C 338 591 367 619 404 630 C 439 636 458 608 511 605 L 511 637 Z" fill="#03B979"/>
+<path d="M 239 637 C 302 595 344 596 395 631 C 423 646 469 602 511 610 L 511 637 Z" fill="#00A36D"/>
+<!-- Sprigs: leaves made as simple rounded stems. -->
+<g fill="#00B477">
+<path d="M 120 610 C 110 603 111 594 116 594 C 121 594 125 605 125 605 C 126 595 132 593 134 598 C 136 603 128 609 127 612 C 136 602 141 606 139 611 C 136 615 129 615 120 610 Z"/>
+<path d="M 359 621 C 353 614 354 604 359 605 C 364 605 366 614 366 615 C 368 608 373 605 376 610 C 378 615 369 624 365 625 Z"/>
+<path d="M 481 573 C 474 565 476 553 482 557 C 487 560 485 567 485 567 C 489 559 493 559 496 565 C 498 572 491 578 485 580 Z"/>
+</g>
+
+<!-- The lower-left dimply ball is a crop of a white circular asset, not a photo. -->
+<defs>
+  <clipPath id="ballshape"><circle cx="10" cy="610" r="46"/></clipPath>
+  <pattern id="dimples" width="14" height="13" patternUnits="userSpaceOnUse">
+     <circle cx="5" cy="5" r="3.1" fill="#E5ECEF"/><circle cx="12" cy="11" r="1.2" fill="#EFF3F5"/>
+  </pattern>
+</defs>
+<circle cx="10" cy="610" r="46" fill="#FFFFFF" stroke="#E3EBEC" stroke-width="1.2"/>
+<circle cx="10" cy="610" r="45" fill="url(#dimples)" clip-path="url(#ballshape)"/>
+
+<g stroke="#03B77B" stroke-width="5" stroke-linecap="round" fill="none">
+  <path d="M 51 95 L 57 103"/><path d="M 40 116 L 54 122"/><path d="M 44 146 L 56 136"/>
+  <path d="M 482 482 L 478 496"/><path d="M 497 489 L 487 502"/>
+</g>
+<g stroke="#FFCA2F" stroke-width="5.6" stroke-linecap="round" fill="none">
+  <path d="M 15 415 L 26 433"/><path d="M 6 435 L 23 445"/><path d="M 9 469 L 24 460"/>
+</g>
+
+</svg>

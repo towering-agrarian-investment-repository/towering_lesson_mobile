@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import i18n from "../../i18n";
 import { getAppRequestHeaders } from "../client/app-request-headers";
 import type { ApiResponse } from "../api-response/api-response";
+import { showAppToast } from "../toast/toast";
 
 export type AppUpdateConfig = {
     minimumSupportedVersion?: string | null;
@@ -44,6 +45,11 @@ export function fetchAppUpdateState(): Promise<AppUpdateState | null> {
         appUpdateCheck = fetchAppUpdateStateOnce();
     }
 
+    return appUpdateCheck;
+}
+
+export function refreshAppUpdateState(): Promise<AppUpdateState | null> {
+    appUpdateCheck = fetchAppUpdateStateOnce();
     return appUpdateCheck;
 }
 
@@ -128,8 +134,12 @@ export function isVersionLessThan(current: string, minimum: string | null) {
 
 export function getStoreUrl(state: AppUpdateState) {
     if (Platform.OS === "android") {
+        const androidStoreUrl = state.androidStoreUrl
+            ?.trim()
+            .replace(/^["']+|["']+$/g, "")
+            .trim();
         return (
-            state.androidStoreUrl ??
+            androidStoreUrl ||
             "https://play.google.com/store/apps/details?id=com.toweringinvest.happygolfmobile"
         );
     }
@@ -138,15 +148,16 @@ export function getStoreUrl(state: AppUpdateState) {
 }
 
 export async function openStore(state: AppUpdateState) {
-    const storeUrl = getStoreUrl(state);
-    if (!storeUrl) {
-        return;
-    }
-
     try {
+        const storeUrl = getStoreUrl(state)?.trim();
+        if (!storeUrl || storeUrl.includes("YOUR_APP_ID") || !["https:", "http:", "market:", "itms-apps:"].includes(new URL(storeUrl).protocol)) {
+            throw new Error("Missing or invalid store URL");
+        }
         await Linking.openURL(storeUrl);
+        return true;
     } catch {
-        // The store URL is supplied by the backend and may not be available in a simulator.
+        showAppToast({ message: i18n.t("appUpdate.openStoreError"), type: "error" });
+        return false;
     }
 }
 
