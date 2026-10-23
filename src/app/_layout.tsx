@@ -26,6 +26,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import "../global.css";
 
+const disableReplay = process.env.EXPO_PUBLIC_DISABLE_REPLAY === "1";
+const blueOverrides = {};
+const greenOverrides = {
+  "--primary": "#00BC7D",
+  "--primary-foreground": "#ffffff",
+};
+
 Sentry.init({
   dsn: "https://86129b0dd7ff91177ff5302538b716b6@o4512207163686912.ingest.us.sentry.io/4512207382511616",
 
@@ -36,10 +43,10 @@ Sentry.init({
 
   enableLogs: true,
 
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1,
+  replaysSessionSampleRate: disableReplay ? 0 : 0.1,
+  replaysOnErrorSampleRate: disableReplay ? 0 : 1,
 
-  integrations: [Sentry.mobileReplayIntegration()],
+  integrations: disableReplay ? [] : [Sentry.mobileReplayIntegration()],
 
   // spotlight: __DEV__,
 });
@@ -102,8 +109,31 @@ function ThemedRoot({
   hasAuthorizedSession: boolean;
   update: ReturnType<typeof useAppUpdate>;
 }) {
-  const { colors, resolvedScheme, isReady: isThemeReady } = useTheme();
+  const {
+    colors,
+    resolvedScheme,
+    isReady: isThemeReady,
+    primaryColorPreference,
+  } = useTheme();
   const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
+
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_THEME_PROBE !== "1") return;
+    const tapAt = (globalThis as { __themeTapAt?: number }).__themeTapAt;
+    if (tapAt === undefined) return;
+
+    let secondFrame: number | undefined;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        console.log("theme tap→paint ms", Date.now() - tapAt);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      if (secondFrame !== undefined) cancelAnimationFrame(secondFrame);
+    };
+  }, [resolvedScheme]);
 
   useEffect(() => {
     if (isThemeReady && !isAuthPending && !update.isChecking) {
@@ -116,35 +146,6 @@ function ThemedRoot({
     !isAuthPending && !update.isChecking && !update.isForceUpdateRequired,
   );
 
-  const themeVariables = useMemo(
-    () => ({
-      "--background": colors.background,
-      "--foreground": colors.foreground,
-      "--surface": colors.surface,
-      "--card": colors.card,
-      "--border": colors.border,
-      "--muted": colors.muted,
-      "--muted-foreground": colors.mutedForeground,
-      "--primary": colors.primary,
-      "--primary-foreground": colors.primaryForeground,
-      "--secondary": colors.secondary,
-      "--secondary-foreground": colors.secondaryForeground,
-      "--danger": colors.danger,
-      "--success": colors.success,
-      "--warning": colors.warning,
-      "--ticket-bay": colors.ticketBay,
-      "--ticket-private": colors.ticketPrivate,
-      "--ticket-group": colors.ticketGroup,
-      "--ticket-program": colors.ticketProgram,
-      "--ticket-default": colors.ticketDefault,
-      "--notification": colors.notification,
-      "--bg-btn-main-start": colors.btnMainStart,
-      "--bg-btn-main-end": colors.btnMainEnd,
-      "--bg-btn-main-pressed-start": colors.btnMainPressedStart,
-      "--bg-btn-main-pressed-end": colors.btnMainPressedEnd,
-    }),
-    [colors],
-  );
   const navigationTheme = useMemo(
     () => ({
       ...(resolvedScheme === "dark" ? DarkTheme : DefaultTheme),
@@ -154,7 +155,7 @@ function ThemedRoot({
         card: colors.card,
         text: colors.foreground,
         border: colors.border,
-        notification: colors.notification,
+        notification: colors.danger,
       },
     }),
     [colors, resolvedScheme],
@@ -162,7 +163,9 @@ function ThemedRoot({
 
   return (
     <NavigationThemeProvider value={navigationTheme}>
-      <VariableContextProvider value={themeVariables}>
+      <VariableContextProvider
+        value={primaryColorPreference === "green" ? greenOverrides : blueOverrides}
+      >
         {!isThemeReady || !isWelcomeReady || update.isChecking || isAuthPending ? (
           <View className="flex-1 bg-background" />
         ) : null}
@@ -221,7 +224,7 @@ function ThemedRoot({
         ) : null}
       </VariableContextProvider>
 
-      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style="auto" />
     </NavigationThemeProvider>
   );
 }

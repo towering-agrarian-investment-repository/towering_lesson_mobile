@@ -518,7 +518,7 @@ export default function EditProfileScreen() {
 
               {isUpdatingImage ? (
                 <View className="absolute inset-0 items-center justify-center bg-black/40">
-                  <ActivityIndicator color="#ffffff" />
+                  <ActivityIndicator color={colors.primaryForeground} />
                 </View>
               ) : null}
             </View>

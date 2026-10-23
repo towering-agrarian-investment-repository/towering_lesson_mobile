@@ -781,8 +781,8 @@ function HeaderSection({
                 <View className="flex-row flex-wrap">
                     <Badge
                         label={formatTicketTypeLabel(ticketType, t)}
-                        className={`${ticketTone.badgeClassName} px-2 py-0.5`}
-                        color={ticketTone.color}
+                        className={`${ticketTone.badgeSolidClassName} px-2 py-0.5`}
+                        color="primaryForeground"
                     />
                 </View>
             ) : null}
@@ -900,10 +900,10 @@ function Avatar({
     }
 
     return (
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-secondary">
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
             <NativeText
                 variant="body"
-                color="secondaryForeground"
+                color="foreground"
                 wrap={false}
                 textStyle={{ lineHeight: typography.caption.lineHeight, fontSize: typography.caption.fontSize, fontWeight: "700" as const }}
             >

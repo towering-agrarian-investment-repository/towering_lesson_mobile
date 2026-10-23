@@ -26,17 +26,9 @@ export type ThemeColors = {
     mutedForeground: string;
     primary: string;
     primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
     danger: string;
     success: string;
     warning: string;
-    reservationReserved: string;
-    reservationCheckedIn: string;
-    reservationCompleted: string;
-    reservationCancelled: string;
-    reservationNoShow: string;
-    notification: string;
     ticketBay: string;
     ticketPrivate: string;
     ticketGroup: string;
@@ -53,7 +45,7 @@ export type PrimaryColorPreference = "blue" | "green";
 
 // Fixed reservation status colors shared by both themes. The OKLCH values
 // supplied for Completed, Cancelled, and No Show are mapped to sRGB for native.
-const reservationStatusColors = {
+export const reservationStatusColors = {
     reservationReserved: "#3B4EC5",
     reservationCheckedIn: "#52D8AC",
     reservationCompleted: "#00A071", // oklch(0.62 0.14 165)
@@ -71,13 +63,9 @@ const lightThemeColors = {
     mutedForeground: "#6b7280",
     primary: "#00AEEF",
     primaryForeground: "#ffffff",
-    secondary: "#f3f4f6",
-    secondaryForeground: "#111827",
     danger: "#dc2626",
     success: "#16a34a",
     warning: "#f59e0b",
-    ...reservationStatusColors,
-    notification: "#dc2626",
     ticketBay: "#26a9e0",
     ticketPrivate: "#4071c0",
     ticketGroup: "#faad3d",
@@ -99,13 +87,9 @@ const darkThemeColors = {
     mutedForeground: "#8b95a7",
     primary: "#33C6FF",
     primaryForeground: "#ffffff",
-    secondary: "#1c2330",
-    secondaryForeground: "#e5e7eb",
     danger: "#f87171",
     success: "#4ade80",
     warning: "#fbbf24",
-    ...reservationStatusColors,
-    notification: "#f87171",
     ticketBay: "#4cc3f0",
     ticketPrivate: "#5b8def",
     ticketGroup: "#ffc24b",
@@ -137,13 +121,7 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function applyThemePreference(preference: ThemePreference) {
-    try {
-        Appearance.setColorScheme(
-            preference === "system" ? "auto" : preference,
-        );
-    } catch {
-        // Fall back to local provider state if the platform setter is unavailable.
-    }
+    Appearance.setColorScheme(preference === "system" ? "auto" : preference);
 }
 
 export function getThemeColors(
@@ -164,6 +142,12 @@ export function getThemeColors(
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+    if (process.env.EXPO_PUBLIC_THEME_PROBE === "1") {
+        const tapAt = (globalThis as { __themeTapAt?: number }).__themeTapAt;
+        // eslint-disable-next-line react-hooks/purity -- Temporary render timing probe.
+        console.log("provider render", tapAt === undefined ? null : Date.now() - tapAt);
+    }
+
     const systemColorScheme = useSystemColorScheme();
     const { fontScale } = useWindowDimensions();
     const [preference, setPreferenceState] =
@@ -177,12 +161,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
         const loadPreference = async () => {
             try {
-                const storedPreference = await AsyncStorage.getItem(
-                    THEME_PREFERENCE_STORAGE_KEY,
-                );
-                const storedPrimaryColor = await AsyncStorage.getItem(
-                    PRIMARY_COLOR_PREFERENCE_STORAGE_KEY,
-                );
+                const [storedPreference, storedPrimaryColor] = await Promise.all([
+                    AsyncStorage.getItem(THEME_PREFERENCE_STORAGE_KEY),
+                    AsyncStorage.getItem(PRIMARY_COLOR_PREFERENCE_STORAGE_KEY),
+                ]);
 
                 if (!isMounted) {
                     return;
@@ -215,12 +197,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const handleSetPreference = useCallback(async (nextPreference: ThemePreference) => {
-        setPreferenceState(nextPreference);
+        if (process.env.EXPO_PUBLIC_THEME_PROBE === "1") {
+            (globalThis as { __themeTapAt?: number }).__themeTapAt = Date.now();
+        }
         applyThemePreference(nextPreference);
-        await AsyncStorage.setItem(
-            THEME_PREFERENCE_STORAGE_KEY,
-            nextPreference,
-        );
+        setPreferenceState(nextPreference);
+        await AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, nextPreference);
     }, []);
 
     const handleSetPrimaryColorPreference = useCallback(async (
@@ -244,7 +226,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         void SystemUI.setBackgroundColorAsync(colors.background).catch(
-            () => {},
+            () => { },
         );
     }, [colors.background]);
 
@@ -275,24 +257,4 @@ export function useTheme(): ThemeContextValue {
 
 export function useThemeColors(): ThemeColors {
     return useTheme().colors;
-}
-
-export function useThemePreference() {
-    const {
-        isReady,
-        preference,
-        resolvedScheme,
-        setPreference,
-        primaryColorPreference,
-        setPrimaryColorPreference,
-    } = useTheme();
-
-    return {
-        isThemeReady: isReady,
-        themePreference: preference,
-        resolvedTheme: resolvedScheme,
-        setThemePreference: setPreference,
-        primaryColorPreference,
-        setPrimaryColorPreference,
-    };
 }

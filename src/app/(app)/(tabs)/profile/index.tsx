@@ -1,6 +1,5 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { ProfilePreferenceRow } from "@/components/golf/profile/ProfilePreferenceRow";
-import TitleSectionWithBadge from "@/components/golf/TitleSectionWithBadge";
 import {
   CircleLoader,
   Divider,
@@ -8,7 +7,6 @@ import {
   ListRow,
   Screen,
   type PrimaryColorPreference,
-  type ThemePreference,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
@@ -50,7 +48,7 @@ import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Download, Moon, Smartphone, Sun, X } from "lucide-react-native";
+import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Palette, Phone, UserRound, UsersRound, X, type LucideIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -76,7 +74,7 @@ const signOutButtonSize = isIOS
   ? [frame({ maxWidth: Infinity, minHeight: 56 })]
   : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })];
 const signOutTextSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "leading" })]
+  ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "center" })]
   : [fillMaxWidth()];
 
 const LANGUAGES: {
@@ -122,8 +120,6 @@ export default function ProfileScreen() {
     colors,
     fontScale: uiFontScale,
     isReady: isThemeReady,
-    preference: themePreference,
-    setPreference: setThemePreference,
     primaryColorPreference,
     setPrimaryColorPreference,
   } = useTheme();
@@ -163,17 +159,18 @@ export default function ProfileScreen() {
 
   // Rows without a value are dropped up front so dividers never end up orphaned.
   const generalInfoRows = [
-    { label: t("profile.phone"), value: member?.phoneNumber },
+    { label: t("profile.phone"), value: member?.phoneNumber, icon: Phone },
     {
       label: t("profile.gender"),
       value: member?.gender ? (genderLabels[member.gender] ?? "-") : "-",
+      icon: UserRound,
     },
   ].filter((row) => row.value);
   const schoolInfoRows = member?.grade
     ? [
-        { label: t("profile.school"), value: member.grade.schoolName },
-        { label: t("profile.schoolCode"), value: member.grade.schoolCode },
-        { label: t("profile.grade"), value: member.grade.name },
+        { label: t("profile.school"), value: member.grade.schoolName, icon: GraduationCap },
+        { label: t("profile.schoolCode"), value: member.grade.schoolCode, icon: Building2 },
+        { label: t("profile.grade"), value: member.grade.name, icon: ChartNoAxesColumn },
       ].filter((row) => row.value)
     : [];
 
@@ -273,7 +270,7 @@ export default function ProfileScreen() {
               className="h-12 w-12 items-center justify-center rounded-full bg-white/20 active:opacity-70"
               onPress={() => setIsImageViewerVisible(false)}
             >
-              <X size={24} color="#ffffff" />
+              <X size={24} color={colors.primaryForeground} />
             </Pressable>
           </View>
           {member?.profileImage ? (
@@ -418,46 +415,48 @@ export default function ProfileScreen() {
         ) : null}
         <AdaptivePanels
           primary={
-            <View className="gap-8 pt-6">
-              <View className="gap-1">
+            <View className="gap-6 pt-6">
+              <View className="gap-2">
                 <SectionTitle title={t("profile.personalRecord")} />
 
-                <View className="flex-col">
+                <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
                   <LinkRow
                     label={t("profile.lessonLog")}
                     href="/lesson-log"
                     count={lessonLogsResponse?.data.length}
+                    icon={BookOpenText}
                   />
                   <Divider className="bg-border" />
                   <LinkRow
                     label={t("navigation.tabs.lessons")}
                     href="/lessons"
+                    icon={UsersRound}
                   />
                 </View>
               </View>
 
-              <View className="gap-1">
+              <View className="gap-2">
                 <SectionTitle title={t("profile.generalInfo")} />
 
-                <View className="flex-col">
+                <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
                   {generalInfoRows.map((row, index) => (
                     <View key={row.label}>
                       {index > 0 ? <Divider className="bg-border" /> : null}
-                      <InfoRow label={row.label} value={row.value} />
+                      <InfoRow label={row.label} value={row.value} icon={row.icon} />
                     </View>
                   ))}
                 </View>
               </View>
 
               {schoolInfoRows.length > 0 ? (
-                <View className="gap-1">
+                <View className="gap-2">
                   <SectionTitle title={t("profile.schoolInfo")} />
 
-                  <View className="flex-col">
+                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
                     {schoolInfoRows.map((row, index) => (
                       <View key={row.label}>
                         {index > 0 ? <Divider className="bg-border" /> : null}
-                        <InfoRow label={row.label} value={row.value} />
+                        <InfoRow label={row.label} value={row.value} icon={row.icon} />
                       </View>
                     ))}
                   </View>
@@ -465,10 +464,10 @@ export default function ProfileScreen() {
               ) : null}
 
               {member?.parents && member.parents.length > 0 ? (
-                <View className="gap-1">
+                <View className="gap-2">
                   <SectionTitle title={t("profile.parentsGuardians")} />
 
-                  <View className="flex-col">
+                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
                     {member.parents.map((parent, index) => (
                       <View key={parent.id}>
                         {index > 0 ? <Divider className="bg-border" /> : null}
@@ -486,20 +485,16 @@ export default function ProfileScreen() {
             </View>
           }
           secondary={
-            <View className="pt-8">
-              <View className="gap-8">
-                <View className="gap-1">
+            <View className="pt-6">
+              <View className="gap-6">
+                <View className="gap-2">
                   <SectionTitle title={t("profile.settings")} />
 
-                  <View className="flex-col">
-                    <LinkRow
-                      label={t("profile.editPersonalInformation")}
-                      href="/profile/edit"
-                    />
-                    <Divider className="bg-border" />
+                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
                     <LinkRow
                       label={t("profile.changePassword")}
                       href="/profile/change-password"
+                      icon={LockKeyhole}
                     />
                     <Divider className="bg-border" />
                     <LanguagePreferenceRow
@@ -512,20 +507,14 @@ export default function ProfileScreen() {
                   </View>
                 </View>
 
-                <View className="gap-1">
+                <View className="gap-2">
                   <SectionTitle title={t("profile.appearance")} />
 
-                  <View className="flex-col">
+                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
                     <PrimaryColorPreferenceRow
                       preference={primaryColorPreference}
                       disabled={!isThemeReady}
                       onChange={setPrimaryColorPreference}
-                    />
-                    <Divider className="bg-border" />
-                    <ThemePreferenceRow
-                      preference={themePreference}
-                      disabled={!isThemeReady}
-                      onChange={setThemePreference}
                     />
                   </View>
                 </View>
@@ -543,9 +532,7 @@ export default function ProfileScreen() {
                   <Button
                     style={{
                       ...getNativeButtonStyle(colors, "text", isSigningOut),
-                      backgroundColor: colors.danger + "1a",
-                      borderWidth: 1,
-                      borderColor: colors.danger + "33",
+                      backgroundColor: colors.danger,
                       paddingHorizontal: 16,
                     }}
                     modifiers={signOutButtonSize}
@@ -553,23 +540,23 @@ export default function ProfileScreen() {
                     disabled={isSigningOut}
                     onPress={confirmSignOut}
                   >
-                    <Text
-                      modifiers={signOutTextSize}
-                      textStyle={{
-                        ...getNativeButtonTextStyle(
-                          colors,
-                          "outlined",
-                          uiFontScale,
-                          colors.danger,
-                        ),
-                        fontWeight: "500",
-                        textAlign: "left",
-                      }}
-                    >
-                      {isSigningOut
-                        ? t("profile.loggingOut")
-                        : t("profile.logOut")}
-                    </Text>
+                    <Row spacing={8} alignment="center" modifiers={signOutTextSize}>
+                      <Spacer flexible />
+                      <RNHostView matchContents>
+                        <LogOut size={18} color={colors.primaryForeground} />
+                      </RNHostView>
+                      <Text
+                        textStyle={{
+                          ...getNativeButtonTextStyle(colors, "filled", uiFontScale, colors.danger),
+                          color: colors.primaryForeground,
+                        }}
+                      >
+                        {isSigningOut
+                          ? t("profile.loggingOut")
+                          : t("profile.logOut")}
+                      </Text>
+                      <Spacer flexible />
+                    </Row>
                   </Button>
                 </Host>
               </View>
@@ -647,22 +634,9 @@ function ProfileHeader({
             {name || "-"}
           </NativeText>
 
-          <View className="flex-row items-center gap-1">
-            <NativeText
-              variant="subtext"
-              color="mutedForeground"
-              wrap={false}
-            >
-              {t("profile.checkInNo") + ":"}
-            </NativeText>
-            <NativeText
-              variant="subtext"
-              wrap={false}
-              numberOfLines={1}
-            >
-              {checkinNumber || "-"}
-            </NativeText>
-          </View>
+          <NativeText variant="subtext" numberOfLines={2} textStyle={{ fontWeight: "500" }}>
+            {`${t("profile.checkInNo")}: ${checkinNumber || "-"}`}
+          </NativeText>
         </View>
       </View>
     </View>
@@ -732,25 +706,33 @@ function SectionTitle({ title }: { title: string }) {
 function InfoRow({
   label,
   value,
+  icon: Icon,
 }: {
   label: string;
   value: string | null | undefined;
+  icon: LucideIcon;
 }) {
+  const { colors } = useTheme();
   if (!value) {
     return null;
   }
 
   return (
-    <View className="flex-row items-start justify-between gap-4 py-3.5">
+    <View className="min-h-14 flex-row items-center gap-3 py-3">
+      <Icon size={20} color={colors.foreground} />
       <NativeText
-        variant="meta"
-        color="mutedForeground"
-        style={{ width: 104, minWidth: 104 }}
+        variant="body"
+        style={{ flex: 1, minWidth: 0 }}
       >
         {label}
       </NativeText>
 
-      <NativeText variant="body" align="right" style={{ flex: 1, minWidth: 0 }}>
+      <NativeText
+        variant="body"
+        align="right"
+        style={{ flexShrink: 1, maxWidth: "55%" }}
+        textStyle={{ fontWeight: "600" }}
+      >
         {value}
       </NativeText>
     </View>
@@ -769,42 +751,30 @@ function ParentRow({
   imageUrl?: string | null;
 }) {
   return (
-    <View className="flex-row items-center gap-4 py-3.5">
+    <View className="min-h-16 flex-row items-center gap-3 py-2">
       <ProfileAvatar name={name} imageUrl={imageUrl} />
 
       <View className="min-w-0 flex-1 flex-col gap-1">
-        <View className="flex-row items-center justify-between gap-2">
-          <NativeText
-            variant="body"
-            numberOfLines={1}
-            style={{ flex: 1, minWidth: 0 }}
-          >
-            {name}
-          </NativeText>
-
-          {role ? (
-            <NativeText
-              variant="caption"
-              color="mutedForeground"
-              align="right"
-              wrap={false}
-              numberOfLines={1}
-              style={{ flexShrink: 0 }}
-            >
-              {formatType(role)}
-            </NativeText>
-          ) : null}
-        </View>
+        <NativeText variant="body" numberOfLines={1}>
+          {name}
+        </NativeText>
 
         {phoneNumber ? (
           <NativeText
             variant="subtext"
-            color="mutedForeground"
+            textStyle={{ fontWeight: "500" }}
           >
             {phoneNumber}
           </NativeText>
         ) : null}
       </View>
+      {role ? (
+        <View className="max-w-[38%] rounded-full bg-muted px-2.5 py-1">
+          <NativeText variant="caption" align="center" wrap={false} numberOfLines={1} textStyle={{ fontWeight: "600" }}>
+            {formatType(role)}
+          </NativeText>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -813,72 +783,36 @@ function LinkRow({
   label,
   href,
   count,
+  icon: Icon,
 }: {
   label: string;
   href: Href;
   count?: number;
+  icon: LucideIcon;
 }) {
+  const { colors } = useTheme();
   return (
     <Link href={href} asChild>
       <ListRow
         title={label}
         accessibilityLabel={!count ? label : `${label}, ${count}`}
-        titleContent={
-          !count ? undefined : (
-            <TitleSectionWithBadge
-              label={label}
-              length={count}
-              variant="body"
-            />
-          )
+        leading={<Icon size={20} color={colors.foreground} />}
+        showChevron={false}
+        trailing={
+          <View className="min-h-8 flex-row items-center gap-2">
+            {count ? (
+              <View className="h-6 min-w-6 items-center justify-center rounded-full bg-danger px-1.5">
+                <NativeText variant="badge" color="primaryForeground" align="center" wrap={false}>
+                  {String(count)}
+                </NativeText>
+              </View>
+            ) : null}
+            <ChevronRight size={18} color={colors.mutedForeground} />
+          </View>
         }
-        className="border-0 bg-transparent px-0 py-3.5"
+        className="min-h-14 rounded-none border-0 bg-transparent px-0 py-3"
       />
     </Link>
-  );
-}
-
-function ThemePreferenceRow({
-  disabled,
-  preference,
-  onChange,
-}: {
-  disabled: boolean;
-  preference: ThemePreference;
-  onChange: (value: ThemePreference) => void;
-}) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  return (
-    <ProfilePreferenceRow
-      title={t("profile.theme")}
-      accessibilityLabel={t("profile.chooseAppAppearance")}
-      sheetTitle={t("profile.appearance")}
-      description={t("profile.appearanceDescription")}
-      value={preference}
-      disabled={disabled}
-      onChange={onChange}
-      options={[
-        {
-          value: "system",
-          label: t("profile.system"),
-          description: t("profile.followDeviceSetting"),
-          icon: <Smartphone size={22} color={colors.foreground} />,
-        },
-        {
-          value: "light",
-          label: t("profile.light"),
-          description: t("profile.useLightAppearance"),
-          icon: <Sun size={22} color={colors.foreground} />,
-        },
-        {
-          value: "dark",
-          label: t("profile.dark"),
-          description: t("profile.useDarkAppearance"),
-          icon: <Moon size={22} color={colors.foreground} />,
-        },
-      ]}
-    />
   );
 }
 
@@ -892,9 +826,11 @@ function PrimaryColorPreferenceRow({
   onChange: (value: PrimaryColorPreference) => void;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   return (
     <ProfilePreferenceRow
       title={t("profile.primaryColorLabel")}
+      leading={<Palette size={20} color={colors.foreground} />}
       accessibilityLabel={t("profile.choosePrimaryColorLabel")}
       description={t("profile.primaryColorDescriptionLabel")}
       value={preference}
@@ -932,9 +868,11 @@ function LanguagePreferenceRow({
   onChange: (language: AppLanguage) => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   return (
     <ProfilePreferenceRow
       title={t("profile.language")}
+      leading={<Globe2 size={20} color={colors.foreground} />}
       accessibilityLabel={t("profile.chooseAppLanguage")}
       description={t("profile.languageDescription")}
       value={currentLanguage}

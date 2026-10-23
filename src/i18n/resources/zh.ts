@@ -109,6 +109,7 @@ const zh: TranslationResource<typeof en> = {
         parentsGuardians: "家长 / 监护人",
         settings: "设置",
         editPersonalInformation: "编辑个人信息",
+        editAction: "编辑",
         changePassword: "修改密码",
         appearance: "外观设置",
         active: "启用",

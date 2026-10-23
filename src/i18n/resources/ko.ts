@@ -109,6 +109,7 @@ const ko = {
         "parentsGuardians": "\ubd80\ubaa8 / \ubcf4\ud638\uc790",
         "settings": "\uc124\uc815",
         "editPersonalInformation": "\uac1c\uc778 \uc815\ubcf4 \uc218\uc815",
+        "editAction": "\uc218\uc815",
         "changePassword": "\ube44\ubc00\ubc88\ud638 \ubcc0\uacbd",
         "appearance": "\ud14c\ub9c8",
         "active": "\ud65c\uc131",

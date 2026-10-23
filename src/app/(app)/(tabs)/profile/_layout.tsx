@@ -1,3 +1,4 @@
+import { ProfileHeaderActions } from "@/components/golf/profile/ProfileHeaderActions";
 import { useThemeColors } from "@/design-system";
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -16,7 +17,10 @@ export default function TabStackLayout() {
         >
             <Stack.Screen
                 name="index"
-                options={{ title: t("navigation.tabs.profile") }}
+                options={{
+                    title: t("navigation.tabs.profile"),
+                    headerRight: () => <ProfileHeaderActions />,
+                }}
             />
         </Stack>
     );

@@ -22,4 +22,7 @@ Code checks (`tsc`, `eslint`, `expo-doctor`, `expo export`) are not runtime veri
 - Notification feed actions and push registration/tap navigation across app states and permission outcomes.
 - Activity filters, charts, image capture, photo-library permissions, saving.
 - Profile/image changes, all languages, both themes, primary-color preferences.
+- On a device set to light, tap System → Light → Dark → System; repeat with the device set to dark. Check that Dark → System goes directly to the device appearance, the header icon updates on tap, and there is no visible stutter.
+- Cold restart after choosing explicit Light and Dark to confirm persistence; check that System follows later device appearance changes.
+- Check blue and green primary colors in both light and dark modes, including Expo UI controls and the navigation bar.
 - Repeated taps, pending submissions, Android back, keyboard access, large text, offline/slow connections, resizing.

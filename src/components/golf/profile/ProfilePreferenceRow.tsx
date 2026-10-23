@@ -24,6 +24,7 @@ export function ProfilePreferenceRow<T extends string>({
     accessibilityLabel,
     sheetTitle = title,
     description,
+    leading,
     value,
     options,
     disabled,
@@ -33,6 +34,7 @@ export function ProfilePreferenceRow<T extends string>({
     accessibilityLabel: string;
     sheetTitle?: string;
     description: string;
+    leading?: ReactNode;
     value: T;
     options: ProfilePreferenceOption<T>[];
     disabled: boolean;
@@ -68,7 +70,10 @@ export function ProfilePreferenceRow<T extends string>({
         <>
             <ListRow
                 title={title}
-                meta={options.find((option) => option.value === value)?.label}
+                leading={leading}
+                meta={<NativeText variant="meta" color="foreground" wrap={false} textStyle={{ fontWeight: "600" }}>
+                    {options.find((option) => option.value === value)?.label ?? ""}
+                </NativeText>}
                 accessibilityLabel={accessibilityLabel}
                 disabled={disabled || pending}
                 className="border-0 bg-transparent px-0 py-3"

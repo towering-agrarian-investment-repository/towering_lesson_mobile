@@ -109,6 +109,7 @@ const ja: TranslationResource<typeof en> = {
         parentsGuardians: "保護者情報",
         settings: "設定",
         editPersonalInformation: "個人情報を編集",
+        editAction: "編集",
         changePassword: "パスワード変更",
         appearance: "外観",
         active: "有効",

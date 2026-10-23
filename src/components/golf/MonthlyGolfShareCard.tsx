@@ -1,7 +1,7 @@
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { getActivityStatusColor, toDateKey, type ActivityHeatmapValue } from "@/design-system/components/charts/activity-chart-data";
 import { colorWithOpacity } from "@/design-system/utils/color";
-import { useTheme } from "@/design-system/utils/theme";
+import { reservationStatusColors, useTheme } from "@/design-system/utils/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import layout from "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json";
@@ -84,8 +84,8 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
                 backgroundColor: canvas, direction: "ltr" }}>
             {dark && (
                 <LinearGradient
-                    colors={[colorWithOpacity(colors.reservationCompleted, 0.24), canvas,
-                        colorWithOpacity(colors.reservationCompleted, 0.18)]}
+                    colors={[colorWithOpacity(reservationStatusColors.reservationCompleted, 0.24), canvas,
+                        colorWithOpacity(reservationStatusColors.reservationCompleted, 0.18)]}
                     locations={[0, 0.55, 1]}
                     style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
                 />

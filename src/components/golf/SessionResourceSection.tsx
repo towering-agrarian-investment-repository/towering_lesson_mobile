@@ -160,7 +160,7 @@ function SessionResourceItem({
                                 textStyle={{
                                     ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
                                     fontWeight: "500" as const,
-                                    color: "#ffffff",
+                                    color: colors.primaryForeground,
                                     fontSize:
                                         typography.caption.fontSize *
                                         uiFontScale,
@@ -174,7 +174,8 @@ function SessionResourceItem({
                                 variant="caption"
                                 wrap={false}
                                 numberOfLines={1}
-                                textStyle={{ fontWeight: "500" as const, color: "#ffffff" }}
+                                color="primaryForeground"
+                                textStyle={{ fontWeight: "500" as const }}
                             >
                                 {resourceTypeLabel}
                             </NativeText>

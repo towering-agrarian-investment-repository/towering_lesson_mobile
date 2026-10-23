@@ -581,7 +581,7 @@ function NotificationRow({
           <NativeText
             variant="label"
             wrap={false}
-            textStyle={{ color: "#ffffff" }}
+            color="primaryForeground"
           >
             {isDeleting ? t("notice.deleting") : t("notice.delete")}
           </NativeText>

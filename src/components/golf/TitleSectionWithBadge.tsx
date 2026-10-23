@@ -14,7 +14,7 @@ function TitleSectionWithBadge({ label, length, variant = "h3" }: Props) {
         <View className="min-w-0 flex-row items-center gap-2">
             <NativeText
                 variant={variant}
-                color={variant === "h3" ? "secondaryForeground" : "foreground"}
+                color="foreground"
                 wrap={false}
                 numberOfLines={variant === "body" ? 2 : undefined}
                 style={variant === "body" ? { flexShrink: 1, minWidth: 0 } : undefined}
@@ -22,7 +22,7 @@ function TitleSectionWithBadge({ label, length, variant = "h3" }: Props) {
                 {label}
             </NativeText>
 
-            <View className="min-w-[24px] shrink-0 items-center justify-center rounded-full bg-notification px-1.5 py-1">
+            <View className="min-w-[24px] shrink-0 items-center justify-center rounded-full bg-danger px-1.5 py-1">
                 <NativeText
                     variant="count"
                     color="primaryForeground"

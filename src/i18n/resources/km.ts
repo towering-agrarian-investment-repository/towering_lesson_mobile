@@ -109,6 +109,7 @@ const km: TranslationResource<typeof en> = {
         parentsGuardians: "មាតាបិតា / អាណាព្យាបាល",
         settings: "ការកំណត់",
         editPersonalInformation: "កែប្រែព័ត៌មានផ្ទាល់ខ្លួន",
+        editAction: "កែប្រែ",
         changePassword: "ផ្លាស់ប្តូរពាក្យសម្ងាត់",
         appearance: "រូបរាងបង្ហាញ",
         active: "សកម្ម",

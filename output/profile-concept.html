@@ -1,0 +1,121 @@
+<div id="golf-profile-concept" class="viz-carousel viz-dotted-background" aria-label="Profile design directions">
+  <section data-variant="Open layout" aria-label="Open profile layout">
+    <article class="gp-phone" aria-label="HappyGolf profile concept with sample member details">
+      <header class="gp-header"><span>Profile</span><span class="gp-edit">Edit</span></header>
+      <div class="gp-content">
+        <div class="gp-identity">
+          <div class="gp-avatar" aria-label="Member initials">JK</div>
+          <div><h2>Jamie Kim</h2><p>Check-in no. 00428</p></div>
+        </div>
+        <div class="gp-shortcuts">
+          <div><i data-lucide="notebook-pen" aria-hidden="true"></i><span>Lesson log</span><span class="gp-count">12</span></div>
+          <div><i data-lucide="flag" aria-hidden="true"></i><span>Lessons</span><i data-lucide="chevron-right" aria-hidden="true"></i></div>
+        </div>
+        <section class="gp-section">
+          <h3>Personal information</h3>
+          <div class="gp-fields">
+            <div><span class="gp-label">Phone number</span><span class="gp-value">012 345 678</span></div>
+            <div><span class="gp-label">Gender</span><span class="gp-value">Male</span></div>
+          </div>
+        </section>
+        <section class="gp-section">
+          <h3>School</h3>
+          <div class="gp-fields">
+            <div class="gp-full"><span class="gp-label">School name</span><span class="gp-value">Riverside International School</span></div>
+            <div><span class="gp-label">School code</span><span class="gp-value">RIS</span></div>
+            <div><span class="gp-label">Grade</span><span class="gp-value">Grade 8</span></div>
+          </div>
+        </section>
+        <section class="gp-section">
+          <h3>Parents &amp; guardians</h3>
+          <div class="gp-guardian"><div class="gp-small-avatar">SK</div><div class="gp-person"><span class="gp-value">Sarah Kim</span><span class="gp-label">012 987 654</span></div><span class="gp-label">Mother</span></div>
+        </section>
+        <section class="gp-section gp-preferences">
+          <h3>Settings</h3>
+          <div class="gp-row"><span>Change password</span><i data-lucide="chevron-right" aria-hidden="true"></i></div>
+          <div class="gp-row"><span>Language</span><span class="gp-trailing">English<i data-lucide="chevron-right" aria-hidden="true"></i></span></div>
+        </section>
+        <section class="gp-section gp-preferences">
+          <h3>Appearance</h3>
+          <div class="gp-row"><label>Theme</label><select class="gp-theme" aria-label="Preview theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+          <div class="gp-row"><span>Primary color</span><div class="gp-swatches"><button type="button" class="gp-swatch gp-blue" data-color="blue" aria-label="Blue primary color" aria-pressed="true"><i data-lucide="check" aria-hidden="true"></i></button><button type="button" class="gp-swatch gp-green" data-color="green" aria-label="Green primary color" aria-pressed="false"><i data-lucide="check" aria-hidden="true"></i></button></div></div>
+        </section>
+        <div class="gp-logout"><i data-lucide="log-out" aria-hidden="true"></i><span>Log out</span></div>
+        <footer class="gp-version">HappyGolf · v1.0.0</footer>
+      </div>
+    </article>
+  </section>
+  <section data-variant="Grouped layout" aria-label="Grouped profile layout" hidden></section>
+</div>
+<style>
+#golf-profile-concept > section { padding:24px 12px; min-height:1090px; box-sizing:border-box; }
+#golf-profile-concept .gp-phone { --gp-bg:light-dark(#ffffff,#131817); --gp-fg:light-dark(#182825,#eef4f2); --gp-muted:light-dark(#62716d,#a0afa9); --gp-line:light-dark(#e6ebe8,#303b36); --gp-soft:light-dark(#f5f8f6,#1d2622); --gp-accent:light-dark(#007da9,#56cefa); --gp-accent-bg:light-dark(#e6f7fd,#163742); --gp-danger:light-dark(#bd3939,#ff9696); width:100%; max-width:390px; margin:0 auto; background:var(--gp-bg); color:var(--gp-fg); border:1px solid var(--gp-line); border-radius:24px; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:15px; line-height:1.45; }
+#golf-profile-concept .gp-header { min-height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-size:20px; font-weight:600; }
+#golf-profile-concept .gp-edit { color:var(--gp-accent); font-size:15px; font-weight:600; }
+#golf-profile-concept .gp-content { padding:8px 20px 22px; }
+#golf-profile-concept .gp-identity { display:flex; gap:16px; align-items:center; margin:8px 0 28px; }
+#golf-profile-concept .gp-avatar { width:72px; height:72px; flex:none; border-radius:50%; background:var(--gp-accent-bg); color:var(--gp-accent); display:grid; place-items:center; font-size:24px; font-weight:600; }
+#golf-profile-concept h2 { margin:0 0 5px; color:var(--gp-fg); font-size:25px; font-weight:700; line-height:1.2; }
+#golf-profile-concept p { margin:0; font-size:13px; color:var(--gp-muted); }
+#golf-profile-concept .gp-shortcuts { display:grid; grid-template-columns:1fr 1fr; padding:12px 0; border-block:1px solid var(--gp-line); margin-bottom:28px; }
+#golf-profile-concept .gp-shortcuts > div { min-height:34px; display:flex; gap:8px; align-items:center; justify-content:center; font-size:14px; font-weight:600; }
+#golf-profile-concept .gp-shortcuts > div+div { border-left:1px solid var(--gp-line); }
+#golf-profile-concept svg { width:18px; height:18px; flex:none; }
+#golf-profile-concept .gp-shortcuts svg { color:var(--gp-accent); }
+#golf-profile-concept .gp-count { font-size:12px; font-weight:600; padding:2px 6px; border-radius:6px; background:var(--gp-soft); color:var(--gp-muted); }
+#golf-profile-concept .gp-section { margin-bottom:27px; }
+#golf-profile-concept h3 { font-size:13px; font-weight:600; color:var(--gp-muted); margin:0 0 15px; }
+#golf-profile-concept .gp-fields { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:18px; }
+#golf-profile-concept .gp-fields > div { display:flex; flex-direction:column; gap:5px; }
+#golf-profile-concept .gp-full { grid-column:1/-1; }
+#golf-profile-concept .gp-label { font-size:12px; color:var(--gp-muted); }
+#golf-profile-concept .gp-value { font-weight:500; overflow-wrap:anywhere; }
+#golf-profile-concept .gp-guardian { display:flex; gap:12px; align-items:center; min-height:48px; }
+#golf-profile-concept .gp-small-avatar { width:38px; height:38px; flex:none; border-radius:50%; display:grid; place-items:center; background:var(--gp-soft); color:var(--gp-muted); font-size:12px; }
+#golf-profile-concept .gp-person { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+#golf-profile-concept .gp-row { min-height:54px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+#golf-profile-concept .gp-row+.gp-row { border-top:1px solid var(--gp-line); }
+#golf-profile-concept .gp-preferences h3 { margin-bottom:3px; }
+#golf-profile-concept .gp-trailing { display:flex; gap:6px; align-items:center; font-size:13px; color:var(--gp-muted); }
+#golf-profile-concept .gp-row > svg { color:var(--gp-muted); }
+#golf-profile-concept .gp-theme { max-width:130px; min-height:48px; padding:8px; font:inherit; font-size:14px; background:var(--gp-bg); color:var(--gp-muted); border:0; border-radius:8px; }
+#golf-profile-concept .gp-swatches { display:flex; gap:4px; }
+#golf-profile-concept .gp-swatch { width:48px; height:48px; border:0; border-radius:50%; display:grid; place-items:center; background:transparent; padding:10px; }
+#golf-profile-concept .gp-swatch svg { width:28px; height:28px; padding:6px; box-sizing:border-box; border-radius:50%; color:white; background:#007da9; }
+#golf-profile-concept .gp-green svg { background:#00855c; }
+#golf-profile-concept .gp-swatch[aria-pressed="false"] svg { stroke:transparent; }
+#golf-profile-concept .gp-swatch[aria-pressed="true"] { box-shadow:inset 0 0 0 1.5px var(--gp-accent); }
+#golf-profile-concept .gp-logout { min-height:50px; display:flex; justify-content:center; align-items:center; gap:8px; border:1px solid var(--gp-line); border-radius:12px; color:var(--gp-danger); }
+#golf-profile-concept .gp-version { text-align:center; font-size:12px; color:var(--gp-muted); margin-top:18px; }
+#golf-profile-concept .gp-grouped { background:var(--gp-soft); }
+#golf-profile-concept .gp-grouped .gp-section { padding:15px; background:var(--gp-bg); border-radius:16px; margin-bottom:14px; }
+#golf-profile-concept .gp-grouped .gp-identity { flex-direction:column; text-align:center; margin-bottom:22px; }
+#golf-profile-concept .gp-grouped .gp-shortcuts { background:var(--gp-bg); border:0; border-radius:14px; margin-bottom:20px; }
+#golf-profile-concept .gp-grouped .gp-logout { background:var(--gp-bg); }
+@media(max-width:360px) { #golf-profile-concept > section { padding-inline:4px; min-height:1130px; } #golf-profile-concept .gp-content { padding-inline:16px; } #golf-profile-concept .gp-shortcuts > div { gap:5px; font-size:13px; } }
+</style>
+<script>
+(() => {
+  const root = document.getElementById('golf-profile-concept');
+  const grouped = root.querySelector('.gp-phone').cloneNode(true);
+  grouped.classList.add('gp-grouped');
+  root.querySelector('[data-variant="Grouped layout"]').appendChild(grouped);
+  root.querySelectorAll('.gp-phone').forEach(phone => {
+    const applyAccent = color => {
+      phone.style.setProperty('--gp-accent', color === 'green' ? 'light-dark(#00855c,#5bdbac)' : 'light-dark(#007da9,#56cefa)');
+      phone.style.setProperty('--gp-accent-bg', color === 'green' ? 'light-dark(#e7f7ef,#16382a)' : 'light-dark(#e6f7fd,#163742)');
+      phone.querySelectorAll('.gp-swatch').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.color === color)));
+    };
+    phone.querySelector('.gp-theme').addEventListener('change', event => {
+      phone.style.colorScheme = event.target.value === 'system' ? '' : event.target.value;
+    });
+    phone.querySelectorAll('.gp-swatch').forEach(button => button.addEventListener('click', () => applyAccent(button.dataset.color)));
+    if (globalThis.Tweak) {
+      const state = { accent:'blue' };
+      const tweak = new Tweak({ container:phone, onChange:() => applyAccent(state.accent) });
+      tweak.addSelect(state, 'accent', { label:'Brand accent', options:['blue','green'] });
+    }
+  });
+  if (globalThis.lucide) lucide.createIcons();
+})();
+</script>

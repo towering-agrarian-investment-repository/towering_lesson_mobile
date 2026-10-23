@@ -1,4 +1,4 @@
-import type { ThemeColors } from "@/design-system/utils/theme";
+import { reservationStatusColors, type ThemeColors } from "@/design-system/utils/theme";
 import type { TFunction } from "i18next";
 import { formatType } from "./format-enum";
 
@@ -17,16 +17,16 @@ const danger: Tone = { className: "bg-danger/10", color: "danger" };
 export function getReservationStatusColor(colors: ThemeColors, status?: string | null) {
     switch (status?.toUpperCase().replaceAll("-", "_")) {
         case "RESERVED":
-            return colors.reservationReserved;
+            return reservationStatusColors.reservationReserved;
         case "CHECKED_IN":
-            return colors.reservationCheckedIn;
+            return reservationStatusColors.reservationCheckedIn;
         case "COMPLETED":
-            return colors.reservationCompleted;
+            return reservationStatusColors.reservationCompleted;
         case "CANCELLED":
         case "CANCELED":
-            return colors.reservationCancelled;
+            return reservationStatusColors.reservationCancelled;
         case "NO_SHOW":
-            return colors.reservationNoShow;
+            return reservationStatusColors.reservationNoShow;
         default:
             return colors.mutedForeground;
     }
