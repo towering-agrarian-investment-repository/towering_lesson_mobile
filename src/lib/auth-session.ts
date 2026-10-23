@@ -1,7 +1,7 @@
 import { authClient } from "./auth-client";
 import { clearCachedJwtToken } from "./client/jwt-token";
 
-let sessionCheck: Promise<void> | null = null;
+let sessionCheck: Promise<boolean> | null = null;
 let sessionEndedNotice = false;
 const noticeListeners = new Set<() => void>();
 
@@ -24,7 +24,7 @@ export function clearSessionEndedNotice() {
     setSessionEndedNotice(false);
 }
 
-export function verifyMemberSession(): Promise<void> {
+export function verifyMemberSession(): Promise<boolean> {
     if (sessionCheck) return sessionCheck;
 
     sessionCheck = (async () => {
@@ -34,9 +34,11 @@ export function verifyMemberSession(): Promise<void> {
             });
 
             if (result.error) {
-                if (result.error.status !== 401) return;
-            } else if (result.data === undefined || result.data?.session) {
-                return;
+                if (result.error.status !== 401) return false;
+            } else if (result.data?.session) {
+                return true;
+            } else if (result.data === undefined) {
+                return false;
             }
 
             setSessionEndedNotice(true);
@@ -47,8 +49,10 @@ export function verifyMemberSession(): Promise<void> {
             } finally {
                 clearCachedJwtToken();
             }
+            return false;
         } catch {
             // Network and server failures must not end the local session.
+            return false;
         }
     })().finally(() => {
         sessionCheck = null;

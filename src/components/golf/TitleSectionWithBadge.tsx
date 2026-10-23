@@ -4,7 +4,7 @@ import { View } from "react-native";
 
 type Props = {
     label: string;
-    length: number;
+    length: number | string;
     variant?: "h3" | "body";
 };
 

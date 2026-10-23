@@ -1,4 +1,3 @@
-import { Host, Text } from "@expo/ui";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,7 +11,7 @@ import {
   type ViewProps,
 } from "react-native";
 import Svg, { Circle, Path, Text as SvgText } from "react-native-svg";
-import { NativeText } from "../NativeText";
+import { AppText } from "../AppText";
 import { cn } from "../../utils/cn";
 import { colorWithOpacity } from "../../utils/color";
 import { useTheme, type ThemeColors } from "../../utils/theme";
@@ -35,7 +34,6 @@ import {
   HEATMAP_CELL_RADIUS as CELL_RADIUS,
   getActivityHeatmapLayout,
 } from "./activity-heatmap-layout";
-import { chartLeadingModifiers, getChartTextStyles } from "./chart-text-styles";
 
 export type {
   ActivityHeatmapStatus,
@@ -56,8 +54,7 @@ export function ActivityStatusLegend({
   onTodayPress?: () => void;
 }) {
   const { t } = useTranslation();
-  const { colors, fontScale } = useTheme();
-  const textStyles = getChartTextStyles(colors, fontScale);
+  const { colors } = useTheme();
   const statuses = [
     { key: "reserved", label: getReservationStatusLabel("RESERVED", t), color: getActivityStatusColor("reserved", colors) },
     { key: "completed", label: getReservationStatusLabel("COMPLETED", t), color: getActivityStatusColor("completed", colors) },
@@ -97,9 +94,7 @@ export function ActivityStatusLegend({
               borderColor: colors.primary,
             }}
           />
-          <Host matchContents ignoreSafeArea="all">
-            <Text textStyle={textStyles.muted}>{t("activity.today")}</Text>
-          </Host>
+          <AppText variant="subtext" color="mutedForeground" wrap={false}>{t("activity.today")}</AppText>
         </Pressable>
       ) : null}
       {statuses.map((status) => (
@@ -112,9 +107,7 @@ export function ActivityStatusLegend({
               backgroundColor: status.color,
             }}
           />
-          <Host matchContents ignoreSafeArea="all">
-            <Text textStyle={textStyles.muted}>{status.label}</Text>
-          </Host>
+          <AppText variant="subtext" color="mutedForeground" wrap={false}>{status.label}</AppText>
         </View>
       ))}
     </View>
@@ -160,13 +153,12 @@ export function ActivityHeatmap({
   onLayout,
   ...props
 }: ActivityHeatmapProps) {
-  const { colors, fontScale } = useTheme();
+  const { colors } = useTheme();
   const { fontScale: deviceFontScale } = useWindowDimensions();
   const {
     t,
     i18n: { language },
   } = useTranslation();
-  const textStyles = getChartTextStyles(colors, fontScale);
   const todayKey = formatDateForAPI(new Date());
   const endDateKey = endDate ? toDateKey(endDate) : todayKey;
   const [containerWidth, setContainerWidth] = useState(0);
@@ -305,15 +297,7 @@ export function ActivityHeatmap({
       onLayout={handleLayout}
     >
       {title ? (
-        <Host
-          matchContents={{ vertical: true }}
-          ignoreSafeArea="all"
-          style={{ width: "100%" }}
-        >
-          <Text textStyle={textStyles.title} modifiers={chartLeadingModifiers}>
-            {title}
-          </Text>
-        </Host>
+        <AppText variant="h3">{title}</AppText>
       ) : null}
       <View className="flex-row" style={{ gap: CELL_GAP }}>
         <Svg
@@ -428,12 +412,12 @@ export function ActivityHeatmap({
       ) : null}
       {selectedDay ? (
         <View className="flex-row items-center justify-between gap-3">
-          <NativeText variant="h3" style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="h3" style={{ flex: 1, minWidth: 0 }}>
             {formatActivityDate(selectedDay, language)}
-          </NativeText>
-          <NativeText variant="subtext" color="mutedForeground" align="right" wrap={false} textStyle={{ fontWeight: "600" }}>
+          </AppText>
+          <AppText variant="subtext" color="mutedForeground" align="right" wrap={false} textStyle={{ fontWeight: "600" }}>
             {t("activity.sessionCount", { count: selectedValue?.count ?? 0 })}
-          </NativeText>
+          </AppText>
         </View>
       ) : null}
     </View>

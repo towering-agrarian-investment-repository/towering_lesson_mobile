@@ -117,7 +117,6 @@ export function useTodayMemberReservations() {
 export function useMemberReservationsForDay(
     dateKey: string | null,
     enabled = true,
-    refetchInterval: number | false = false,
 ) {
     return useQuery<
         ApiResponse<MemberReservationSummaryResponse[]>,
@@ -127,7 +126,6 @@ export function useMemberReservationsForDay(
         queryKey: ["member", "reservations", "by-date", dateKey],
         queryFn: ({ signal }) => getMemberReservationsByDate(dateKey!, signal),
         enabled: enabled && Boolean(dateKey),
-        refetchInterval,
         select: (response) => response.data,
         staleTime: 30_000,
     });

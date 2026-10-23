@@ -7,6 +7,7 @@ import {
   ListRow,
   Screen,
   type PrimaryColorPreference,
+  type ThemePreference,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
@@ -17,7 +18,7 @@ import {
 import { getThemeColors, useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { setAppLanguage, type AppLanguage } from "@/i18n";
-import { useMemberLessonLogs } from "@/lib/hook/useLessonLog";
+import { useMemberLessonLogCount } from "@/lib/hook/useLessonLog";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
@@ -48,7 +49,7 @@ import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Palette, Phone, UserRound, UsersRound, X, type LucideIcon } from "lucide-react-native";
+import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, UserRound, UsersRound, X, type LucideIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -120,7 +121,9 @@ export default function ProfileScreen() {
     colors,
     fontScale: uiFontScale,
     isReady: isThemeReady,
+    preference: themePreference,
     primaryColorPreference,
+    setPreference: setThemePreference,
     setPrimaryColorPreference,
   } = useTheme();
   const { i18n, t } = useTranslation();
@@ -140,13 +143,13 @@ export default function ProfileScreen() {
     refetch,
     isRefetching,
   } = useGetMemberProfile();
-  const { data: lessonLogsResponse, refetch: refetchLessonLogs } =
-    useMemberLessonLogs();
+  const { data: lessonLogCountResponse, refetch: refetchLessonLogCount } =
+    useMemberLessonLogCount();
   const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
     usePullToRefresh(() =>
       Promise.all([
         refetch({ cancelRefetch: false }),
-        refetchLessonLogs({ cancelRefetch: false }),
+        refetchLessonLogCount({ cancelRefetch: false }),
       ]),
     );
 
@@ -423,7 +426,7 @@ export default function ProfileScreen() {
                   <LinkRow
                     label={t("profile.lessonLog")}
                     href="/lesson-log"
-                    count={lessonLogsResponse?.data.length}
+                    count={lessonLogCountResponse?.data}
                     icon={BookOpenText}
                   />
                   <Divider className="bg-border" />
@@ -515,6 +518,12 @@ export default function ProfileScreen() {
                       preference={primaryColorPreference}
                       disabled={!isThemeReady}
                       onChange={setPrimaryColorPreference}
+                    />
+                    <Divider className="bg-border" />
+                    <ThemePreferenceRow
+                      preference={themePreference}
+                      disabled={!isThemeReady}
+                      onChange={setThemePreference}
                     />
                   </View>
                 </View>
@@ -813,6 +822,50 @@ function LinkRow({
         className="min-h-14 rounded-none border-0 bg-transparent px-0 py-3"
       />
     </Link>
+  );
+}
+
+function ThemePreferenceRow({
+  disabled,
+  preference,
+  onChange,
+}: {
+  disabled: boolean;
+  preference: ThemePreference;
+  onChange: (value: ThemePreference) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  return (
+    <ProfilePreferenceRow
+      title={t("profile.theme")}
+      accessibilityLabel={t("profile.chooseAppAppearance")}
+      sheetTitle={t("profile.appearance")}
+      description={t("profile.appearanceDescription")}
+      value={preference}
+      disabled={disabled}
+      onChange={onChange}
+      options={[
+        {
+          value: "system",
+          label: t("profile.system"),
+          description: t("profile.followDeviceSetting"),
+          icon: <Smartphone size={22} color={colors.foreground} />,
+        },
+        {
+          value: "light",
+          label: t("profile.light"),
+          description: t("profile.useLightAppearance"),
+          icon: <Sun size={22} color={colors.foreground} />,
+        },
+        {
+          value: "dark",
+          label: t("profile.dark"),
+          description: t("profile.useDarkAppearance"),
+          icon: <Moon size={22} color={colors.foreground} />,
+        },
+      ]}
+    />
   );
 }
 

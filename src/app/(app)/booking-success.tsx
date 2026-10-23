@@ -4,8 +4,10 @@ import { Badge, Divider, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useMemberTickets } from "@/lib/hook/useTicket";
+import { useMemberTicketById } from "@/lib/hook/useTicket";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
+import type { TicketListItemResponse } from "@/types/member-ticket";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { Button, Host, Text } from "@expo/ui";
 import {
@@ -94,6 +96,7 @@ export default function BookingSuccessScreen() {
         coachName,
     } = useLocalSearchParams<BookingSuccessParams>();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const parsedRemainingCount =
         ticketRemainingCount == null ? null : Number(ticketRemainingCount);
@@ -103,14 +106,16 @@ export default function BookingSuccessScreen() {
             : null;
     const isUnlimited = ticketIsUnlimited === "true";
     const { data: memberResponse } = useGetMemberProfile();
-    // Include fully used tickets so the final booking can still show total usage.
-    const { data: ticketsResponse } = useMemberTickets(
-        ticketId && !isUnlimited ? memberResponse?.data?.id : undefined,
-        [],
+    const numericTicketId = ticketId ? Number(ticketId) : undefined;
+    const selectedTicket = numericTicketId
+        ? queryClient.getQueryData<TicketListItemResponse>(["member", "selected-ticket", numericTicketId])
+        : undefined;
+    // A reschedule may reach this screen without a ticket selected from a list.
+    const { data: loadedTicket } = useMemberTicketById(
+        ticketId && !isUnlimited && !selectedTicket ? memberResponse?.data?.id : undefined,
+        numericTicketId,
     );
-    const ticket = ticketsResponse?.data?.find(
-        (item) => String(item.id) === ticketId,
-    );
+    const ticket = selectedTicket ?? loadedTicket;
     const totalCount = ticket?.totalCount;
     const usageLabel =
         isUnlimited || ticket?.isUnlimited

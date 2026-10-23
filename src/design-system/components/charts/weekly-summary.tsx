@@ -1,4 +1,4 @@
-import { Host, Text } from "@expo/ui";
+import { AppText } from "../AppText";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
     FlatList,
@@ -13,7 +13,6 @@ import { useTheme } from "../../utils/theme";
 import { typography } from "../../utils/typography";
 
 import { buildWeekSummaries, getActivityStatusColor, getWeekStart, toDateKey as weekKey, parseCalendarDate, formatStatusBreakdown, formatTypeBreakdown, type WeeklySummaryValue, type WeeklyWeek } from "./activity-chart-data";
-import { chartLeadingModifiers, chartCenterModifiers, getChartTextStyles } from "./chart-text-styles";
 import { useTranslation } from "react-i18next";
 import { ActivityStatusLegend, type ActivityHeatmapStatus } from "./activity-heatmap";
 
@@ -58,8 +57,7 @@ export function WeeklySummary({
         t,
         i18n: { language },
     } = useTranslation();
-    const { colors, fontScale: uiFontScale } = useTheme();
-    const textStyles = getChartTextStyles(colors, uiFontScale);
+    const { colors } = useTheme();
     const [containerWidth, setContainerWidth] = useState(0);
     const startDateKey = startDate ? weekKey(startDate) : "";
     const endDateKey = weekKey(endDate ?? new Date());
@@ -160,13 +158,7 @@ export function WeeklySummary({
             {...props}
         >
             {title ? (
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={textStyles.title}
-                        modifiers={chartLeadingModifiers}>
-                        {title}
-                    </Text>
-                </Host>
+                <AppText variant="h3">{title}</AppText>
             ) : null}
             {containerWidth === 0 ? null : (
                 <View className="flex-row" style={{ gap: CHART_GAP }}>
@@ -185,42 +177,15 @@ export function WeeklySummary({
                     <View
                         style={{ width: Y_AXIS_WIDTH, height: plotHeight }}
                     >
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
-                            style={{ position: "absolute", top: -6 }}
-                        >
-                            <Text
-                                textStyle={textStyles.muted}
-                            >
-                                {String(maxTotal ?? "")}
-                            </Text>
-                        </Host>
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
-                            style={{
-                                position: "absolute",
-                                top: plotHeight / 2 - 6,
-                            }}
-                        >
-                            <Text
-                                textStyle={textStyles.muted}
-                            >
-                                {String(Math.ceil(maxTotal / 2) ?? "")}
-                            </Text>
-                        </Host>
-                        <Host
-                            matchContents
-                            ignoreSafeArea="all"
-                            style={{ position: "absolute", bottom: 0 }}
-                        >
-                            <Text
-                                textStyle={textStyles.muted}
-                            >
-                                {"0"}
-                            </Text>
-                        </Host>
+                        <AppText variant="subtext" color="mutedForeground" wrap={false} style={{ position: "absolute", top: -6 }}>
+                            {String(maxTotal ?? "")}
+                        </AppText>
+                        <AppText variant="subtext" color="mutedForeground" wrap={false} style={{ position: "absolute", top: plotHeight / 2 - 6 }}>
+                            {String(Math.ceil(maxTotal / 2) ?? "")}
+                        </AppText>
+                        <AppText variant="subtext" color="mutedForeground" wrap={false} style={{ position: "absolute", bottom: 0 }}>
+                            {"0"}
+                        </AppText>
                     </View>
                     <FlatList
                         key={rangeKey}
@@ -261,10 +226,7 @@ export function WeeklySummary({
             />
             {selectedSummary ? (
                 <View className="gap-0.5">
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={textStyles.muted}
-                            modifiers={chartLeadingModifiers}>
+                    <AppText variant="subtext" color="mutedForeground">
                             {t("activity.weekOf", {
                                 date: selectedSummary.label,
                             }) +
@@ -275,36 +237,23 @@ export function WeeklySummary({
                                 formatStatusBreakdown(
                                     selectedSummary.statusBreakdown, t,
                                 )}
-                        </Text>
-                    </Host>
-                    <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                        <Text
-                            textStyle={textStyles.muted}
-                            modifiers={chartLeadingModifiers}>
+                    </AppText>
+                    <AppText variant="subtext" color="mutedForeground">
                             {formatTypeBreakdown(selectedSummary.typeCounts, t) ||
                                 "-"}
-                        </Text>
-                    </Host>
+                    </AppText>
                 </View>
             ) : (
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={textStyles.muted}
-                        modifiers={chartLeadingModifiers}>
+                <AppText variant="subtext" color="mutedForeground">
                         {overallCount !== undefined
                             ? `${t("activity.overall")} · ${overallCount} ${unitLabel}`
                             : "-"}
-                    </Text>
-                </Host>
+                </AppText>
             )}
             {!hasData ? (
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                    <Text
-                        textStyle={{ ...textStyles.muted, textAlign: "center" }}
-                        modifiers={chartCenterModifiers}>
+                <AppText variant="subtext" color="mutedForeground" align="center">
                         {t("activity.noRecorded", { unit: unitLabel })}
-                    </Text>
-                </Host>
+                </AppText>
             ) : null}
         </View>
     );

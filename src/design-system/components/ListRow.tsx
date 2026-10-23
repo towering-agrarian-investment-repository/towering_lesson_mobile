@@ -1,9 +1,5 @@
-import { NativeText } from "./NativeText";
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { AppText } from "./AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
-import { Column, Host, Text, type TextProps } from "@expo/ui";
 import { ChevronRight } from "lucide-react-native";
 import { type ReactNode } from "react";
 import {
@@ -11,6 +7,7 @@ import {
     View,
     type GestureResponderEvent,
     type PressableProps,
+    type TextStyle,
 } from "react-native";
 import { cn } from "../utils/cn";
 import { triggerSelectionHaptic } from "../utils/haptics";
@@ -24,7 +21,7 @@ type ListRowProps = PressableProps & {
     trailing?: ReactNode;
     showChevron?: boolean;
     className?: string;
-    titleStyle?: TextProps["textStyle"];
+    titleStyle?: TextStyle;
 };
 
 // Match NativeWind's gap-1 (14-point native rem / 16px browser rem).
@@ -44,7 +41,7 @@ export function ListRow({
     onPress,
     ...props
 }: ListRowProps) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
+    const { colors: uiColors } = useTheme();
 
     const handlePress = (event: GestureResponderEvent) => {
         if (disabled) {
@@ -75,46 +72,28 @@ export function ListRow({
             {titleContent ? (
                 <View className="min-w-0 flex-1">{titleContent}</View>
             ) : (
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ flex: 1, minWidth: 0 }}>
-                    <Column spacing={TEXT_GAP} alignment="start" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                        <Text
-                            numberOfLines={2}
-                            textStyle={{
-                                ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                                fontSize: typography.body.fontSize * uiFontScale,
-                                color: uiColors.foreground,
-                                ...titleStyle,
-                            }}
-                            modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                            {title}
-                        </Text>
-                        {subtitle ? (
-                            <Text
-                                numberOfLines={2}
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize:
-                                        typography.caption.fontSize * uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "leading" })] : [fillMaxWidth()]}>
-                                {subtitle}
-                            </Text>
-                        ) : null}
-                    </Column>
-                </Host>
+                <View style={{ flex: 1, minWidth: 0, gap: TEXT_GAP }}>
+                    <AppText variant="body" numberOfLines={2} textStyle={titleStyle}>
+                        {title}
+                    </AppText>
+                    {subtitle ? (
+                        <AppText variant="caption" color="mutedForeground" numberOfLines={2}>
+                            {subtitle}
+                        </AppText>
+                    ) : null}
+                </View>
             )}
 
             {meta ? (
                 typeof meta === "string" ? (
-                    <NativeText
+                    <AppText
                         variant="meta"
                         wrap={false}
+                        className="text-foreground/75"
                         style={{ flexShrink: 0 }}
-                        textStyle={{ color: uiColors.foreground + "bf" }}
                     >
                         {meta}
-                    </NativeText>
+                    </AppText>
                 ) : (
                     <View className="shrink-0">{meta}</View>
                 )

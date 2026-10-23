@@ -61,7 +61,6 @@ export const useMarkAsRead = () => {
 		mutationFn: markNotificationAsRead,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
-			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
 			responseError(error);
@@ -76,7 +75,6 @@ export const useMarkAllAsRead = () => {
 		mutationFn: markAllNotificationsAsRead,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
-			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
 			responseError(error);
@@ -91,7 +89,6 @@ export const useDeleteNotification = () => {
 		mutationFn: deleteNotification,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
-			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
 			responseError(error);
@@ -106,7 +103,6 @@ export const useDeleteAllNotifications = () => {
 		mutationFn: deleteAllNotifications,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
-			queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
 		},
 		onError: (error) => {
 			responseError(error);

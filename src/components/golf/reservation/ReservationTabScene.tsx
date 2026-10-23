@@ -6,6 +6,7 @@ import {
   Skeleton,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -241,14 +242,14 @@ function ReservationDateHeader({ startTime, count }: { startTime: string; count:
   const { t, i18n } = useTranslation();
   return (
     <View className="mb-1 mt-4 flex-row items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2.5">
-      <NativeText variant="eyebrow" color="mutedForeground" numberOfLines={1}
+      <AppText variant="eyebrow" color="mutedForeground" numberOfLines={1}
         style={{ flex: 1, minWidth: 0 }}
         textStyle={{ letterSpacing: 0.2 }}>
         {formatDateValue(startTime, "EEE, MMM d, yyyy").toLocaleUpperCase(i18n.language)}
-      </NativeText>
-      <NativeText variant="meta" color="mutedForeground" wrap={false} numberOfLines={1}>
+      </AppText>
+      <AppText variant="meta" color="mutedForeground" wrap={false} numberOfLines={1}>
         {t("reservations.count", { count })}
-      </NativeText>
+      </AppText>
     </View>
   );
 }

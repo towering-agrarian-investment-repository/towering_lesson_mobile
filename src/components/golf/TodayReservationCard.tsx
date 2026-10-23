@@ -1,5 +1,5 @@
 import { getPressedScaleStyle, triggerSelectionHaptic } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
 import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
@@ -50,15 +50,15 @@ function TodayReservationCard({ reservation }: Props) {
                     <Icon size={24} color={colors.primaryForeground} strokeWidth={2.3} />
                 </View>
                 <View className="min-w-0 flex-1 gap-0.5">
-                    <NativeText variant="label" numberOfLines={1}>{title}</NativeText>
-                    <NativeText variant="label" numberOfLines={1}
+                    <AppText variant="label" numberOfLines={1}>{title}</AppText>
+                    <AppText variant="label" numberOfLines={1}
                         textStyle={{ fontWeight: "600" }}>
                         {formatTimeRange(reservation.startTime, reservation.endTime)}
-                    </NativeText>
-                    <NativeText variant="subtext" wrap={false}
+                    </AppText>
+                    <AppText variant="subtext" wrap={false}
                         textStyle={{ color: statusColor, fontWeight: "700" }}>
                         {statusLabel}
-                    </NativeText>
+                    </AppText>
                 </View>
                 <ChevronRight size={18} color={colors.mutedForeground} />
             </Pressable>

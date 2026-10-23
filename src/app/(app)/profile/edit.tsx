@@ -96,6 +96,7 @@ export default function EditProfileScreen() {
   const removalLock = useRef(false);
   const pickingImage = useRef(false);
   const submitting = useRef(false);
+  const initializedMemberId = useRef<number | null>(null);
   const [isPickingImage, setIsPickingImage] = useState(false);
   const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
   const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
@@ -119,10 +120,11 @@ export default function EditProfileScreen() {
     isSubmitting || isUpdatingImage || !form.formState.isDirty;
 
   useEffect(() => {
-    if (!memberId) {
+    if (!memberId || initializedMemberId.current === memberId) {
       return;
     }
 
+    initializedMemberId.current = memberId;
     form.reset({
       name: memberName ?? "",
       nickname: memberNickname ?? "",

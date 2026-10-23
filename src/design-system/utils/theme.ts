@@ -142,12 +142,6 @@ export function getThemeColors(
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    if (process.env.EXPO_PUBLIC_THEME_PROBE === "1") {
-        const tapAt = (globalThis as { __themeTapAt?: number }).__themeTapAt;
-        // eslint-disable-next-line react-hooks/purity -- Temporary render timing probe.
-        console.log("provider render", tapAt === undefined ? null : Date.now() - tapAt);
-    }
-
     const systemColorScheme = useSystemColorScheme();
     const { fontScale } = useWindowDimensions();
     const [preference, setPreferenceState] =
@@ -197,9 +191,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const handleSetPreference = useCallback(async (nextPreference: ThemePreference) => {
-        if (process.env.EXPO_PUBLIC_THEME_PROBE === "1") {
-            (globalThis as { __themeTapAt?: number }).__themeTapAt = Date.now();
-        }
         applyThemePreference(nextPreference);
         setPreferenceState(nextPreference);
         await AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, nextPreference);

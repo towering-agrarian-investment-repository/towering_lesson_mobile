@@ -56,12 +56,16 @@ export default function AppLayout() {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active" && previousState !== "active") {
         void verifyMemberSession();
-        void queryClient.invalidateQueries({
+        void queryClient.refetchQueries({
           queryKey: ["notifications"],
+          type: "active",
+          stale: true,
         });
-        void queryClient.invalidateQueries({
+        void queryClient.refetchQueries({
           queryKey: ["member", "lesson-logs"],
-          exact: true,
+          predicate: (query) => query.queryKey[2] === "list" || query.queryKey[2] === "count",
+          type: "active",
+          stale: true,
         });
       }
       previousState = state;
@@ -78,7 +82,7 @@ export default function AppLayout() {
         ) {
           void queryClient.invalidateQueries({
             queryKey: ["member", "lesson-logs"],
-            exact: true,
+            predicate: (query) => query.queryKey[2] === "list" || query.queryKey[2] === "count",
           });
         }
       });

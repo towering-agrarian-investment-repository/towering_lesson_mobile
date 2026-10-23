@@ -8,6 +8,7 @@ import {
   Screen,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -578,13 +579,13 @@ function NotificationRow({
           )}
           onPress={() => onDelete(item.id)}
         >
-          <NativeText
+          <AppText
             variant="label"
             wrap={false}
             color="primaryForeground"
           >
             {isDeleting ? t("notice.deleting") : t("notice.delete")}
-          </NativeText>
+          </AppText>
         </Pressable>
       )}
     >
@@ -612,45 +613,41 @@ function NotificationRow({
             </View>
 
             <View className="min-w-0 flex-1 gap-1.5">
-              <NativeText
+              <AppText
                 variant="label"
+                className={item.isRead ? "text-foreground/75" : "text-foreground"}
                 textStyle={{
                   fontWeight: "600" as const,
                   lineHeight: typography.subtext.lineHeight,
-                  color: item.isRead
-                    ? colors.foreground + "bf"
-                    : colors.foreground,
                 }}
               >
                 {item.title}
-              </NativeText>
+              </AppText>
 
-              <NativeText
+              <AppText
                 variant="meta"
+                className={item.isRead ? "text-foreground/70" : "text-foreground/85"}
                 textStyle={{
                   lineHeight: typography.body.lineHeight,
-                  color: item.isRead
-                    ? colors.foreground + "b3"
-                    : colors.foreground + "d9",
                 }}
               >
                 {item.message}
-              </NativeText>
+              </AppText>
 
               {!item.isRead ? (
-                <NativeText variant="caption" color="primary">
+                <AppText variant="caption" color="primary">
                   {t("notice.unread")}
-                </NativeText>
+                </AppText>
               ) : null}
 
-              <NativeText
+              <AppText
                 variant="caption"
                 color="mutedForeground"
                 wrap={false}
                 style={{ alignSelf: "flex-end" }}
               >
                 {formatRelativeTime(item.createdAt, i18n.resolvedLanguage ?? i18n.language)}
-              </NativeText>
+              </AppText>
             </View>
           </View>
         </Pressable>

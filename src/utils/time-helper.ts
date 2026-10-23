@@ -1,4 +1,4 @@
-import { format, isMatch, isValid, parse, type Day } from "date-fns";
+import { format, isMatch, isValid, parse } from "date-fns";
 import i18n from "@/i18n";
 import { getDateLocale } from "./date-locale";
 import { getAppTimeZoneDateParts, toAppTimeZoneDate } from "./timezone";
@@ -71,49 +71,6 @@ export const formatTimeRange = (
 export const fmtDateTime = (value?: string | Date | null) =>
     value ? formatAppDate(value, "MMM d, yyyy • h:mm a") ?? NO_VALUE : NO_VALUE;
 
-export const prettyDate = (value?: string | Date | null) =>
-    value ? formatAppDate(value, "EEE, MMM dd, yyyy") ?? NO_VALUE : NO_VALUE;
-
-export const prettyDateTime = (value?: string | Date | null) =>
-    value
-        ? formatAppDate(value, "EEE, MMM dd, yyyy h:mm a") ?? NO_VALUE
-        : NO_VALUE;
-
-export const shortDateWithWeekday = (value?: string | Date | null) =>
-    value ? formatAppDate(value, "EEE, MMM d, yyyy") ?? NO_VALUE : NO_VALUE;
-
-export const shortDateTimeWithWeekday = (value?: string | Date | null) =>
-    value
-        ? formatAppDate(value, "EEE, MMM d, yyyy hh:mm aa") ?? NO_VALUE
-        : NO_VALUE;
-
-const WEEKDAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
-
-export const fmtDays = (days?: string[]) => {
-    if (!days?.length) return NO_VALUE;
-    const locale = getDateLocale(i18n.resolvedLanguage ?? i18n.language);
-    return days.map((day) => {
-        const index = WEEKDAYS.findIndex((name) => name === day.toUpperCase() || name.slice(0, 3) === day.toUpperCase());
-        return index >= 0
-            ? locale.localize.day(index as Day, { width: "abbreviated" })
-            : day.charAt(0).toUpperCase() + day.slice(1, 3).toLowerCase();
-    }).join(", ");
-};
-
-export const parseDateSafely = (dateStr?: string): Date => {
-    if (!dateStr) return new Date();
-
-    const date = toAppTimeZoneDate(`${dateStr.split("T")[0]}T12:00:00`);
-
-    return date && isValid(date) ? date : new Date();
-};
-
-export const parseTimeSafely = (timeStr?: string): Date => {
-    if (!timeStr) return new Date();
-
-    return parseClockValue(timeStr) ?? new Date();
-};
-
 export const formatDateForAPI = (date: Date | string): string => {
     const parts = getAppTimeZoneDateParts(date);
 
@@ -136,10 +93,3 @@ export const formatDateForDisplay = (date: Date | string | null): string => {
     return `${year}.${month}.${day}`;
 };
 
-export function trimSeconds(t?: string) {
-    if (!t) return "09:00";
-
-    const [hh, mm] = t.split(":");
-
-    return `${hh}:${mm}`;
-}

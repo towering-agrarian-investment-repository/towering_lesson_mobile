@@ -6,7 +6,6 @@ import {
     generateHomeworkSubmissionUpload,
     getMemberHomeworkById,
     getMemberHomeworks,
-    getMemberHomeworkSubmissionsByHomeworkId,
     HomeworkSubmissionFile,
     submitHomework,
     uploadHomeworkSubmissionFile,
@@ -18,7 +17,6 @@ import {
 import { getMemberSessionInstancesByLessonId } from "@/service/member-session.service";
 import {
     MemberHomeworkDetailResponse,
-    MemberHomeworkSubmissionResponse,
     MemberHomeworkSummaryResponse,
 } from "@/types/member-homework";
 import { MemberLessonDetailResponse } from "@/types/member-lesson";
@@ -138,16 +136,6 @@ export function useMemberHomeworks() {
 export function useMemberHomeworkById(homeworkId: number) {
     return useQuery<ApiResponse<MemberHomeworkDetailResponse>>({
         ...getMemberHomeworkByIdQueryOptions(homeworkId),
-        enabled: Number.isFinite(homeworkId) && homeworkId > 0,
-        staleTime: 30_000,
-    });
-}
-
-export function useMemberHomeworkSubmissions(homeworkId: number) {
-    return useQuery<ApiResponse<MemberHomeworkSubmissionResponse[]>>({
-        queryKey: ["member", "homeworks", homeworkId, "submissions"],
-        queryFn: ({ signal }) =>
-            getMemberHomeworkSubmissionsByHomeworkId(homeworkId, signal),
         enabled: Number.isFinite(homeworkId) && homeworkId > 0,
         staleTime: 30_000,
     });

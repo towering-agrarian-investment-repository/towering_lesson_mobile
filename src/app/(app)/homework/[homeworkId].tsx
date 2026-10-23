@@ -15,7 +15,6 @@ import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import {
     useMemberHomeworkById,
-    useMemberHomeworkSubmissions,
     useSubmitMemberHomework,
 } from "@/lib/hook/useMemberLessonFlow";
 import { showAppToast } from "@/lib/toast/toast";
@@ -56,11 +55,12 @@ import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     FlatList,
+    type ListRenderItem,
     RefreshControl,
     View,
 } from "react-native";
@@ -93,25 +93,15 @@ export default function HomeworkDetailScreen() {
     }, [memo, nativeMemo]);
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberHomeworkById(numericHomeworkId);
-    const {
-        data: submissionsResponse,
-        refetch: refetchSubmissions,
-    } = useMemberHomeworkSubmissions(numericHomeworkId);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => Promise.all([refetch({ cancelRefetch: false }), refetchSubmissions({ cancelRefetch: false })]));
+        usePullToRefresh(() => refetch({ cancelRefetch: false }));
     const { mutate: submitHomework, isPending: isSubmitting } =
         useSubmitMemberHomework();
     const isSubmitDisabled = !selectedFile || isSubmitting;
 
     const homeworkDetail = data?.data;
     const homework = homeworkDetail?.homework;
-    const submissions = [
-        ...(homeworkDetail?.submissions ?? []),
-        ...(submissionsResponse?.data ?? []),
-    ].filter(
-        (submission, index, all) =>
-            all.findIndex((item) => item.id === submission.id) === index,
-    );
+    const submissions = homeworkDetail?.submissions ?? [];
     const latestReview = submissions.find(
         (submission) => submission.review,
     )?.review;
@@ -142,6 +132,16 @@ export default function HomeworkDetailScreen() {
             refreshing={isPullRefreshing}
             onRefresh={handlePullRefresh}
         />
+    );
+
+    const renderSubmission: ListRenderItem<MemberHomeworkSubmissionResponse> = useCallback(
+        ({ item }) => (
+            <SubmissionRow
+                submission={item}
+                iconColor={colors.mutedForeground}
+            />
+        ),
+        [colors.mutedForeground],
     );
 
     const handlePickFile = async () => {
@@ -382,15 +382,8 @@ export default function HomeworkDetailScreen() {
         >
             <FlatList
                 data={submissions}
-                keyExtractor={(submission, index) =>
-                    `submission-${submission.id ?? index}`
-                }
-                renderItem={({ item: submission }) => (
-                    <SubmissionRow
-                        submission={submission}
-                        iconColor={colors.mutedForeground}
-                    />
-                )}
+                keyExtractor={(submission) => `submission-${submission.id}`}
+                renderItem={renderSubmission}
                 ItemSeparatorComponent={() => <View className="h-3" />}
                 refreshControl={refreshControl}
                 showsVerticalScrollIndicator={false}

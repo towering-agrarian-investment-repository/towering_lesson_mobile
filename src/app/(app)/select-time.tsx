@@ -6,8 +6,7 @@ import {
   Screen,
   Skeleton,
 } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
-import { useTheme } from "@/design-system/utils/theme";
+import { AppText } from "@/design-system/components/AppText";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -199,7 +198,6 @@ const TimeSlotCard = memo(function TimeSlotCard({
   isLocked,
   onSelect,
 }: TimeSlotCardProps) {
-  const { colors } = useTheme();
   const { t } = useTranslation();
   const timeRange = formatTimeRange(group.startDateTime, group.endDateTime);
 
@@ -214,22 +212,22 @@ const TimeSlotCard = memo(function TimeSlotCard({
       disabled={isLocked}
     >
       <View className="min-w-0 flex-1 gap-1">
-        <NativeText variant="h3">{timeRange}</NativeText>
+        <AppText variant="h3">{timeRange}</AppText>
 
-        <NativeText
+        <AppText
           variant="meta"
-          textStyle={{ color: colors.foreground + "bf" }}
+          className="text-foreground/75"
         >
           {t("booking.baysAvailable", {
             count: availableBayCount,
           })}
-        </NativeText>
+        </AppText>
       </View>
 
       <View className="rounded-full bg-primary/10 px-3 py-1.5">
-        <NativeText variant="badge" color="primary" wrap={false}>
+        <AppText variant="badge" color="primary" wrap={false}>
           {t("booking.select")}
-        </NativeText>
+        </AppText>
       </View>
     </Pressable>
   );

@@ -55,7 +55,7 @@ export function refreshAppUpdateState(): Promise<AppUpdateState | null> {
 
 async function fetchAppUpdateStateOnce(): Promise<AppUpdateState | null> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5_000);
+    const timeout = setTimeout(() => controller.abort(), 2_000);
 
     try {
         if (__DEV__) {

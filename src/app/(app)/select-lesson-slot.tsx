@@ -8,7 +8,7 @@ import {
   Screen,
   Skeleton,
 } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -362,34 +362,34 @@ const LessonSlotCard = memo(function LessonSlotCard({
     >
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1 gap-1.5">
-          <NativeText
+          <AppText
             variant="h3"
             textStyle={{
               color: disabled ? colors.mutedForeground : colors.foreground,
             }}
           >
             {formatSlotTime(slot)}
-          </NativeText>
+          </AppText>
 
-          <NativeText
+          <AppText
             variant="meta"
             numberOfLines={isGroupSlot ? 1 : undefined}
             textStyle={{ color: bodyColor }}
           >
             {lessonTitle}
-          </NativeText>
+          </AppText>
         </View>
 
         {isGroupSlot ? (
           <View className="shrink-0 items-end">
-            <NativeText
+            <AppText
               variant="caption"
               wrap={false}
               textStyle={{ color: colors.foreground + "99" }}
             >
               {t("booking.spots")}
-            </NativeText>
-            <NativeText
+            </AppText>
+            <AppText
               variant="meta"
               wrap={false}
               textStyle={{
@@ -397,7 +397,7 @@ const LessonSlotCard = memo(function LessonSlotCard({
               }}
             >
               {`${slot.bookedCount ?? ""}/${slot.capacity ?? ""}`}
-            </NativeText>
+            </AppText>
           </View>
         ) : null}
       </View>
@@ -406,34 +406,34 @@ const LessonSlotCard = memo(function LessonSlotCard({
         {coachLabel ? (
           <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
             <UserRound size={13} color={colors.mutedForeground} />
-            <NativeText
+            <AppText
               variant="meta"
               numberOfLines={1}
               style={{ flex: 1, minWidth: 0 }}
               textStyle={{ color: bodyColor }}
             >
               {coachLabel}
-            </NativeText>
+            </AppText>
           </View>
         ) : (
           <View className="flex-1" />
         )}
 
-        <NativeText
+        <AppText
           variant="badge"
           wrap={false}
           textStyle={{ color: badgeColor }}
         >
           {countdownLabel ?? statusLabel}
-        </NativeText>
+        </AppText>
       </View>
 
       {isGroupSlot && disabled ? (
-        <NativeText variant="caption" color="danger" wrap={false}>
+        <AppText variant="caption" color="danger" wrap={false}>
           {isBookable
             ? t("booking.fullViewOnly")
             : t("booking.unavailableViewOnly")}
-        </NativeText>
+        </AppText>
       ) : null}
     </Pressable>
   );

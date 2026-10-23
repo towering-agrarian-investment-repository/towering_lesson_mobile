@@ -44,12 +44,13 @@ Native dependency/config changes may need a fresh dev build (profiles in `eas.js
 - Expo UI `Text` takes string children. `TextInput.value` uses `useNativeState`. Preserve form reset/default-value syncing.
 - Platform-specific native views only when needed, in platform files outside the route directory.
 - Simple cards are styled RN `View`s with semantic classes. Use `Pressable` for custom RN interactions.
-- Removed, do not recreate (no aliases, adapters, or competing controls): `AppText`, `Button`, `Input`, `Textarea`, `Card`, `Container`, `ActionSheet`, `ConfirmSheet`.
+- Removed, do not recreate (no aliases, adapters, or competing controls): `Button`, `Input`, `Textarea`, `Card`, `Container`, `ActionSheet`, `ConfirmSheet`.
 - Sheets: profile preferences, photo selection, logout, notification deletion, and reservation cancellation use Expo UI `BottomSheet` with branded content. Keep confirmation sheets open and block duplicate submit/dismiss while pending. RN `Alert` stays for existing permission/error alerts.
 - Forms: reuse `FormTextInput`, `FormPasswordInput`, and their field shell in `src/components/ui/form/`. Do not restore removed select/checkbox/date/number wrappers as unused code.
 - Generic UI lives in `src/design-system/` (see its `index.ts`). Feature components live under `src/components/`.
 - Layout/alignment/sizing pitfalls for native hosts: `docs/native-ui-gotchas.md`. Read it before touching native text, buttons, or empty states.
-- Native text: use the shared `NativeText` helper (`src/design-system/components/NativeText.tsx`) instead of repeating `Host` + `Text` + typography + `fontScale`. It is a thin wrapper, not a replacement for `AppText`. Extend it with props (variant, color, wrap) rather than creating another text wrapper. Use raw `Host`/`Text` only for cases it cannot express.
+- RN text: use `AppText` (`src/design-system/components/AppText.tsx`) for repeated RN row labels, badges, and chart labels. It uses NativeWind semantic colors and RN font scaling.
+- Native text: use the shared `NativeText` helper (`src/design-system/components/NativeText.tsx`) instead of repeating `Host` + `Text` + typography + `fontScale`. Extend it with props (variant, color, wrap) rather than creating another text wrapper. Use raw `Host`/`Text` only for cases it cannot express.
 
 ## Theme and styling
 

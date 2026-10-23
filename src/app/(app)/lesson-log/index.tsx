@@ -1,5 +1,5 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import {
     EmptyState,
     ErrorState,
@@ -26,12 +26,15 @@ function LessonLogScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { data, isLoading, isError, refetch, isRefetching } =
+    const {
+        data, isLoading, isError, isFetching, refetch, isRefetching,
+        fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError,
+    } =
         useMemberLessonLogs();
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
         usePullToRefresh(() => refetch({ cancelRefetch: false }));
 
-    const lessonLogs = data?.data ?? [];
+    const lessonLogs = data?.items ?? [];
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const refreshControl = (
         <RefreshControl
@@ -67,6 +70,14 @@ function LessonLogScreen() {
         ),
         [isLocked, queryClient, router, runWithNavigationLock],
     );
+    const handleFetchNextPage = useCallback(() => {
+        if (hasNextPage && !isFetching) {
+            void fetchNextPage({ cancelRefetch: false });
+        }
+    }, [fetchNextPage, hasNextPage, isFetching]);
+    const handleEndReached = useCallback(() => {
+        if (!isFetchNextPageError) handleFetchNextPage();
+    }, [handleFetchNextPage, isFetchNextPageError]);
 
     return (
         <Screen
@@ -118,6 +129,25 @@ function LessonLogScreen() {
                     }}
                     contentInsetAdjustmentBehavior="automatic"
                     showsVerticalScrollIndicator={false}
+                    onEndReached={handleEndReached}
+                    onEndReachedThreshold={0.4}
+                    ListFooterComponent={
+                        isFetchingNextPage ? (
+                            <View className="px-6 py-3">
+                                <Skeleton className="h-16 rounded-2xl" />
+                            </View>
+                        ) : isFetchNextPageError ? (
+                            <Pressable
+                                accessibilityRole="button"
+                                className="min-h-12 items-center justify-center px-6"
+                                onPress={handleFetchNextPage}
+                            >
+                                <AppText variant="label" color="primary">
+                                    {t("common.refreshTryAgain")}
+                                </AppText>
+                            </Pressable>
+                        ) : undefined
+                    }
                 />
             )}
         </Screen>
@@ -170,27 +200,23 @@ function LessonLogRow({
                     className={`self-start rounded-full px-3 py-1.5 ${hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
                         }`}
                 >
-                    <NativeText
+                    <AppText
                         variant="caption"
                         wrap={false}
-                        textStyle={{
-                            color: hasSubmittedReview
-                                ? colors.success
-                                : colors.warning
-                        }}
+                        color={hasSubmittedReview ? "success" : "warning"}
                     >
                         {reviewLabel}
-                    </NativeText>
+                    </AppText>
                 </View>
 
-                <NativeText variant="body" numberOfLines={2} textStyle={{ fontWeight: "700" as const }}>
+                <AppText variant="body" numberOfLines={2} textStyle={{ fontWeight: "700" as const }}>
                     {`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
-                </NativeText>
+                </AppText>
 
                 {reservationName ? (
-                    <NativeText variant="caption" color="mutedForeground" numberOfLines={2}>
+                    <AppText variant="caption" color="mutedForeground" numberOfLines={2}>
                         {reservationName}
-                    </NativeText>
+                    </AppText>
                 ) : null}
             </View>
 

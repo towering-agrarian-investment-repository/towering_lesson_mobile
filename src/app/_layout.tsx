@@ -26,7 +26,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import "../global.css";
 
-const disableReplay = process.env.EXPO_PUBLIC_DISABLE_REPLAY === "1";
 const blueOverrides = {};
 const greenOverrides = {
   "--primary": "#00BC7D",
@@ -41,14 +40,6 @@ Sentry.init({
   // You chose to reduce PII earlier.
   sendDefaultPii: false,
 
-  enableLogs: true,
-
-  replaysSessionSampleRate: disableReplay ? 0 : 0.1,
-  replaysOnErrorSampleRate: disableReplay ? 0 : 1,
-
-  integrations: disableReplay ? [] : [Sentry.mobileReplayIntegration()],
-
-  // spotlight: __DEV__,
 });
 
 void SplashScreen.preventAutoHideAsync();
@@ -118,32 +109,14 @@ function ThemedRoot({
   const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
 
   useEffect(() => {
-    if (process.env.EXPO_PUBLIC_THEME_PROBE !== "1") return;
-    const tapAt = (globalThis as { __themeTapAt?: number }).__themeTapAt;
-    if (tapAt === undefined) return;
-
-    let secondFrame: number | undefined;
-    const firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        console.log("theme tap→paint ms", Date.now() - tapAt);
-      });
-    });
-
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      if (secondFrame !== undefined) cancelAnimationFrame(secondFrame);
-    };
-  }, [resolvedScheme]);
-
-  useEffect(() => {
-    if (isThemeReady && !isAuthPending && !update.isChecking) {
+    if (isThemeReady && !isAuthPending) {
       void SplashScreen.hideAsync();
     }
-  }, [isThemeReady, isAuthPending, update.isChecking]);
+  }, [isThemeReady, isAuthPending]);
 
   usePushNotification(
     hasAuthorizedSession && isWelcomeReady && hasCompletedWelcome &&
-    !isAuthPending && !update.isChecking && !update.isForceUpdateRequired,
+    !isAuthPending && !update.isForceUpdateRequired,
   );
 
   const navigationTheme = useMemo(
@@ -166,13 +139,12 @@ function ThemedRoot({
       <VariableContextProvider
         value={primaryColorPreference === "green" ? greenOverrides : blueOverrides}
       >
-        {!isThemeReady || !isWelcomeReady || update.isChecking || isAuthPending ? (
+        {!isThemeReady || !isWelcomeReady || isAuthPending ? (
           <View className="flex-1 bg-background" />
         ) : null}
 
         {isThemeReady &&
         isWelcomeReady &&
-        !update.isChecking &&
         update.isForceUpdateRequired &&
         update.state ? (
           <AppUpdateGate
@@ -186,7 +158,6 @@ function ThemedRoot({
         {isThemeReady &&
         isWelcomeReady &&
         !isAuthPending &&
-        !update.isChecking &&
         !update.isForceUpdateRequired ? (
           <View className="flex-1 bg-background">
             <Stack

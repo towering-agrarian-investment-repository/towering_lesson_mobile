@@ -106,16 +106,23 @@ export const updateMemberProfileImage = async (
     );
 };
 
-function putProfileImage(
+async function putProfileImage(
     staged: StagedUpload,
     imageFile: File,
     contentType: ProfileImageContentType,
 ) {
-    return expoFetch(staged.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": contentType },
-        body: imageFile,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 300_000);
+    try {
+        return await expoFetch(staged.uploadUrl, {
+            method: "PUT",
+            headers: { "Content-Type": contentType },
+            body: imageFile,
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 function hasExpired(expiresAt: string) {

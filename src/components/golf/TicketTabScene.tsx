@@ -1,6 +1,7 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import TicketCard from "@/components/golf/TicketCard";
 import { EmptyState, ErrorState, Skeleton } from "@/design-system";
+import { AppText } from "@/design-system/components/AppText";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberTickets } from "@/lib/hook/useTicket";
@@ -9,18 +10,21 @@ import { showAppToast } from "@/lib/toast/toast";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, RefreshControl, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, View, type ListRenderItem } from "react-native";
 
 export const TICKET_TABS = ["all", "bay", "lesson"] as const;
 export type TicketTabType = (typeof TICKET_TABS)[number];
 
+const renderNothing = () => null;
+
 type TicketTabSceneProps = {
     type: TicketTabType;
+    isActive: boolean;
 };
 
-function TicketTabSceneContent({ type }: TicketTabSceneProps) {
+function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -28,14 +32,17 @@ function TicketTabSceneContent({ type }: TicketTabSceneProps) {
     const { data: memberResponse, isLoading: isLoadingMember, isError: isMemberError, refetch: refetchMember, isRefetching: isRefetchingMember } =
         useGetMemberProfile();
     const member = memberResponse?.data;
-    const { data, isLoading, isError, refetch, isRefetching } =
+    const {
+        data, isLoading, isError, isFetching, refetch, isRefetching,
+        fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError,
+    } =
         useMemberTickets(member?.id);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
         usePullToRefresh(() => member
             ? refetch({ cancelRefetch: false })
             : refetchMember({ cancelRefetch: false }));
     const filteredTickets = useMemo(() => {
-        const tickets = data?.data ?? [];
+        const tickets = data?.items ?? [];
 
         if (type === "all") {
             return tickets;
@@ -46,10 +53,26 @@ function TicketTabSceneContent({ type }: TicketTabSceneProps) {
                 ? ticket.type === "BAY_USAGE"
                 : ticket.type !== "BAY_USAGE",
         );
-    }, [data?.data, type]);
+    }, [data?.items, type]);
+
+    const handleFetchNextPage = useCallback(() => {
+        if (hasNextPage && !isFetching) {
+            void fetchNextPage({ cancelRefetch: false });
+        }
+    }, [fetchNextPage, hasNextPage, isFetching]);
+    const handleEndReached = useCallback(() => {
+        if (!isFetchNextPageError && isActive) handleFetchNextPage();
+    }, [handleFetchNextPage, isActive, isFetchNextPageError]);
+
+    useEffect(() => {
+        if (isActive && filteredTickets.length === 0 && hasNextPage && !isFetchNextPageError) {
+            handleFetchNextPage();
+        }
+    }, [filteredTickets.length, handleFetchNextPage, hasNextPage, isActive, isFetchNextPageError]);
 
     const handleTicketPress = useCallback(
         (item: TicketListItemResponse) => {
+            queryClient.setQueryData(["member", "selected-ticket", item.id], item);
             if (item.type === "LESSON_PROGRAM") {
                 showAppToast({
                     message: t("common.notAvailable"),
@@ -72,6 +95,18 @@ function TicketTabSceneContent({ type }: TicketTabSceneProps) {
             });
         },
         [queryClient, router, runWithNavigationLock, t],
+    );
+
+    const renderTicket: ListRenderItem<TicketListItemResponse> = useCallback(
+        ({ item }) => (
+            <TicketCard
+                item={item}
+                fullWidth
+                disabled={isLocked}
+                onPress={handleTicketPress}
+            />
+        ),
+        [handleTicketPress, isLocked],
     );
 
     const loading = isLoadingMember || isLoading;
@@ -107,6 +142,32 @@ function TicketTabSceneContent({ type }: TicketTabSceneProps) {
         );
     }
 
+    if (filteredTickets.length === 0 && isFetchNextPageError) {
+        return (
+            <TicketStateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
+                <ErrorState
+                    title={t("tickets.loadError")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={t("common.refreshTryAgain")}
+                    actionPending={isFetchingNextPage}
+                    onAction={handleFetchNextPage}
+                />
+            </TicketStateList>
+        );
+    }
+
+    if (filteredTickets.length === 0 && hasNextPage) {
+        return (
+            <TicketStateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
+                <View className="gap-3">
+                    {Array.from({ length: 3 }, (_, index) => (
+                        <Skeleton key={index} className="h-40 w-full rounded-xl" />
+                    ))}
+                </View>
+            </TicketStateList>
+        );
+    }
+
     if (filteredTickets.length === 0) {
         return (
             <TicketStateList
@@ -128,14 +189,7 @@ function TicketTabSceneContent({ type }: TicketTabSceneProps) {
             className="flex-1"
             data={filteredTickets}
             keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) => (
-                <TicketCard
-                    item={item}
-                    fullWidth
-                    disabled={isLocked}
-                    onPress={handleTicketPress}
-                />
-            )}
+            renderItem={renderTicket}
             decelerationRate="normal"
             nestedScrollEnabled
             ItemSeparatorComponent={() => <View className="h-3" />}
@@ -153,6 +207,23 @@ function TicketTabSceneContent({ type }: TicketTabSceneProps) {
             initialNumToRender={6}
             maxToRenderPerBatch={8}
             windowSize={7}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+                isFetchingNextPage ? (
+                    <View className="py-3"><Skeleton className="h-40 rounded-xl" /></View>
+                ) : isFetchNextPageError ? (
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={handleFetchNextPage}
+                        className="min-h-12 items-center justify-center"
+                    >
+                        <AppText variant="label" color="primary">
+                            {t("common.refreshTryAgain")}
+                        </AppText>
+                    </Pressable>
+                ) : undefined
+            }
         />
     );
 }
@@ -172,7 +243,7 @@ function TicketStateList({
         <FlatList
             className="flex-1"
             data={[]}
-            renderItem={() => null}
+            renderItem={renderNothing}
             contentContainerStyle={{
                 flexGrow: 1,
                 justifyContent: "center",

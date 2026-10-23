@@ -1,4 +1,4 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { cn, getPressedScaleStyle } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import {
@@ -107,17 +107,13 @@ function TicketCard({
                             !isInactive && ticketTone.badgeSolidClassName,
                             isInactive && "bg-border",
                         )}>
-                            <NativeText
+                            <AppText
                                 variant="badge"
                                 wrap={false}
-                                textStyle={{
-                                    color: isInactive
-                                        ? colors.mutedForeground
-                                        : colors.primaryForeground
-                                }}
+                                color={isInactive ? "mutedForeground" : "primaryForeground"}
                             >
                                 {badgeLabel}
-                            </NativeText>
+                            </AppText>
                         </View>
 
                         {item.type !== "LESSON_PROGRAM" ? (
@@ -133,11 +129,11 @@ function TicketCard({
                         ) : null}
                     </View>
 
-                    <NativeText variant="body" numberOfLines={1}>
+                    <AppText variant="body" numberOfLines={1}>
                         {item.name}
-                    </NativeText>
+                    </AppText>
 
-                    <NativeText
+                    <AppText
                         variant="count"
                         numberOfLines={1}
                         textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "800" as const }}
@@ -145,18 +141,18 @@ function TicketCard({
                         {formatTicketDate(item.startDate) +
                             " ~ " +
                             formatTicketDate(item.endDate)}
-                    </NativeText>
+                    </AppText>
                 </View>
 
                 <View className="flex-row items-center justify-between gap-2">
-                    <NativeText variant="caption" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+                    <AppText variant="caption" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
                         {usageNote}
-                    </NativeText>
+                    </AppText>
 
                     {!item.isUnlimited && item.onlyOnePerDay ? (
-                        <NativeText variant="caption" wrap={false} numberOfLines={1} style={{ flexShrink: 0 }}>
+                        <AppText variant="caption" wrap={false} numberOfLines={1} style={{ flexShrink: 0 }}>
                             {t("tickets.useOncePerDay")}
-                        </NativeText>
+                        </AppText>
                     ) : null}
                 </View>
             </View>

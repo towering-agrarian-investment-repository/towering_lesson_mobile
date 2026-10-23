@@ -163,8 +163,7 @@ function ChangePasswordScreen() {
                             disabled={
                                 form.formState.isSubmitting ||
                                 !form.formState.isDirty ||
-                                !form.formState.isValid ||
-                                form.formState.isSubmitting
+                                !form.formState.isValid
                             }
                             onPress={() => { void form.handleSubmit(
                                 onSubmit,
@@ -176,8 +175,7 @@ function ChangePasswordScreen() {
                                     "filled",
                                     form.formState.isSubmitting ||
                                     !form.formState.isDirty ||
-                                    !form.formState.isValid ||
-                                    form.formState.isSubmitting,
+                                    !form.formState.isValid,
                                     uiColors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}

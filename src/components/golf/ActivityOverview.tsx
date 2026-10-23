@@ -33,8 +33,6 @@ import {
 } from "react-native";
 
 type ActivityFilter = number | "all";
-const ACTIVITY_REFETCH_INTERVAL_MS = 30_000;
-
 export function ActivityOverview() {
     const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
@@ -55,7 +53,7 @@ export function ActivityOverview() {
         isError,
         refetch,
         isRefetching,
-    } = useMemberActivity(selectedYear, isFocused, ACTIVITY_REFETCH_INTERVAL_MS);
+    } = useMemberActivity(selectedYear, isFocused);
 
     const years = new Set([currentYear]);
     if (typeof selectedYear === "number") years.add(selectedYear);
@@ -103,7 +101,6 @@ export function ActivityOverview() {
     const dayReservationsQuery = useMemberReservationsForDay(
         activity ? selectedDateKey : null,
         isFocused,
-        ACTIVITY_REFETCH_INTERVAL_MS,
     );
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
         usePullToRefresh(() => Promise.all([

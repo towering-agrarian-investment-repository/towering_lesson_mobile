@@ -3,7 +3,7 @@ import { registerForPushNotifications } from "@/lib/config/notification/register
 import type { NotificationReferenceType } from "@/service/shared/notification-service";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type NotificationPayload = {
     referenceType?: NotificationReferenceType | string;
@@ -12,9 +12,6 @@ type NotificationPayload = {
 
 export const usePushNotification = (isLoggedIn: boolean) => {
     const router = useRouter();
-    const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-    const [notification, setNotification] =
-        useState<Notifications.Notification | null>(null);
     const lastHandledNotificationId = useRef<string | null>(null);
 
     const handleNotificationNavigation = useCallback(
@@ -90,13 +87,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             devicePushToken?: Notifications.DevicePushToken,
         ) => {
             try {
-                const token = await registerForPushNotifications(devicePushToken);
-
-                if (!isActive) {
-                    return;
-                }
-
-                setExpoPushToken(token);
+                await registerForPushNotifications(devicePushToken);
             } catch (error) {
                 console.error("[push] Registration failed", error);
             }
@@ -107,12 +98,6 @@ export const usePushNotification = (isLoggedIn: boolean) => {
         const pushTokenSubscription = Notifications.addPushTokenListener((devicePushToken) => {
             void registerPushToken(devicePushToken);
         });
-
-        const notificationSubscription = Notifications.addNotificationReceivedListener(
-            (receivedNotification) => {
-                setNotification(receivedNotification);
-            },
-        );
 
         const responseSubscription = Notifications.addNotificationResponseReceivedListener(
             (response) => {
@@ -131,13 +116,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
         return () => {
             isActive = false;
             pushTokenSubscription.remove();
-            notificationSubscription.remove();
             responseSubscription.remove();
         };
     }, [handleNotificationNavigation, isLoggedIn]);
-
-    return {
-        expoPushToken: isLoggedIn ? expoPushToken : null,
-        notification,
-    };
 };

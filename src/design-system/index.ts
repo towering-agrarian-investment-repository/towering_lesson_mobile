@@ -1,4 +1,5 @@
 export * from "./components/AppToast";
+export * from "./components/AppText";
 export * from "./components/Badge";
 export * from "./components/charts";
 export * from "./components/CircleLoader";

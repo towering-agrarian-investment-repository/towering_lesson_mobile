@@ -19,7 +19,6 @@ export function useMemberActivitySummary(enabled = true) {
 export function useMemberActivity(
     year: number | "all",
     enabled = true,
-    refetchInterval: number | false = false,
 ) {
     return useQuery<MemberActivityResponse, Error>({
         queryKey: ["member", "activity", year],
@@ -31,6 +30,5 @@ export function useMemberActivity(
             return response.data;
         },
         enabled,
-        refetchInterval,
     });
 }

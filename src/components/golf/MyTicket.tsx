@@ -28,11 +28,12 @@ function MyTicket({ member }: Props) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data, isLoading, isError } = useMemberTickets(member.id);
-    const tickets = data?.data ?? [];
+    const { data, isLoading, isError, hasNextPage } = useMemberTickets(member.id, undefined, 3);
+    const tickets = data?.items ?? [];
 
     const handleTicketPress = useCallback(
         (item: TicketListItemResponse) => {
+            queryClient.setQueryData(["member", "selected-ticket", item.id], item);
             if (item.type === "LESSON_PROGRAM") {
                 showAppToast({
                     message: t("common.notAvailable"),
@@ -62,10 +63,10 @@ function MyTicket({ member }: Props) {
             <View className="flex-row items-center justify-between gap-3">
                 <TitleSectionWithBadge
                     label={t("tickets.sectionTitle")}
-                    length={tickets.length}
+                    length={`${tickets.length}${hasNextPage ? "+" : ""}`}
                 />
 
-                {tickets.length > 1 ? (
+                {tickets.length > 1 || hasNextPage ? (
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t("tickets.viewAll")}
@@ -73,7 +74,7 @@ function MyTicket({ member }: Props) {
                         className="rounded-lg px-1 py-2 active:opacity-70"
                         onPressIn={() => {
                             if (!isLocked) {
-                                void queryClient.prefetchQuery(
+                                void queryClient.prefetchInfiniteQuery(
                                     getMemberTicketsQueryOptions(member.id),
                                 );
                             }

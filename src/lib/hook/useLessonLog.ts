@@ -1,7 +1,7 @@
 import { MemberLessonLogResponse, MemberLessonLogUpdateRequest } from "@/types/member-lesson-log";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiResponse, responseError, responseStatus } from "../api-response/api-response";
-import { getMemberLessonLogById, getMemberLessonLogs, updateMemberLessonLog } from "@/service/member-lesson-log.service";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "../api-response/api-response";
+import { getMemberLessonLogById, getMemberLessonLogCount, getMemberLessonLogs, MEMBER_LESSON_LOG_PAGE_SIZE, updateMemberLessonLog } from "@/service/member-lesson-log.service";
 
 export function getMemberLessonLogByIdQueryOptions(id: number) {
 	return {
@@ -11,9 +11,31 @@ export function getMemberLessonLogByIdQueryOptions(id: number) {
 }
 
 export function useMemberLessonLogs() {
-	return useQuery<ApiResponse<MemberLessonLogResponse[]>>({
-		queryKey: ["member", "lesson-logs"],
-		queryFn: ({ signal }) => getMemberLessonLogs(signal),
+	return useInfiniteQuery<
+		ApiResponse<CursorPageResponse<MemberLessonLogResponse>>,
+		Error,
+		{ items: MemberLessonLogResponse[] },
+		["member", "lesson-logs", "list"],
+		string | null
+	>({
+		queryKey: ["member", "lesson-logs", "list"],
+		initialPageParam: null,
+		queryFn: ({ pageParam, signal }) => getMemberLessonLogs({
+			cursor: pageParam ?? undefined,
+			limit: MEMBER_LESSON_LOG_PAGE_SIZE,
+		}, signal),
+		getNextPageParam: (lastPage) => lastPage.data.hasMore
+			? lastPage.data.nextCursor ?? undefined
+			: undefined,
+		select: (data) => ({ items: data.pages.flatMap((page) => page.data.items) }),
+		staleTime: 60_000,
+	});
+}
+
+export function useMemberLessonLogCount() {
+	return useQuery<ApiResponse<number>>({
+		queryKey: ["member", "lesson-logs", "count"],
+		queryFn: ({ signal }) => getMemberLessonLogCount(signal),
 		staleTime: 60_000,
 	});
 }
@@ -43,10 +65,8 @@ export function useUpdateMemberLessonLog() {
 				getMemberLessonLogByIdQueryOptions(variables.lessonLogId).queryKey,
 				res,
 			);
-			void queryClient.invalidateQueries({
-				queryKey: ["member", "lesson-logs"],
-				exact: true,
-			});
+			void queryClient.invalidateQueries({ queryKey: ["member", "lesson-logs", "list"] });
+			void queryClient.invalidateQueries({ queryKey: ["member", "lesson-logs", "count"] });
 		},
 		onError: (error: unknown) => {
 			responseError(error);

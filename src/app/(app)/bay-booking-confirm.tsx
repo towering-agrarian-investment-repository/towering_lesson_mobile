@@ -18,7 +18,7 @@ import { showAppToast } from "@/lib/toast/toast";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl } from "react-native";
@@ -272,6 +272,13 @@ export default function BayBookingConfirmScreen() {
                 ) : null
             }
         >
+            <Stack.Screen
+                options={{
+                    title: isRescheduleMode
+                        ? t("bookingConfirmation.rescheduleConfirmation")
+                        : t("navigation.screens.bookingConfirmation"),
+                }}
+            />
             {isLoading ? (
                 <BookingConfirmationLoadingState fieldCount={3} />
             ) : isError ? (

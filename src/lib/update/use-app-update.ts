@@ -13,7 +13,6 @@ export function useAppUpdate() {
     const skipUpdateCheck =
         __DEV__ && process.env.EXPO_PUBLIC_SKIP_APP_UPDATE_CHECK === "true";
     const [state, setState] = useState<AppUpdateState | null>(null);
-    const [isChecking, setIsChecking] = useState(!skipUpdateCheck);
     const [isCheckingAgain, setIsCheckingAgain] = useState(false);
     const [isOptionalUpdateDismissed, setIsOptionalUpdateDismissed] = useState(false);
     const checkingAgain = useRef(false);
@@ -30,8 +29,11 @@ export function useAppUpdate() {
                 return;
             }
 
-            setState(nextState);
-            setIsChecking(false);
+            setState((current) =>
+                current && isVersionLessThan(current.installedVersion, current.minimumSupportedVersion)
+                    ? current
+                    : nextState,
+            );
         });
 
         void check();
@@ -45,7 +47,6 @@ export function useAppUpdate() {
                     androidStoreUrl: config.androidStoreUrl ?? null,
                     iosStoreUrl: config.iosStoreUrl ?? null,
                 });
-                setIsChecking(false);
                 return;
             }
 
@@ -75,7 +76,6 @@ export function useAppUpdate() {
 
     return {
         state,
-        isChecking,
         isCheckingAgain,
         checkAgain,
         isForceUpdateRequired: Boolean(

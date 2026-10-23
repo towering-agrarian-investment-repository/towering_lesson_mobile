@@ -42,16 +42,6 @@ export async function getMemberHomeworkById(
     });
 }
 
-export async function getMemberHomeworkSubmissionsByHomeworkId(
-    homeworkId: number,
-    signal?: AbortSignal,
-): Promise<ApiResponse<MemberHomeworkSubmissionResponse[]>> {
-    return apiClient(`/member/homework-submissions/homework/${homeworkId}`, {
-        method: "GET",
-        signal,
-    });
-}
-
 export async function generateHomeworkSubmissionUpload(
     homeworkId: number,
     data: GenerateHomeworkSubmissionUploadsRequest,
@@ -109,13 +99,21 @@ export async function uploadHomeworkSubmissionFile(
         throw new Error("Only JPEG, PNG, WebP, and MP4 files are supported.");
     }
 
-    const uploadResponse = await expoFetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-            "Content-Type": mediaType,
-        },
-        body: file,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 300_000);
+    let uploadResponse: Response;
+    try {
+        uploadResponse = await expoFetch(uploadUrl, {
+            method: "PUT",
+            headers: {
+                "Content-Type": mediaType,
+            },
+            body: file,
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeout);
+    }
 
     if (!uploadResponse.ok) {
         throw new Error(

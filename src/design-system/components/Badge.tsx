@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { cn } from "../utils/cn";
 import type { ThemeColors } from "../utils/theme";
-import { NativeText } from "./NativeText";
+import { AppText } from "./AppText";
 
 type BadgeProps = {
     label: string;
@@ -27,9 +27,9 @@ export function Badge({
                 className,
             )}
         >
-            <NativeText variant="badge" color={color ?? (variant === "default" ? "mutedForeground" : variant)} wrap={false}>
+            <AppText variant="badge" color={color ?? (variant === "default" ? "mutedForeground" : variant)} wrap={false}>
                 {label}
-            </NativeText>
+            </AppText>
         </View>
     );
 }

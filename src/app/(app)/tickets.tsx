@@ -40,9 +40,12 @@ export default function TicketsScreen() {
 
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
-            <TicketTabScene type={route.key as (typeof TICKET_TABS)[number]} />
+            <TicketTabScene
+                type={route.key as (typeof TICKET_TABS)[number]}
+                isActive={route.key === TICKET_TABS[activeIndex]}
+            />
         ),
-        [],
+        [activeIndex],
     );
     const renderTabBar = useCallback(
         ({ position }: TabBarProps<TicketRoute>) => (

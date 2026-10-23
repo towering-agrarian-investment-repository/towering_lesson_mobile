@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Star } from "lucide-react-native";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
@@ -63,6 +63,7 @@ function LessonLogCommentScreen() {
         usePullToRefresh(() => refetch({ cancelRefetch: false }));
     const { mutate: updateLessonLog, isPending } = useUpdateMemberLessonLog();
     const submitting = useRef(false);
+    const initializedLessonLogId = useRef<number | null>(null);
 
     const lessonLog = lessonLogResponse?.data;
     const canReview = lessonLog?.status !== "APPROVED";
@@ -73,11 +74,21 @@ function LessonLogCommentScreen() {
     const form = useForm<LessonLogCommentFormValues>({
         resolver: zodResolver(lessonLogCommentSchema),
         mode: "onSubmit",
-        values: {
-            ratings: lessonLog?.ratings ?? 0,
-            comment: lessonLog?.comment ?? "",
+        defaultValues: {
+            ratings: 0,
+            comment: "",
         },
     });
+
+    useEffect(() => {
+        if (!lessonLog || initializedLessonLogId.current === lessonLog.id) return;
+
+        initializedLessonLogId.current = lessonLog.id;
+        form.reset({
+            ratings: lessonLog.ratings ?? 0,
+            comment: lessonLog.comment ?? "",
+        });
+    }, [form, lessonLog]);
 
     if (isLoading) {
         return (
@@ -178,7 +189,7 @@ function LessonLogCommentScreen() {
                             "lessonLog.submitCommentAccessibility",
                         )}
                         accessibilityState={{
-                            disabled: isPending || isPending,
+                            disabled: isPending,
                             busy: isPending,
                         }}
                         style={{ width: "100%" }}>
@@ -197,7 +208,7 @@ function LessonLogCommentScreen() {
                                     ]
                             }
                             variant="text"
-                            disabled={isPending || isPending}
+                            disabled={isPending}
                             onPress={() => { void form.handleSubmit((values) => {
                                 if (submitting.current || isPending || !canReview) return;
                                 submitting.current = true;
@@ -230,7 +241,7 @@ function LessonLogCommentScreen() {
                                 ...getNativeButtonStyle(
                                     colors,
                                     "filled",
-                                    isPending || isPending,
+                                    isPending,
                                     colors.primary,
                                 ), ...{ borderRadius: 12 }
                             }}

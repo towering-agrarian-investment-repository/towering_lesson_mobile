@@ -1,4 +1,4 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { getPressedScaleStyle, triggerSelectionHaptic } from "@/design-system";
 import { colorWithOpacity } from "@/design-system/utils/color";
 import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
@@ -63,13 +63,13 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
             className="min-h-20 flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3"
         >
             <View className="w-[72px] shrink-0 self-stretch justify-center border-r border-border pr-2">
-                <NativeText variant="body" numberOfLines={1} textStyle={{ fontWeight: "700" }}>
+                <AppText variant="body" numberOfLines={1} textStyle={{ fontWeight: "700" }}>
                     {fmtTime(reservation.startTime)}
-                </NativeText>
+                </AppText>
                 {duration ? (
-                    <NativeText variant="meta" color="mutedForeground" numberOfLines={1}>
+                    <AppText variant="meta" color="mutedForeground" numberOfLines={1}>
                         {duration}
-                    </NativeText>
+                    </AppText>
                 ) : null}
             </View>
             <View className="min-w-0 flex-1 gap-1.5">
@@ -78,11 +78,11 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                         <Icon size={20} color={colors.primaryForeground} strokeWidth={2.3} />
                     </View>
                     <View className="min-w-0 flex-1 justify-center gap-1">
-                        <NativeText variant="label" numberOfLines={2} textStyle={{ fontWeight: "700" }}>{title}</NativeText>
+                        <AppText variant="label" numberOfLines={2} textStyle={{ fontWeight: "700" }}>{title}</AppText>
                         <View className="self-start rounded-full px-2 py-1"
                             style={{ backgroundColor: colorWithOpacity(statusColor, 0.12) }}>
-                            <NativeText variant="badge" wrap={false} numberOfLines={1}
-                                textStyle={{ color: statusColor }}>{statusLabel}</NativeText>
+                            <AppText variant="badge" wrap={false} numberOfLines={1}
+                                textStyle={{ color: statusColor }}>{statusLabel}</AppText>
                         </View>
                     </View>
                     <ChevronRight size={17} color={colors.mutedForeground} strokeWidth={2} />
@@ -90,11 +90,11 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                 {countdownLabel ? (
                     <View className="flex-row items-center gap-1.5">
                         <Clock3 size={13} color={colors.primary} strokeWidth={2.3} />
-                        <NativeText variant="badge" numberOfLines={2}
+                        <AppText variant="badge" numberOfLines={2}
                             style={{ flex: 1, minWidth: 0 }}
                             textStyle={{ color: colors.primary, fontWeight: "600" }}>
                             {countdownLabel}
-                        </NativeText>
+                        </AppText>
                     </View>
                 ) : null}
             </View>

@@ -464,7 +464,7 @@ export default function ReservationDetailScreen() {
                                         style={{
                                             ...getNativeButtonStyle(
                                                 uiColors,
-                                                "outlined",
+                                                "filled",
                                                 isLocked,
                                                 uiColors.primary,
                                             ), ...{ borderRadius: 12 }
@@ -483,7 +483,7 @@ export default function ReservationDetailScreen() {
                                             textStyle={{
                                                 ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
                                                 textAlign: "center",
-                                                color: uiColors.foreground,
+                                                color: uiColors.primaryForeground,
                                                 fontSize:
                                                     typography.label.fontSize *
                                                     uiFontScale,

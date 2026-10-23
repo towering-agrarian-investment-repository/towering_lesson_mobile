@@ -26,6 +26,8 @@ and only `production` selected:
 | `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | `production` | Plain text |
 | `SENTRY_AUTH_TOKEN` | Shared Sentry upload token authorized for the configured organization and project | Sensitive |
 
+The app reports errors to Sentry. Session replay and Sentry logs are disabled.
+
 Do not select `production` on the existing staging URL or Sentry environment
 entries: that would reuse their staging values. The Sentry upload token can be
 shared across environments if it has the required permissions for the same
