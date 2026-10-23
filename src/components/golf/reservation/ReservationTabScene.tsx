@@ -14,6 +14,7 @@ import {
 } from "@/lib/hook/useReservation";
 import type { MemberReservationType } from "@/service/reservation.service";
 import type { MemberReservationResponse } from "@/types/member-reservation";
+import { formatDateValue } from "@/utils/time-helper";
 import { Button, Host } from "@expo/ui";
 import {
   defaultMinSize,
@@ -79,6 +80,13 @@ function ReservationTabSceneContent({
       return true;
     });
   }, [data?.items]);
+  const dateCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const reservation of reservations) {
+      counts.set(reservation.reservationDate, (counts.get(reservation.reservationDate) ?? 0) + 1);
+    }
+    return counts;
+  }, [reservations]);
 
   const handleReservationPress = useCallback(
     (reservation: MemberReservationResponse) => {
@@ -96,15 +104,21 @@ function ReservationTabSceneContent({
   );
 
   const renderReservationItem = useCallback(
-    ({ item }: { item: MemberReservationResponse }) => (
-      <ReservationCard
-        reservation={item}
-        referenceTime={referenceTime}
-        disabled={isLocked}
-        onPress={handleReservationPress}
-      />
+    ({ item, index }: { item: MemberReservationResponse; index: number }) => (
+      <View>
+        {index === 0 || reservations[index - 1].reservationDate !== item.reservationDate ? (
+          <ReservationDateHeader startTime={item.startTime}
+            count={dateCounts.get(item.reservationDate) ?? 1} />
+        ) : null}
+        <ReservationCard
+          reservation={item}
+          referenceTime={referenceTime}
+          disabled={isLocked}
+          onPress={handleReservationPress}
+        />
+      </View>
     ),
-    [handleReservationPress, isLocked, referenceTime],
+    [dateCounts, handleReservationPress, isLocked, referenceTime, reservations],
   );
 
   const handleFetchNextPage = useCallback(() => {
@@ -185,7 +199,6 @@ function ReservationTabSceneContent({
         paddingTop: 8,
         paddingBottom: 40,
       }}
-      ItemSeparatorComponent={ReservationItemSeparator}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={
         <ReservationListHeader
@@ -212,10 +225,10 @@ export const ReservationTabScene = memo(ReservationTabSceneContent);
 
 function ReservationLoadingState() {
   return (
-    <View className="flex-col gap-4 pb-10 pt-5">
+    <View className="flex-col gap-3 pb-10 pt-5">
       <ReservationListHeaderSkeleton />
-
-      <View className="flex-col gap-5">
+      <Skeleton className="h-9 w-full rounded-xl" />
+      <View>
         {Array.from({ length: 3 }, (_, index) => (
           <ReservationCardSkeleton key={index} />
         ))}
@@ -224,8 +237,20 @@ function ReservationLoadingState() {
   );
 }
 
-function ReservationItemSeparator() {
-  return <View className="h-5" />;
+function ReservationDateHeader({ startTime, count }: { startTime: string; count: number }) {
+  const { t, i18n } = useTranslation();
+  return (
+    <View className="mb-1 mt-4 flex-row items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2.5">
+      <NativeText variant="eyebrow" color="mutedForeground" numberOfLines={1}
+        style={{ flex: 1, minWidth: 0 }}
+        textStyle={{ letterSpacing: 0.2 }}>
+        {formatDateValue(startTime, "EEE, MMM d, yyyy").toLocaleUpperCase(i18n.language)}
+      </NativeText>
+      <NativeText variant="meta" color="mutedForeground" wrap={false} numberOfLines={1}>
+        {t("reservations.count", { count })}
+      </NativeText>
+    </View>
+  );
 }
 
 function ReservationListHeaderSkeleton() {
@@ -239,31 +264,18 @@ function ReservationListHeaderSkeleton() {
 
 function ReservationCardSkeleton() {
   return (
-    <View className="overflow-hidden rounded-xl border border-border bg-card p-4">
-      <View className="flex-col gap-4">
-        <View className="flex-row items-center gap-3">
-          <Skeleton className="h-2.5 w-2.5 rounded-full" />
-          <Skeleton className="h-5 flex-1 rounded-full" />
-          <Skeleton className="h-6 w-16 rounded-full" />
-        </View>
-
-        <Skeleton className="h-px w-full rounded-none" />
-
-        <View className="flex-row items-center gap-3">
-          <View className="h-[82px] w-[72px] flex-col gap-3 rounded-lg bg-muted px-3 py-3">
-            <Skeleton className="h-4 w-8 rounded-full" />
-            <Skeleton className="h-8 w-12 rounded-full" />
-          </View>
-
-          <View className="flex-1 flex-col gap-2">
-            <Skeleton className="h-4 w-14 rounded-full" />
-            <Skeleton className="h-6 w-32 rounded-full" />
-            <Skeleton className="h-4 w-24 rounded-full" />
-          </View>
-
-          <Skeleton className="h-5 w-4 rounded-full" />
-        </View>
+    <View className="flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3">
+      <View className="w-[72px] gap-2 border-r border-border pr-2">
+        <Skeleton className="h-4 w-14 rounded-full" />
+        <Skeleton className="h-3 w-12 rounded-full" />
       </View>
+      <Skeleton className="h-10 w-10 rounded-xl" />
+      <View className="min-w-0 flex-1 gap-2.5">
+        <Skeleton className="h-4 w-32 rounded-full" />
+        <Skeleton className="h-3 w-24 rounded-full" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </View>
+      <Skeleton className="h-4 w-4 rounded-full" />
     </View>
   );
 }
@@ -283,12 +295,12 @@ function ReservationListHeader({
   const { t } = useTranslation();
 
   return (
-    <View className="flex-col gap-2 pb-4">
+    <View className="flex-col gap-2 pb-2">
       <View className="flex-row items-center justify-between gap-2">
         <NativeText
-          variant="count"
+          variant="label"
           style={{ flex: 1, minWidth: 0 }}
-          textStyle={{ color: uiColors.foreground + "bf" }}
+          textStyle={{ color: uiColors.foreground, fontWeight: "600" }}
         >
           {t(hasMore ? "reservations.showingCount" : "reservations.count", {
             count,

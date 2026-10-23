@@ -1,14 +1,14 @@
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
-import { Skeleton } from "@/design-system/components/Skeleton";
-import { toDateKey, type ActivityHeatmapValue } from "@/design-system/components/charts/activity-chart-data";
+import { getActivityStatusColor, toDateKey, type ActivityHeatmapValue } from "@/design-system/components/charts/activity-chart-data";
 import { colorWithOpacity } from "@/design-system/utils/color";
 import { useTheme } from "@/design-system/utils/theme";
-import { Ionicons } from "@expo/vector-icons";
-import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from "react-native-svg";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import layout from "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json";
 import { forwardRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Text, View, type TextStyle } from "react-native";
+import { ShareCardHeader } from "./ShareCardHeader";
 import { formatShareCardMonth, getShareCardCalendar, getShareCardLocale, SHARE_CARD_CORNER_RADIUS, SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH, usesLatinShareCardText } from "./monthly-share-card-layout";
 
 type MonthlyGolfShareCardProps = {
@@ -25,7 +25,7 @@ type MonthlyGolfShareCardProps = {
 };
 
 const dayDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4.png");
-const nightDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4_night_no_sky.png");
+const darkDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4_dark_clear.png");
 const { components: measured, style: palette } = layout;
 
 /** Dynamic text, dates, member details and the original app logo over one V4 art layer. */
@@ -33,7 +33,7 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
     year, month, width, dailyValues, hoursOnCourse, loadingValues = false, memberName, memberImage,
     onReadyChange, onAssetError,
 }, ref) {
-    const { colors, resolvedScheme, primaryColorPreference } = useTheme();
+    const { colors, resolvedScheme } = useTheme();
     const { t, i18n } = useTranslation();
     const language = getShareCardLocale(i18n.language);
     const copy = i18n.getFixedT(language, "translation", "shareCard");
@@ -70,13 +70,9 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
     const byDate = new Map(values.map(day => [toDateKey(day.date), day]));
     const count = values.reduce((sum, day) => sum + day.count, 0);
     const countLabel = new Intl.NumberFormat(language).format(count);
-    const countSize = countLabel.length <= 2 ? 270 : countLabel.length === 3 ? 210 : 165;
-    const countOpticalOffset = count >= 10 && count <= 19 && count !== 11 ? -18 : 0;
     const monthLabel = formatShareCardMonth(year, month, language);
     const hoursLabel = new Intl.NumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(hoursOnCourse);
     const hourUnit = copy("hourShort");
-    const shortUnit = hourUnit.length === 1;
-    const hoursFontSize = hoursLabel.length >= 7 ? 45 : hoursLabel.length >= 5 ? 56 : 70;
     const calendar = getShareCardCalendar(year, month, language);
     const name = memberName || t("activity.golfer");
 
@@ -86,14 +82,17 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
             onLayout={() => setLayoutReady(true)}
             style={{ width, height, position: "relative", overflow: "hidden", borderRadius: SHARE_CARD_CORNER_RADIUS * scale,
                 backgroundColor: canvas, direction: "ltr" }}>
-            <Image source={dark ? nightDecoration : dayDecoration} resizeMode="stretch" style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
+            {dark && (
+                <LinearGradient
+                    colors={[colorWithOpacity(colors.reservationCompleted, 0.24), canvas,
+                        colorWithOpacity(colors.reservationCompleted, 0.18)]}
+                    locations={[0, 0.55, 1]}
+                    style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
+                />
+            )}
+            <Image source={dark ? darkDecoration : dayDecoration} resizeMode="stretch" style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
                 onLoad={() => setArtReady(true)} onError={onAssetError} />
-            {dark ? (
-                <Svg viewBox="0 0 150 72" style={pos(937, 61, 150, 72)}>
-                    <Path d="M 18 58 C 8 58 4 51 4 44 C 4 35 12 29 22 30 C 26 18 36 12 49 14 C 59 3 76 2 88 13 C 100 8 113 15 117 27 C 129 25 141 34 141 46 C 141 53 135 58 126 58 Z"
-                        fill={colorWithOpacity(colors.mutedForeground, 0.55)} />
-                </Svg>
-            ) : (
+            {!dark && (
                 /* Feather over the two baked-in day strokes without touching the flag. */
                 <Svg viewBox="0 0 150 124" style={pos(967, 109, 150, 124)}>
                     <Defs>
@@ -105,56 +104,11 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
                     <Ellipse cx="75" cy="62" rx="75" ry="62" fill="url(#cleanSky)" />
                 </Svg>
             )}
-            <View style={{ ...pos(36, 190, 98, 115), backgroundColor: canvas }} />
-            <View style={{ ...pos(340, 220, 95, 120), backgroundColor: canvas }} />
+            {!dark && <View style={{ ...pos(36, 190, 98, 115), backgroundColor: canvas }} />}
+            {!dark && <View style={{ ...pos(340, 220, 95, 120), backgroundColor: canvas }} />}
 
-            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
-                style={[pos(50, 101, 428, tallScript ? 56 : 50), type(35, tallScript ? 52 : 45, "700", mutedInk),
-                    { letterSpacing: latin ? 7 * scale : 0, textAlign: "center" }]}>
-                {latin ? monthLabel.toLocaleUpperCase(language) : monthLabel}
-            </Text>
-            {loadingValues ? (
-                <View style={pos(165, 193, 182, 175)} accessibilityRole="progressbar">
-                    <View style={{ position: "absolute", left: 0, top: 0, width: 60 * scale, height: "100%" }}>
-                        <Skeleton className="h-full w-full rounded-xl" style={{ backgroundColor: colorWithOpacity(colors.primary, 0.32) }} />
-                    </View>
-                    <View style={{ position: "absolute", right: 0, top: 0, width: 90 * scale, height: "100%" }}>
-                        <Skeleton className="h-full w-full rounded-xl" style={{ backgroundColor: colorWithOpacity(colors.primary, 0.32) }} />
-                    </View>
-                </View>
-            ) : (
-                <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
-                    style={[pos(78 + countOpticalOffset, 153, 372, 248), type(countSize, 248, "900", colors.primary),
-                        { textAlign: "center", textAlignVertical: "center", fontVariant: ["tabular-nums"] }]}>
-                    {countLabel}
-                </Text>
-            )}
-            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}
-                style={[pos(78, 394, 372, tallScript ? 75 : 68), type(56, tallScript ? 73 : 65, "900"),
-                    { textAlign: "center" }]}>
-                {copy("reservations")}
-            </Text>
-            <View style={{ ...pos(472, 323, 2, 135), backgroundColor: colors.border }} />
-            <View style={{ ...pos(513, 343, 112, 112), borderRadius: 56 * scale,
-                backgroundColor: dark ? colorWithOpacity(colors.warning, 0.28) : "#FFF0AE",
-                alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="time-outline" size={72 * scale} color={ink} />
-            </View>
-            {loadingValues ? (
-                <View style={pos(640, 366, 173, 45)} accessibilityRole="progressbar">
-                    <Skeleton className="h-full w-full rounded-lg" style={{ backgroundColor: colorWithOpacity(colors.mutedForeground, 0.38) }} />
-                </View>
-            ) : (
-                <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}
-                    style={[pos(640, 351, 170, 77), type(hoursFontSize, 77, "800")]}>
-                    {`${hoursLabel}${shortUnit ? hourUnit : ""}`}
-                </Text>
-            )}
-            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}
-                style={[pos(642, 418, 300, 32), type(22, 30, "700", mutedInk),
-                    { letterSpacing: latin ? 2 * scale : 0 }]}>
-                {shortUnit ? copy("played") : `${hourUnit} · ${copy("played")}`}
-            </Text>
+            <ShareCardHeader periodLabel={monthLabel} totalReservations={count} hoursPlayed={hoursOnCourse}
+                loadingValues={loadingValues} width={width} />
 
             {calendar.weekdays.map((weekday, column) => (
                 <Text key={column} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}
@@ -168,10 +122,7 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
             {calendar.cells.map((cell, index) => {
                 const activity = cell.dateKey ? byDate.get(cell.dateKey) : undefined;
                 const active = !loadingValues && Boolean(activity && activity.count > 0);
-                // Deeper fills retain the app's blue/green preference while keeping white dates readable.
-                const selectedColor = activity?.status === "completed" ? colors.reservationCompleted
-                    : activity?.status === "mixed" ? "#9A5700"
-                        : primaryColorPreference === "green" ? "#007A55" : "#0076A4";
+                const selectedColor = getActivityStatusColor(activity?.status, colors);
                 const backgroundColor = active ? selectedColor : cell.column === 5
                     ? (dark ? colorWithOpacity(colors.primary, 0.13) : palette.satCell)
                     : cell.column === 6 ? (dark ? colorWithOpacity(colors.danger, 0.13) : palette.sunCell)
@@ -214,11 +165,11 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
                 {name}
             </Text>
             <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}
-                style={[pos(244, 1206, 415, tallScript ? 36 : 30), type(18, tallScript ? 34 : 28, "700", mutedInk),
+                style={[pos(244, 1206, 415, tallScript ? 42 : 38), type(28, tallScript ? 40 : 36, "700", mutedInk),
                     { letterSpacing: latin ? 3 * scale : 0 }]}>
                 {copy("member")}
             </Text>
-            <View style={{ ...pos(696, 1138, 324, 104), justifyContent: "center", alignItems: "center" }}>
+            <View style={{ ...pos(696, 1147, 324, 104), justifyContent: "center", alignItems: "center" }}>
                 <HappyGolfLogo width={324 * scale} height={77 * scale} primaryColor={colors.primary} />
             </View>
         </View>

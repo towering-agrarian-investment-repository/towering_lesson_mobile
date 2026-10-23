@@ -345,6 +345,8 @@ const km: TranslationResource<typeof en> = {
         },
     },
     shareCard: {
+        monthly: "ប្រចាំខែ",
+        yearly: "ប្រចាំឆ្នាំ",
         reservations: "ការកក់",
         played: "បានលេង",
         member: "សមាជិក",
@@ -355,6 +357,8 @@ const km: TranslationResource<typeof en> = {
         shareUnavailable: "មិនអាចចែករំលែកលើឧបករណ៍នេះបានទេ។",
     },
     activity: {
+        viewSavedPhoto: "មើលរូបថតដែលបានរក្សាទុក",
+        couldNotOpenPhoto: "មិនអាចបើករូបថតដែលបានរក្សាទុកបានទេ។ អ្នកអាចរកវានៅក្នុងកម្មវិធីរូបថត។",
         sessionCount: "{{count}} វគ្គ",
         sessionCount_other: "{{count}} វគ្គ",
         couldNotLoad: "មិនអាចផ្ទុកសកម្មភាពបានទេ",

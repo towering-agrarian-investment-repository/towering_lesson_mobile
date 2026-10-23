@@ -1,6 +1,7 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { NativeText } from "@/design-system/components/NativeText";
 import { ActivitySharePreview } from "@/components/golf/ActivitySharePreview";
+import { mapActivityDays } from "@/components/golf/activity-display-data";
 import {
     ActivityHeatmap,
     ErrorState,
@@ -11,13 +12,12 @@ import {
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { useMemberActivity } from "@/lib/hook/useMemberActivity";
+import { useMemberActivity, useMemberActivitySummary } from "@/lib/hook/useMemberActivity";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { useMemberReservationsForDay } from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { parseCalendarDate, toDateKey } from "@/design-system/components/charts/activity-chart-data";
 import { HEATMAP_CELL_GAP, HEATMAP_CELL_RADIUS, getActivityHeatmapLayout } from "@/design-system/components/charts/activity-heatmap-layout";
-import type { MemberActivityDay, MemberActivityStatusCounts } from "@/types/member-activity";
 import { formatDateForAPI, formatTimeRange } from "@/utils/time-helper";
 import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
 import { useIsFocused, useRouter } from "expo-router";
@@ -35,16 +35,6 @@ import {
 type ActivityFilter = number | "all";
 const ACTIVITY_REFETCH_INTERVAL_MS = 30_000;
 
-function mapActivityDays(days: MemberActivityDay[]) {
-    return days.map(day => ({
-        date: day.date,
-        count: day.count,
-        status: getDisplayStatus(day.statusCounts),
-        statusBreakdown: toStatusBreakdown(day.statusCounts),
-        typeCounts: day.typeCounts,
-    }));
-}
-
 export function ActivityOverview() {
     const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
@@ -58,45 +48,25 @@ export function ActivityOverview() {
         dateKey: string;
     } | null>(null);
     const { data: memberProfile } = useGetMemberProfile();
-    const selectedActivityQuery = useMemberActivity(
-        selectedYear,
-        isFocused && selectedYear !== "all",
-        selectedYear !== "all" ? ACTIVITY_REFETCH_INTERVAL_MS : false,
-    );
-    const allActivityQuery = useMemberActivity(
-        "all",
-        isFocused,
-        selectedYear === "all" ? ACTIVITY_REFETCH_INTERVAL_MS : false,
-    );
-    const {
-        data: allActivity,
-        refetch: refetchAll,
-    } = allActivityQuery;
-
-    const years = new Set([currentYear]);
-    if (typeof selectedYear === "number") years.add(selectedYear);
-    allActivity?.daily.forEach((entry) => {
-        const year = getActivityDate(entry.date)?.getFullYear();
-        if (year !== undefined) years.add(year);
-    });
-    const availableYears = Array.from(years).sort((a, b) => b - a);
-
-    const activityQuery =
-        selectedYear === "all" ? allActivityQuery : selectedActivityQuery;
+    const summaryQuery = useMemberActivitySummary(isFocused);
     const {
         data: activity,
         isLoading,
         isError,
         refetch,
         isRefetching,
-    } = activityQuery;
+    } = useMemberActivity(selectedYear, isFocused, ACTIVITY_REFETCH_INTERVAL_MS);
+
+    const years = new Set([currentYear]);
+    if (typeof selectedYear === "number") years.add(selectedYear);
+    summaryQuery.data?.availableYears.forEach(year => {
+        if (year <= currentYear) years.add(year);
+    });
+    const availableYears = Array.from(years).sort((a, b) => b - a);
+
     const activityValues = useMemo(
         () => mapActivityDays(activity?.daily ?? []),
         [activity?.daily],
-    );
-    const shareActivityValues = useMemo(
-        () => mapActivityDays(allActivity?.daily ?? []),
-        [allActivity?.daily],
     );
     const firstDate =
         getActivityDate(activity?.daily[0]?.date) ??
@@ -138,22 +108,17 @@ export function ActivityOverview() {
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
         usePullToRefresh(() => Promise.all([
             refetch({ cancelRefetch: false }),
-            ...(selectedYear === "all" ? [] : [refetchAll({ cancelRefetch: false })]),
+            summaryQuery.refetch({ cancelRefetch: false }),
             ...(selectedDateKey ? [dayReservationsQuery.refetch({ cancelRefetch: false })] : []),
         ]));
 
     const preview = (
         <ActivitySharePreview
-            isAvailable={Boolean(allActivity)}
-            isLoading={allActivityQuery.isLoading}
-            isRefetching={allActivityQuery.isRefetching}
-            isError={allActivityQuery.isError && !allActivity}
-            onRetry={() => { void refetchAll(); }}
-            availableYears={availableYears}
+            isAvailable={Boolean(summaryQuery.data || activity)}
+            availableYears={summaryQuery.data?.availableYears ?? []}
             selectedYear={selectedYear}
-            monthlyActivity={allActivity?.monthly ?? []}
+            initialDailyValues={activityValues}
             cardProps={{
-                dailyValues: shareActivityValues,
                 memberName: memberProfile?.data.name,
                 memberImage: memberProfile?.data.profileImage,
             }}
@@ -422,30 +387,6 @@ function ActivityDayReservations({
             })}
         </View>
     );
-}
-
-function toStatusBreakdown(statusCounts: MemberActivityStatusCounts) {
-    return {
-        reserved: statusCounts.RESERVED,
-        "checked-in": statusCounts.CHECKED_IN,
-        completed: statusCounts.COMPLETED,
-        cancelled: statusCounts.CANCELLED,
-        "no-show": statusCounts.NO_SHOW,
-    } as const;
-}
-
-function getDisplayStatus(statusCounts: MemberActivityStatusCounts) {
-    const activeStatuses = Object.values(statusCounts).filter(
-        (count) => count > 0,
-    );
-
-    if (activeStatuses.length === 0) return undefined;
-    if (activeStatuses.length > 1) return "mixed" as const;
-    if (statusCounts.NO_SHOW > 0) return "no-show" as const;
-    if (statusCounts.CANCELLED > 0) return "cancelled" as const;
-    if (statusCounts.RESERVED > 0) return "reserved" as const;
-    if (statusCounts.CHECKED_IN > 0) return "checked-in" as const;
-    return "completed" as const;
 }
 
 function isLeapYear(year: number) {

@@ -60,7 +60,7 @@ function Wheel({ values, selected, onSelect }: {
     );
 }
 
-export function ShareMonthYearPicker({ year, month, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
+export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
     const { colors, fontScale, resolvedScheme } = useTheme();
     const { t, i18n } = useTranslation();
     const monthFormatter = new Intl.DateTimeFormat(i18n.language, { month: "long", calendar: "gregory", timeZone: "UTC" });
@@ -74,11 +74,11 @@ export function ShareMonthYearPicker({ year, month, years, onChange, onConfirm }
             <View className="gap-5 pb-2">
                 <View className="items-center gap-1">
                     <NativeText variant="h3" wrap={false}>
-                        {formatShareCardMonth(year, month, i18n.language)}
+                        {yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}
                     </NativeText>
                 </View>
                 <View className="flex-row gap-3">
-                    <Wheel values={months} selected={month} onSelect={value => onChange(year, value)} />
+                    {!yearOnly && <Wheel values={months} selected={month} onSelect={value => onChange(year, value)} />}
                     <Wheel values={yearOptions} selected={year} onSelect={value => onChange(value, month)} />
                 </View>
                 <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={resolvedScheme} style={{ width: "100%" }}>

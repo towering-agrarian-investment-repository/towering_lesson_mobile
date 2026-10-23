@@ -345,6 +345,8 @@ const zh: TranslationResource<typeof en> = {
         },
     },
     shareCard: {
+        monthly: "月度",
+        yearly: "年度",
         reservations: "预约",
         played: "已打球",
         member: "会员",
@@ -355,6 +357,8 @@ const zh: TranslationResource<typeof en> = {
         shareUnavailable: "此设备不支持分享。",
     },
     activity: {
+        viewSavedPhoto: "查看已保存的照片",
+        couldNotOpenPhoto: "无法打开已保存的照片。您可以在照片应用中查看。",
         sessionCount: "{{count}} 场",
         sessionCount_other: "{{count}} 场",
         couldNotLoad: "无法加载活动",

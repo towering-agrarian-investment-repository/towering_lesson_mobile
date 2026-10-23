@@ -1,14 +1,13 @@
+import { getPressedScaleStyle, triggerSelectionHaptic } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
-import {
-    getPressedScaleStyle,
-    triggerSelectionHaptic,
-} from "@/design-system";
+import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
-import { MemberReservationSummaryResponse } from "@/types/member-reservation";
+import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatTimeRange } from "@/utils/time-helper";
+import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
 import { Link } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
-import React, { memo } from "react";
+import { BookOpen, ChevronRight, Flag, UserRound, UsersRound } from "lucide-react-native";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
@@ -19,50 +18,49 @@ type Props = {
 function TodayReservationCard({ reservation }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const isBayReservation = reservation.reservationType === "bay";
-    const title = isBayReservation
-        ? (reservation.bayName ?? t("reservations.bayFallback"))
-        : (reservation.lessonAvailabilityName ?? t("reservations.fallback"));
-    const timeLabel = formatTimeRange(
-        reservation.startTime,
-        reservation.endTime,
-    );
+    const tone = getTicketTypeTone(reservation.ticketType);
+    const Icon = tone.name === "bayUsage" ? Flag
+        : tone.name === "privateLesson" ? UserRound
+            : tone.name === "groupLesson" ? UsersRound : BookOpen;
+    const title = reservation.bayName ?? reservation.lessonAvailabilityName
+        ?? reservation.lessonProgramGroupName ?? reservation.lessonProgramName
+        ?? t("reservations.reservationFallbackWithId", { id: reservation.id });
+    const backendStatusLabel = getReservationStatusLabel(reservation.reservationStatus, t);
+    const statusLabel = backendStatusLabel === "-"
+        ? t("reservations.statusUnavailable")
+        : backendStatusLabel;
+    const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
 
     return (
         <Link
             href={{
                 pathname: "/reservation/[id]",
-                params: {
-                    id: String(reservation.id),
-                    type: reservation.reservationType,
-                },
+                params: { id: String(reservation.id), type: reservation.reservationType },
             }}
             asChild
         >
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={title}
-                className="w-full bg-card px-4 py-3 active:bg-muted"
-                style={({ pressed }) =>
-                    getPressedScaleStyle(pressed, false, 0.992)
-                }
-                onPress={() => {
-                    triggerSelectionHaptic();
-                }}
+                accessibilityLabel={t("reservations.openLabel", { title })}
+                className="min-h-16 w-full flex-row items-center gap-3 rounded-xl bg-card px-2 py-2"
+                style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.99)}
+                onPress={triggerSelectionHaptic}
             >
-                <View className="min-w-0 flex-row items-center gap-2">
-                    <View className="min-w-0 flex-1 gap-0.5">
-                        <NativeText variant="label" numberOfLines={1} textStyle={{ fontWeight: "600" as const }}>
-                            {title}
-                        </NativeText>
-
-                        <NativeText variant="meta" color="mutedForeground" numberOfLines={1}>
-                            {timeLabel}
-                        </NativeText>
-                    </View>
-
-                    <ChevronRight size={15} color={colors.mutedForeground} />
+                <View className={`h-12 w-12 shrink-0 items-center justify-center rounded-lg ${tone.badgeSolidClassName}`}>
+                    <Icon size={24} color={colors.primaryForeground} strokeWidth={2.3} />
                 </View>
+                <View className="min-w-0 flex-1 gap-0.5">
+                    <NativeText variant="label" numberOfLines={1}>{title}</NativeText>
+                    <NativeText variant="label" numberOfLines={1}
+                        textStyle={{ fontWeight: "600" }}>
+                        {formatTimeRange(reservation.startTime, reservation.endTime)}
+                    </NativeText>
+                    <NativeText variant="subtext" wrap={false}
+                        textStyle={{ color: statusColor, fontWeight: "700" }}>
+                        {statusLabel}
+                    </NativeText>
+                </View>
+                <ChevronRight size={18} color={colors.mutedForeground} />
             </Pressable>
         </Link>
     );

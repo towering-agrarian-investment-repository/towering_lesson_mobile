@@ -24,6 +24,10 @@ export type MonthlyActivity = {
     totalReservationHours: number;
 };
 
+export type MemberActivitySummary = {
+    availableYears: number[];
+};
+
 export type MemberActivityResponse = {
     year: number | null;
     range?: "all" | "year";

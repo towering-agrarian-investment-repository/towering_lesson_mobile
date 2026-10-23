@@ -10,12 +10,13 @@ import { useTranslation } from "react-i18next";
 export type ShareMonthYearPickerProps = {
     year: number;
     month: number;
+    yearOnly?: boolean;
     years: number[];
     onChange: (year: number, month: number) => void;
     onConfirm: (year: number, month: number) => void;
 };
 
-export function ShareMonthYearPicker({ year, month, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
+export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
     const { colors, fontScale } = useTheme();
     const { t, i18n } = useTranslation();
     const monthFormatter = useMemo(
@@ -26,15 +27,15 @@ export function ShareMonthYearPicker({ year, month, years, onChange, onConfirm }
 
     return (
         <Column spacing={16}>
-            <Text>{formatShareCardMonth(year, month, i18n.language)}</Text>
+            <Text>{yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}</Text>
             <Picker selectedValue={year} onValueChange={value => onChange(value, month)}>
                 {years.map(value => <Picker.Item key={value} label={String(value)} value={value} />)}
             </Picker>
-            <Picker selectedValue={month} onValueChange={value => onChange(year, value)}>
+            {!yearOnly && <Picker selectedValue={month} onValueChange={value => onChange(year, value)}>
                 {Array.from({ length: 12 }, (_, value) => (
                     <Picker.Item key={value} label={monthFormatter.format(new Date(Date.UTC(2024, value, 1)))} value={value} />
                 ))}
-            </Picker>
+            </Picker>}
             <Button
                 variant="text"
                 onPress={() => onConfirm(year, month)}

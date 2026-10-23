@@ -46,6 +46,8 @@ const en = {
         starting: "Getting started...",
     },
     shareCard: {
+        monthly: "Monthly",
+        yearly: "Yearly",
         reservations: "reservations",
         played: "Played",
         member: "Member",
@@ -76,6 +78,8 @@ const en = {
         saving: "Saving…",
         savedTitle: "Saved",
         savedMessage: "Your activity card was saved to your photos.",
+        viewSavedPhoto: "View saved photo",
+        couldNotOpenPhoto: "Could not open the saved photo. You can find it in Photos.",
         permissionTitle: "Permission needed",
         permissionMessage: "Allow photo-saving access to save your activity card.",
         openSettings: "Open settings",

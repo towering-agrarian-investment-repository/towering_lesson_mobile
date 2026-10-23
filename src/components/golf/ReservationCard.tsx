@@ -1,19 +1,12 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import {
-    getPressedScaleStyle,
-    triggerSelectionHaptic,
-} from "@/design-system";
-import { cn } from "@/design-system/utils/cn";
+import { getPressedScaleStyle, triggerSelectionHaptic } from "@/design-system";
 import { colorWithOpacity } from "@/design-system/utils/color";
-import { useTheme } from "@/design-system/utils/theme";
 import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
-import { typography } from "@/design-system/utils/typography";
-import type {
-    MemberReservationResponse,
-} from "@/types/member-reservation";
-import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { useTheme } from "@/design-system/utils/theme";
+import type { MemberReservationResponse } from "@/types/member-reservation";
+import { fmtTime } from "@/utils/time-helper";
 import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
-import { ChevronRight } from "lucide-react-native";
+import { BookOpen, ChevronRight, Clock3, Flag, UserRound, UsersRound } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -27,162 +20,86 @@ type Props = {
 
 function ReservationCard({ reservation, referenceTime, disabled = false, onPress }: Props) {
     const { colors } = useTheme();
-    const { t } = useTranslation();
-    const startTime = new Date(reservation.startTime).getTime();
+    const { t, i18n } = useTranslation();
     const tone = getTicketTypeTone(reservation.ticketType);
-    const minutesUntilStart = Math.ceil(
-        (startTime - referenceTime) / 60000,
-    );
-    const reservationStatus = String(
-        reservation.reservationStatus,
-    ).toUpperCase();
-    const isReservedUpcoming =
-        reservationStatus === "RESERVED" && startTime > referenceTime;
-    const countdownLabel =
-        isReservedUpcoming
-            ? minutesUntilStart < 60
-                ? t("booking.startsInMinutes", { count: minutesUntilStart })
-                : minutesUntilStart < 1440
-                    ? t("booking.startsInHours", {
-                        count: Math.ceil(minutesUntilStart / 60),
-                    })
-                    : t("booking.startsInDays", {
-                        count: Math.ceil(minutesUntilStart / 1440),
-                    })
-            : null;
+    const Icon = tone.name === "bayUsage" ? Flag
+        : tone.name === "privateLesson" ? UserRound
+            : tone.name === "groupLesson" ? UsersRound : BookOpen;
+    const title = reservation.bayName ?? reservation.lessonAvailabilityName
+        ?? reservation.lessonProgramGroupName ?? reservation.lessonProgramName
+        ?? t("reservations.reservationFallbackWithId", { id: reservation.id });
     const statusLabel = getReservationStatusLabel(reservation.reservationStatus, t);
-    const secondaryLabel = countdownLabel
-        ? `${statusLabel} · ${countdownLabel}`
-        : statusLabel;
-    const secondaryColor = getReservationStatusColor(colors, reservation.reservationStatus);
-    // Keep the card surface calm. Status and ticket type are communicated by
-    // the small dot and the supporting label instead of coloring the whole card.
-    const cardBackgroundClassName = isReservedUpcoming ? "" : "bg-muted/80";
-    const arrowBackgroundClassName = "bg-muted";
-    const arrowColor = colors.mutedForeground;
-
-    const title =
-        reservation.bayName ??
-        reservation.lessonAvailabilityName ??
-        reservation.lessonProgramGroupName ??
-        reservation.lessonProgramName ??
-        t("reservations.reservationFallbackWithId", { id: reservation.id });
-
-    const handlePress = () => {
-        if (disabled) {
-            return;
-        }
-
-        triggerSelectionHaptic();
-        onPress?.(reservation);
-    };
+    const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
+    const startTime = new Date(reservation.startTime).getTime();
+    const minutesUntilStart = Math.ceil((startTime - referenceTime) / 60000);
+    const isReservedUpcoming = reservation.reservationStatus.toUpperCase() === "RESERVED" && startTime > referenceTime;
+    const countdownLabel = isReservedUpcoming
+        ? minutesUntilStart < 60
+            ? t("booking.startsInMinutes", { count: minutesUntilStart })
+            : minutesUntilStart < 1440
+                ? t("booking.startsInHours", { count: Math.ceil(minutesUntilStart / 60) })
+                : t("booking.startsInDays", { count: Math.ceil(minutesUntilStart / 1440) })
+        : null;
+    const duration = reservation.durationMinutes > 0
+        ? new Intl.NumberFormat(i18n.language, {
+            style: "unit",
+            unit: reservation.durationMinutes % 60 === 0 ? "hour" : "minute",
+            unitDisplay: "short",
+        }).format(reservation.durationMinutes % 60 === 0
+            ? reservation.durationMinutes / 60 : reservation.durationMinutes)
+        : null;
 
     return (
         <Pressable
-            onPress={handlePress}
+            onPress={() => {
+                if (disabled) return;
+                triggerSelectionHaptic();
+                onPress?.(reservation);
+            }}
             disabled={disabled}
             accessibilityRole="button"
-            accessibilityLabel={title}
-            style={({ pressed }) =>
-                getPressedScaleStyle(pressed, disabled, 0.99)
-            }
+            accessibilityLabel={`${title}, ${fmtTime(reservation.startTime)}, ${statusLabel}${countdownLabel ? `, ${countdownLabel}` : ""}`}
+            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.99)}
+            className="min-h-20 flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3"
         >
-            <View
-                style={isReservedUpcoming ? { backgroundColor: colorWithOpacity(secondaryColor, 0.2) } : undefined}
-                className={cn(
-                    "rounded-xl border border-border bg-card p-5",
-                    `flex-col gap-3 overflow-hidden rounded-2xl border-border p-5 ${cardBackgroundClassName}`,
-                )}
-            >
-                <View className="flex-row items-center gap-3">
-                    <View
-                        className={`h-2.5 w-2.5 rounded-full ${tone.dotClassName}`}
-                    />
-
-                    <NativeText
-                        variant="label"
-                        numberOfLines={1}
-                        style={{ flex: 1, minWidth: 0 }}
-                        textStyle={{ fontWeight: "500" as const }}
-                    >
-                        {title}
+            <View className="w-[72px] shrink-0 self-stretch justify-center border-r border-border pr-2">
+                <NativeText variant="body" numberOfLines={1} textStyle={{ fontWeight: "700" }}>
+                    {fmtTime(reservation.startTime)}
+                </NativeText>
+                {duration ? (
+                    <NativeText variant="meta" color="mutedForeground" numberOfLines={1}>
+                        {duration}
                     </NativeText>
+                ) : null}
+            </View>
+            <View className="min-w-0 flex-1 gap-1.5">
+                <View className="flex-row items-center gap-2.5">
+                    <View className={`h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.badgeSolidClassName}`}>
+                        <Icon size={20} color={colors.primaryForeground} strokeWidth={2.3} />
+                    </View>
+                    <View className="min-w-0 flex-1 justify-center gap-1">
+                        <NativeText variant="label" numberOfLines={2} textStyle={{ fontWeight: "700" }}>{title}</NativeText>
+                        <View className="self-start rounded-full px-2 py-1"
+                            style={{ backgroundColor: colorWithOpacity(statusColor, 0.12) }}>
+                            <NativeText variant="badge" wrap={false} numberOfLines={1}
+                                textStyle={{ color: statusColor }}>{statusLabel}</NativeText>
+                        </View>
+                    </View>
+                    <ChevronRight size={17} color={colors.mutedForeground} strokeWidth={2} />
                 </View>
-
-                <View className="flex-row items-center gap-3">
-                    <ReservationDateBadge date={reservation.startTime} />
-
-                    <View className="min-w-0 flex-1 flex-col justify-center gap-3">
-                        <NativeText
-                            variant="body"
-                            textStyle={{ lineHeight: typography.h3.lineHeight, fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
-                        >
-                            {formatTimeRange(reservation.startTime, reservation.endTime)}
+                {countdownLabel ? (
+                    <View className="flex-row items-center gap-1.5">
+                        <Clock3 size={13} color={colors.primary} strokeWidth={2.3} />
+                        <NativeText variant="badge" numberOfLines={2}
+                            style={{ flex: 1, minWidth: 0 }}
+                            textStyle={{ color: colors.primary, fontWeight: "600" }}>
+                            {countdownLabel}
                         </NativeText>
-
-                        {secondaryLabel ? (
-                            <NativeText variant="badge" numberOfLines={1} textStyle={{ color: secondaryColor }}>
-                                {secondaryLabel}
-                            </NativeText>
-                        ) : null}
                     </View>
-
-                    <View
-                        className={`h-9 w-9 items-center justify-center rounded-full ${arrowBackgroundClassName}`}
-                    >
-                        <ChevronRight
-                            size={18}
-                            color={arrowColor}
-                            strokeWidth={2.3}
-                        />
-                    </View>
-                </View>
+                ) : null}
             </View>
         </Pressable>
     );
 }
 
-function areReservationCardsEqual(prev: Props, next: Props) {
-    const previousReservation = prev.reservation;
-    const nextReservation = next.reservation;
-
-    return (
-        prev.disabled === next.disabled &&
-        prev.referenceTime === next.referenceTime &&
-        prev.onPress === next.onPress &&
-        previousReservation.id === nextReservation.id &&
-        previousReservation.reservationType ===
-        nextReservation.reservationType &&
-        previousReservation.reservationStatus ===
-        nextReservation.reservationStatus &&
-        previousReservation.ticketType === nextReservation.ticketType &&
-        previousReservation.startTime === nextReservation.startTime &&
-        previousReservation.endTime === nextReservation.endTime &&
-        previousReservation.bayName === nextReservation.bayName &&
-        previousReservation.lessonAvailabilityName ===
-        nextReservation.lessonAvailabilityName &&
-        previousReservation.lessonProgramGroupName ===
-        nextReservation.lessonProgramGroupName &&
-        previousReservation.lessonProgramName ===
-        nextReservation.lessonProgramName
-    );
-}
-
-function ReservationDateBadge({ date }: { date: string }) {
-
-    return (
-        <View className="h-[82px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-            <View className="flex-1 items-center justify-center px-2">
-                <NativeText variant="badge" color="mutedForeground" align="center" numberOfLines={1}>
-                    {formatDateValue(date, "MMM").toUpperCase()}
-                </NativeText>
-
-                <NativeText variant="h2" align="center" numberOfLines={1}>
-                    {formatDateValue(date, "dd")}
-                </NativeText>
-            </View>
-        </View>
-    );
-}
-
-export default memo(ReservationCard, areReservationCardsEqual);
+export default memo(ReservationCard);

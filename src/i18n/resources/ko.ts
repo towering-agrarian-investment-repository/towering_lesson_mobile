@@ -342,6 +342,8 @@ const ko = {
         }
     },
     "shareCard": {
+        "monthly": "월간",
+        "yearly": "연간",
         "reservations": "예약",
         "played": "플레이",
         "member": "회원",
@@ -352,6 +354,8 @@ const ko = {
         "shareUnavailable": "이 기기에서는 공유할 수 없습니다."
     },
     "activity": {
+        viewSavedPhoto: "저장한 사진 보기",
+        couldNotOpenPhoto: "저장한 사진을 열 수 없습니다. 사진 앱에서 확인해 주세요.",
         "sessionCount": "{{count}}개 세션",
         "sessionCount_other": "{{count}}개 세션",
         couldNotLoad: "활동을 불러오지 못했습니다",

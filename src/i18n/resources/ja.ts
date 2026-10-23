@@ -345,6 +345,8 @@ const ja: TranslationResource<typeof en> = {
         },
     },
     shareCard: {
+        monthly: "月間",
+        yearly: "年間",
         reservations: "予約",
         played: "プレー",
         member: "会員",
@@ -355,6 +357,8 @@ const ja: TranslationResource<typeof en> = {
         shareUnavailable: "この端末では共有できません。",
     },
     activity: {
+        viewSavedPhoto: "保存した写真を見る",
+        couldNotOpenPhoto: "保存した写真を開けませんでした。写真アプリで確認できます。",
         sessionCount: "{{count}}セッション",
         sessionCount_other: "{{count}}セッション",
         couldNotLoad: "アクティビティを読み込めませんでした",
