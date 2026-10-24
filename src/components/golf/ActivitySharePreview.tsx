@@ -171,10 +171,11 @@ export function ActivitySharePreview({
                 <Screen
                     scroll
                     headerShown={false}
+                    contentInsetAdjustmentBehavior="never"
                     contentClassName="gap-4"
                     bottomPadding={12}
                     footer={
-                        <View className="gap-3 pb-3 pt-3" accessibilityState={{ busy: isBusy }}>
+                        <View className="gap-3 pt-3" accessibilityState={{ busy: isBusy }}>
                             {savedPreviewUri ? (
                                 <View className="absolute inset-x-0 z-10 flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3"
                                     style={{ bottom: "100%", marginBottom: 12,
@@ -255,7 +256,7 @@ export function ActivitySharePreview({
                         </Pressable>
                     </View>
 
-                    <View className="w-full grow items-center justify-center gap-4 py-4">
+                    <View className="w-full items-center gap-4 py-4">
                         <View className="flex-row rounded-full bg-muted p-1" accessibilityRole="tablist">
                             {(["month", "year"] as const).map(period => (
                                 <Pressable key={period} accessibilityRole="tab"

@@ -90,34 +90,8 @@ export default function HomeScreen() {
         <Screen
             headerShown={false}
             contentClassName="flex-grow"
-            refreshControl={
-                <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={() => {
-                        void handleRefresh();
-                    }}
-                />
-            }
-        >
-            <View className="grow gap-4">
-                <HappyGolfLogo
-                    width={120}
-                    height={28}
-                    primaryColor={colors.primary}
-                    accentColor={colors.warning}
-                />
-
-                <View className="gap-6">
-                    <HomeBanner banners={publishedBanners} />
-
-                    {member ? (
-                        <MyTicket member={member} />
-                    ) : (
-                        <InlineState title={t("home.noMemberProfile")} />
-                    )}
-                    <TodayReservation />
-                </View>
-
+            footerSafeArea={process.env.EXPO_OS === "ios"}
+            footer={
                 <View className="py-3">
                     <Host
                         matchContents={{ vertical: true }}
@@ -161,6 +135,34 @@ export default function HomeScreen() {
                             </Text>
                         </Button>
                     </Host>
+                </View>
+            }
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={() => {
+                        void handleRefresh();
+                    }}
+                />
+            }
+        >
+            <View className="grow gap-4">
+                <HappyGolfLogo
+                    width={120}
+                    height={28}
+                    primaryColor={colors.primary}
+                    accentColor={colors.warning}
+                />
+
+                <View className="gap-6">
+                    <HomeBanner banners={publishedBanners} />
+
+                    {member ? (
+                        <MyTicket member={member} />
+                    ) : (
+                        <InlineState title={t("home.noMemberProfile")} />
+                    )}
+                    <TodayReservation />
                 </View>
             </View>
         </Screen>

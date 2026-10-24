@@ -51,6 +51,7 @@ import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Modal, Pressable, View } from "react-native";
 import { FlatList, RefreshControl } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 const isIOS = process.env.EXPO_OS === "ios";
@@ -64,6 +65,7 @@ const buttonInnerSize = isIOS
 
 function NoticeScreen() {
   const { colors, fontScale: uiFontScale } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -315,7 +317,10 @@ function NoticeScreen() {
           className="flex-1"
           onPress={() => setIsActionsMenuOpen(false)}
         >
-          <View className="absolute right-4 top-16 w-44 rounded-xl border border-border bg-card p-1 shadow-lg">
+          <View
+            className="absolute top-16 w-44 rounded-xl border border-border bg-card p-1 shadow-lg"
+            style={{ right: Math.max(insets.right, 16) }}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("notice.deleteAll")}

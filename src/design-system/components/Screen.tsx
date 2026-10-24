@@ -5,6 +5,7 @@ import {
     TouchableWithoutFeedback,
     View,
     type RefreshControlProps,
+    type ScrollViewProps,
 } from "react-native";
 import {
     KeyboardAvoidingView,
@@ -21,7 +22,7 @@ type ScreenProps = {
     className?: string;
     contentClassName?: string;
     footer?: ReactNode;
-    /** Disable when a bottom tab bar already handles the safe area. */
+    /** Disable when the parent navigator already insets the entire screen, as Android native tabs do. */
     footerSafeArea?: boolean;
     bottomPadding?: number;
     headerShown?: boolean;
@@ -29,6 +30,7 @@ type ScreenProps = {
     keyboardAware?: boolean;
     scroll?: boolean;
     refreshControl?: ReactElement<RefreshControlProps>;
+    contentInsetAdjustmentBehavior?: ScrollViewProps["contentInsetAdjustmentBehavior"];
 };
 
 export function Screen({
@@ -43,10 +45,11 @@ export function Screen({
     keyboardAware = false,
     scroll = true,
     refreshControl,
+    contentInsetAdjustmentBehavior = "automatic",
 }: ScreenProps) {
     const insets = useSafeAreaInsets();
     const edgePadding = horizontalPadding ? SCREEN_HORIZONTAL_PADDING : 0;
-    const automaticTopInset = scroll && process.env.EXPO_OS === "ios";
+    const automaticTopInset = scroll && process.env.EXPO_OS === "ios" && contentInsetAdjustmentBehavior !== "never";
     const bodyStyle = {
         width: "100%",
         maxWidth: SCREEN_MAX_WIDTH,
@@ -71,7 +74,7 @@ export function Screen({
             process.env.EXPO_OS === "ios" ? "interactive" : "on-drag",
         showsVerticalScrollIndicator: false,
         refreshControl,
-        contentInsetAdjustmentBehavior: "automatic",
+        contentInsetAdjustmentBehavior,
     } as const;
     const screenContent = scroll ? (
         keyboardAware ? (

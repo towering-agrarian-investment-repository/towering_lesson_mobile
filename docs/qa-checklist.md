@@ -13,6 +13,14 @@ Run a short pass on an iPhone, an iPad, and an Android phone; include an Android
 
 If this pass fails, fix the shared layout or the affected component and repeat the pass. Run the broader release checklist below before shipping.
 
+## iPhone Duo verification
+
+Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo simulator from Xcode 27.1 Device Hub. Check folded and open portrait/landscape, partially open, and Split View with the app in either window. The native navigation rail can move to either edge.
+
+- Walk each screen and its primary action in those poses. Check content, floating controls, menus, toasts, and full-screen modals against both horizontal safe-area insets.
+- Fold and unfold while a screen is open. Its scroll position, selected state, and actions should remain usable.
+- Recheck Home's banner and reservations button, Activity's preview and Share/Save buttons, and Profile's photo viewer.
+
 ## Per screen or major interaction
 
 1. Loading, empty data, and API failure/retry states.

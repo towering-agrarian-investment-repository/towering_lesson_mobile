@@ -189,8 +189,12 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
             {toast ? (
                 <View
                     pointerEvents="box-none"
-                    className="absolute inset-x-0 z-50 items-center px-4"
-                    style={positionStyle}
+                    className="absolute inset-x-0 z-50 items-center"
+                    style={{
+                        ...positionStyle,
+                        paddingLeft: Math.max(insets.left, 16),
+                        paddingRight: Math.max(insets.right, 16),
+                    }}
                 >
                     <Animated.View
                         accessible

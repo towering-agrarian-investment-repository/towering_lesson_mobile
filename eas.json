@@ -18,11 +18,15 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "image": "sdk-58"
       }
     },
     "development-simulator": {
       "extends": "development",
       "ios": {
+        "image": "sdk-58",
         "simulator": true
       }
     },
@@ -33,13 +37,19 @@
       "channel": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "image": "sdk-58"
       }
     },
     "production": {
       "pnpm": "10.26.0",
       "environment": "production",
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "image": "sdk-58"
+      }
     }
   },
   "submit": {

@@ -1,4 +1,5 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
+import { ProfileImageViewer } from "@/components/golf/profile/ProfileImageViewer";
 import { ProfilePreferenceRow } from "@/components/golf/profile/ProfilePreferenceRow";
 import {
   CircleLoader,
@@ -47,8 +48,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, UserRound, UsersRound, X, type LucideIcon } from "lucide-react-native";
+import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -58,7 +58,7 @@ import {
   RefreshControl,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const APP_VERSION = Constants.expoConfig?.version;
 
@@ -128,7 +128,6 @@ export default function ProfileScreen() {
   const { i18n, t } = useTranslation();
   const update = useAppUpdateContext();
   const queryClient = useQueryClient();
-  const insets = useSafeAreaInsets();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
@@ -255,35 +254,12 @@ export default function ProfileScreen() {
         animationType="fade"
         onRequestClose={() => setIsImageViewerVisible(false)}
       >
-        <View
-          className="flex-1 gap-4 bg-black px-4"
-          style={{
-            paddingTop: insets.top + 8,
-            paddingBottom: insets.bottom + 8,
-          }}
-        >
-          <StatusBar style="light" />
-          <View className="items-end">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("common.closeTitle", {
-                title: t("profile.viewProfilePhoto"),
-              })}
-              className="h-12 w-12 items-center justify-center rounded-full bg-white/20 active:opacity-70"
-              onPress={() => setIsImageViewerVisible(false)}
-            >
-              <X size={24} color={colors.primaryForeground} />
-            </Pressable>
-          </View>
-          {member?.profileImage ? (
-            <Image
-              source={{ uri: member.profileImage }}
-              contentFit="contain"
-              style={{ width: "100%", flex: 1 }}
-              accessibilityLabel={t("profile.viewProfilePhoto")}
-            />
-          ) : null}
-        </View>
+        <SafeAreaProvider>
+          <ProfileImageViewer
+            imageUri={member?.profileImage ?? null}
+            onClose={() => setIsImageViewerVisible(false)}
+          />
+        </SafeAreaProvider>
       </Modal>
 
       <PendingBottomSheet
