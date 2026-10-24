@@ -59,7 +59,6 @@ export default function WelcomeScreen() {
         <Screen
             headerShown={false}
             horizontalPadding={false}
-            maxWidth={640}
             footer={
                 <View className="gap-3 px-6 py-4">
                     {startFailed ? (
@@ -121,10 +120,10 @@ export default function WelcomeScreen() {
                 </View>
             }
         >
-            <View className="grow gap-4 px-6 pt-4">
+            <View className="grow justify-center gap-8 px-6 py-6">
                 <HappyGolfLogo width={148} height={35} />
 
-                <View className="w-full grow items-center justify-center gap-8 py-6">
+                <View className="w-full gap-8">
                     <View className="w-full items-center gap-3">
                         <NativeText variant="h1" align="center">
                             {t("welcome.title", {

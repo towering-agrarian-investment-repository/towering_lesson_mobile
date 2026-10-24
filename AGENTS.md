@@ -67,9 +67,9 @@ Native dependency/config changes may need a fresh dev build (profiles in `eas.js
 - Routes in `src/app/`. `Stack` for stacks, `NativeTabs` from `expo-router/native-tabs` for main tabs. Keep tab labels, titles, badges, deep links, back behavior. Tabs with headers have nested stack layouts.
 - Use `Screen` for safe-area insets, padding, scrolling, keyboard handling, footers. Do not add another `SafeAreaView` or duplicate padding.
 - `Screen` scrolls by default. Use `scroll={false}` for screens with a vertical `FlatList`. Never nest a virtualized list in a same-direction `ScrollView`.
-- Padding is 16 on phones, 24 on wider windows. Use `maxWidth` for narrow forms and `footerSafeArea={false}` when the tab bar handles the bottom inset.
-- Use `AdaptivePanels` for paired responsive sections (native `ArrangementView` on iOS 27.1+, measured-width elsewhere).
-- Base responsive layout on available window/container width. Preserve mounted form/screen state across resize, rotation, split screen, folding.
+- Keep the same single-column screen layout on phones and tablets. `Screen` centers content at a phone-sized maximum width with 16-point horizontal padding. Use `footerSafeArea={false}` when the tab bar handles the bottom inset.
+- Do not add separate tablet layouts or width-based panel switches unless the content requires them. Keep measurements needed to fit charts, banners, sheets, safe areas, and other controls within the available space.
+- Preserve mounted form and screen state across resize, rotation, split screen, and folding.
 
 ## Data, interactions, accessibility
 

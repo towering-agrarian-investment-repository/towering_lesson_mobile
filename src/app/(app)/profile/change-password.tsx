@@ -120,7 +120,6 @@ function ChangePasswordScreen() {
 
     return (
         <Screen
-            maxWidth={640}
             keyboardAware
             contentClassName="flex-grow"
             footer={

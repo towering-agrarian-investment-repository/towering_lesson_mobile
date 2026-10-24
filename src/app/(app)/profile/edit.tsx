@@ -340,7 +340,6 @@ export default function EditProfileScreen() {
 
   return (
     <Screen
-      maxWidth={640}
       keyboardAware
       footer={
         <View className="pb-8 pt-4">

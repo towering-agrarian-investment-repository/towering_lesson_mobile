@@ -4,7 +4,6 @@ import {
     ScrollView,
     TouchableWithoutFeedback,
     View,
-    useWindowDimensions,
     type RefreshControlProps,
 } from "react-native";
 import {
@@ -13,6 +12,9 @@ import {
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../utils/cn";
+
+export const SCREEN_MAX_WIDTH = 430;
+export const SCREEN_HORIZONTAL_PADDING = 16;
 
 type ScreenProps = {
     children?: ReactNode;
@@ -27,7 +29,6 @@ type ScreenProps = {
     keyboardAware?: boolean;
     scroll?: boolean;
     refreshControl?: ReactElement<RefreshControlProps>;
-    maxWidth?: number;
 };
 
 export function Screen({
@@ -42,16 +43,15 @@ export function Screen({
     keyboardAware = false,
     scroll = true,
     refreshControl,
-    maxWidth = 1280,
 }: ScreenProps) {
     const insets = useSafeAreaInsets();
-    const { width } = useWindowDimensions();
-    const edgePadding = horizontalPadding ? (width >= 768 ? 24 : 16) : 0;
+    const edgePadding = horizontalPadding ? SCREEN_HORIZONTAL_PADDING : 0;
+    const automaticTopInset = scroll && process.env.EXPO_OS === "ios";
     const bodyStyle = {
         width: "100%",
-        maxWidth,
+        maxWidth: SCREEN_MAX_WIDTH,
         alignSelf: "center",
-        paddingTop: headerShown ? 16 : insets.top + 16,
+        paddingTop: headerShown || automaticTopInset ? 16 : insets.top + 16,
         paddingBottom: bottomPadding,
         paddingLeft: Math.max(edgePadding, insets.left),
         paddingRight: Math.max(edgePadding, insets.right),
@@ -71,7 +71,7 @@ export function Screen({
             process.env.EXPO_OS === "ios" ? "interactive" : "on-drag",
         showsVerticalScrollIndicator: false,
         refreshControl,
-        contentInsetAdjustmentBehavior: headerShown ? "automatic" : "never",
+        contentInsetAdjustmentBehavior: "automatic",
     } as const;
     const screenContent = scroll ? (
         keyboardAware ? (
@@ -117,7 +117,7 @@ export function Screen({
                     <View
                         style={{
                             width: "100%",
-                            maxWidth: Math.min(maxWidth, 640),
+                            maxWidth: SCREEN_MAX_WIDTH,
                             alignSelf: "center",
                             paddingLeft: Math.max(edgePadding, insets.left),
                             paddingRight: Math.max(edgePadding, insets.right),

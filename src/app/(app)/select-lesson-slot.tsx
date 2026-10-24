@@ -180,7 +180,7 @@ export default function SelectLessonSlotScreen() {
         }}
       />
 
-      <Screen maxWidth={960} scroll={false} contentClassName="min-h-0 gap-6">
+      <Screen scroll={false} contentClassName="min-h-0 gap-6">
         <BookingStepHeader
           step={2}
           totalSteps={3}

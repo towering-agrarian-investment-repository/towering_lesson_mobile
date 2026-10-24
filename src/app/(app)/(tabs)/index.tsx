@@ -8,7 +8,6 @@ import { HomeBanner } from "@/components/golf/HomeBanner";
 import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
 import {
-    AdaptivePanels,
     CircleLoader,
     ErrorState,
     InlineState,
@@ -91,8 +90,34 @@ export default function HomeScreen() {
         <Screen
             headerShown={false}
             contentClassName="flex-grow"
-            footerSafeArea={false}
-            footer={
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={() => {
+                        void handleRefresh();
+                    }}
+                />
+            }
+        >
+            <View className="grow gap-4">
+                <HappyGolfLogo
+                    width={120}
+                    height={28}
+                    primaryColor={colors.primary}
+                    accentColor={colors.warning}
+                />
+
+                <View className="gap-6">
+                    <HomeBanner banners={publishedBanners} />
+
+                    {member ? (
+                        <MyTicket member={member} />
+                    ) : (
+                        <InlineState title={t("home.noMemberProfile")} />
+                    )}
+                    <TodayReservation />
+                </View>
+
                 <View className="py-3">
                     <Host
                         matchContents={{ vertical: true }}
@@ -109,16 +134,8 @@ export default function HomeScreen() {
                             )}
                             modifiers={
                                 process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
+                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                    : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
                             }
                             disabled={isLocked}
                             onPress={() => {
@@ -144,40 +161,6 @@ export default function HomeScreen() {
                             </Text>
                         </Button>
                     </Host>
-                </View>
-            }
-            refreshControl={
-                <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={() => {
-                        void handleRefresh();
-                    }}
-                />
-            }
-        >
-            <View className="grow gap-4">
-                <HappyGolfLogo
-                    width={120}
-                    height={28}
-                    primaryColor={colors.primary}
-                    accentColor={colors.warning}
-                />
-
-                <View className="gap-6">
-                    <HomeBanner banners={publishedBanners} />
-
-                    <AdaptivePanels
-                        primary={
-                            member ? (
-                                <MyTicket member={member} />
-                            ) : (
-                                <InlineState
-                                    title={t("home.noMemberProfile")}
-                                />
-                            )
-                        }
-                        secondary={<TodayReservation />}
-                    />
                 </View>
             </View>
         </Screen>

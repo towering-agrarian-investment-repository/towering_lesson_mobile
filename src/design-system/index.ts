@@ -13,7 +13,6 @@ export * from "./components/Screen";
 export * from "./components/Skeleton";
 export * from "./components/StateCard";
 
-export * from "./layout/AdaptivePanels";
 export * from "./layout/Row";
 export * from "./layout/Stack";
 

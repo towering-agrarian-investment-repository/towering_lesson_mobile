@@ -395,7 +395,6 @@ export default function DateScreen() {
 
   return (
     <Screen
-      maxWidth={960}
       contentClassName="gap-6"
       horizontalPadding={false}
       refreshControl={

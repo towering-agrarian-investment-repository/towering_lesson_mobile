@@ -10,7 +10,6 @@ import {
   type ThemePreference,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
-import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
 import {
   getNativeButtonStyle,
   getNativeButtonTextStyle,
@@ -416,9 +415,8 @@ export default function ProfileScreen() {
             />
           </View>
         ) : null}
-        <AdaptivePanels
-          primary={
-            <View className="gap-6 pt-6">
+        <View className="gap-12 pt-6">
+            <View className="gap-6">
               <View className="gap-2">
                 <SectionTitle title={t("profile.personalRecord")} />
 
@@ -486,9 +484,7 @@ export default function ProfileScreen() {
                 </View>
               ) : null}
             </View>
-          }
-          secondary={
-            <View className="pt-6">
+            <View>
               <View className="gap-6">
                 <View className="gap-2">
                   <SectionTitle title={t("profile.settings")} />
@@ -581,8 +577,7 @@ export default function ProfileScreen() {
                 </NativeText>
               ) : null}
             </View>
-          }
-        />
+        </View>
       </View>
     </Screen>
   );

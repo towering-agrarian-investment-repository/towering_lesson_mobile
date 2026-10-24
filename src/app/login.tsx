@@ -92,7 +92,6 @@ export default function LoginScreen() {
 
     return (
         <Screen
-            maxWidth={640}
             headerShown={false}
             keyboardAware
             horizontalPadding={false}

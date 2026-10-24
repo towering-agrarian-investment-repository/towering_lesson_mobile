@@ -6,6 +6,8 @@ import {
     ActivityHeatmap,
     ErrorState,
     Screen,
+    SCREEN_HORIZONTAL_PADDING,
+    SCREEN_MAX_WIDTH,
     Skeleton,
     getPressedScaleStyle,
     triggerSelectionHaptic,
@@ -490,7 +492,7 @@ function HeatmapSkeleton() {
     const { width: windowWidth, fontScale } = useWindowDimensions();
     const { i18n } = useTranslation();
     const [measuredWidth, setMeasuredWidth] = useState(0);
-    const containerWidth = measuredWidth || Math.min(1280, windowWidth - (windowWidth >= 768 ? 48 : 32));
+    const containerWidth = measuredWidth || Math.min(SCREEN_MAX_WIDTH, windowWidth) - SCREEN_HORIZONTAL_PADDING * 2;
     const { labelColumnWidth, monthLabelHeight, availableWidth, cellSize } =
         getActivityHeatmapLayout(containerWidth, fontScale, i18n.language);
     const gridHeight = cellSize * 7 + HEATMAP_CELL_GAP * 6;

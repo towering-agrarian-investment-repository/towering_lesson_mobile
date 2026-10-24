@@ -1,6 +1,5 @@
 import { NativeText } from "@/design-system/components/NativeText";
 import { Divider } from "@/design-system";
-import { AdaptivePanels } from "@/design-system/layout/AdaptivePanels";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame, textSelection } from "@expo/ui/swift-ui/modifiers";
 import { useTheme } from "@/design-system/utils/theme";
@@ -152,25 +151,21 @@ export function ReservationContent({
 }: ReservationContentProps) {
 
     return (
-        <View className="grow">
-            <AdaptivePanels
-                primary={<View className="gap-4">{children}</View>}
-                secondary={
-                    <View className="gap-4">
-                        <Divider className="bg-border" />
+        <View className="grow gap-6">
+            <View className="gap-4">{children}</View>
+            <View className="gap-4">
+                <Divider className="bg-border" />
 
-                        {disabledReason ? (
-                            <View className="rounded-xl bg-warning/10 px-4 py-3">
-                                <NativeText variant="meta" color="warning">
-                                    {disabledReason}
-                                </NativeText>
-                            </View>
-                        ) : null}
-
-                        <ReservationPoliciesSection policies={policies} />
+                {disabledReason ? (
+                    <View className="rounded-xl bg-warning/10 px-4 py-3">
+                        <NativeText variant="meta" color="warning">
+                            {disabledReason}
+                        </NativeText>
                     </View>
-                }
-            />
+                ) : null}
+
+                <ReservationPoliciesSection policies={policies} />
+            </View>
         </View>
     );
 }

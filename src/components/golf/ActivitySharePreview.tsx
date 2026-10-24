@@ -13,6 +13,7 @@ import { Stack } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Image, Modal, Pressable, StatusBar, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
 import { ShareCardAction, useShareCardExport } from "@/hooks/useShareCardExport";
 import { useShareMonth } from "@/hooks/useShareMonth";
@@ -165,6 +166,8 @@ export function ActivitySharePreview({
                 <StatusBar
                     barStyle={resolvedScheme === "dark" ? "light-content" : "dark-content"}
                 />
+                {/* The full-screen modal needs its own insets, independent of the tab screen. */}
+                <SafeAreaProvider>
                 <Screen
                     scroll
                     headerShown={false}
@@ -377,6 +380,7 @@ export function ActivitySharePreview({
                         onConfirm={confirmMonth}
                     />
                 </BottomSheet>
+                </SafeAreaProvider>
             </Modal>
         </>
     );

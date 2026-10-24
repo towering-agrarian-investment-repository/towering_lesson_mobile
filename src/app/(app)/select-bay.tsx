@@ -265,7 +265,6 @@ export default function BayScreen() {
 
   return (
     <Screen
-      maxWidth={960}
       contentClassName="gap-6"
       refreshControl={
         <RefreshControl
