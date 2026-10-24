@@ -1,6 +1,7 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { AppText } from "@/design-system/components/AppText";
 import {
+    AnimatedPressable,
     EmptyState,
     ErrorState,
     Screen,
@@ -175,7 +176,7 @@ function LessonLogRow({
         : t("lessonLog.leaveReview");
 
     return (
-        <Pressable
+        <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={t("lessonLog.openLessonLog", {
                 coach: item.coachName ?? t("lessonLog.coachFallback"),
@@ -183,9 +184,6 @@ function LessonLogRow({
             })}
             disabled={disabled}
             className="min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60"
-            style={({ pressed }) => ({
-                transform: [{ scale: pressed && !disabled ? 0.992 : 1 }],
-            })}
             onPress={() => {
                 if (disabled) {
                     return;
@@ -227,7 +225,7 @@ function LessonLogRow({
                     strokeWidth={2.25}
                 />
             </View>
-        </Pressable>
+        </AnimatedPressable>
     );
 }
 

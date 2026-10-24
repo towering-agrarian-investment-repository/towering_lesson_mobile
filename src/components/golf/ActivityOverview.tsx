@@ -9,7 +9,7 @@ import {
     SCREEN_HORIZONTAL_PADDING,
     SCREEN_MAX_WIDTH,
     Skeleton,
-    getPressedScaleStyle,
+    AnimatedPressable,
     triggerSelectionHaptic,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
@@ -340,14 +340,13 @@ function ActivityDayReservations({
                     : backendStatusLabel;
                 const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
                 return (
-                    <Pressable
+                    <AnimatedPressable
                         key={`${reservation.reservationType}:${reservation.id}`}
                         accessibilityRole="button"
                         accessibilityLabel={t("reservations.openLabel", { title })}
                         accessibilityState={{ disabled: isLocked }}
                         disabled={isLocked}
                         className="min-h-16 flex-row items-center gap-3 rounded-xl bg-card px-2 py-2"
-                        style={({ pressed }) => getPressedScaleStyle(pressed, isLocked, 0.99)}
                         onPress={() => {
                             runWithNavigationLock(() => {
                                 triggerSelectionHaptic();
@@ -381,7 +380,7 @@ function ActivityDayReservations({
                             </View>
                         </View>
                         <ChevronRight size={18} color={colors.mutedForeground} />
-                    </Pressable>
+                    </AnimatedPressable>
                 );
             })}
         </View>

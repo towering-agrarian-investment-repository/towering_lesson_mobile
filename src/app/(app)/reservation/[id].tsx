@@ -8,10 +8,11 @@ import {
 } from "@/components/golf/reservation/ReservationSections";
 import {
     Badge,
+    CircleLoader,
     Divider,
     EmptyState,
     ErrorState,
-    getPressedScaleStyle,
+    AnimatedPressable,
     Screen,
     Skeleton,
     useThemeColors,
@@ -49,10 +50,10 @@ import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
-    Pressable,
     RefreshControl,
     View,
 } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 type ReservationParams = {
     id: string;
@@ -426,7 +427,7 @@ export default function ReservationDetailScreen() {
                 }
                 footer={
                     canCancelReservation || canRescheduleReservation ? (
-                        <View className="gap-3 pb-8 pt-4">
+                        <View className="gap-3">
                             {canRescheduleReservation ? (
                                 <Host
                                     matchContents={{ vertical: true }}
@@ -693,7 +694,6 @@ export default function ReservationDetailScreen() {
 
 function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetailPreview }) {
     const { t } = useTranslation();
-    const colors = useThemeColors();
     const reservation = preview.reservation;
     const isBayReservation = reservation.reservationType === "bay";
     const title = (isBayReservation
@@ -745,7 +745,7 @@ function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetai
                             value={reservation.memberNotes?.trim() || "-"}
                         />
                         <View className="flex-row items-center gap-3 py-2">
-                            <ActivityIndicator color={colors.primary} />
+                            <CircleLoader />
                             <NativeText
                                 variant="subtext"
                                 color="mutedForeground"
@@ -856,12 +856,9 @@ function DetailRow({
     }
 
     return (
-        <Pressable
+        <AnimatedPressable
             accessibilityRole="button"
             disabled={disabled}
-            style={({ pressed }) =>
-                getPressedScaleStyle(pressed, disabled, 0.994)
-            }
             onPressIn={() => {
                 if (!disabled && process.env.EXPO_OS === "ios") {
                     void Haptics.selectionAsync();
@@ -870,7 +867,7 @@ function DetailRow({
             onPress={onPress}
         >
             {content}
-        </Pressable>
+        </AnimatedPressable>
     );
 }
 
@@ -881,6 +878,7 @@ function Avatar({
     name: string;
     imageUrl?: string | null;
 }) {
+    const reducedMotion = useReducedMotion();
 
     if (imageUrl) {
         return (
@@ -894,7 +892,7 @@ function Avatar({
                     borderRadius: 999,
                 }}
                 contentFit="cover"
-                transition={150}
+                transition={reducedMotion ? 0 : 150}
             />
         );
     }

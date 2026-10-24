@@ -4,7 +4,7 @@ import {
   cn,
   EmptyState,
   ErrorState,
-  getPressedScaleStyle,
+  AnimatedPressable,
   Screen,
   Skeleton,
 } from "@/design-system";
@@ -20,7 +20,7 @@ import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, View } from "react-native";
+import { RefreshControl, View } from "react-native";
 
 const GRID_COLUMNS = 3;
 const LOADING_ITEMS = Array.from({ length: 6 }, (_, index) => index);
@@ -122,7 +122,7 @@ const BayCard = memo(function BayCard({
       : colors.mutedForeground;
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`${bay.bayName}, ${statusLabel}`}
       accessibilityState={{ disabled: isDisabled || isLocked }}
@@ -134,9 +134,6 @@ const BayCard = memo(function BayCard({
             ? "border-border bg-card"
             : "border-muted bg-muted opacity-55",
       )}
-      style={({ pressed }) =>
-        getPressedScaleStyle(pressed, isDisabled || isLocked, 0.98)
-      }
       onPress={() => onSelect(bay)}
       disabled={isDisabled || isLocked}
     >
@@ -170,7 +167,7 @@ const BayCard = memo(function BayCard({
           {statusLabel}
         </NativeText>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 });
 

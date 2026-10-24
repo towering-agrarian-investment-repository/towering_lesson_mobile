@@ -59,6 +59,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useReducedMotion } from "react-native-reanimated";
 
 const APP_VERSION = Constants.expoConfig?.version;
 
@@ -116,6 +117,7 @@ const LANGUAGES: {
 ];
 
 export default function ProfileScreen() {
+  const reducedMotion = useReducedMotion();
   const {
     colors,
     fontScale: uiFontScale,
@@ -251,7 +253,7 @@ export default function ProfileScreen() {
       <Modal
         visible={isImageViewerVisible && Boolean(member?.profileImage)}
         presentationStyle="fullScreen"
-        animationType="fade"
+        animationType={reducedMotion ? "none" : "fade"}
         onRequestClose={() => setIsImageViewerVisible(false)}
       >
         <SafeAreaProvider>

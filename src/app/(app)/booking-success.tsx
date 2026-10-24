@@ -181,7 +181,7 @@ export default function BookingSuccessScreen() {
             : null;
 
     const footer = (
-        <View className="pb-4 pt-4">
+        <View>
             <Host
                 matchContents={{ vertical: true }}
                 ignoreSafeArea="all"

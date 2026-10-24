@@ -2,7 +2,7 @@ import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
   EmptyState,
   ErrorState,
-  getPressedScaleStyle,
+  AnimatedPressable,
   Screen,
   Skeleton,
 } from "@/design-system";
@@ -17,7 +17,7 @@ import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { FlatList, RefreshControl, View } from "react-native";
 
 type TimeSlotItem = {
   group: BaySlotGroupScheduleResponse;
@@ -202,12 +202,11 @@ const TimeSlotCard = memo(function TimeSlotCard({
   const timeRange = formatTimeRange(group.startDateTime, group.endDateTime);
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={timeRange}
       accessibilityState={{ disabled: isLocked }}
       className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
-      style={({ pressed }) => getPressedScaleStyle(pressed, isLocked, 0.99)}
       onPress={() => onSelect(group)}
       disabled={isLocked}
     >
@@ -229,6 +228,6 @@ const TimeSlotCard = memo(function TimeSlotCard({
           {t("booking.select")}
         </AppText>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 });

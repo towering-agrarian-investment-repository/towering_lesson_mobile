@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useReducedMotion } from "react-native-reanimated";
 import {
   FlatList,
   Pressable,
@@ -154,6 +155,7 @@ export function ActivityHeatmap({
   ...props
 }: ActivityHeatmapProps) {
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
   const { fontScale: deviceFontScale } = useWindowDimensions();
   const {
     t,
@@ -253,7 +255,7 @@ export function ActivityHeatmap({
     if (todayWeekIndex >= 0) {
       setSelection({ rangeKey, dateKey: todayKey });
       onDayPress?.(parseCalendarDate(todayKey), valuesByDate.get(todayKey)?.count ?? 0);
-      listRef.current?.scrollToIndex({ index: todayWeekIndex, animated: true, viewPosition: 0.5 });
+      listRef.current?.scrollToIndex({ index: todayWeekIndex, animated: !reducedMotion, viewPosition: 0.5 });
     } else {
       onTodayPress?.();
     }

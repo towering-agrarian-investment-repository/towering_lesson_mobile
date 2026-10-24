@@ -60,7 +60,7 @@ export default function WelcomeScreen() {
             headerShown={false}
             horizontalPadding={false}
             footer={
-                <View className="gap-3 px-6 py-4">
+                <View className="gap-3 px-2">
                     {startFailed ? (
                         <NativeText
                             variant="subtext"

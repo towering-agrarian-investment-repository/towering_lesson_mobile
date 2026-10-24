@@ -12,6 +12,7 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 export const unstable_settings = { anchor: "(tabs)" };
 
@@ -49,6 +50,7 @@ export default function AppLayout() {
       }),
   );
   const colors = useThemeColors();
+  const reducedMotion = useReducedMotion();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function AppLayout() {
       <AppToastProvider>
         <Stack
           screenOptions={{
-            animation: "default",
+            animation: reducedMotion ? "fade" : "default",
             headerBackButtonDisplayMode: "minimal",
             contentStyle: { backgroundColor: colors.background },
             headerStyle: { backgroundColor: colors.background },

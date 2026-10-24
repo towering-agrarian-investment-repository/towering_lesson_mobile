@@ -4,7 +4,7 @@ import {
   CircleLoader,
   cn,
   ErrorState,
-  getPressedScaleStyle,
+  AnimatedPressable,
   ListRow,
   Screen,
   triggerNotificationHaptic,
@@ -52,7 +52,7 @@ import { Camera, ImageIcon, Trash2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
 
 const isIOS = process.env.EXPO_OS === "ios";
@@ -342,7 +342,7 @@ export default function EditProfileScreen() {
     <Screen
       keyboardAware
       footer={
-        <View className="pb-8 pt-4">
+        <View>
           <Host
             matchContents={{ vertical: true }}
             ignoreSafeArea="all"
@@ -492,7 +492,7 @@ export default function EditProfileScreen() {
       </PendingBottomSheet>
 
       <View className="gap-6">
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={photoActionLabel}
           accessibilityState={{
@@ -505,9 +505,6 @@ export default function EditProfileScreen() {
             "items-center gap-2.5 self-center",
             isSubmitting && "opacity-60",
           )}
-          style={({ pressed }) =>
-            getPressedScaleStyle(pressed, isPhotoActionDisabled, 0.97)
-          }
           onPress={handleChangeProfileImage}
         >
           <View className="h-24 w-24">
@@ -532,7 +529,7 @@ export default function EditProfileScreen() {
           <NativeText variant="meta" color="primary" wrap={false}>
             {photoActionLabel}
           </NativeText>
-        </Pressable>
+        </AnimatedPressable>
 
         <View className="gap-5">
           <NativeText

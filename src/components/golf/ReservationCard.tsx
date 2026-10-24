@@ -1,5 +1,5 @@
 import { AppText } from "@/design-system/components/AppText";
-import { getPressedScaleStyle, triggerSelectionHaptic } from "@/design-system";
+import { AnimatedPressable, triggerSelectionHaptic } from "@/design-system";
 import { colorWithOpacity } from "@/design-system/utils/color";
 import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
@@ -9,7 +9,7 @@ import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/st
 import { BookOpen, ChevronRight, Clock3, Flag, UserRound, UsersRound } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 type Props = {
     reservation: MemberReservationResponse;
@@ -51,7 +51,7 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
         : null;
 
     return (
-        <Pressable
+        <AnimatedPressable
             onPress={() => {
                 if (disabled) return;
                 triggerSelectionHaptic();
@@ -60,7 +60,6 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
             disabled={disabled}
             accessibilityRole="button"
             accessibilityLabel={`${title}, ${fmtTime(reservation.startTime)}, ${statusLabel}${countdownLabel ? `, ${countdownLabel}` : ""}`}
-            style={({ pressed }) => getPressedScaleStyle(pressed, disabled, 0.99)}
             className="min-h-20 flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3"
         >
             <View className="w-[72px] shrink-0 self-stretch justify-center border-r border-border pr-2">
@@ -99,7 +98,7 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                     </View>
                 ) : null}
             </View>
-        </Pressable>
+        </AnimatedPressable>
     );
 }
 

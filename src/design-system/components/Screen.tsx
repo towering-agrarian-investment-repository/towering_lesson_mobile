@@ -122,8 +122,9 @@ export function Screen({
                             width: "100%",
                             maxWidth: SCREEN_MAX_WIDTH,
                             alignSelf: "center",
-                            paddingLeft: Math.max(edgePadding, insets.left),
-                            paddingRight: Math.max(edgePadding, insets.right),
+                            paddingVertical: 16,
+                            paddingLeft: Math.max(SCREEN_HORIZONTAL_PADDING, insets.left),
+                            paddingRight: Math.max(SCREEN_HORIZONTAL_PADDING, insets.right),
                         }}
                     >
                         {footer}

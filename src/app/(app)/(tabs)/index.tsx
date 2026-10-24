@@ -92,7 +92,7 @@ export default function HomeScreen() {
             contentClassName="flex-grow"
             footerSafeArea={process.env.EXPO_OS === "ios"}
             footer={
-                <View className="py-3">
+                <View>
                     <Host
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"

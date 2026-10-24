@@ -4,7 +4,7 @@ import {
   cn,
   EmptyState,
   ErrorState,
-  getPressedScaleStyle,
+  AnimatedPressable,
   Screen,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
@@ -53,6 +53,7 @@ import { ActivityIndicator, Modal, Pressable, View } from "react-native";
 import { FlatList, RefreshControl } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import { useReducedMotion } from "react-native-reanimated";
 
 const isIOS = process.env.EXPO_OS === "ios";
 const fullWidth = isIOS ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()];
@@ -64,6 +65,7 @@ const buttonInnerSize = isIOS
   : [fillMaxWidth()];
 
 function NoticeScreen() {
+  const reducedMotion = useReducedMotion();
   const { colors, fontScale: uiFontScale } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -120,15 +122,12 @@ function NoticeScreen() {
       headerRight: () => (
         <View className="flex-row items-center gap-4">
           {hasUnread ? (
-            <Pressable
+            <AnimatedPressable
               accessibilityRole="button"
               accessibilityLabel={t("notice.markAllAsRead")}
               disabled={isMarkingAllAsRead || isDeletingAllNotifications}
               className={isMarkingAllAsRead ? "opacity-60" : undefined}
               hitSlop={10}
-              style={({ pressed }) =>
-                getPressedScaleStyle(pressed, isMarkingAllAsRead, 0.99)
-              }
               onPress={() => {
                 markAllAsRead();
               }}
@@ -138,10 +137,10 @@ function NoticeScreen() {
                   ? t("notice.marking")
                   : t("notice.markAllRead")}
               </NativeText>
-            </Pressable>
+            </AnimatedPressable>
           ) : null}
           {notifications.length > 0 ? (
-            <Pressable
+            <AnimatedPressable
               accessibilityRole="button"
               accessibilityLabel={t("notice.moreActions", {
                 defaultValue: "More actions",
@@ -149,13 +148,10 @@ function NoticeScreen() {
               disabled={isDeletingAllNotifications || isMarkingAllAsRead}
               className={isDeletingAllNotifications ? "opacity-60" : undefined}
               hitSlop={10}
-              style={({ pressed }) =>
-                getPressedScaleStyle(pressed, isDeletingAllNotifications, 0.99)
-              }
               onPress={() => setIsActionsMenuOpen(true)}
             >
               <MoreVertical size={22} color={colors.foreground} />
-            </Pressable>
+            </AnimatedPressable>
           ) : null}
         </View>
       ),
@@ -310,7 +306,7 @@ function NoticeScreen() {
       <Modal
         transparent
         visible={isActionsMenuOpen}
-        animationType="fade"
+        animationType={reducedMotion ? "none" : "fade"}
         onRequestClose={() => setIsActionsMenuOpen(false)}
       >
         <Pressable
@@ -597,14 +593,11 @@ function NotificationRow({
       <View
         className={cn("bg-background", !isLast && "border-b border-border")}
       >
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={item.title}
           className={cn("py-3 pr-4", disabled && "opacity-60")}
           disabled={disabled}
-          style={({ pressed }) =>
-            getPressedScaleStyle(pressed, disabled, 0.995)
-          }
           onPress={() => onPress(item)}
         >
           <View className="flex-row items-start gap-3">
@@ -655,7 +648,7 @@ function NotificationRow({
               </AppText>
             </View>
           </View>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     </Swipeable>
   );

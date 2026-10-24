@@ -1,4 +1,4 @@
-import { getPressedScaleStyle, triggerSelectionHaptic } from "@/design-system";
+import { AnimatedPressable, triggerSelectionHaptic } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
@@ -9,7 +9,7 @@ import { Link } from "expo-router";
 import { BookOpen, ChevronRight, Flag, UserRound, UsersRound } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 type Props = {
     reservation: MemberReservationSummaryResponse;
@@ -39,11 +39,10 @@ function TodayReservationCard({ reservation }: Props) {
             }}
             asChild
         >
-            <Pressable
+            <AnimatedPressable
                 accessibilityRole="button"
                 accessibilityLabel={t("reservations.openLabel", { title })}
                 className="min-h-16 w-full flex-row items-center gap-3 rounded-xl bg-card px-2 py-2"
-                style={({ pressed }) => getPressedScaleStyle(pressed, false, 0.99)}
                 onPress={triggerSelectionHaptic}
             >
                 <View className={`h-12 w-12 shrink-0 items-center justify-center rounded-lg ${tone.badgeSolidClassName}`}>
@@ -61,7 +60,7 @@ function TodayReservationCard({ reservation }: Props) {
                     </AppText>
                 </View>
                 <ChevronRight size={18} color={colors.mutedForeground} />
-            </Pressable>
+            </AnimatedPressable>
         </Link>
     );
 }

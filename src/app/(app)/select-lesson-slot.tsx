@@ -4,7 +4,7 @@ import {
   cn,
   EmptyState,
   ErrorState,
-  getPressedScaleStyle,
+  AnimatedPressable,
   Screen,
   Skeleton,
 } from "@/design-system";
@@ -32,7 +32,7 @@ import { Stack } from "expo-router/stack";
 import { UserRound } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { FlatList, RefreshControl, View } from "react-native";
 
 function formatSlotTime(slot: MemberLessonSlotResponse) {
   return formatTimeRange(slot.startTime, slot.endTime);
@@ -339,7 +339,7 @@ const LessonSlotCard = memo(function LessonSlotCard({
   const coachLabel = slot.coachName || (isGroupSlot ? t("booking.tba") : "");
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
       accessibilityState={{ disabled: disabled || isLocked }}
@@ -355,9 +355,6 @@ const LessonSlotCard = memo(function LessonSlotCard({
               : "border-muted bg-muted opacity-55"
             : "border-border bg-card",
       )}
-      style={({ pressed }) =>
-        getPressedScaleStyle(pressed, disabled || isLocked, 0.99)
-      }
       onPress={() => onSelect(slot)}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -435,6 +432,6 @@ const LessonSlotCard = memo(function LessonSlotCard({
             : t("booking.unavailableViewOnly")}
         </AppText>
       ) : null}
-    </Pressable>
+    </AnimatedPressable>
   );
 });

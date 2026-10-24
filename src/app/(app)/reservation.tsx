@@ -3,15 +3,16 @@ import {
     RESERVATION_TABS,
     ReservationTabScene,
 } from "@/components/golf/reservation/ReservationTabScene";
-import { getPressedScaleStyle, Screen } from "@/design-system";
+import { AnimatedPressable, Screen } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
 import { MemberReservationType } from "@/service/reservation.service";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, AppState, Pressable, View } from "react-native";
+import { Animated, AppState, View } from "react-native";
 import { TabView, type TabBarProps } from "react-native-tab-view";
+import { useReducedMotion } from "react-native-reanimated";
 
 type ReservationRoute = {
     key: string;
@@ -21,6 +22,7 @@ type ReservationRoute = {
 export default function ReservationScreen() {
 
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
     const [referenceTime, setReferenceTime] = useState(Date.now);
@@ -120,7 +122,7 @@ export default function ReservationScreen() {
                         });
 
                         return (
-                            <Pressable
+                            <AnimatedPressable
                                 key={tab}
                                 accessibilityRole="button"
                                 accessibilityLabel={t(
@@ -133,9 +135,6 @@ export default function ReservationScreen() {
                                     selected: activeIndex === tabIndex,
                                 }}
                                 className="min-h-11 flex-1 items-center justify-center rounded-2xl px-1"
-                                style={({ pressed }) =>
-                                    getPressedScaleStyle(pressed, false, 0.992)
-                                }
                                 onPress={() => handleTabChange(tabIndex)}
                             >
                                 <NativeText
@@ -162,7 +161,7 @@ export default function ReservationScreen() {
                                         {t(`reservations.tabs.${tab}`)}
                                     </NativeText>
                                 </Animated.View>
-                            </Pressable>
+                            </AnimatedPressable>
                         );
                     })}
                 </View>
@@ -174,6 +173,7 @@ export default function ReservationScreen() {
     return (
         <Screen scroll={false}>
             <TabView
+                animationEnabled={!reducedMotion}
                 navigationState={{ index: activeIndex, routes }}
                 onIndexChange={handleTabChange}
                 renderScene={renderScene}

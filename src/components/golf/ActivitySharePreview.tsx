@@ -175,7 +175,7 @@ export function ActivitySharePreview({
                     contentClassName="gap-4"
                     bottomPadding={12}
                     footer={
-                        <View className="gap-3 pt-3" accessibilityState={{ busy: isBusy }}>
+                        <View className="gap-3" accessibilityState={{ busy: isBusy }}>
                             {savedPreviewUri ? (
                                 <View className="absolute inset-x-0 z-10 flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3"
                                     style={{ bottom: "100%", marginBottom: 12,

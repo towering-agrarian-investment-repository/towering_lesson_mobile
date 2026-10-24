@@ -3,7 +3,7 @@ import {
     Badge,
     EmptyState,
     ErrorState,
-    getPressedScaleStyle,
+    AnimatedPressable,
     Skeleton,
 } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
@@ -23,7 +23,7 @@ import { Href, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, View } from "react-native";
+import { FlatList, View } from "react-native";
 
 export function MemberGroups({
     refreshing = false,
@@ -142,14 +142,11 @@ function GroupCard({
         : t("groups.capacityEmpty");
 
     return (
-        <Pressable
+        <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={t("groups.openGroup", { name: groupName })}
             disabled={disabled}
             className="disabled:opacity-60"
-            style={({ pressed }) =>
-                getPressedScaleStyle(pressed, disabled, 0.992)
-            }
             onPress={onPress}
             onPressIn={onPressIn}
         >
@@ -218,7 +215,7 @@ function GroupCard({
                     <GroupMetaRow label={t("common.time")} value={timeRange} />
                 </View>
             </View>
-        </Pressable>
+        </AnimatedPressable>
     );
 }
 

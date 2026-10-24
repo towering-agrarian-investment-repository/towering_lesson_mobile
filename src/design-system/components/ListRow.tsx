@@ -3,7 +3,6 @@ import { useTheme } from "@/design-system/utils/theme";
 import { ChevronRight } from "lucide-react-native";
 import { type ReactNode } from "react";
 import {
-    Pressable,
     View,
     type GestureResponderEvent,
     type PressableProps,
@@ -11,6 +10,7 @@ import {
 } from "react-native";
 import { cn } from "../utils/cn";
 import { triggerSelectionHaptic } from "../utils/haptics";
+import { AnimatedPressable } from "./AnimatedPressable";
 
 type ListRowProps = PressableProps & {
     title: string;
@@ -53,7 +53,7 @@ export function ListRow({
     };
 
     return (
-        <Pressable
+        <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={title}
             disabled={disabled}
@@ -61,9 +61,6 @@ export function ListRow({
                 "min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60",
                 className,
             )}
-            style={({ pressed }) => ({
-                transform: [{ scale: pressed && !disabled ? 0.992 : 1 }],
-            })}
             {...props}
             onPress={handlePress}
         >
@@ -110,6 +107,6 @@ export function ListRow({
                     />
                 </View>
             ) : null}
-        </Pressable>
+        </AnimatedPressable>
     );
 }

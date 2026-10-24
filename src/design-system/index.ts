@@ -1,5 +1,6 @@
 export * from "./components/AppToast";
 export * from "./components/AppText";
+export * from "./components/AnimatedPressable";
 export * from "./components/Badge";
 export * from "./components/charts";
 export * from "./components/CircleLoader";
@@ -19,6 +20,5 @@ export * from "./layout/Stack";
 export * from "./utils/cn";
 export * from "./utils/haptics";
 export * from "./utils/platform";
-export * from "./utils/pressable";
 export * from "./utils/theme";
 export * from "./utils/ticket-type";

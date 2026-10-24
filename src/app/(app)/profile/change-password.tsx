@@ -123,7 +123,7 @@ function ChangePasswordScreen() {
             keyboardAware
             contentClassName="flex-grow"
             footer={
-                <View className="pb-8 pt-4">
+                <View>
                     <Host
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"

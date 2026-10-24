@@ -8,6 +8,7 @@ import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 const ROW_HEIGHT = 52;
 
@@ -17,6 +18,7 @@ function Wheel({ values, selected, onSelect }: {
     onSelect: (value: number) => void;
 }) {
     const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
+    const reducedMotion = useReducedMotion();
     const initialized = useRef(false);
     const selectedIndex = Math.max(0, values.findIndex(item => item.value === selected));
     const settle = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -46,7 +48,7 @@ function Wheel({ values, selected, onSelect }: {
                             className="items-center justify-center" style={{ height: ROW_HEIGHT }}
                             onPress={() => {
                                 onSelect(item.value);
-                                scrollRef.current?.scrollTo({ y: index * ROW_HEIGHT, animated: true });
+                                scrollRef.current?.scrollTo({ y: index * ROW_HEIGHT, animated: !reducedMotion });
                             }}>
                             <NativeText variant="label" wrap={false} color={active ? "foreground" : "mutedForeground"}
                                 textStyle={{ fontWeight: active ? "700" : "500", fontSize: active ? 17 : 15 }}>

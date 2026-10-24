@@ -1,5 +1,5 @@
 import { AppText } from "@/design-system/components/AppText";
-import { cn, getPressedScaleStyle } from "@/design-system";
+import { AnimatedPressable, cn } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import {
     formatTicketTypeLabel,
@@ -11,7 +11,7 @@ import * as Haptics from "expo-haptics";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 type Props = {
     item: TicketListItemResponse;
@@ -79,15 +79,12 @@ function TicketCard({
     };
 
     return (
-        <Pressable
+        <AnimatedPressable
             disabled={isBookingDisabled}
             onPress={handlePress}
             accessibilityRole="button"
             accessibilityLabel={item.name}
             className={isBookingDisabled ? "opacity-75" : undefined}
-            style={({ pressed }) =>
-                getPressedScaleStyle(pressed, isBookingDisabled, 0.988)
-            }
         >
             <View
                 className={cn(
@@ -156,7 +153,7 @@ function TicketCard({
                     ) : null}
                 </View>
             </View>
-        </Pressable>
+        </AnimatedPressable>
     );
 }
 

@@ -2,7 +2,7 @@ import { NativeText } from "@/design-system/components/NativeText";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    getPressedScaleStyle,
+    AnimatedPressable,
     InlineState,
     ListRow,
     useThemeColors,
@@ -26,7 +26,7 @@ import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { FileText } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { Linking, Pressable, View } from "react-native";
+import { Linking, View } from "react-native";
 
 type SessionResourceSectionProps = {
     resources: SessionResourcesFilesResponse[];
@@ -129,15 +129,12 @@ function SessionResourceItem({
                     "overflow-hidden p-0",
                 )}
             >
-                <Pressable
+                <AnimatedPressable
                     accessibilityRole="imagebutton"
                     accessibilityLabel={t("sessionResources.openImage", {
                         title,
                     })}
                     className="relative overflow-hidden"
-                    style={({ pressed }) =>
-                        getPressedScaleStyle(pressed, false, 0.992)
-                    }
                     onPress={() => {
                         void Linking.openURL(url).catch(() => {
                             showAppToast({ message: t("common.unableToOpenLink"), type: "error" });
@@ -181,7 +178,7 @@ function SessionResourceItem({
                             </NativeText>
                         </View>
                     </View>
-                </Pressable>
+                </AnimatedPressable>
             </View>
         );
     }

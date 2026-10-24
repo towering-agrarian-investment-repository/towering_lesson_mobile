@@ -1,12 +1,13 @@
 import { NativeText } from "@/design-system/components/NativeText";
 import { TICKET_TABS, TicketTabScene } from "@/components/golf/TicketTabScene";
-import { getPressedScaleStyle, Screen } from "@/design-system";
+import { AnimatedPressable, Screen } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
 import * as Haptics from "expo-haptics";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, Pressable, View } from "react-native";
+import { Animated, View } from "react-native";
 import { TabView, type TabBarProps } from "react-native-tab-view";
+import { useReducedMotion } from "react-native-reanimated";
 
 type TicketRoute = {
     key: string;
@@ -16,6 +17,7 @@ type TicketRoute = {
 export default function TicketsScreen() {
 
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
     const routes = useMemo(
@@ -96,7 +98,7 @@ export default function TicketsScreen() {
                         });
 
                         return (
-                            <Pressable
+                            <AnimatedPressable
                                 key={tab}
                                 accessibilityRole="button"
                                 accessibilityLabel={t(
@@ -107,9 +109,6 @@ export default function TicketsScreen() {
                                     selected: activeIndex === tabIndex,
                                 }}
                                 className="min-h-11 flex-1 items-center justify-center rounded-2xl px-1"
-                                style={({ pressed }) =>
-                                    getPressedScaleStyle(pressed, false, 0.992)
-                                }
                                 onPress={() => handleTabChange(tabIndex)}
                             >
                                 <NativeText
@@ -136,7 +135,7 @@ export default function TicketsScreen() {
                                         {t(`tickets.filters.${tab}`)}
                                     </NativeText>
                                 </Animated.View>
-                            </Pressable>
+                            </AnimatedPressable>
                         );
                     })}
                 </View>
@@ -148,6 +147,7 @@ export default function TicketsScreen() {
     return (
         <Screen scroll={false}>
             <TabView
+                animationEnabled={!reducedMotion}
                 navigationState={{ index: activeIndex, routes }}
                 onIndexChange={handleTabChange}
                 renderScene={renderScene}

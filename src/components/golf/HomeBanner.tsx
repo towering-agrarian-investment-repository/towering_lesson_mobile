@@ -6,6 +6,7 @@ import { Href, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, FlatList, Linking, Pressable, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 const BANNER_ASPECT_RATIO = 993 / 250;
 const AUTO_ROTATE_MS = 5000;
@@ -13,6 +14,7 @@ const EMPTY_BANNERS: PublishedBanner[] = [];
 
 export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBanner[] }) {
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
     const router = useRouter();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
     const listRef = useRef<FlatList<PublishedBanner>>(null);
@@ -36,7 +38,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     }, [items.length]);
 
     useFocusEffect(useCallback(() => {
-        if (items.length < 2 || width === 0) return;
+        if (reducedMotion || items.length < 2 || width === 0) return;
 
         let timer: ReturnType<typeof setInterval> | undefined;
         const stop = () => {
@@ -59,7 +61,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
             stop();
             subscription.remove();
         };
-    }, [items.length, width]));
+    }, [items.length, reducedMotion, width]));
 
     const openBanner = (targetUrl: string | null) => {
         if (!targetUrl) return;

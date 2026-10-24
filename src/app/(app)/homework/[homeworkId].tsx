@@ -248,7 +248,7 @@ export default function HomeworkDetailScreen() {
             horizontalPadding={false}
             contentClassName="min-h-0"
             footer={
-                <View className="gap-3 pb-8 pt-4">
+                <View className="gap-3">
                     <Host
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"

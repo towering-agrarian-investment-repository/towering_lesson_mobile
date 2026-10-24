@@ -1,5 +1,5 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import { Badge, EmptyState, getPressedScaleStyle } from "@/design-system";
+import { AnimatedPressable, Badge, EmptyState } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import type { SessionInstanceResponse } from "@/types/member-session";
@@ -13,7 +13,6 @@ import {
     type LayoutChangeEvent,
     FlatList,
     Platform,
-    Pressable,
     View,
 } from "react-native";
 import { SessionResourceSection } from "./SessionResourceSection";
@@ -21,6 +20,7 @@ import Animated, {
     useAnimatedScrollHandler,
     useAnimatedStyle,
     useSharedValue,
+    useReducedMotion,
 } from "react-native-reanimated";
 
 type LessonSessionsViewProps = {
@@ -34,6 +34,7 @@ export function LessonSessionsView({
 }: LessonSessionsViewProps) {
 
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
     const [selectedSessionId, setSelectedSessionId] = useState<number | null>(
         initialSessionId ?? sessions[0]?.id ?? null,
     );
@@ -70,10 +71,10 @@ export function LessonSessionsView({
         );
 
         scrollViewRef.current?.scrollToOffset({
-            animated: true,
+            animated: !reducedMotion,
             offset: targetX,
         });
-    }, [activeSessionId, containerWidth, contentWidth]);
+    }, [activeSessionId, containerWidth, contentWidth, reducedMotion]);
 
     if (sessions.length === 0) {
         return (
@@ -187,7 +188,7 @@ function SessionSwitcher({
                         const statusTone = getSessionStatusTone(session.status);
 
                         return (
-                            <Pressable
+                            <AnimatedPressable
                                 accessibilityRole="button"
                                 accessibilityLabel={t(
                                     "lessonSessions.openSession",
@@ -199,9 +200,6 @@ function SessionSwitcher({
                                     isSelected
                                         ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3"
                                         : "min-h-16 min-w-32 rounded-2xl border border-border bg-card px-4 py-3"
-                                }
-                                style={({ pressed }) =>
-                                    getPressedScaleStyle(pressed, false, 0.992)
                                 }
                                 onLayout={(event) => {
                                     onItemLayout(session.id, event);
@@ -252,7 +250,7 @@ function SessionSwitcher({
                                         />
                                     ) : null}
                                 </View>
-                            </Pressable>
+                            </AnimatedPressable>
                         );
                     }}
                     showsHorizontalScrollIndicator={Platform.OS === "android"}

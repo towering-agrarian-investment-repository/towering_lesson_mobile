@@ -10,6 +10,9 @@ Run a short pass on an iPhone, an iPad, and an Android phone; include an Android
 2. Activity: open monthly and yearly previews; check equal visual spacing around the reservation count, then open the period picker and confirm its native controls are usable. Save and share both cards; the saved PNG should be 1080 × 1350 pixels, and Share/Save must stay at the bottom above the system inset.
 3. Welcome and Profile: content stays centered in one column on tablets; buttons remain reachable. Open Edit Personal Information on an iPhone and confirm the full title fits in the navigation bar.
 4. Open a booking or edit form and use the keyboard; its primary action remains reachable. Rotate a tablet once and confirm the screen still scrolls.
+5. Check the fixed bottom actions on both booking confirmations, booking success, reservation detail, lesson log detail and comment, homework, profile edit and password change, and Welcome. Each action should stay above the system bottom area, use the same footer spacing, and have side padding in portrait and landscape.
+6. Open and back out of a detail screen, switch reservation and ticket filters, open and close Activity preview and Profile photo, and show and dismiss a toast. Repeat with system Reduce Motion enabled: stack navigation should fade, filters should switch without sliding, the banner should stop auto-rotating, and brief overlays should avoid movement.
+7. Press and release reservation, ticket, lesson-log, and profile rows plus icon buttons on iOS and Android. Their scale feedback should be brief and consistent, disabled controls should stay still, and Reduce Motion should remove the scale feedback.
 
 If this pass fails, fix the shared layout or the affected component and repeat the pass. Run the broader release checklist below before shipping.
 
@@ -37,6 +40,7 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 - Onboarding, phone/password login, role rejection, logout, session restoration, password change.
 - Bay/private/group booking, availability conflicts, completion navigation, eligible cancellation, bay rescheduling.
 - Ticket filters, today's reservations, pagination, refresh, loading/error/empty states. Compare a one-hour reservation on Android and iOS: both must show an hour label, never `3,600s`.
+- Open a reservation from a list while its full detail is still loading; the remaining-detail row uses the three-dot loader and then resolves to the full detail.
 - Lesson/group/session content, media playback/links, member feedback, homework upload/review/history.
 - Notification feed actions and push registration/tap navigation across app states and permission outcomes.
 - Activity filters, charts, image capture, photo-library permissions, saving.

@@ -5,7 +5,7 @@ import { FormTextInput } from "@/components/ui/form";
 import {
     EmptyState,
     ErrorState,
-    getPressedScaleStyle,
+    AnimatedPressable,
     Screen,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
@@ -32,7 +32,6 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
-    Pressable,
     RefreshControl,
     View,
 } from "react-native";
@@ -179,7 +178,7 @@ function LessonLogCommentScreen() {
             keyboardAware
             contentClassName="grow gap-5"
             footer={
-                <View className="pb-8 pt-4">
+                <View>
                     <Host
                         matchContents={{ vertical: true }}
                         ignoreSafeArea="all"
@@ -315,7 +314,7 @@ function LessonLogCommentScreen() {
                                     const isActive = starValue <= value;
 
                                     return (
-                                        <Pressable
+                                        <AnimatedPressable
                                             key={starValue}
                                             accessibilityRole="button"
                                             accessibilityLabel={t(
@@ -325,13 +324,6 @@ function LessonLogCommentScreen() {
                                                 },
                                             )}
                                             className="h-12 w-12 items-center justify-center"
-                                            style={({ pressed }) =>
-                                                getPressedScaleStyle(
-                                                    pressed,
-                                                    false,
-                                                    0.92,
-                                                )
-                                            }
                                             onPress={() => {
                                                 triggerSelectionHaptic();
                                                 onChange(starValue);
@@ -351,7 +343,7 @@ function LessonLogCommentScreen() {
                                                 }
                                                 strokeWidth={1.8}
                                             />
-                                        </Pressable>
+                                        </AnimatedPressable>
                                     );
                                 })}
                             </View>

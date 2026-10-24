@@ -16,7 +16,16 @@ import {
     useState,
     type ReactNode,
 } from "react";
-import { Animated, Pressable, View, type ViewStyle } from "react-native";
+import { Pressable, View, type ViewStyle } from "react-native";
+import Animated, {
+    cancelAnimation,
+    Easing,
+    useAnimatedStyle,
+    useReducedMotion,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -71,15 +80,22 @@ const TOAST_ICONS: Record<ToastType, LucideIcon> = {
     warning: TriangleAlert,
     info: Info,
 };
+const TOAST_EASING = Easing.bezier(0.23, 1, 0.32, 1);
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
+    const reducedMotion = useReducedMotion();
     const [toast, setToast] = useState<ActiveToast | null>(null);
     const activeIdRef = useRef(0);
+    const activePositionRef = useRef<ToastPosition>("top");
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [opacity] = useState(() => new Animated.Value(0));
-    const [translateY] = useState(() => new Animated.Value(-12));
+    const opacity = useSharedValue(0);
+    const translateY = useSharedValue(0);
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: opacity.get(),
+        transform: [{ translateY: translateY.get() }],
+    }));
 
     const clearTimer = useCallback(() => {
         if (timeoutRef.current) {
@@ -88,38 +104,39 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const removeToast = useCallback((id: number) => {
+        if (activeIdRef.current === id) setToast(null);
+    }, []);
+
     const dismissToast = useCallback(
         (id: number) => {
             if (activeIdRef.current !== id) return;
 
             clearTimer();
-            Animated.parallel([
-                Animated.timing(opacity, {
-                    toValue: 0,
+            opacity.set(withTiming(0, {
+                duration: reducedMotion ? 100 : 160,
+                easing: TOAST_EASING,
+            }, (finished) => {
+                if (finished) scheduleOnRN(removeToast, id);
+            }));
+            if (!reducedMotion) {
+                translateY.set(withTiming(activePositionRef.current === "top" ? -8 : 8, {
                     duration: 160,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(translateY, {
-                    toValue: -8,
-                    duration: 160,
-                    useNativeDriver: true,
-                }),
-            ]).start(({ finished }) => {
-                if (finished && activeIdRef.current === id) {
-                    setToast(null);
-                }
-            });
+                    easing: TOAST_EASING,
+                }));
+            }
         },
-        [clearTimer, opacity, translateY],
+        [clearTimer, opacity, reducedMotion, removeToast, translateY],
     );
 
     const showToast = useCallback(
         (options: ToastOptions) => {
             const id = activeIdRef.current + 1;
             activeIdRef.current = id;
+            activePositionRef.current = options.position ?? "top";
             clearTimer();
-            opacity.stopAnimation();
-            translateY.stopAnimation();
+            cancelAnimation(opacity);
+            cancelAnimation(translateY);
 
             setToast({
                 id,
@@ -140,25 +157,18 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (!toast) return;
 
-        opacity.setValue(0);
-        translateY.setValue(toast.position === "top" ? -12 : 12);
-
-        Animated.parallel([
-            Animated.spring(opacity, {
-                toValue: 1,
-                damping: 20,
-                stiffness: 240,
-                mass: 0.8,
-                useNativeDriver: true,
-            }),
-            Animated.spring(translateY, {
-                toValue: 0,
-                damping: 20,
-                stiffness: 240,
-                mass: 0.8,
-                useNativeDriver: true,
-            }),
-        ]).start();
+        opacity.set(0);
+        translateY.set(reducedMotion ? 0 : toast.position === "top" ? -12 : 12);
+        opacity.set(withTiming(1, {
+            duration: reducedMotion ? 120 : 200,
+            easing: TOAST_EASING,
+        }));
+        if (!reducedMotion) {
+            translateY.set(withTiming(0, {
+                duration: 200,
+                easing: TOAST_EASING,
+            }));
+        }
 
         timeoutRef.current = setTimeout(
             () => dismissToast(toast.id),
@@ -166,7 +176,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
         );
 
         return clearTimer;
-    }, [clearTimer, dismissToast, opacity, toast, translateY]);
+    }, [clearTimer, dismissToast, opacity, reducedMotion, toast, translateY]);
 
     const accentColors: Record<ToastType, string> = {
         success: colors.success,
@@ -204,12 +214,10 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
                         }
                         accessibilityRole="alert"
                         className="w-full max-w-xl flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
-                        style={{
-                            opacity,
-                            transform: [{ translateY }],
+                        style={[animatedStyle, {
                             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
                             borderCurve: "continuous",
-                        }}
+                        }]}
                     >
                         <View
                             className="h-10 w-10 shrink-0 items-center justify-center rounded-full"
