@@ -336,6 +336,8 @@ const zh: TranslationResource<typeof en> = {
         count_other: "{{count}} 项预约",
         showingCount: "已显示 {{count}} 项预约",
         showingCount_other: "已显示 {{count}} 项预约",
+        durationHour: "{{value}}小时",
+        durationMinute: "{{value}}分钟",
         updating: "正在更新...",
         tabs: {
             all: "全部",

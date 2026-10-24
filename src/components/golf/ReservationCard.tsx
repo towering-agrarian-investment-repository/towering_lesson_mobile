@@ -41,12 +41,13 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                 : t("booking.startsInDays", { count: Math.ceil(minutesUntilStart / 1440) })
         : null;
     const duration = reservation.durationMinutes > 0
-        ? new Intl.NumberFormat(i18n.language, {
-            style: "unit",
-            unit: reservation.durationMinutes % 60 === 0 ? "hour" : "minute",
-            unitDisplay: "short",
-        }).format(reservation.durationMinutes % 60 === 0
-            ? reservation.durationMinutes / 60 : reservation.durationMinutes)
+        ? reservation.durationMinutes % 60 === 0
+            ? t("reservations.durationHour", {
+                value: new Intl.NumberFormat(i18n.language).format(reservation.durationMinutes / 60),
+            })
+            : t("reservations.durationMinute", {
+                value: new Intl.NumberFormat(i18n.language).format(reservation.durationMinutes),
+            })
         : null;
 
     return (

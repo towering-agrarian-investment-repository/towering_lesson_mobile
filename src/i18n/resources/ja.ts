@@ -336,6 +336,8 @@ const ja: TranslationResource<typeof en> = {
         count_other: "{{count}} 件の予約",
         showingCount: "{{count}} 件の予約を表示中",
         showingCount_other: "{{count}} 件の予約を表示中",
+        durationHour: "{{value}} 時間",
+        durationMinute: "{{value}} 分",
         updating: "更新中...",
         tabs: {
             all: "すべて",

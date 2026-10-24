@@ -333,6 +333,8 @@ const ko = {
         "count": "\uc608\uc57d {{count}}\uac74",
         "showingCount": "\uc608\uc57d {{count}}\uac74 \ud45c\uc2dc \uc911",
         "showingCount_other": "\uc608\uc57d {{count}}\uac74 \ud45c\uc2dc \uc911",
+        "durationHour": "{{value}}\uc2dc\uac04",
+        "durationMinute": "{{value}}\ubd84",
         "updating": "\uc5c5\ub370\uc774\ud2b8 \uc911...",
         "tabs": {
             "all": "\uc804\uccb4",

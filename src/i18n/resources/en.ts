@@ -403,6 +403,8 @@ const en = {
         count_other: "{{count}} reservations",
         showingCount: "Showing {{count}} reservation",
         showingCount_other: "Showing {{count}} reservations",
+        durationHour: "{{value}} hr",
+        durationMinute: "{{value}} min",
         updating: "Updating...",
         tabs: {
             all: "All",

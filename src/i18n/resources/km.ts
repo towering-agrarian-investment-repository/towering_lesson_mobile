@@ -336,6 +336,8 @@ const km: TranslationResource<typeof en> = {
         count_other: "ការកក់ {{count}}",
         showingCount: "កំពុងបង្ហាញការកក់ {{count}}",
         showingCount_other: "កំពុងបង្ហាញការកក់ {{count}}",
+        durationHour: "{{value}} ម៉ោង",
+        durationMinute: "{{value}} នាទី",
         updating: "កំពុងធ្វើបច្ចុប្បន្នភាព...",
         tabs: {
             all: "ទាំងអស់",

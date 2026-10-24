@@ -36,7 +36,7 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 
 - Onboarding, phone/password login, role rejection, logout, session restoration, password change.
 - Bay/private/group booking, availability conflicts, completion navigation, eligible cancellation, bay rescheduling.
-- Ticket filters, today's reservations, pagination, refresh, loading/error/empty states.
+- Ticket filters, today's reservations, pagination, refresh, loading/error/empty states. Compare a one-hour reservation on Android and iOS: both must show an hour label, never `3,600s`.
 - Lesson/group/session content, media playback/links, member feedback, homework upload/review/history.
 - Notification feed actions and push registration/tap navigation across app states and permission outcomes.
 - Activity filters, charts, image capture, photo-library permissions, saving.
