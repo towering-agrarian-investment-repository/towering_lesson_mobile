@@ -275,7 +275,6 @@ export default function AppLayout() {
             name="profile/edit"
             options={{
               title: t("profile.editPersonalInformation"),
-              headerLargeTitle: true,
             }}
           />
         </Stack>

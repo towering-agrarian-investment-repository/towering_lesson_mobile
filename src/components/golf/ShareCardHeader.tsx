@@ -36,7 +36,6 @@ export function ShareCardHeader({ periodLabel, totalReservations, hoursPlayed, l
     const countLabel = new Intl.NumberFormat(language).format(totalReservations);
     const countSize = countLabel.length <= 2 ? 260 : countLabel.length === 3 ? 210 : 165;
     const countHeight = Math.max(248, countSize + 16);
-    const reservationLabelY = countHeight > 248 ? 153 + countHeight + 4 : 394;
     const countOpticalOffset = totalReservations >= 10 && totalReservations <= 19 && totalReservations !== 11 ? -18 : 0;
     const hoursLabel = new Intl.NumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(hoursPlayed);
     const hourUnit = copy("hourShort");
@@ -67,7 +66,7 @@ export function ShareCardHeader({ periodLabel, totalReservations, hoursPlayed, l
                 </Text>
             )}
             <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}
-                style={[pos(78, reservationLabelY, 372, tallScript ? 75 : 68), type(56, tallScript ? 73 : 65, "900"),
+                style={[pos(78, layout.components.reservationLabel.y, 372, tallScript ? 75 : 68), type(56, tallScript ? 73 : 65, "900"),
                     { textAlign: "center" }]}>
                 {copy("reservations")}
             </Text>

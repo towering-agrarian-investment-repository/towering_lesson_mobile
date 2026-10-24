@@ -4,7 +4,7 @@ import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef, useState, type ComponentRef, type MutableRefObject, type RefObject } from "react";
-import { Alert, Image, Linking, type View } from "react-native";
+import { Alert, Image, Linking, PixelRatio, type View } from "react-native";
 import { captureRef, releaseCapture } from "react-native-view-shot";
 
 export type ShareCardAction = "share" | "save";
@@ -93,11 +93,13 @@ export function useShareCardExport({ cardRef, captureReadyRef, canExport, t }: P
             if (!captureReadyRef.current || !cardRef.current) {
                 throw new Error("The card changed while preparing the capture. Please retry.");
             }
+            // View-shot treats dimensions as points on iOS and pixels on Android.
+            const captureScale = process.env.EXPO_OS === "ios" ? PixelRatio.get() : 1;
             uri = await captureRef(cardRef.current, {
                 format: "png",
                 quality: 1,
-                width: SHARE_CARD_EXPORT_WIDTH,
-                height: SHARE_CARD_EXPORT_HEIGHT,
+                width: SHARE_CARD_EXPORT_WIDTH / captureScale,
+                height: SHARE_CARD_EXPORT_HEIGHT / captureScale,
                 result: "tmpfile",
             });
             const size = await Image.getSize(uri);

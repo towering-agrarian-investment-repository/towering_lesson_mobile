@@ -1,7 +1,7 @@
 import { formatShareCardMonth } from "@/components/golf/monthly-share-card-layout";
 import { useTheme } from "@/design-system/utils/theme";
 import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
-import { Button, Column, Picker, Text } from "@expo/ui";
+import { Button, Column, Picker, Row, Text } from "@expo/ui";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import { useMemo } from "react";
@@ -28,14 +28,22 @@ export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onC
     return (
         <Column spacing={16}>
             <Text>{yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}</Text>
-            <Picker selectedValue={year} onValueChange={value => onChange(value, month)}>
-                {years.map(value => <Picker.Item key={value} label={String(value)} value={value} />)}
-            </Picker>
-            {!yearOnly && <Picker selectedValue={month} onValueChange={value => onChange(year, value)}>
-                {Array.from({ length: 12 }, (_, value) => (
-                    <Picker.Item key={value} label={monthFormatter.format(new Date(Date.UTC(2024, value, 1)))} value={value} />
-                ))}
-            </Picker>}
+            <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
+                {!yearOnly && (
+                    <Column modifiers={[frame({ maxWidth: Infinity })]}>
+                        <Picker appearance="wheel" selectedValue={month} onValueChange={value => onChange(year, value)}>
+                            {Array.from({ length: 12 }, (_, value) => (
+                                <Picker.Item key={value} label={monthFormatter.format(new Date(Date.UTC(2024, value, 1)))} value={value} />
+                            ))}
+                        </Picker>
+                    </Column>
+                )}
+                <Column modifiers={[frame({ maxWidth: Infinity })]}>
+                    <Picker appearance="wheel" selectedValue={year} onValueChange={value => onChange(value, month)}>
+                        {years.map(value => <Picker.Item key={value} label={String(value)} value={value} />)}
+                    </Picker>
+                </Column>
+            </Row>
             <Button
                 variant="text"
                 onPress={() => onConfirm(year, month)}

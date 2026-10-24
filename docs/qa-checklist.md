@@ -7,8 +7,8 @@ Code checks (`tsc`, `eslint`, `expo-doctor`, `expo export`) are not runtime veri
 Run a short pass on an iPhone, an iPad, and an Android phone; include an Android tablet when releasing tablet-specific work. Check the affected screens and these representative flows before widening testing:
 
 1. Home: scroll to the end; the reservations button must remain visible and tappable above the native tab bar.
-2. Activity: open monthly and yearly previews; reservation counts must fit, and Share/Save must stay at the bottom above the system inset.
-3. Welcome and Profile: content stays centered in one column on tablets; buttons remain reachable.
+2. Activity: open monthly and yearly previews; check equal visual spacing around the reservation count, then open the period picker and confirm its native controls are usable. Save and share both cards; the saved PNG should be 1080 × 1350 pixels, and Share/Save must stay at the bottom above the system inset.
+3. Welcome and Profile: content stays centered in one column on tablets; buttons remain reachable. Open Edit Personal Information on an iPhone and confirm the full title fits in the navigation bar.
 4. Open a booking or edit form and use the keyboard; its primary action remains reachable. Rotate a tablet once and confirm the screen still scrolls.
 
 If this pass fails, fix the shared layout or the affected component and repeat the pass. Run the broader release checklist below before shipping.
