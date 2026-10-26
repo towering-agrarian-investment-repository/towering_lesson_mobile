@@ -12,7 +12,8 @@ const ko = {
         "continue": "계속",
         "installedVersion": "현재 버전: {{version}}",
         "newVersion": "새 버전: {{version}}",
-        "checking": "업데이트 확인 중..."
+        "checking": "업데이트 확인 중...",
+        "currentContentDate": "현재 앱 업데이트: {{date}}"
     },
     "login": {
         "title": "\ud574\ud53c\uace8\ud504 \uc2dc\uc791\ud558\uae30",
@@ -444,7 +445,9 @@ const ko = {
         "usageRemaining": "{{total}}\ud68c \uc911 {{remaining}}\ud68c \ub0a8\uc74c",
         "remainingBalance": "{{remaining}}\ud68c \ub0a8\uc74c",
         "flexibleUsage": "\uc720\ub3d9 \uc774\uc6a9",
-        "useOncePerDay": "\ud558\ub8e8 1\ud68c \uc0ac\uc6a9"
+        "useOncePerDay": "\ud558\ub8e8 1\ud68c \uc0ac\uc6a9",
+        "limitReached": "\uc774 \ud2f0\ucf13\uc740 \uc0ac\uc6a9 \ud55c\ub3c4\uc5d0 \ub3c4\ub2ec\ud588\uc2b5\ub2c8\ub2e4.",
+        "limitReachedBadge": "\ud55c\ub3c4 \ub3c4\ub2ec"
     },
     "groups": {
         "loadError": "\uadf8\ub8f9\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
@@ -490,6 +493,7 @@ const ko = {
         "statusBlocked": "\ucc28\ub2e8\ub428",
         "statusBooked": "\uc608\uc57d\ub428",
         "justBooked": "\ubc29\uae08 \uc608\uc57d\ub428",
+        "alreadyBooked": "\uc774\ubbf8 \uc608\uc57d\ub428",
         "statusUnavailable": "\uc774\uc6a9 \ubd88\uac00",
         "statusAvailable": "\uc774\uc6a9 \uac00\ub2a5",
         "selectGroupTitle": "\uadf8\ub8f9 \uc120\ud0dd",
@@ -505,8 +509,6 @@ const ko = {
         "spotsLeft": "{{count}}\uc790\ub9ac \ub0a8\uc74c",
         "spots": "\uc790\ub9ac",
         "tba": "\ubbf8\uc815",
-        "fullViewOnly": "\ub9cc\uc11d - \uc870\ud68c\ub9cc \uac00\ub2a5",
-        "unavailableViewOnly": "\uc774\uc6a9 \ubd88\uac00 - \uc870\ud68c\ub9cc \uac00\ub2a5",
         "coachLabel": "\ucf54\uce58: {{name}}",
         "startingSoon": "\uace7 \uc2dc\uc791",
         "startsInMinutes": "{{count}}\ubd84 \ud6c4 \uc2dc\uc791",

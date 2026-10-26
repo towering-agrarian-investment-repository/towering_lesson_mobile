@@ -27,6 +27,7 @@ import { useAppUpdateContext } from "@/lib/update/update-context";
 import { signOut } from "@/service/auth";
 import type { GenderEnum } from "@/types/member.type";
 import { formatType } from "@/utils/format-enum";
+import { formatDateValue } from "@/utils/time-helper";
 import {
   Button,
   Column,
@@ -48,6 +49,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
+import * as Updates from "expo-updates";
 import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -62,6 +64,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
 
 const APP_VERSION = Constants.expoConfig?.version;
+const APP_CONTENT_DATE = Updates.createdAt;
 
 const isIOS = process.env.EXPO_OS === "ios";
 const fullWidth = isIOS ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()];
@@ -545,14 +548,26 @@ export default function ProfileScreen() {
               </View>
 
               {APP_VERSION ? (
-                <NativeText
-                  variant="caption"
-                  color="mutedForeground"
-                  align="center"
-                  style={{ marginTop: 16, paddingBottom: 16 }}
-                >
-                  {"v " + APP_VERSION}
-                </NativeText>
+                <View className="items-center gap-1 pt-4 pb-4">
+                  <NativeText
+                    variant="caption"
+                    color="mutedForeground"
+                    align="center"
+                  >
+                    {"v " + APP_VERSION}
+                  </NativeText>
+                  {APP_CONTENT_DATE ? (
+                    <NativeText
+                      variant="caption"
+                      color="mutedForeground"
+                      align="center"
+                    >
+                      {t("appUpdate.currentContentDate", {
+                        date: formatDateValue(APP_CONTENT_DATE, "MMM d, yyyy"),
+                      })}
+                    </NativeText>
+                  ) : null}
+                </View>
               ) : null}
             </View>
         </View>

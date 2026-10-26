@@ -62,7 +62,7 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
             accessibilityLabel={`${title}, ${fmtTime(reservation.startTime)}, ${statusLabel}${countdownLabel ? `, ${countdownLabel}` : ""}`}
             className="min-h-20 flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3"
         >
-            <View className="w-[72px] shrink-0 self-stretch justify-center border-r border-border pr-2">
+            <View className="w-[74px] shrink-0 self-stretch justify-center border-r border-border pr-2">
                 <AppText variant="body" numberOfLines={1} textStyle={{ fontWeight: "700" }}>
                     {fmtTime(reservation.startTime)}
                 </AppText>

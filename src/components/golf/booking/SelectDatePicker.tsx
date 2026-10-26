@@ -17,8 +17,10 @@ import {
   useMemberBaySlotGroups,
   useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
+import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import { getBaySlotAvailability } from "@/utils/bay-slot";
+import { isLessonSlotBookedByMember, isLessonSlotFull } from "@/utils/lesson-slot";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
@@ -188,6 +190,8 @@ export default function DateScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { runWithNavigationLock } = useNavigationLock();
+  const { data: memberResponse } = useGetMemberProfile();
+  const memberId = memberResponse?.data.id;
 
   const today = formatDateForAPI(new Date());
   const currentMonth = parseMonth(today);
@@ -237,6 +241,9 @@ export default function DateScreen() {
 
     if (isLessonTicket) {
       for (const slot of lessonSlotData?.data ?? []) {
+        if (isLessonSlotFull(slot) || isLessonSlotBookedByMember(slot, memberId)) {
+          continue;
+        }
         const date = formatDateForAPI(slot.startTime);
         if (date) {
           dates.add(date);
@@ -258,7 +265,7 @@ export default function DateScreen() {
     }
 
     return dates;
-  }, [baySlotGroupData, isLessonTicket, lessonSlotData]);
+  }, [baySlotGroupData, isLessonTicket, lessonSlotData, memberId]);
 
   const handleDayPress = useCallback(
     (dateString: string) => {

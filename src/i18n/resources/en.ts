@@ -16,6 +16,7 @@ const en = {
         continue: "Continue",
         installedVersion: "Installed version: {{version}}",
         newVersion: "New version: {{version}}",
+        currentContentDate: "Current app update: {{date}}",
         checking: "Checking for updates...",
     },
     login: {
@@ -489,6 +490,8 @@ const en = {
         remainingBalance: "{{remaining}} remaining",
         flexibleUsage: "Flexible Usage",
         useOncePerDay: "Use once per day",
+        limitReached: "This ticket has reached its usage limit.",
+        limitReachedBadge: "Limit reached",
     },
     groups: {
         loadError: "Couldn't load groups",
@@ -530,6 +533,7 @@ const en = {
         statusBlocked: "Blocked",
         statusBooked: "Booked",
         justBooked: "Just booked",
+        alreadyBooked: "Already booked",
         statusUnavailable: "Unavailable",
         statusAvailable: "Available",
         selectGroupTitle: "Select Group",
@@ -546,8 +550,6 @@ const en = {
         spotsLeft_other: "{{count}} spots left",
         tba: "TBA",
         spots: "Spots",
-        fullViewOnly: "Full - viewable only",
-        unavailableViewOnly: "Unavailable - viewable only",
         coachLabel: "Coach: {{name}}",
         startingSoon: "Starting soon",
         startsInMinutes: "Starts in {{count}} min",

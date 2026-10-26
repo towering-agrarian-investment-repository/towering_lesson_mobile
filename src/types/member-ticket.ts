@@ -23,6 +23,7 @@ export type TicketListItemResponse = {
 	onlyOnePerDay: boolean;
 	usedCount: number;
 	remainingCount: number;
+	fullyUsed: boolean;
 	startDate: string | null;
 	endDate: string | null;
 	status: string;

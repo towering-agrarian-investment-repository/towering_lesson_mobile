@@ -29,7 +29,8 @@ function MyTicket({ member }: Props) {
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data, isLoading, isError, hasNextPage } = useMemberTickets(member.id, undefined, 3);
-    const tickets = data?.items ?? [];
+    const allTickets = data?.items ?? [];
+    const tickets = allTickets.filter((ticket) => !ticket.fullyUsed);
 
     const handleTicketPress = useCallback(
         (item: TicketListItemResponse) => {
@@ -66,7 +67,7 @@ function MyTicket({ member }: Props) {
                     length={`${tickets.length}${hasNextPage ? "+" : ""}`}
                 />
 
-                {tickets.length > 1 || hasNextPage ? (
+                {tickets.length > 1 || hasNextPage || allTickets.length > tickets.length ? (
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t("tickets.viewAll")}

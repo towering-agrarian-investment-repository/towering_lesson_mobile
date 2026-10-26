@@ -43,8 +43,8 @@ export function useUpdateMemberProfileImage() {
             imageUri: string;
             contentType: ProfileImageContentType;
         }) => updateMemberProfileImage(memberId, imageUri, contentType),
-        onSuccess: (res) => {
-            queryClient.setQueryData(["member", "profile"], res);
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["member", "profile"] });
             void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         },
         onError: (err: unknown) => {

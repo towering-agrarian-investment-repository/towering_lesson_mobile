@@ -34,7 +34,7 @@ export async function getJwtToken(signal?: AbortSignal): Promise<string | null> 
     const generation = authGeneration;
     if (!pendingToken) {
         const request = authClient.token().then(({ data, error }) => {
-            if (error) return null;
+            if (error) throw error;
 
             const token = data?.token ?? null;
             const expiresAt = token ? getTokenExpiration(token) : null;

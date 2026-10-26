@@ -15,6 +15,7 @@ const ja: TranslationResource<typeof en> = {
         continue: "続行",
         installedVersion: "インストール済みバージョン: {{version}}",
         newVersion: "新バージョン: {{version}}",
+        currentContentDate: "現在のアプリ更新: {{date}}",
         checking: "アップデートを確認中...",
     },
     login: {
@@ -448,6 +449,8 @@ const ja: TranslationResource<typeof en> = {
         remainingBalance: "残り {{remaining}} 回",
         flexibleUsage: "フレキシブルチケット",
         useOncePerDay: "1日1回まで利用可能",
+        limitReached: "このチケットは利用上限に達しました。",
+        limitReachedBadge: "利用上限",
     },
     groups: {
         loadError: "グループの読み込みに失敗しました",
@@ -489,6 +492,7 @@ const ja: TranslationResource<typeof en> = {
         statusBlocked: "予約不可",
         statusBooked: "満席",
         justBooked: "たった今予約されました",
+        alreadyBooked: "予約済み",
         statusUnavailable: "利用不可",
         statusAvailable: "予約可能",
         selectGroupTitle: "クラス選択",
@@ -505,8 +509,6 @@ const ja: TranslationResource<typeof en> = {
         spotsLeft_other: "残り {{count}} 枠",
         tba: "未定",
         spots: "枠数",
-        fullViewOnly: "満席 - 閲覧のみ",
-        unavailableViewOnly: "利用不可 - 閲覧のみ",
         coachLabel: "担当プロ: {{name}}",
         startingSoon: "まもなく開始",
         startsInMinutes: "あと {{count}} 分で開始",

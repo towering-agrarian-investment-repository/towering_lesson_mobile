@@ -45,7 +45,7 @@ export const updateMemberProfileImage = async (
     memberId: number,
     imageUri: string,
     contentType: ProfileImageContentType,
-): Promise<ApiResponse<MemberSelfResponse>> => {
+): Promise<void> => {
     const imageFile = new File(imageUri);
 
     if (!imageFile.exists || imageFile.size <= 0) {
@@ -97,7 +97,7 @@ export const updateMemberProfileImage = async (
         throw new Error(`Profile image upload failed: ${uploadResponse.status}`);
     }
 
-    return apiClient<ApiResponse<MemberSelfResponse>>(
+    await apiClient(
         `/member/${memberId}/profile-image`,
         {
             method: "PUT",

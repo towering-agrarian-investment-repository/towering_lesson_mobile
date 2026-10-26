@@ -13,10 +13,12 @@ import {
     useCreateMemberLessonReservation,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
+import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
 import {
     getLessonSlotDisplayName,
     isGroupLessonSlot,
+    isLessonSlotBookedByMember,
     isLessonSlotBookable,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
@@ -61,6 +63,7 @@ export default function LessonBookingConfirmScreen() {
     const notes = initialNotes?.trim() || null;
     const { mutate: createReservation, isPending: isCreating } =
         useCreateMemberLessonReservation();
+    const { data: memberResponse } = useGetMemberProfile();
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
@@ -106,6 +109,9 @@ export default function LessonBookingConfirmScreen() {
     const isGroupSelection = selectedSlot
         ? isGroupLessonSlot(selectedSlot)
         : isGroupTicket;
+    const isSelectedSlotAlreadyBooked = isGroupSelection && selectedSlot
+        ? isLessonSlotBookedByMember(selectedSlot, memberResponse?.data.id)
+        : false;
     const isMissingRequiredData =
         !ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot;
 
@@ -148,15 +154,17 @@ export default function LessonBookingConfirmScreen() {
             return;
         }
 
-        if (isSelectedSlotFull) {
+        if (isSelectedSlotFull || isSelectedSlotAlreadyBooked) {
             showAppToast({
-                message: isSelectedSlotBookable
-                    ? isGroupSelection
-                        ? t("bookingConfirmation.selectedGroupUnavailable")
-                        : t("bookingConfirmation.selectedLessonSlotUnavailable")
-                    : isGroupSelection
-                        ? t("bookingConfirmation.selectedGroupNotBookable")
-                        : t("bookingConfirmation.selectedLessonSlotNotBookable"),
+                message: isSelectedSlotAlreadyBooked
+                    ? t("booking.alreadyBooked")
+                    : isSelectedSlotBookable
+                        ? isGroupSelection
+                            ? t("bookingConfirmation.selectedGroupUnavailable")
+                            : t("bookingConfirmation.selectedLessonSlotUnavailable")
+                        : isGroupSelection
+                            ? t("bookingConfirmation.selectedGroupNotBookable")
+                            : t("bookingConfirmation.selectedLessonSlotNotBookable"),
                 type: "warning",
             });
 
@@ -222,16 +230,19 @@ export default function LessonBookingConfirmScreen() {
     const coachNameValue = selectedSlot?.coachName ?? coachName;
     const isDisabled =
         isCreating ||
-        isSelectedSlotFull;
-    const disabledReason = isSelectedSlotFull
-        ? isSelectedSlotBookable
-            ? isGroupSelection
-                ? t("bookingConfirmation.selectedGroupNowFull")
-                : t("bookingConfirmation.selectedLessonSlotNowFull")
-            : isGroupSelection
-                ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
-                : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
-        : null;
+        isSelectedSlotFull ||
+        isSelectedSlotAlreadyBooked;
+    const disabledReason = isSelectedSlotAlreadyBooked
+        ? t("booking.alreadyBooked")
+        : isSelectedSlotFull
+            ? isSelectedSlotBookable
+                ? isGroupSelection
+                    ? t("bookingConfirmation.selectedGroupNowFull")
+                    : t("bookingConfirmation.selectedLessonSlotNowFull")
+                : isGroupSelection
+                    ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
+                    : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
+            : null;
 
     return (
         <Screen

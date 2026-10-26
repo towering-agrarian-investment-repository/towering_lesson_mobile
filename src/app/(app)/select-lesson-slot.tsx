@@ -14,11 +14,13 @@ import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
+import { useGetMemberProfile } from "@/lib/hook/useUser";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
 import {
   getLessonSlotDisplayName,
   getLessonSpotsLeft,
   isGroupLessonSlot,
+  isLessonSlotBookedByMember,
   isLessonSlotBookable,
   isLessonSlotFull,
 } from "@/utils/lesson-slot";
@@ -83,6 +85,8 @@ export default function SelectLessonSlotScreen() {
 
   const router = useRouter();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
+  const { data: memberResponse } = useGetMemberProfile();
+  const memberId = memberResponse?.data.id;
   const now = useMinuteTick();
   const [dismissedConflictId, setDismissedConflictId] = useState<string>();
   const isGroupTicket =
@@ -151,6 +155,7 @@ export default function SelectLessonSlotScreen() {
     ({ item: slot }: { item: MemberLessonSlotResponse }) => (
       <LessonSlotCard
         slot={slot}
+        memberId={memberId}
         now={now}
         isGroupTicket={isGroupTicket}
         wasJustBooked={Boolean(
@@ -165,6 +170,7 @@ export default function SelectLessonSlotScreen() {
       handleSelect,
       isGroupTicket,
       isLocked,
+      memberId,
       now,
       visibleConflictMessage,
     ],
@@ -273,6 +279,7 @@ export default function SelectLessonSlotScreen() {
 
 type LessonSlotCardProps = {
   slot: MemberLessonSlotResponse;
+  memberId?: number;
   now: number;
   isGroupTicket: boolean;
   wasJustBooked: boolean;
@@ -282,6 +289,7 @@ type LessonSlotCardProps = {
 
 const LessonSlotCard = memo(function LessonSlotCard({
   slot,
+  memberId,
   now,
   isGroupTicket,
   wasJustBooked,
@@ -293,20 +301,23 @@ const LessonSlotCard = memo(function LessonSlotCard({
 
   const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
   const isBookable = isLessonSlotBookable(slot);
-  const disabled = wasJustBooked || isLessonSlotFull(slot);
+  const alreadyBooked = isGroupSlot && isLessonSlotBookedByMember(slot, memberId);
+  const disabled = wasJustBooked || alreadyBooked || isLessonSlotFull(slot);
   const minutesUntilStart = disabled ? null : getMinutesUntilStart(slot, now);
   const startingSoon = minutesUntilStart != null && minutesUntilStart <= 60;
   const lessonTitle = getLessonSlotDisplayName(slot);
 
   const statusLabel = wasJustBooked
     ? t("booking.justBooked")
-    : disabled
-      ? isBookable
-        ? t("booking.full")
-        : t("booking.statusUnavailable")
-      : isGroupSlot
-        ? t("booking.spotsLeft", { count: getLessonSpotsLeft(slot) })
-        : t("booking.statusAvailable");
+    : alreadyBooked
+      ? t("booking.alreadyBooked")
+      : disabled
+        ? isBookable
+          ? t("booking.full")
+          : t("booking.statusUnavailable")
+        : isGroupSlot
+          ? t("booking.spotsLeft", { count: getLessonSpotsLeft(slot) })
+          : t("booking.statusAvailable");
 
   const countdownLabel =
     minutesUntilStart == null
@@ -323,15 +334,17 @@ const LessonSlotCard = memo(function LessonSlotCard({
 
   const badgeColor = wasJustBooked
     ? colors.warning
-    : disabled
-      ? isGroupSlot
-        ? colors.danger
-        : colors.mutedForeground
-      : startingSoon
-        ? colors.warning
-        : isGroupSlot
-          ? colors.ticketGroup
-          : colors.primary;
+    : alreadyBooked
+      ? colors.warning
+      : disabled
+        ? isGroupSlot
+          ? colors.danger
+          : colors.mutedForeground
+        : startingSoon
+          ? colors.warning
+          : isGroupSlot
+            ? colors.ticketGroup
+            : colors.primary;
 
   const bodyColor = disabled
     ? colors.mutedForeground
@@ -425,13 +438,6 @@ const LessonSlotCard = memo(function LessonSlotCard({
         </AppText>
       </View>
 
-      {isGroupSlot && disabled ? (
-        <AppText variant="caption" color="danger" wrap={false}>
-          {isBookable
-            ? t("booking.fullViewOnly")
-            : t("booking.unavailableViewOnly")}
-        </AppText>
-      ) : null}
     </AnimatedPressable>
   );
 });

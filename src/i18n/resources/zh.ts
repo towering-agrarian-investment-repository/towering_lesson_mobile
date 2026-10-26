@@ -15,6 +15,7 @@ const zh: TranslationResource<typeof en> = {
         continue: "继续",
         installedVersion: "已安装版本：{{version}}",
         newVersion: "新版本：{{version}}",
+        currentContentDate: "当前应用更新：{{date}}",
         checking: "正在检查更新...",
     },
     login: {
@@ -448,6 +449,8 @@ const zh: TranslationResource<typeof en> = {
         remainingBalance: "剩余 {{remaining}} 次",
         flexibleUsage: "灵活套餐",
         useOncePerDay: "每日限用一次",
+        limitReached: "此卡券已达到使用上限。",
+        limitReachedBadge: "已达上限",
     },
     groups: {
         loadError: "无法加载班级",
@@ -489,6 +492,7 @@ const zh: TranslationResource<typeof en> = {
         statusBlocked: "已锁定",
         statusBooked: "已约满",
         justBooked: "刚刚被预订",
+        alreadyBooked: "已预订",
         statusUnavailable: "不可用",
         statusAvailable: "可预订",
         selectGroupTitle: "选择班级",
@@ -505,8 +509,6 @@ const zh: TranslationResource<typeof en> = {
         spotsLeft_other: "剩余 {{count}} 个名额",
         tba: "待定",
         spots: "名额",
-        fullViewOnly: "已满 - 仅供查看",
-        unavailableViewOnly: "不可用 - 仅供查看",
         coachLabel: "教练：{{name}}",
         startingSoon: "即将开始",
         startsInMinutes: "{{count}} 分钟后开始",

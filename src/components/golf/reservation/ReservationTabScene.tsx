@@ -240,12 +240,13 @@ function ReservationLoadingState() {
 
 function ReservationDateHeader({ startTime, count }: { startTime: string; count: number }) {
   const { t, i18n } = useTranslation();
+
   return (
     <View className="mb-1 mt-4 flex-row items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2.5">
-      <AppText variant="eyebrow" color="mutedForeground" numberOfLines={1}
+      <AppText variant="eyebrow" color="mutedForeground" numberOfLines={2}
         style={{ flex: 1, minWidth: 0 }}
         textStyle={{ letterSpacing: 0.2 }}>
-        {formatDateValue(startTime, "EEE, MMM d, yyyy").toLocaleUpperCase(i18n.language)}
+        {formatDateValue(startTime, "EEEE, MMM d, yyyy").toLocaleUpperCase(i18n.language)}
       </AppText>
       <AppText variant="meta" color="mutedForeground" wrap={false} numberOfLines={1}>
         {t("reservations.count", { count })}

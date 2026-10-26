@@ -15,6 +15,7 @@ const km: TranslationResource<typeof en> = {
         continue: "បន្ត",
         installedVersion: "កំណែដែលបានដំឡើង៖ {{version}}",
         newVersion: "កំណែថ្មី៖ {{version}}",
+        currentContentDate: "កំណែអាប់ដេតកម្មវិធីបច្ចុប្បន្ន៖ {{date}}",
         checking: "កំពុងពិនិត្យមើលការអាប់ដេត...",
     },
     login: {
@@ -448,6 +449,8 @@ const km: TranslationResource<typeof en> = {
         remainingBalance: "នៅសល់ {{remaining}} ដង",
         flexibleUsage: "ការប្រើប្រាស់បត់បែន",
         useOncePerDay: "ប្រើប្រាស់បានម្តងក្នុងមួយថ្ងៃ",
+        limitReached: "សំបុត្រនេះបានដល់កម្រិតប្រើប្រាស់ហើយ។",
+        limitReachedBadge: "ដល់កម្រិត",
     },
     groups: {
         loadError: "មិនអាចផ្ទុកក្រុមបានទេ",
@@ -489,6 +492,7 @@ const km: TranslationResource<typeof en> = {
         statusBlocked: "ត្រូវ​បាន​បិទ",
         statusBooked: "បានកក់រួច",
         justBooked: "ទើបតែត្រូវបានកក់",
+        alreadyBooked: "បានកក់រួច",
         statusUnavailable: "មិនទំនេរ",
         statusAvailable: "អាចកក់បាន",
         selectGroupTitle: "ជ្រើសរើសក្រុម",
@@ -505,8 +509,6 @@ const km: TranslationResource<typeof en> = {
         spotsLeft_other: "នៅសល់ {{count}} កន្លែង",
         tba: "មិនទាន់កំណត់",
         spots: "កន្លែង",
-        fullViewOnly: "ពេញ - សម្រាប់តែមើល",
-        unavailableViewOnly: "មិនទំនេរ - សម្រាប់តែមើល",
         coachLabel: "គ្រូបង្វឹក៖ {{name}}",
         startingSoon: "នឹងចាប់ផ្តើមឆាប់ៗ",
         startsInMinutes: "ចាប់ផ្តើមក្នុងរយៈពេល {{count}} នាទី",

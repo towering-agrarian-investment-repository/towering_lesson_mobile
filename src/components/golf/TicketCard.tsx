@@ -58,16 +58,16 @@ function TicketCard({
 }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const isInactive =
-        item.status === "EXPIRED" || item.status === "FULLY_USED";
+    const isFullyUsed = item.fullyUsed || item.status === "FULLY_USED";
+    const isInactive = item.status === "EXPIRED" || isFullyUsed;
     const ticketTone = getTicketTypeTone(item.type);
-    const isBookingDisabled = disabled || isInactive;
+    const isPressDisabled = disabled || isInactive;
 
     const badgeLabel = formatTicketTypeLabel(item.type, t) || "-";
     const usageNote = getUsageNote(item, t);
 
     const handlePress = () => {
-        if (isBookingDisabled) {
+        if (isPressDisabled) {
             return;
         }
 
@@ -80,11 +80,12 @@ function TicketCard({
 
     return (
         <AnimatedPressable
-            disabled={isBookingDisabled}
+            disabled={isPressDisabled}
             onPress={handlePress}
             accessibilityRole="button"
-            accessibilityLabel={item.name}
-            className={isBookingDisabled ? "opacity-75" : undefined}
+            accessibilityLabel={isFullyUsed ? `${item.name}, ${t("tickets.limitReached")}` : item.name}
+            accessibilityState={{ disabled: isPressDisabled }}
+            className={isPressDisabled ? "opacity-75" : undefined}
         >
             <View
                 className={cn(
@@ -113,7 +114,13 @@ function TicketCard({
                             </AppText>
                         </View>
 
-                        {item.type !== "LESSON_PROGRAM" ? (
+                        {isFullyUsed ? (
+                            <View className="min-w-0 shrink rounded-md bg-card px-2 py-1">
+                                <AppText variant="badge" color="warning" align="right" numberOfLines={2}>
+                                    {t("tickets.limitReachedBadge")}
+                                </AppText>
+                            </View>
+                        ) : item.type !== "LESSON_PROGRAM" ? (
                             <ChevronRight
                                 size={18}
                                 color={

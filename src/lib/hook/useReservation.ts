@@ -300,7 +300,7 @@ export function useCreateMemberLessonReservation() {
             refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "ticket-lesson-slots"],
-                refetchType: "none",
+                refetchType: "active",
             });
         },
         onError: (error) => {

@@ -28,9 +28,18 @@ export async function apiClient<T = unknown>(
     options.signal?.addEventListener("abort", abortFromCaller, { once: true });
 
     try {
-        const jwtToken = await withAbort(getJwtToken(controller.signal), controller.signal);
+        let jwtToken: string | null;
+        try {
+            jwtToken = await withAbort(getJwtToken(controller.signal), controller.signal);
+        } catch (error) {
+            if (error && typeof error === "object" && "status" in error && error.status === 401) {
+                await withAbort(verifyMemberSession(), controller.signal);
+            }
+            throw error;
+        }
 
         if (!jwtToken) {
+            await withAbort(verifyMemberSession(), controller.signal);
             throw new Error("No JWT token available");
         }
 
@@ -54,28 +63,29 @@ export async function apiClient<T = unknown>(
         });
 
         let response = await withAbort(request(), controller.signal);
-        let retriedGet = false;
+        let retriedWithFreshToken = false;
+        const isGetRequest = (options.method ?? "GET").toUpperCase() === "GET";
 
-        if (response.status === 401) {
+        if (response.status === 401 && (isGetRequest || isBearerTokenRejection(response))) {
             clearCachedJwtToken();
             const sessionRecovered = await withAbort(
                 verifyMemberSession(),
                 controller.signal,
             );
-            if ((options.method ?? "GET").toUpperCase() === "GET" && sessionRecovered) {
+            if (sessionRecovered) {
                 const freshToken = await withAbort(
                     getJwtToken(controller.signal),
                     controller.signal,
                 );
                 if (freshToken) {
                     headers.set("Authorization", `Bearer ${freshToken}`);
-                    retriedGet = true;
+                    retriedWithFreshToken = true;
                     response = await withAbort(request(), controller.signal);
                 }
             }
         }
 
-        if (retriedGet && response.status === 401) {
+        if (retriedWithFreshToken && isBearerTokenRejection(response)) {
             clearCachedJwtToken();
         }
 
@@ -148,4 +158,9 @@ function isUpdateRequiredResponse(status: number, data: unknown) {
             errorCode: API_ERROR_CODE.UPGRADE_REQUIRED,
         })
     );
+}
+
+function isBearerTokenRejection(response: Response) {
+    return response.status === 401 &&
+        /^Bearer(?:\s|$)/i.test(response.headers.get("WWW-Authenticate")?.trim() ?? "");
 }
