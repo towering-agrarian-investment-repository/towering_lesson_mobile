@@ -150,16 +150,16 @@ export const YearlyShareCard = memo(forwardRef<React.ElementRef<typeof View>, Ye
 
             <View style={{ ...pos(68, 1110, 964, 2), backgroundColor: colors.border }} />
             <View style={{ ...pos(88, 1130, 126, 126), borderRadius: 63 * scale, overflow: "hidden",
-                backgroundColor: colors.muted }}>
+                backgroundColor: colors.primary }}>
                 {memberImage && !avatarFailed ? (
                     <Image source={{ uri: memberImage }} resizeMode="cover" style={{ width: "100%", height: "100%" }}
                         onLoad={() => setAvatarReady(true)} onError={() => { setAvatarFailed(true); setAvatarReady(true); }} />
                 ) : (
                     <>
                         <View style={{ position: "absolute", left: 41 * scale, top: 22 * scale,
-                            width: 44 * scale, height: 44 * scale, borderRadius: 22 * scale, backgroundColor: mutedInk }} />
+                            width: 44 * scale, height: 44 * scale, borderRadius: 22 * scale, backgroundColor: colors.primaryForeground }} />
                         <View style={{ position: "absolute", left: 22 * scale, top: 72 * scale,
-                            width: 82 * scale, height: 70 * scale, borderRadius: 41 * scale, backgroundColor: mutedInk }} />
+                            width: 82 * scale, height: 70 * scale, borderRadius: 41 * scale, backgroundColor: colors.primaryForeground }} />
                     </>
                 )}
             </View>

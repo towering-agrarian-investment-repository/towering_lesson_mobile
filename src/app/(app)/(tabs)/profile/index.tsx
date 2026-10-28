@@ -11,6 +11,7 @@ import {
   type ThemePreference,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import {
   getNativeButtonStyle,
   getNativeButtonTextStyle,
@@ -649,6 +650,7 @@ function ProfileAvatar({
   imageUrl?: string | null;
   size?: "small" | "large";
 }) {
+  const { colors } = useTheme();
   const dimensionClassName = size === "large" ? "h-24 w-24" : "h-12 w-12";
   const textVariant = size === "large" ? "h1" : "h3";
 
@@ -668,7 +670,8 @@ function ProfileAvatar({
 
   return (
     <View
-      className={`${dimensionClassName} shrink-0 items-center justify-center rounded-full bg-primary`}
+      className={`${dimensionClassName} shrink-0 items-center justify-center rounded-full`}
+      style={{ backgroundColor: colors.primary }}
     >
       <NativeText
         variant={textVariant}
@@ -717,12 +720,12 @@ function InfoRow({
   return (
     <View className="min-h-14 flex-row items-center gap-3 py-3">
       <Icon size={20} color={colors.foreground} />
-      <NativeText
+      <AppText
         variant="body"
         style={{ flex: 1, minWidth: 0 }}
       >
         {label}
-      </NativeText>
+      </AppText>
 
       <NativeText
         variant="body"

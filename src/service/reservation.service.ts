@@ -9,6 +9,8 @@ export type MemberReservationHistoryParams = {
     type: MemberReservationType;
     cursor?: string;
     limit?: number;
+    from?: string;
+    to?: string;
 };
 
 export type MemberReservationCalendarParams = {
@@ -23,6 +25,8 @@ export async function getMemberReservations({
     type,
     cursor,
     limit = MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
+    from,
+    to,
 }: MemberReservationHistoryParams, signal?: AbortSignal): Promise<
     ApiResponse<CursorPageResponse<MemberReservationResponse>>
 > {
@@ -33,6 +37,12 @@ export async function getMemberReservations({
 
     if (cursor) {
         params.set("cursor", cursor);
+    }
+    if (from) {
+        params.set("from", from);
+    }
+    if (to) {
+        params.set("to", to);
     }
 
     return apiClient(`/member/reservations?${params.toString()}`, {

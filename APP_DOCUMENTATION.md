@@ -108,7 +108,7 @@ Sources: [shared confirmation footer, loading UI, and navigation](<src/component
 
 ### Reservation list and detail
 
-- The [reservation list](<src/app/(app)/reservation.tsx>) has all/bay/private/group/program tabs, cursor pagination, refresh, and loading/error/empty states.
+- The [reservation list](<src/app/(app)/reservation.tsx>) has all/bay/private/group/program tabs, All/Upcoming/Past date filters, cursor pagination, refresh, and loading/error/empty states.
 - [Reservation detail](<src/app/(app)/reservation/[id].tsx>) supports bay and lesson records, status, ticket details, timing, coach/program/bay information, notes, and policies.
 - Cancellation is offered when status is `RESERVED` and the backend marks the reservation cancellable. It uses an Expo UI bottom sheet with the existing danger styling and guards pending requests.
 - Bay rescheduling is implemented for bay records marked cancellable, reusing selection/confirmation screens in reschedule mode. Lesson rescheduling is not currently exposed.

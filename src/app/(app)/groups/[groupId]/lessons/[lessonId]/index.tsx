@@ -16,6 +16,7 @@ import {
     useMemberLessonByGroup,
 } from "@/lib/hook/useMemberLessonFlow";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { showAppToast } from "@/lib/toast/toast";
 import type {
     MemberHomeworkSubmissionResponse,
     MemberHomeworkSummaryResponse,
@@ -44,7 +45,7 @@ import {
 } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, View } from "react-native";
+import { Linking, RefreshControl, View } from "react-native";
 
 type LessonParams = {
     groupId: string;
@@ -236,32 +237,41 @@ export default function LessonDetailScreen() {
                         count={detail.media.length}
                     />
                     <View className="gap-3">
-                        {detail.media.map((media, index) => (
-                            <ListRow
-                                key={`media-${media.id ?? index}`}
-                                title={
-                                    media.description?.trim() ||
-                                    t("lessons.mediaFallback", {
-                                        id: media.id ?? index + 1,
-                                    })
-                                }
-                                subtitle={media.mediaType ?? undefined}
-                                leading={
-                                    <RowIcon>
-                                        <FileText
-                                            size={18}
-                                            color={colors.mutedForeground}
-                                        />
-                                    </RowIcon>
-                                }
-                                className="border-border bg-card px-4 py-3.5"
-                                titleStyle={{
-                                    fontWeight: "500",
-                                    lineHeight: 24,
-                                }}
-                                showChevron={false}
-                            />
-                        ))}
+                        {detail.media.map((media, index) => {
+                            const url = media.fileUrl?.trim();
+                            return (
+                                <ListRow
+                                    key={`media-${media.id ?? index}`}
+                                    title={
+                                        media.description?.trim() ||
+                                        t("lessons.mediaFallback", {
+                                            id: media.id ?? index + 1,
+                                        })
+                                    }
+                                    subtitle={media.mediaType ?? undefined}
+                                    leading={
+                                        <RowIcon>
+                                            <FileText
+                                                size={18}
+                                                color={colors.mutedForeground}
+                                            />
+                                        </RowIcon>
+                                    }
+                                    className="border-border bg-card px-4 py-3.5"
+                                    titleStyle={{
+                                        fontWeight: "500",
+                                        lineHeight: 24,
+                                    }}
+                                    accessibilityRole={url ? "button" : "text"}
+                                    showChevron={Boolean(url)}
+                                    onPress={url ? () => {
+                                        void Linking.openURL(url).catch(() => {
+                                            showAppToast({ message: t("common.unableToOpenLink"), type: "error" });
+                                        });
+                                    } : undefined}
+                                />
+                            );
+                        })}
                     </View>
                 </>
             ) : null}
@@ -297,7 +307,7 @@ function SessionRow({
     const colors = useThemeColors();
     const isCompleted = session.status === "COMPLETED" || !!session.completedAt;
     const rowClassName = isCompleted
-        ? "border-emerald-100 bg-emerald-50/60 px-4 py-3.5"
+        ? "border-success/20 bg-success/10 px-4 py-3.5"
         : "border-border bg-card px-4 py-3.5";
 
     return (
@@ -445,20 +455,20 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 function getFallbackHomeworkTone(status?: string | null) {
     if (status === "COMPLETED" || status === "SUBMITTED") {
         return {
-            className: "bg-emerald-100",
+            className: "bg-success/10",
             color: "success" as const,
         };
     }
 
     if (status === "OVERDUE" || status === "REJECTED" || status === "MISSING") {
         return {
-            className: "bg-rose-100",
+            className: "bg-danger/10",
             color: "danger" as const,
         };
     }
 
     return {
-        className: "bg-amber-100",
+        className: "bg-warning/10",
         color: "warning" as const,
     };
 }
@@ -473,7 +483,7 @@ function getHomeworkRowClassName(
         submissionStatus === "REVIEWED" ||
         homeworkStatus === "COMPLETED"
     ) {
-        return "border-emerald-100 bg-emerald-50/60 px-4 py-3.5";
+        return "border-success/20 bg-success/10 px-4 py-3.5";
     }
 
     if (
@@ -481,7 +491,7 @@ function getHomeworkRowClassName(
         homeworkStatus === "REJECTED" ||
         homeworkStatus === "MISSING"
     ) {
-        return "border-rose-100 bg-rose-50/70 px-4 py-3.5";
+        return "border-danger/20 bg-danger/10 px-4 py-3.5";
     }
 
     return "border-border bg-card px-4 py-3.5";

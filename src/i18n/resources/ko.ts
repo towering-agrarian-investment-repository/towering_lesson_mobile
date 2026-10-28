@@ -330,6 +330,17 @@ const ko = {
         "failedMoreTitle": "\ub2e4\uc74c \uc608\uc57d\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",
         "noReservationsTitle": "\uc608\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4",
         "noReservationsMessage": "\ub0b4 \uc608\uc57d\uc774 \uc5ec\uae30\uc5d0 \ud45c\uc2dc\ub429\ub2c8\ub2e4.",
+        "noUpcomingReservationsTitle": "오늘 이후의 예약이 없습니다",
+        "noUpcomingReservationsMessage": "오늘 이후의 예약이 여기에 표시됩니다.",
+        "noPastReservationsTitle": "지난 예약이 없습니다",
+        "noPastReservationsMessage": "지난 예약이 여기에 표시됩니다.",
+        "showAll": "모든 예약 보기",
+        "filterAccessibility": "예약 필터, 현재 {{period}} 표시",
+        "period": {
+            "all": "전체",
+            "upcoming": "예정",
+            "past": "지난 예약"
+        },
         "showTabAccessibility": "{{label}} \uc608\uc57d \ubcf4\uae30",
         "count": "\uc608\uc57d {{count}}\uac74",
         "showingCount": "\uc608\uc57d {{count}}\uac74 \ud45c\uc2dc \uc911",
@@ -447,7 +458,9 @@ const ko = {
         "flexibleUsage": "\uc720\ub3d9 \uc774\uc6a9",
         "useOncePerDay": "\ud558\ub8e8 1\ud68c \uc0ac\uc6a9",
         "limitReached": "\uc774 \ud2f0\ucf13\uc740 \uc0ac\uc6a9 \ud55c\ub3c4\uc5d0 \ub3c4\ub2ec\ud588\uc2b5\ub2c8\ub2e4.",
-        "limitReachedBadge": "\ud55c\ub3c4 \ub3c4\ub2ec"
+        "limitReachedBadge": "\ud55c\ub3c4 \ub3c4\ub2ec",
+        "adminEnrollmentLabel": "관리자 등록",
+        "adminEnrollmentMessage": "이 티켓으로 프로그램에 참여하려면 관리자에게 등록을 요청하세요."
     },
     "groups": {
         "loadError": "\uadf8\ub8f9\uc744 \ubd88\ub7ec\uc624\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4",

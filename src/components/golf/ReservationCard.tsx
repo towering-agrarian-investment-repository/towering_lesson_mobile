@@ -78,7 +78,7 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                         <Icon size={20} color={colors.primaryForeground} strokeWidth={2.3} />
                     </View>
                     <View className="min-w-0 flex-1 justify-center gap-1">
-                        <AppText variant="label" numberOfLines={2} textStyle={{ fontWeight: "700" }}>{title}</AppText>
+                        <AppText variant="meta" numberOfLines={2} textStyle={{ fontWeight: "600" }}>{title}</AppText>
                         <View className="self-start rounded-full px-2 py-1"
                             style={{ backgroundColor: colorWithOpacity(statusColor, 0.12) }}>
                             <AppText variant="badge" wrap={false} numberOfLines={1}

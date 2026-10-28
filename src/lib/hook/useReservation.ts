@@ -59,12 +59,14 @@ export function getMemberBaySlotGroupsQueryOptions(startDate: string, endDate: s
     };
 }
 
-export function getMemberReservationsQueryOptions(type: MemberReservationType) {
-    const queryKey: ["member", "reservations", MemberReservationType] = [
+export function getMemberReservationsQueryOptions(type: MemberReservationType, from?: string, to?: string) {
+    const queryKey = [
         "member",
         "reservations",
         type,
-    ];
+        from ?? null,
+        to ?? null,
+    ] as const;
 
     return {
         queryKey,
@@ -75,6 +77,8 @@ export function getMemberReservationsQueryOptions(type: MemberReservationType) {
                 type,
                 cursor: pageParam ?? undefined,
                 limit: MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
+                from,
+                to,
             }, signal),
         getNextPageParam: (lastPage: ApiResponse<CursorPageResponse<MemberReservationResponse>>) => {
             const page = lastPage.data;
@@ -83,17 +87,17 @@ export function getMemberReservationsQueryOptions(type: MemberReservationType) {
     };
 }
 
-export function useMemberReservations(type: MemberReservationType) {
+export function useMemberReservations(type: MemberReservationType, from?: string, to?: string) {
     return useInfiniteQuery<
         ApiResponse<CursorPageResponse<MemberReservationResponse>>,
         Error,
         {
             items: MemberReservationResponse[];
         },
-        ["member", "reservations", MemberReservationType],
+        ReturnType<typeof getMemberReservationsQueryOptions>["queryKey"],
         string | null
     >({
-        ...getMemberReservationsQueryOptions(type),
+        ...getMemberReservationsQueryOptions(type, from, to),
         select: (data) => ({
             items: data.pages.flatMap((page) => page.data.items),
         }),
@@ -214,15 +218,17 @@ function getMemberReservationDetailPreview(
     }
 
     for (const type of ["all", "bay", "private", "group", "program"] as const) {
-        const list = queryClient.getQueryData<
+        const lists = queryClient.getQueriesData<
             InfiniteData<ApiResponse<CursorPageResponse<MemberReservationResponse>>>
-        >(["member", "reservations", type]);
-        for (const page of list?.pages ?? []) {
-            const reservation = page.data.items.find(
-                (item) => item.id === id && item.reservationType === domain,
-            );
-            if (reservation) {
-                return { status: page.status, data: { isListPreview: true, reservation } };
+        >({ queryKey: ["member", "reservations", type] });
+        for (const [, list] of lists) {
+            for (const page of list?.pages ?? []) {
+                const reservation = page.data.items.find(
+                    (item) => item.id === id && item.reservationType === domain,
+                );
+                if (reservation) {
+                    return { status: page.status, data: { isListPreview: true, reservation } };
+                }
             }
         }
     }

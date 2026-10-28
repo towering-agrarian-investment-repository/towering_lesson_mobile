@@ -40,6 +40,7 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 - Onboarding, phone/password login, role rejection, logout, session restoration, password change.
 - Bay/private/group booking, availability conflicts, completion navigation, eligible cancellation, bay rescheduling.
 - Ticket filters, today's reservations, pagination, refresh, loading/error/empty states. Compare a one-hour reservation on Android and iOS: both must show an hour label, never `3,600s`.
+- Reservation list: All dates includes every date; Today and future includes today but no earlier dates; Past dates excludes today. Switch all five type tabs in each view, load another page, refresh, and check empty/error states. Reopen the app after the business date changes and confirm both date bounds update.
 - Open a reservation from a list while its full detail is still loading; the remaining-detail row uses the three-dot loader and then resolves to the full detail.
 - Lesson/group/session content, media playback/links, member feedback, homework upload/review/history.
 - Notification feed actions and push registration/tap navigation across app states and permission outcomes.

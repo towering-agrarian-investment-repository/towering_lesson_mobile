@@ -94,6 +94,7 @@ export default function LoginScreen() {
         <Screen
             headerShown={false}
             keyboardAware
+            keyboardShouldPersistTaps="always"
             horizontalPadding={false}
             contentClassName="justify-start"
         >

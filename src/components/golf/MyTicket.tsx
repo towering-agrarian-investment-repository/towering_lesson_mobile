@@ -37,7 +37,8 @@ function MyTicket({ member }: Props) {
             queryClient.setQueryData(["member", "selected-ticket", item.id], item);
             if (item.type === "LESSON_PROGRAM") {
                 showAppToast({
-                    message: t("common.notAvailable"),
+                    message: t("tickets.adminEnrollmentMessage"),
+                    duration: 5000,
                     type: "info",
                 });
                 return;

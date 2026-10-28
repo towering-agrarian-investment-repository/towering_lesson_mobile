@@ -42,11 +42,19 @@ const reservationKeyExtractor = (item: MemberReservationResponse) =>
 type ReservationTabSceneProps = {
   type: MemberReservationType;
   referenceTime: number;
+  from?: string;
+  to?: string;
+  period: "all" | "upcoming" | "past";
+  onPeriodChange: (period: "all" | "upcoming" | "past") => void;
 };
 
 function ReservationTabSceneContent({
   type,
   referenceTime,
+  from,
+  to,
+  period,
+  onPeriodChange,
 }: ReservationTabSceneProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -65,7 +73,7 @@ function ReservationTabSceneContent({
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useMemberReservations(type);
+  } = useMemberReservations(type, from, to);
 
   const reservations = useMemo(() => {
     const seenKeys = new Set<string>();
@@ -174,11 +182,11 @@ function ReservationTabSceneContent({
         onRefresh={handleRefetch}
       >
         <EmptyState
-          title={t("reservations.noReservationsTitle")}
-          message={t("reservations.noReservationsMessage")}
-          actionLabel={t("common.refresh")}
-          actionPending={isRefetching}
-          onAction={handleRefetch}
+          title={t(period === "past" ? "reservations.noPastReservationsTitle" : period === "upcoming" ? "reservations.noUpcomingReservationsTitle" : "reservations.noReservationsTitle")}
+          message={t(period === "past" ? "reservations.noPastReservationsMessage" : period === "upcoming" ? "reservations.noUpcomingReservationsMessage" : "reservations.noReservationsMessage")}
+          actionLabel={t(period === "all" ? "common.refresh" : "reservations.showAll")}
+          actionPending={period === "all" && isRefetching}
+          onAction={period === "all" ? handleRefetch : () => onPeriodChange("all")}
         />
       </ReservationStateList>
     );

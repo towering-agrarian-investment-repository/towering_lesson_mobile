@@ -83,7 +83,13 @@ function TicketCard({
             disabled={isPressDisabled}
             onPress={handlePress}
             accessibilityRole="button"
-            accessibilityLabel={isFullyUsed ? `${item.name}, ${t("tickets.limitReached")}` : item.name}
+            accessibilityLabel={
+                isFullyUsed
+                    ? `${item.name}, ${t("tickets.limitReached")}`
+                    : item.type === "LESSON_PROGRAM"
+                        ? `${item.name}, ${t("tickets.adminEnrollmentLabel")}`
+                        : item.name
+            }
             accessibilityState={{ disabled: isPressDisabled }}
             className={isPressDisabled ? "opacity-75" : undefined}
         >
@@ -130,7 +136,11 @@ function TicketCard({
                                 }
                                 strokeWidth={2.4}
                             />
-                        ) : null}
+                        ) : (
+                            <AppText variant="badge" color="mutedForeground" align="right" numberOfLines={2}>
+                                {t("tickets.adminEnrollmentLabel")}
+                            </AppText>
+                        )}
                     </View>
 
                     <AppText variant="body" numberOfLines={1}>

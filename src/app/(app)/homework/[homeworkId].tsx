@@ -60,6 +60,7 @@ import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     FlatList,
+    Linking,
     type ListRenderItem,
     RefreshControl,
     View,
@@ -653,6 +654,7 @@ function SubmissionRow({
     iconColor: string;
 }) {
     const { t } = useTranslation();
+    const url = submission.fileUrl?.trim() || submission.externalUrl?.trim();
     return (
         <ListRow
             title={
@@ -680,7 +682,13 @@ function SubmissionRow({
             }
             className="border-border bg-card px-4 py-3.5"
             titleStyle={{ fontWeight: "500", lineHeight: 24 }}
-            showChevron={false}
+            accessibilityRole={url ? "button" : "text"}
+            showChevron={Boolean(url)}
+            onPress={url ? () => {
+                void Linking.openURL(url).catch(() => {
+                    showAppToast({ message: t("common.unableToOpenLink"), type: "error" });
+                });
+            } : undefined}
         />
     );
 }

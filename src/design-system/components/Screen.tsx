@@ -28,6 +28,7 @@ type ScreenProps = {
     headerShown?: boolean;
     horizontalPadding?: boolean;
     keyboardAware?: boolean;
+    keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
     scroll?: boolean;
     refreshControl?: ReactElement<RefreshControlProps>;
     contentInsetAdjustmentBehavior?: ScrollViewProps["contentInsetAdjustmentBehavior"];
@@ -43,6 +44,7 @@ export function Screen({
     headerShown = true,
     horizontalPadding = true,
     keyboardAware = false,
+    keyboardShouldPersistTaps = "handled",
     scroll = true,
     refreshControl,
     contentInsetAdjustmentBehavior = "automatic",
@@ -69,7 +71,7 @@ export function Screen({
     const scrollProps = {
         className: "flex-1 bg-background",
         contentContainerStyle: { flexGrow: 1 },
-        keyboardShouldPersistTaps: "handled",
+        keyboardShouldPersistTaps,
         keyboardDismissMode:
             process.env.EXPO_OS === "ios" ? "interactive" : "on-drag",
         showsVerticalScrollIndicator: false,

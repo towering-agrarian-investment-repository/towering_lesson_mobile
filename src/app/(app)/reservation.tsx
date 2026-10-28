@@ -4,10 +4,15 @@ import {
     ReservationTabScene,
 } from "@/components/golf/reservation/ReservationTabScene";
 import { AnimatedPressable, Screen } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { MemberReservationType } from "@/service/reservation.service";
+import { toAppTimeZoneDate } from "@/utils/timezone";
+import { MenuView, type MenuAction } from "@expo/ui/community/menu";
+import { format, subDays } from "date-fns";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
+import { Filter } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Animated, AppState, View } from "react-native";
@@ -19,13 +24,39 @@ type ReservationRoute = {
     title: string;
 };
 
+type ReservationPeriod = "all" | "upcoming" | "past";
+
 export default function ReservationScreen() {
 
     const { t } = useTranslation();
+    const { colors, resolvedScheme } = useTheme();
     const reducedMotion = useReducedMotion();
     const [activeIndex, setActiveIndex] = useState(0);
+    const [period, setPeriod] = useState<ReservationPeriod>("all");
     const [tabBarWidth, setTabBarWidth] = useState(0);
     const [referenceTime, setReferenceTime] = useState(Date.now);
+    const businessDate = toAppTimeZoneDate(referenceTime)!;
+    const today = format(businessDate, "yyyy-MM-dd");
+    const yesterday = format(subDays(businessDate, 1), "yyyy-MM-dd");
+    const from = period === "upcoming" ? today : undefined;
+    const to = period === "past" ? yesterday : undefined;
+    const filterActions: MenuAction[] = [
+        {
+            id: "all",
+            title: t("reservations.period.all"),
+            state: period === "all" ? "on" : "off",
+        },
+        {
+            id: "upcoming",
+            title: t("reservations.period.upcoming"),
+            state: period === "upcoming" ? "on" : "off",
+        },
+        {
+            id: "past",
+            title: t("reservations.period.past"),
+            state: period === "past" ? "on" : "off",
+        },
+    ];
     useFocusEffect(useCallback(() => {
         let timer: ReturnType<typeof setInterval> | undefined;
         const syncClock = () => {
@@ -67,9 +98,13 @@ export default function ReservationScreen() {
             <ReservationTabScene
                 type={route.key as MemberReservationType}
                 referenceTime={referenceTime}
+                from={from}
+                to={to}
+                period={period}
+                onPeriodChange={setPeriod}
             />
         ),
-        [referenceTime],
+        [from, period, referenceTime, to],
     );
     const renderTabBar = useCallback(
         ({ position }: TabBarProps<ReservationRoute>) => (
@@ -171,16 +206,47 @@ export default function ReservationScreen() {
     );
 
     return (
-        <Screen scroll={false}>
-            <TabView
-                animationEnabled={!reducedMotion}
-                navigationState={{ index: activeIndex, routes }}
-                onIndexChange={handleTabChange}
-                renderScene={renderScene}
-                renderTabBar={renderTabBar}
-                lazy
-                style={{ flex: 1 }}
-            />
-        </Screen>
+        <>
+            <Stack.Screen options={{
+                headerRight: () => (
+                    <MenuView
+                        actions={filterActions}
+                        colorScheme={resolvedScheme}
+                        onPressAction={({ nativeEvent }) => {
+                            const nextPeriod = nativeEvent.event;
+                            if (nextPeriod === "all" || nextPeriod === "upcoming" || nextPeriod === "past") {
+                                setPeriod(nextPeriod);
+                            }
+                        }}
+                    >
+                        <View
+                            accessibilityRole="button"
+                            accessibilityLabel={t("reservations.filterAccessibility", {
+                                period: t(`reservations.period.${period}`),
+                            })}
+                            accessibilityState={{ selected: period !== "all" }}
+                            className="min-h-12 min-w-12 items-center justify-center"
+                        >
+                            <Filter
+                                size={22}
+                                color={period === "all" ? colors.foreground : colors.primary}
+                                fill={period === "all" ? "none" : colors.primary}
+                            />
+                        </View>
+                    </MenuView>
+                ),
+            }} />
+            <Screen scroll={false}>
+                <TabView
+                    animationEnabled={!reducedMotion}
+                    navigationState={{ index: activeIndex, routes }}
+                    onIndexChange={handleTabChange}
+                    renderScene={renderScene}
+                    renderTabBar={renderTabBar}
+                    lazy
+                    style={{ flex: 1 }}
+                />
+            </Screen>
+        </>
     );
 }
