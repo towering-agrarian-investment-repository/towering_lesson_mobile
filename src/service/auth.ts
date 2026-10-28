@@ -52,6 +52,9 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
         if (result.error.code === "INVALID_PHONE_NUMBER_OR_PASSWORD" || result.error.code === "INVALID_PHONE_NUMBER") {
             throw new InvalidCredentialsError();
         }
+        if (result.error.status === 403 || /ROLE|MEMBER|APP_CLIENT/.test(result.error.code ?? "")) {
+            throw new InvalidCredentialsError();
+        }
         throw result.error;
     }
 
