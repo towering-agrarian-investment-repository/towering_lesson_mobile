@@ -1,5 +1,6 @@
 import { NativeText } from "@/design-system/components/NativeText";
 import { ActionButton, Badge, Divider, Screen } from "@/design-system";
+import { typography } from "@/design-system/utils/typography";
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";

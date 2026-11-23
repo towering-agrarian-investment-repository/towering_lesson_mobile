@@ -56,7 +56,7 @@ export function getMemberBaySlotGroupsQueryOptions(ticketId: number, startDate: 
         queryKey: ["member", "bay-slot-groups", ticketId, startDate, endDate] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
             getMemberBaySlotGroups(ticketId, startDate, endDate, signal),
-        staleTime: 0,
+        staleTime: 10_000,
     };
 }
 

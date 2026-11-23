@@ -74,7 +74,7 @@ Native dependency/config changes may need a fresh dev build (profiles in `eas.js
 ## Data, interactions, accessibility
 
 - Required-data screens handle `loading -> error -> empty -> content`. Preserve retry, refresh, slow-network behavior.
-- Fetch only through the existing layers: screen -> hook (`src/lib/hook/`) -> service (`src/service/`). Never start requests in render. Read server data directly from React Query without copying it into local React state.
+- Fetch only through the existing layers: screen -> hook (`src/lib/hook/`) -> service (`src/service/`). Never start requests in render. Read server data directly from React Query without copying it into local React state. When seeding a detail/day query cache with a partial preview from a parent list/month query via `queryClient.setQueryData`, pass `{ updatedAt: 0 }` so `prefetchQuery` still fetches the authoritative response while `staleTime` prevents duplicate fetches across step transitions.
 - Use optimistic updates (`onMutate` snapshot + `onError` rollback + `onSettled` invalidate) for low-risk reversible mutations (such as notification mark-read and delete). Keep booking, reschedule, and homework file-upload mutations pessimistic because they depend on server-side 409 slot-conflict checks or multi-step uploads.
 - Guard navigation against duplicate taps (existing navigation lock). Choose `push`/`replace`/back intentionally.
 - Disable submit/destructive actions while pending; keep loading indicators.

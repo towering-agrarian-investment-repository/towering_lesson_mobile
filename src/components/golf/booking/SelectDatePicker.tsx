@@ -292,13 +292,17 @@ export default function DateScreen() {
             );
 
             if (!queryClient.getQueryData(dayQueryOptions.queryKey)) {
-              queryClient.setQueryData(dayQueryOptions.queryKey, {
-                ...baySlotGroupData,
-                data: baySlotGroupData.data.filter(
-                  (group) =>
-                    formatDateForAPI(group.startDateTime) === dateString,
-                ),
-              });
+              queryClient.setQueryData(
+                dayQueryOptions.queryKey,
+                {
+                  ...baySlotGroupData,
+                  data: baySlotGroupData.data.filter(
+                    (group) =>
+                      formatDateForAPI(group.startDateTime) === dateString,
+                  ),
+                },
+                { updatedAt: 0 },
+              );
             }
 
             // Keep the calendar data visible while the selected day refreshes.
