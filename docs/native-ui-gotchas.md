@@ -1,15 +1,13 @@
 # Native UI gotchas (Expo UI + Host)
 
-Layout and alignment pitfalls found while moving to `@expo/ui`. Read before touching native text, buttons, badges, calendars, or empty/error states. Rules in `AGENTS.md` still apply.
+Layout and alignment pitfalls found while working with `@expo/ui`. Read before touching native text, buttons, badges, calendars, or empty/error states. Rules in `AGENTS.md` still apply.
 
 ## Text
 
-- Reuse `NativeText` from `src/design-system/` for standalone labels. It applies the existing type ramp, semantic color, native alignment, and font scaling. Pass unscaled values in `textStyle`; the theme supplies the platform scaling factor.
-- `NativeText` owns one `Host`. Inside an existing native Button/Column/Row tree, use Expo `Text` directly so hosts are not nested. Choose intrinsic `wrap={false}` for badges; wrapping labels need a sized parent or an explicit width/flex in `style`.
-- Chart axis/date/day labels may use lightweight RN `Text` or SVG text to avoid a native `Host` per data item. Preserve localization, accessible text scaling, and an accessible label on the chart interaction. Keep this exception when refactoring charts.
-- Native text that should wrap needs a constrained Host width: `matchContents={{ vertical: true }}` plus an explicit width or flex. Do not measure both axes at intrinsic size.
+- Default to `AppText` (`src/design-system/components/AppText.tsx`) for standalone labels, chrome, tab bars, list rows, badges, and chart labels (`NativeText` delegates to `AppText` without mounting an `@expo/ui` `Host`).
+- Inside an existing native `@expo/ui` `Host` (`Button`, `Column`, `Row`, `Picker`, `List`, `BottomSheet`), use Expo UI `Text` directly so hosts are not nested.
+- Native text inside a `Host` that should wrap needs a constrained Host width: `matchContents={{ vertical: true }}` plus an explicit width or flex. Do not measure both axes at intrinsic size.
 - Use native frame/fill modifiers for alignment inside the host.
-- Badges and other intrinsic content stay sized to their contents.
 - Center native text with `textStyle.textAlign` on both platforms, plus the SwiftUI frame alignment where needed.
 - In a horizontal row, `items-center` controls vertical alignment only. It does not center text.
 
@@ -17,12 +15,14 @@ Layout and alignment pitfalls found while moving to `@expo/ui`. Read before touc
 
 - Percentage Host widths need an already sized RN parent.
 - Inside a centered, intrinsically sized wrapper, use the cell's explicit width or an intrinsic measurement. A percentage child cannot establish its parent's width.
-- Calendar day labels use the existing 40-point cell width.
+- Calendar day labels use `minWidth: 40` / `minHeight: 40` (`min-h-10 min-w-10`) with `minHeight: 520` on the calendar container so large Dynamic Type scales do not clip.
 
 ## Buttons
 
+- Prefer the shared `ActionButton` (`src/design-system/components/ActionButton.tsx`) for standard filled, outlined, or text native buttons.
 - On iOS, native button content must fill the full button area before the background is applied.
 - Preserve the minimum content frame as well as the outer button frame. An outer frame alone leaves the fill sized to the label.
+- On iOS, a plain button (`variant="text"`) needs `contentShape(shapes.rectangle())` after the frame on its label `Text` or content `Row`. This makes empty space inside the label tappable, including space around loading indicators. Put it inside the Button, not just on the outer button frame; keep the Android modifiers unchanged.
 - A Host seed color generates an Android palette. It does not preserve an exact brand fill, so use `native-button-styles.ts`.
 - Universal `Row.alignment` controls vertical alignment.
 - Center button labels and loading indicators horizontally in full-width rows with balanced flexible `Spacer`s on both sides of the content group, alongside centered text alignment.
