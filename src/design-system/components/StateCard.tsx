@@ -1,16 +1,20 @@
-import { NativeText } from "./NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import { CircleAlert, Inbox } from "lucide-react-native";
-import { View } from "react-native";
+import { AlertCircle, Inbox } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { RefreshControl, ScrollView, type StyleProp, View, type ViewStyle } from "react-native";
+import { useTheme } from "../utils/theme";
+import { ActionButton } from "./ActionButton";
+import { NativeText } from "./NativeText";
+
+function StateCardShell({ children }: { children: ReactNode }) {
+    return (
+        <View className="w-full grow items-center justify-center py-6">
+            <View className="w-full max-w-[360px] items-center rounded-2xl border border-border bg-card px-6 py-7">
+                {children}
+            </View>
+        </View>
+    );
+}
 
 export function ErrorState({
     title,
@@ -20,85 +24,45 @@ export function ErrorState({
     actionPending = false,
 }: {
     title: string;
-    message: string;
+    message?: string;
     actionLabel?: string;
     onAction?: () => void;
     actionPending?: boolean;
 }) {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const buttonLabel = actionPending ? t("common.refreshing") : actionLabel;
 
     return (
         <StateCardShell>
-            <View className="w-full items-center">
-                <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-danger/10">
-                    <CircleAlert
-                        size={28}
-                        color={colors.danger}
-                        strokeWidth={2.4}
-                    />
+            <View accessibilityRole="alert" className="w-full items-center gap-5">
+                <View className="w-full items-center gap-4">
+                    <View className="h-14 w-14 items-center justify-center rounded-full bg-danger/10">
+                        <AlertCircle
+                            size={28}
+                            color={colors.danger}
+                            strokeWidth={2.2}
+                        />
+                    </View>
+                    <View className="w-full items-center gap-2">
+                        <NativeText variant="h3" align="center">
+                            {title}
+                        </NativeText>
+                        {message ? (
+                            <NativeText variant="subtext" color="mutedForeground" align="center">
+                                {message}
+                            </NativeText>
+                        ) : null}
+                    </View>
                 </View>
-                <NativeText variant="h3" color="danger" align="center">
-                    {title}
-                </NativeText>
-                <NativeText variant="subtext" color="mutedForeground" align="center" style={{ marginTop: 12 }}>
-                    {message}
-                </NativeText>
-                {actionLabel && onAction ? (
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
-                        accessibilityLabel={buttonLabel}
-                        accessibilityState={{ disabled: actionPending, busy: actionPending }}
-                    >
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={actionPending}
-                            onPress={() => { if (!actionPending) onAction(); }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "filled",
-                                    actionPending,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    textAlign: "center",
-                                    color: colors.primaryForeground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                            >
-                                {buttonLabel}
-                            </Text>
-                        </Button>
-                    </Host>
+                {actionLabel && onAction && buttonLabel ? (
+                    <ActionButton
+                        label={buttonLabel}
+                        onPress={onAction}
+                        disabled={actionPending}
+                        loading={actionPending}
+                        haptic="selection"
+                    />
                 ) : null}
             </View>
         </StateCardShell>
@@ -118,92 +82,69 @@ export function EmptyState({
     onAction?: () => void;
     actionPending?: boolean;
 }) {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const buttonLabel = actionPending ? t("common.refreshing") : actionLabel;
 
     return (
         <StateCardShell>
-            <View className="w-full items-center">
-                <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-muted">
-                    <Inbox
-                        size={28}
-                        color={colors.mutedForeground}
-                        strokeWidth={2.2}
-                    />
+            <View accessibilityRole="alert" className="w-full items-center gap-5">
+                <View className="w-full items-center gap-4">
+                    <View className="h-14 w-14 items-center justify-center rounded-full bg-muted">
+                        <Inbox
+                            size={28}
+                            color={colors.mutedForeground}
+                            strokeWidth={2.2}
+                        />
+                    </View>
+                    <View className="w-full items-center gap-2">
+                        <NativeText variant="h3" align="center">
+                            {title}
+                        </NativeText>
+                        {message ? (
+                            <NativeText variant="subtext" color="mutedForeground" align="center">
+                                {message}
+                            </NativeText>
+                        ) : null}
+                    </View>
                 </View>
-                <NativeText variant="h3" align="center">
-                    {title}
-                </NativeText>
-                {message ? (
-                    <NativeText variant="subtext" color="mutedForeground" align="center" style={{ marginTop: 12 }}>
-                        {message}
-                    </NativeText>
-                ) : null}
-                {actionLabel && onAction ? (
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        style={{ marginTop: 20, borderRadius: 12, width: "100%" }}
-                        accessibilityLabel={buttonLabel}
-                        accessibilityState={{ disabled: actionPending, busy: actionPending }}
-                    >
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={actionPending}
-                            onPress={() => { if (!actionPending) onAction(); }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "filled",
-                                    actionPending,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    textAlign: "center",
-                                    color: colors.primaryForeground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                            >
-                                {buttonLabel}
-                            </Text>
-                        </Button>
-                    </Host>
+                {actionLabel && onAction && buttonLabel ? (
+                    <ActionButton
+                        label={buttonLabel}
+                        onPress={onAction}
+                        disabled={actionPending}
+                        loading={actionPending}
+                        haptic="selection"
+                    />
                 ) : null}
             </View>
         </StateCardShell>
     );
 }
 
-function StateCardShell({ children }: { children: React.ReactNode }) {
+/** Pull-to-refresh scroll container for list screens showing EmptyState or ErrorState. */
+export function StateList({
+    children,
+    refreshing,
+    onRefresh,
+    contentContainerStyle,
+}: {
+    children: ReactNode;
+    refreshing: boolean;
+    onRefresh: () => void;
+    contentContainerStyle?: StyleProp<ViewStyle>;
+}) {
     return (
-        <View className="grow items-center justify-center bg-background px-6 py-5">
+        <ScrollView
+            className="flex-1"
+            contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
+            contentInsetAdjustmentBehavior="automatic"
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+        >
             {children}
-        </View>
+        </ScrollView>
     );
 }

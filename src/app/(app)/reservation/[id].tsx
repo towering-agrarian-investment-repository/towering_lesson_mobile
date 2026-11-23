@@ -8,13 +8,14 @@ import {
 } from "@/components/golf/reservation/ReservationSections";
 import {
     Badge,
-    CircleLoader,
     Divider,
     EmptyState,
     ErrorState,
     AnimatedPressable,
     Screen,
     Skeleton,
+    triggerSelectionHaptic,
+    triggerSuccessHaptic,
     useThemeColors,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
@@ -44,7 +45,6 @@ import {
 } from "@expo/ui/jetpack-compose/modifiers";
 import { contentShape, shapes, frame, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
-import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -330,10 +330,7 @@ export default function ReservationDetailScreen() {
             return;
         }
 
-        if (process.env.EXPO_OS === "ios") {
-            void Haptics.selectionAsync();
-        }
-
+        triggerSelectionHaptic();
         setIsCancelSheetVisible(true);
     };
 
@@ -342,6 +339,7 @@ export default function ReservationDetailScreen() {
             return;
         }
 
+        triggerSelectionHaptic();
         prefetchTicketAvailability(queryClient, reservation.ticket);
         runWithNavigationLock(() => {
             router.push({
@@ -382,14 +380,7 @@ export default function ReservationDetailScreen() {
 
     const handleCancellationSuccess = () => {
         setIsCancelSheetVisible(false);
-        if (process.env.EXPO_OS === "android") {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        } else if (process.env.EXPO_OS === "ios") {
-            void Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-            );
-        }
-
+        triggerSuccessHaptic();
         router.dismissTo("/reservation");
     };
 
@@ -771,16 +762,15 @@ function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetai
                             label={t("reservations.notesLabel")}
                             value={reservation.memberNotes?.trim() || "-"}
                         />
-                        <View className="flex-row items-center gap-3 py-2">
-                            <CircleLoader />
-                            <NativeText
-                                variant="subtext"
-                                color="mutedForeground"
-                                style={{ flex: 1 }}
-                                accessibilityLiveRegion="polite"
-                            >
-                                {t("reservations.loadingDetail")}
-                            </NativeText>
+                        <View className="gap-3 py-2" accessibilityLiveRegion="polite" accessibilityLabel={t("reservations.loadingDetail")}>
+                            <View className="flex-row items-center justify-between gap-4">
+                                <Skeleton className="h-4 w-24 rounded-md" />
+                                <Skeleton className="h-4 w-36 rounded-md" />
+                            </View>
+                            <View className="flex-row items-center justify-between gap-4">
+                                <Skeleton className="h-4 w-20 rounded-md" />
+                                <Skeleton className="h-4 w-28 rounded-md" />
+                            </View>
                         </View>
                     </ReservationContent>
                 </View>
@@ -886,11 +876,7 @@ function DetailRow({
         <AnimatedPressable
             accessibilityRole="button"
             disabled={disabled}
-            onPressIn={() => {
-                if (!disabled && process.env.EXPO_OS === "ios") {
-                    void Haptics.selectionAsync();
-                }
-            }}
+            haptic="selection"
             onPress={onPress}
         >
             {content}

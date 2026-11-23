@@ -5,6 +5,7 @@ import {
     AppText,
     EmptyState,
     ErrorState,
+    ListRetryFooter,
     Screen,
     SegmentedControl,
     Skeleton,
@@ -23,7 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, View } from "react-native";
+import { RefreshControl, View } from "react-native";
 
 type TicketHistoryFilter = "all" | "active" | "past";
 
@@ -317,25 +318,13 @@ export default function TicketHistoryScreen() {
                                         <TicketHistoryCardSkeleton />
                                     </View>
                                 ) : isFetchNextPageError ? (
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        accessibilityState={{
-                                            disabled:
-                                                isFetching ||
-                                                isFetchingNextPage,
-                                            busy: isFetchingNextPage,
-                                        }}
+                                    <ListRetryFooter
                                         disabled={
                                             isFetching || isFetchingNextPage
                                         }
-                                        onPress={handleFetchNextPage}
-                                        className="items-center justify-center disabled:opacity-60"
-                                        style={{ minHeight: 48 }}
-                                    >
-                                        <AppText variant="label" color="primary">
-                                            {t("common.refreshTryAgain")}
-                                        </AppText>
-                                    </Pressable>
+                                        busy={isFetchingNextPage}
+                                        onRetry={handleFetchNextPage}
+                                    />
                                 ) : undefined
                             }
                         />

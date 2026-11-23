@@ -1,6 +1,6 @@
 import { NativeText } from "@/design-system/components/NativeText";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
-import { Screen } from "@/design-system";
+import { AnimatedPressable, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useWelcome } from "@/lib/welcome/welcome-context";
@@ -12,7 +12,7 @@ import {
 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 const featureIcons = [CalendarDays, ClipboardCheck, MessageCircle];
 
@@ -72,7 +72,7 @@ export default function WelcomeScreen() {
                             {t("login.genericError")}
                         </NativeText>
                     ) : null}
-                    <Pressable
+                    <AnimatedPressable
                         accessibilityRole="button"
                         accessibilityLabel={t(isStarting ? "welcome.starting" : "welcome.getStarted")}
                         accessibilityState={{
@@ -80,6 +80,7 @@ export default function WelcomeScreen() {
                             busy: isStarting,
                         }}
                         disabled={isStarting}
+                        haptic="impact"
                         className="overflow-hidden rounded-xl"
                         onPress={() => {
                             void handleGetStarted();
@@ -116,7 +117,7 @@ export default function WelcomeScreen() {
                                     </NativeText>
                             )}
                         </LinearGradient>
-                    </Pressable>
+                    </AnimatedPressable>
                 </View>
             }
         >

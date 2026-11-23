@@ -1,28 +1,21 @@
 import { useTheme } from "@/design-system/utils/theme";
-import {
-    getNativeButtonStyle,
-    getNativeButtonTextStyle,
-} from "@/design-system/utils/native-button-styles";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { HomeBanner } from "@/components/golf/HomeBanner";
 import MyTicket from "@/components/golf/MyTicket";
+import { ReservationCardSkeleton } from "@/components/golf/ReservationCard";
+import { TicketHistoryCardSkeleton } from "@/components/golf/TicketHistoryCard";
 import TodayReservation from "@/components/golf/TodayReservation";
 import {
-    CircleLoader,
+    ActionButton,
     CompactEmptyState,
     ErrorState,
     Screen,
+    Skeleton,
 } from "@/design-system";
 import { usePublishedBanners } from "@/lib/hook/useBanner";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { getMemberReservationsQueryOptions } from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -33,7 +26,7 @@ export default function HomeScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { colors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const {
         data: publishedBanners,
@@ -65,7 +58,31 @@ export default function HomeScreen() {
     );
 
     if (isLoading) {
-        return <CircleLoader fullScreen />;
+        return (
+            <Screen
+                headerShown={false}
+                bottomSafeArea={process.env.EXPO_OS === "ios"}
+                contentClassName="gap-6"
+            >
+                <View className="items-center py-2">
+                    <HappyGolfLogo
+                        width={220}
+                        height={48}
+                        primaryColor={colors.primary}
+                        accentColor={colors.warning}
+                    />
+                </View>
+                <View className="gap-3">
+                    <Skeleton className="h-5 w-32 rounded-full" />
+                    <TicketHistoryCardSkeleton />
+                </View>
+                <View className="gap-3">
+                    <Skeleton className="h-5 w-40 rounded-full" />
+                    <ReservationCardSkeleton />
+                    <ReservationCardSkeleton />
+                </View>
+            </Screen>
+        );
     }
 
     if (isError && !memberResponse) {
@@ -107,50 +124,20 @@ export default function HomeScreen() {
             contentClassName="flex-grow"
             footerSafeArea={process.env.EXPO_OS === "ios"}
             footer={
-                <View>
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        seedColor={colors.primary}
-                        style={{ width: "100%" }}>
-                        <Button
-                            variant="text"
-                            style={getNativeButtonStyle(
-                                colors,
-                                "filled",
-                                isLocked,
-                                colors.primary,
-                            )}
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                    : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
-                            }
-                            disabled={isLocked}
-                            onPress={() => {
-                                if (isLocked) return;
-                                void queryClient.prefetchInfiniteQuery(
-                                    getMemberReservationsQueryOptions("all"),
-                                );
-                                runWithNavigationLock(() =>
-                                    router.push("/reservation"),
-                                );
-                            }}
-                        >
-                            <Text
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}
-                                textStyle={getNativeButtonTextStyle(
-                                    colors,
-                                    "filled",
-                                    uiFontScale,
-                                    colors.primary,
-                                )}
-                            >
-                                {t("home.viewMyReservations")}
-                            </Text>
-                        </Button>
-                    </Host>
-                </View>
+                <ActionButton
+                    label={t("home.viewMyReservations")}
+                    disabled={isLocked}
+                    haptic="selection"
+                    onPress={() => {
+                        if (isLocked) return;
+                        void queryClient.prefetchInfiniteQuery(
+                            getMemberReservationsQueryOptions("all"),
+                        );
+                        runWithNavigationLock(() =>
+                            router.push("/reservation"),
+                        );
+                    }}
+                />
             }
             refreshControl={
                 <RefreshControl

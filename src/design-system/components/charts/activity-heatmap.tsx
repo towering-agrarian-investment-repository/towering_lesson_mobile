@@ -590,7 +590,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
             accessibilityState={{ selected: isSelected }}
             accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateFormatter.format(day.date) })}${statusLabel ? ` · ${statusLabel}` : ""}${isToday ? ` (${t("activity.today")})` : ""}`}
             hitSlop={CELL_GAP / 2}
-            style={{
+            style={({ pressed }) => ({
               width: cellSize,
               height: cellSize,
               alignItems: "center",
@@ -603,7 +603,8 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
               ),
               borderWidth: isSelected ? 2 : isToday ? 1.5 : 0,
               borderColor: isSelected ? colors.foreground : colors.primary,
-            }}
+              opacity: pressed ? 0.7 : 1,
+            })}
             onPress={() => onSelectDay(day.dateKey, day.date, day.count)}
           >
             {day.status ? (

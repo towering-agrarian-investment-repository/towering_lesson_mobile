@@ -4,6 +4,7 @@ import {
   EmptyState,
   ErrorState,
   Screen,
+  Skeleton,
   triggerNotificationHaptic,
   triggerSelectionHaptic,
 } from "@/design-system";
@@ -66,32 +67,34 @@ function isSameMonth(dateString: string, { year, month }: VisibleMonth) {
 
 function CalendarLoadingSkeleton() {
   return (
-    <View className="mx-6 rounded-xl border border-border bg-card px-4 py-5">
-      <View className="mb-5 flex-row items-center justify-between">
-        <View className="h-5 w-24 rounded-md bg-muted" />
-        <View className="flex-row items-center gap-3">
-          <View className="h-8 w-8 rounded-full bg-muted" />
-          <View className="h-8 w-8 rounded-full bg-muted" />
-        </View>
-      </View>
-
-      <View className="mb-4 flex-row justify-between">
-        {CALENDAR_WEEKDAY_PLACEHOLDERS.map((i) => (
-          <View key={`weekday-${i}`} className="h-3 w-7 rounded-sm bg-muted" />
-        ))}
-      </View>
-
-      <View className="gap-4">
-        {CALENDAR_WEEK_PLACEHOLDERS.map((weekIndex) => (
-          <View key={`week-${weekIndex}`} className="flex-row justify-between">
-            {CALENDAR_WEEKDAY_PLACEHOLDERS.map((dayIndex) => (
-              <View
-                key={`day-${weekIndex}-${dayIndex}`}
-                className="h-9 w-9 rounded-full bg-muted"
-              />
-            ))}
+    <View className="px-6">
+      <View className="gap-5 rounded-xl border border-border bg-card px-4 py-5">
+        <View className="flex-row items-center justify-between">
+          <Skeleton className="h-5 w-24 rounded-md" />
+          <View className="flex-row items-center gap-3">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
           </View>
-        ))}
+        </View>
+
+        <View className="flex-row justify-between">
+          {CALENDAR_WEEKDAY_PLACEHOLDERS.map((i) => (
+            <Skeleton key={`weekday-${i}`} className="h-3 w-7 rounded-sm" />
+          ))}
+        </View>
+
+        <View className="gap-4">
+          {CALENDAR_WEEK_PLACEHOLDERS.map((weekIndex) => (
+            <View key={`week-${weekIndex}`} className="flex-row justify-between">
+              {CALENDAR_WEEKDAY_PLACEHOLDERS.map((dayIndex) => (
+                <Skeleton
+                  key={`day-${weekIndex}-${dayIndex}`}
+                  className="h-9 w-9 rounded-full"
+                />
+              ))}
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -136,6 +139,7 @@ const DayCell = memo(function DayCell({
       accessibilityLabel={dateString}
       onPress={() => onPress(dateString)}
       className="min-h-10 min-w-10 items-center justify-center"
+      style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
     >
       <View
         className={cn(

@@ -1,38 +1,79 @@
 import { AppText } from "@/design-system/components/AppText";
-import { AnimatedPressable, triggerSelectionHaptic } from "@/design-system";
+import { AnimatedPressable, cn, Skeleton, triggerSelectionHaptic } from "@/design-system";
 import { colorWithOpacity } from "@/design-system/utils/color";
-import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
+import {
+    formatTicketTypeLabel,
+    getTicketTypeTone,
+} from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
-import type { MemberReservationResponse } from "@/types/member-reservation";
-import { fmtTime } from "@/utils/time-helper";
-import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
-import { BookOpen, ChevronRight, Clock3, Flag, UserRound, UsersRound } from "lucide-react-native";
+import type {
+    MemberReservationResponse,
+    MemberReservationSummaryResponse,
+} from "@/types/member-reservation";
+import { formatTimeRange } from "@/utils/time-helper";
+import {
+    getReservationStatusColor,
+    getReservationStatusLabel,
+} from "@/utils/status-tone";
+import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
+import { TicketTypeIcon } from "./TicketTypeIcon";
 
-type Props = {
-    reservation: MemberReservationResponse;
-    referenceTime: number;
-    disabled?: boolean;
-    onPress?: (reservation: MemberReservationResponse) => void;
+const LIVE_PULSE_KEYFRAMES = {
+    from: { opacity: 1 },
+    to: { opacity: 0.55 },
 };
 
-function ReservationCard({ reservation, referenceTime, disabled = false, onPress }: Props) {
+export type ReservationCardItem = MemberReservationSummaryResponse & {
+    durationMinutes?: number;
+};
+
+type Props<T extends ReservationCardItem = MemberReservationResponse> = {
+    reservation: T;
+    referenceTime?: number;
+    disabled?: boolean;
+    onPress?: (reservation: T) => void;
+};
+
+function ReservationCard<T extends ReservationCardItem = MemberReservationResponse>({
+    reservation,
+    referenceTime,
+    disabled = false,
+    onPress,
+}: Props<T>) {
     const { colors } = useTheme();
     const { t, i18n } = useTranslation();
+    const reducedMotion = useReducedMotion();
     const tone = getTicketTypeTone(reservation.ticketType);
-    const Icon = tone.name === "bayUsage" ? Flag
-        : tone.name === "privateLesson" ? UserRound
-            : tone.name === "groupLesson" ? UsersRound : BookOpen;
+    const typeLabel = formatTicketTypeLabel(reservation.ticketType, t);
     const title = reservation.bayName ?? reservation.lessonAvailabilityName
         ?? reservation.lessonProgramGroupName ?? reservation.lessonProgramName
         ?? t("reservations.reservationFallbackWithId", { id: reservation.id });
     const statusLabel = getReservationStatusLabel(reservation.reservationStatus, t);
     const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
+    const isCheckedIn = reservation.reservationStatus.toUpperCase() === "CHECKED_IN";
+    const timeRange = formatTimeRange(reservation.startTime, reservation.endTime);
     const startTime = new Date(reservation.startTime).getTime();
-    const minutesUntilStart = Math.ceil((startTime - referenceTime) / 60000);
-    const isReservedUpcoming = reservation.reservationStatus.toUpperCase() === "RESERVED" && startTime > referenceTime;
+    const endTime = new Date(reservation.endTime).getTime();
+    const minutesUntilStart =
+        referenceTime != null ? Math.ceil((startTime - referenceTime) / 60000) : 0;
+    const isReservedUpcoming =
+        referenceTime != null &&
+        reservation.reservationStatus.toUpperCase() === "RESERVED" &&
+        startTime > referenceTime;
+    const isStartingSoon = isReservedUpcoming && minutesUntilStart <= 60;
+    const livePulseStyle = !reducedMotion
+        ? {
+              animationName: LIVE_PULSE_KEYFRAMES,
+              animationDuration: "1600ms",
+              animationIterationCount: "infinite" as const,
+              animationDirection: "alternate" as const,
+              animationTimingFunction: "ease-in-out" as const,
+          }
+        : undefined;
     const countdownLabel = isReservedUpcoming
         ? minutesUntilStart < 60
             ? t("booking.startsInMinutes", { count: minutesUntilStart })
@@ -40,13 +81,18 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
                 ? t("booking.startsInHours", { count: Math.ceil(minutesUntilStart / 60) })
                 : t("booking.startsInDays", { count: Math.ceil(minutesUntilStart / 1440) })
         : null;
-    const duration = reservation.durationMinutes > 0
-        ? reservation.durationMinutes % 60 === 0
+    const durationMinutes =
+        reservation.durationMinutes ??
+        (Number.isFinite(startTime) && Number.isFinite(endTime) && endTime > startTime
+            ? Math.round((endTime - startTime) / 60000)
+            : 0);
+    const duration = durationMinutes > 0
+        ? durationMinutes % 60 === 0
             ? t("reservations.durationHour", {
-                value: new Intl.NumberFormat(i18n.language).format(reservation.durationMinutes / 60),
+                value: new Intl.NumberFormat(i18n.language).format(durationMinutes / 60),
             })
             : t("reservations.durationMinute", {
-                value: new Intl.NumberFormat(i18n.language).format(reservation.durationMinutes),
+                value: new Intl.NumberFormat(i18n.language).format(durationMinutes),
             })
         : null;
 
@@ -59,42 +105,115 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
             }}
             disabled={disabled}
             accessibilityRole="button"
-            accessibilityLabel={`${title}, ${fmtTime(reservation.startTime)}, ${statusLabel}${countdownLabel ? `, ${countdownLabel}` : ""}`}
-            className="min-h-20 flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3"
+            accessibilityLabel={`${title}, ${timeRange}, ${statusLabel}${countdownLabel ? `, ${countdownLabel}` : ""}`}
+            className="rounded-2xl border border-border bg-card p-4"
         >
-            <View className="w-[74px] shrink-0 self-stretch justify-center border-r border-border pr-2">
-                <AppText variant="body" numberOfLines={1} textStyle={{ fontWeight: "700" }}>
-                    {fmtTime(reservation.startTime)}
-                </AppText>
-                {duration ? (
-                    <AppText variant="meta" color="mutedForeground" numberOfLines={1}>
-                        {duration}
-                    </AppText>
-                ) : null}
-            </View>
-            <View className="min-w-0 flex-1 gap-1.5">
-                <View className="flex-row items-center gap-2.5">
-                    <View className={`h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.badgeSolidClassName}`}>
-                        <Icon size={20} color={colors.primaryForeground} strokeWidth={2.3} />
-                    </View>
-                    <View className="min-w-0 flex-1 justify-center gap-1">
-                        <AppText variant="meta" numberOfLines={2} textStyle={{ fontWeight: "600" }}>{title}</AppText>
-                        <View className="self-start rounded-full px-2 py-1"
-                            style={{ backgroundColor: colorWithOpacity(statusColor, 0.12) }}>
-                            <AppText variant="badge" wrap={false} numberOfLines={1}
-                                textStyle={{ color: statusColor }}>{statusLabel}</AppText>
-                        </View>
-                    </View>
-                    <ChevronRight size={17} color={colors.mutedForeground} strokeWidth={2} />
-                </View>
-                {countdownLabel ? (
-                    <View className="flex-row items-center gap-1.5">
-                        <Clock3 size={13} color={colors.primary} strokeWidth={2.3} />
-                        <AppText variant="badge" numberOfLines={2}
-                            style={{ flex: 1, minWidth: 0 }}
-                            textStyle={{ color: colors.primary, fontWeight: "600" }}>
-                            {countdownLabel}
+            <View className="gap-3">
+                <View className="flex-row items-center justify-between gap-2">
+                    <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                        <AppText
+                            variant="meta"
+                            numberOfLines={1}
+                            textStyle={{
+                                fontWeight: "700",
+                                fontVariant: ["tabular-nums"],
+                            }}
+                        >
+                            {timeRange}
                         </AppText>
+                        {duration ? (
+                            <AppText
+                                variant="caption"
+                                color="mutedForeground"
+                                wrap={false}
+                            >
+                                {`· ${duration}`}
+                            </AppText>
+                        ) : null}
+                    </View>
+
+                    {statusLabel !== "-" ? (
+                        <Animated.View
+                            className="shrink-0 rounded-md px-2 py-0.5"
+                            style={[
+                                {
+                                    backgroundColor: colorWithOpacity(
+                                        statusColor,
+                                        0.12,
+                                    ),
+                                },
+                                isCheckedIn ? livePulseStyle : undefined,
+                            ]}
+                        >
+                            <AppText
+                                variant="badge"
+                                wrap={false}
+                                textStyle={{
+                                    color: statusColor,
+                                    fontWeight: "600",
+                                }}
+                            >
+                                {statusLabel}
+                            </AppText>
+                        </Animated.View>
+                    ) : null}
+                </View>
+
+                <View className="flex-row items-center gap-3">
+                    <View
+                        className={cn(
+                            "h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                            tone.badgeClassName,
+                        )}
+                    >
+                        <TicketTypeIcon
+                            type={reservation.ticketType}
+                            size={19}
+                            color={colors[tone.color]}
+                            strokeWidth={2.2}
+                        />
+                    </View>
+
+                    <View className="min-w-0 flex-1 gap-0.5">
+                        <AppText
+                            variant="body"
+                            numberOfLines={2}
+                            textStyle={{ fontWeight: "600" }}
+                        >
+                            {title}
+                        </AppText>
+                        {typeLabel ? (
+                            <AppText
+                                variant="caption"
+                                color="mutedForeground"
+                                numberOfLines={1}
+                            >
+                                {typeLabel}
+                            </AppText>
+                        ) : null}
+                    </View>
+
+                    <ChevronRight
+                        size={18}
+                        color={colors.mutedForeground}
+                        strokeWidth={2}
+                    />
+                </View>
+
+                {countdownLabel ? (
+                    <View className="border-t border-border/60 pt-2.5">
+                        <Animated.View
+                            style={isStartingSoon ? livePulseStyle : undefined}
+                        >
+                            <AppText
+                                variant="caption"
+                                color="primary"
+                                numberOfLines={1}
+                                textStyle={{ fontWeight: "600" }}
+                            >
+                                {countdownLabel}
+                            </AppText>
+                        </Animated.View>
                     </View>
                 ) : null}
             </View>
@@ -102,4 +221,23 @@ function ReservationCard({ reservation, referenceTime, disabled = false, onPress
     );
 }
 
-export default memo(ReservationCard);
+export function ReservationCardSkeleton() {
+    return (
+        <View className="w-full gap-3 rounded-2xl border border-border bg-card p-4">
+            <View className="flex-row items-center justify-between gap-2">
+                <Skeleton className="h-4 w-28 rounded-md" />
+                <Skeleton className="h-5 w-16 rounded-md" />
+            </View>
+            <View className="gap-1.5">
+                <Skeleton className="h-5 w-3/4 rounded-md" />
+                <Skeleton className="h-4 w-1/2 rounded-md" />
+            </View>
+            <View className="flex-row items-center justify-between gap-2 border-t border-border/60 pt-3">
+                <Skeleton className="h-4 w-28 rounded-md" />
+                <Skeleton className="h-4 w-20 rounded-md" />
+            </View>
+        </View>
+    );
+}
+
+export default memo(ReservationCard) as typeof ReservationCard;

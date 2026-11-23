@@ -5,7 +5,7 @@ import {
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
 import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
-import { Divider, EmptyState, ErrorState, Screen } from "@/design-system";
+import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
 import { responseError } from "@/lib/api-response/api-response";
 import {
     getMemberTicketLessonSlotsQueryOptions,
@@ -24,6 +24,7 @@ import {
 } from "@/utils/lesson-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { useRef } from "react";
@@ -97,6 +98,7 @@ export default function LessonBookingConfirmScreen() {
         },
     ] as const;
 
+    const hasLoadError = isError && !data;
     const selectedSlot = (data?.data ?? []).find(
         (slot) => slot.id === lessonAvailabilityIdNumber,
     );
@@ -119,6 +121,7 @@ export default function LessonBookingConfirmScreen() {
         if (!isReservationSlotUnavailable(error) || !ticketIdNumber) {
             return;
         }
+        triggerNotificationHaptic(Haptics.NotificationFeedbackType.Warning);
 
         await queryClient.invalidateQueries({
             queryKey: getMemberTicketLessonSlotsQueryOptions(
@@ -146,7 +149,7 @@ export default function LessonBookingConfirmScreen() {
 
     const handleConfirm = () => {
         if (
-            submitting.current || isCreating || isError ||
+            submitting.current || isCreating || hasLoadError ||
             !ticketIdNumber ||
             !lessonAvailabilityIdNumber ||
             !selectedSlot
@@ -194,17 +197,16 @@ export default function LessonBookingConfirmScreen() {
                     handleBookingConfirmationSuccess(router, {
                         type: "lesson",
                         mode: "booking",
-                        ticketId: response.data.ticket?.id ?? ticketId,
                         ticketName: response.data.ticket?.name ?? ticketName,
+                        ticketTotalCount: response.data.ticket?.totalCount,
+                        ticketUsedCount: response.data.ticket?.usedCount,
                         ticketRemainingCount:
                             response.data.ticket?.remainingCount,
                         ticketIsUnlimited: response.data.ticket?.isUnlimited,
                         date,
                         startTime: selectedSlot.startTime ?? startTime,
                         endTime: selectedSlot.endTime ?? endTime,
-                        reservationName:
-                            getLessonSlotDisplayName(selectedSlot) ??
-                            lessonName,
+                        reservationName: getLessonSlotDisplayName(selectedSlot, t),
                         coachName: selectedSlot.coachName ?? coachName,
                     }),
                 onError: handleSlotUnavailable,
@@ -214,11 +216,8 @@ export default function LessonBookingConfirmScreen() {
     };
 
     const reservationName =
-        (selectedSlot ? getLessonSlotDisplayName(selectedSlot) : null) ??
+        (selectedSlot ? getLessonSlotDisplayName(selectedSlot, t) : null) ??
         lessonName ??
-        (isGroupSelection
-            ? t("bookingConfirmation.groupLessonFallback")
-            : t("bookingConfirmation.privateLessonFallback")) ??
         (isGroupSelection
             ? t("bookingConfirmation.groupLessonFallback")
             : t("bookingConfirmation.privateLessonFallback"));
@@ -246,7 +245,6 @@ export default function LessonBookingConfirmScreen() {
 
     return (
         <Screen
-            keyboardAware
             contentClassName="grow"
             refreshControl={
                 <RefreshControl
@@ -255,7 +253,7 @@ export default function LessonBookingConfirmScreen() {
                 />
             }
             footer={
-                !isLoading && !isError && !isMissingRequiredData ? (
+                !isLoading && !hasLoadError && !isMissingRequiredData ? (
                     <BookingConfirmationFooter
                         title={
                             isGroupSelection
@@ -278,7 +276,7 @@ export default function LessonBookingConfirmScreen() {
             />
             {isLoading ? (
                 <BookingConfirmationLoadingState fieldCount={5} />
-            ) : isError ? (
+            ) : hasLoadError ? (
                 <ErrorState
                     title={t(
                         "bookingConfirmation.failedReservationDetailsTitle",

@@ -1,8 +1,9 @@
-import ReservationCard from "@/components/golf/ReservationCard";
+import ReservationCard, {
+    ReservationCardSkeleton,
+} from "@/components/golf/ReservationCard";
 import { TicketTypeIcon } from "@/components/golf/TicketTypeIcon";
 import TitleSectionWithBadge from "@/components/golf/TitleSectionWithBadge";
 import {
-    CircleLoader,
     cn,
     CompactEmptyState,
     Divider,
@@ -261,23 +262,7 @@ export default function TicketDetailScreen() {
                         <Skeleton className="h-5 w-32 rounded-full" />
                         <View className="gap-2.5">
                             {Array.from({ length: 3 }, (_, index) => (
-                                <View
-                                    key={index}
-                                    className="gap-3 rounded-2xl border border-border bg-card p-4"
-                                >
-                                    <View className="flex-row items-center justify-between gap-2">
-                                        <Skeleton className="h-4 w-36 rounded-full" />
-                                        <Skeleton className="h-5 w-16 rounded-md" />
-                                    </View>
-                                    <View className="flex-row items-center gap-3">
-                                        <Skeleton className="h-10 w-10 rounded-xl" />
-                                        <View className="min-w-0 flex-1 gap-1.5">
-                                            <Skeleton className="h-4 w-3/5 rounded-full" />
-                                            <Skeleton className="h-3.5 w-1/3 rounded-full" />
-                                        </View>
-                                        <Skeleton className="h-4 w-4 rounded-full" />
-                                    </View>
-                                </View>
+                                <ReservationCardSkeleton key={index} />
                             ))}
                         </View>
                     </View>
@@ -445,16 +430,13 @@ export default function TicketDetailScreen() {
                     }
                     ListEmptyComponent={
                         isPlaceholderData && ticket.reservations === undefined ? (
-                            <View className="flex-row items-center justify-center gap-3 rounded-2xl bg-surface px-4 py-6">
-                                <CircleLoader />
-                                <NativeText
-                                    variant="subtext"
-                                    color="mutedForeground"
-                                    wrap={false}
-                                    accessibilityLiveRegion="polite"
-                                >
-                                    {t("tickets.loadingReservations")}
-                                </NativeText>
+                            <View
+                                className="gap-2.5"
+                                accessibilityLiveRegion="polite"
+                                accessibilityLabel={t("tickets.loadingReservations")}
+                            >
+                                <ReservationCardSkeleton />
+                                <ReservationCardSkeleton />
                             </View>
                         ) : (
                             <CompactEmptyState

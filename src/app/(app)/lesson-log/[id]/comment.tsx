@@ -7,6 +7,7 @@ import {
     ErrorState,
     AnimatedPressable,
     Screen,
+    Skeleton,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
 } from "@/design-system";
@@ -22,7 +23,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -93,25 +94,25 @@ function LessonLogCommentScreen() {
         return (
             <Screen contentClassName="gap-6">
                 <View className="gap-3">
-                    <View className="h-8 w-32 rounded-full bg-muted" />
-                    <View className="h-5 w-56 rounded-full bg-muted" />
+                    <Skeleton className="h-8 w-32 rounded-full" />
+                    <Skeleton className="h-5 w-56 rounded-full" />
                 </View>
 
                 <View className="gap-4">
-                    <View className="h-7 w-48 rounded-full bg-muted" />
+                    <Skeleton className="h-7 w-48 rounded-full" />
                     <View className="flex-row gap-3 py-2">
                         {Array.from({ length: 5 }, (_, index) => (
-                            <View
+                            <Skeleton
                                 key={index}
-                                className="h-12 w-12 rounded-full bg-muted"
+                                className="h-12 w-12 rounded-full"
                             />
                         ))}
                     </View>
                 </View>
 
                 <View className="gap-3">
-                    <View className="h-6 w-40 rounded-full bg-muted" />
-                    <View className="h-28 rounded-xl bg-muted" />
+                    <Skeleton className="h-6 w-40 rounded-full" />
+                    <Skeleton className="h-28 rounded-xl" />
                 </View>
             </Screen>
         );
@@ -248,7 +249,7 @@ function LessonLogCommentScreen() {
                             <Row
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 spacing={8}
@@ -273,7 +274,7 @@ function LessonLogCommentScreen() {
                                             uiFontScale,
                                     }}
                                 >
-                                    {t("changePassword.confirm")}
+                                    {t("lessonLog.submit")}
                                 </Text>
                                 <Spacer flexible />
                             </Row>
@@ -323,7 +324,13 @@ function LessonLogCommentScreen() {
                                                     count: starValue,
                                                 },
                                             )}
-                                            className="h-12 w-12 items-center justify-center"
+                                            accessibilityState={{
+                                                selected: isActive,
+                                                disabled: isPending,
+                                            }}
+                                            disabled={isPending}
+                                            className={`items-center justify-center${isPending ? " opacity-60" : ""}`}
+                                            style={{ minHeight: 48, minWidth: 48 }}
                                             onPress={() => {
                                                 triggerSelectionHaptic();
                                                 onChange(starValue);

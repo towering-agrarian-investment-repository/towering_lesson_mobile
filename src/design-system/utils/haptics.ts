@@ -23,3 +23,11 @@ export function triggerNotificationHaptic(
 ) {
     void runHaptic(() => Haptics.notificationAsync(type));
 }
+
+export function triggerSuccessHaptic() {
+    if (process.env.EXPO_OS === "android") {
+        triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
+        return;
+    }
+    triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
+}

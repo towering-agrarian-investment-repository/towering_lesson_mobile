@@ -43,7 +43,6 @@ import { Image } from "expo-image";
 import {
     ActivityIndicator,
     Modal,
-    Pressable,
     StatusBar,
     View,
 } from "react-native";
@@ -360,14 +359,14 @@ export function ActivitySharePreview({
     const previewOptions = useMemo(
         () => ({
             headerRight: () => (
-                <Pressable
+                <AnimatedPressable
                     accessibilityRole="button"
                     accessibilityLabel={t("shareCard.studioTitle")}
                     accessibilityState={{ disabled: !isAvailable }}
                     disabled={!isAvailable}
+                    haptic="selection"
                     className="min-h-12 min-w-12 items-center justify-center"
                     onPress={() => {
-                        triggerSelectionHaptic();
                         setShowShareCard(true);
                     }}
                 >
@@ -384,7 +383,7 @@ export function ActivitySharePreview({
                                 : colors.mutedForeground
                         }
                     />
-                </Pressable>
+                </AnimatedPressable>
             ),
         }),
         [
@@ -527,11 +526,12 @@ export function ActivitySharePreview({
 
                             {savedPreviewUri ? (
                                 <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                                    <Pressable
+                                    <AnimatedPressable
                                         accessibilityRole="button"
                                         accessibilityLabel={t(
                                             "activity.viewSavedPhoto",
                                         )}
+                                        haptic="selection"
                                         className="min-h-12 min-w-0 flex-1 flex-row items-center gap-3"
                                         onPress={() => void openSavedPhoto()}
                                     >
@@ -570,8 +570,8 @@ export function ActivitySharePreview({
                                                 {t("activity.savedMessage")}
                                             </NativeText>
                                         </View>
-                                    </Pressable>
-                                    <Pressable
+                                    </AnimatedPressable>
+                                    <AnimatedPressable
                                         accessibilityRole="button"
                                         accessibilityLabel={t(
                                             "common.closeTitle",
@@ -579,6 +579,7 @@ export function ActivitySharePreview({
                                                 title: t("activity.savedTitle"),
                                             },
                                         )}
+                                        haptic="selection"
                                         className="min-h-12 min-w-12 items-center justify-center rounded-full bg-muted"
                                         onPress={dismissSavedPreview}
                                     >
@@ -587,7 +588,7 @@ export function ActivitySharePreview({
                                             size={20}
                                             color={colors.mutedForeground}
                                         />
-                                    </Pressable>
+                                    </AnimatedPressable>
                                 </View>
                             ) : null}
 
@@ -747,8 +748,9 @@ export function ActivitySharePreview({
                                 </GestureDetector>
 
                                 {failedCardKey === cardKey ? (
-                                    <Pressable
+                                    <AnimatedPressable
                                         accessibilityRole="button"
+                                        haptic="selection"
                                         className="min-h-12 items-center justify-center"
                                         onPress={() =>
                                             setRetryCount((value) => value + 1)
@@ -761,7 +763,7 @@ export function ActivitySharePreview({
                                         >
                                             {t("common.refreshTryAgain")}
                                         </NativeText>
-                                    </Pressable>
+                                    </AnimatedPressable>
                                 ) : null}
 
                                 <View className="flex-row items-center justify-center gap-4">

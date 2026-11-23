@@ -1,8 +1,7 @@
 import TicketHistoryCard, {
     TicketHistoryCardSkeleton,
 } from "@/components/golf/TicketHistoryCard";
-import { EmptyState, ErrorState, StateList } from "@/design-system";
-import { AppText } from "@/design-system/components/AppText";
+import { EmptyState, ErrorState, ListRetryFooter, StateList } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -16,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, View } from "react-native";
+import { RefreshControl, View } from "react-native";
 
 export const TICKET_TABS = ["all", "bay", "lesson"] as const;
 export type TicketTabType = (typeof TICKET_TABS)[number];
@@ -238,21 +237,11 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
                         <TicketHistoryCardSkeleton />
                     </View>
                 ) : isFetchNextPageError ? (
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{
-                            disabled: isFetching || isFetchingNextPage,
-                            busy: isFetchingNextPage,
-                        }}
+                    <ListRetryFooter
                         disabled={isFetching || isFetchingNextPage}
-                        onPress={handleFetchNextPage}
-                        className="items-center justify-center disabled:opacity-60"
-                        style={{ minHeight: 48 }}
-                    >
-                        <AppText variant="label" color="primary">
-                            {t("common.refreshTryAgain")}
-                        </AppText>
-                    </Pressable>
+                        busy={isFetchingNextPage}
+                        onRetry={handleFetchNextPage}
+                    />
                 ) : undefined
             }
         />

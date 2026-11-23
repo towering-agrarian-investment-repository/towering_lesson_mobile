@@ -1,12 +1,12 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { FormTextInput } from "@/components/ui/form";
 import {
-  CircleLoader,
   cn,
   ErrorState,
   AnimatedPressable,
   ListRow,
   Screen,
+  Skeleton,
   triggerNotificationHaptic,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
@@ -328,7 +328,18 @@ export default function EditProfileScreen() {
   };
 
   if (isLoading) {
-    return <CircleLoader fullScreen label={t("home.loadingProfile")} />;
+    return (
+      <Screen contentClassName="gap-6">
+        <View className="items-center gap-3 py-2">
+          <Skeleton className="h-28 w-28 rounded-full" />
+          <Skeleton className="h-4 w-32 rounded-md" />
+        </View>
+        <View className="gap-4">
+          <Skeleton className="h-14 w-full rounded-xl" />
+          <Skeleton className="h-14 w-full rounded-xl" />
+        </View>
+      </Screen>
+    );
   }
 
   if (!member) {

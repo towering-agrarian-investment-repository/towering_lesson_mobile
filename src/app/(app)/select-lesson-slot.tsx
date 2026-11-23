@@ -352,6 +352,7 @@ const LessonSlotCard = memo(function LessonSlotCard({
       accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
       accessibilityState={{ disabled: disabled || isLocked }}
       disabled={disabled || isLocked}
+      haptic="selection"
       className={cn(
         "gap-2.5 border",
         isGroupSlot ? "rounded-2xl p-3.5" : "rounded-xl px-4 py-4",

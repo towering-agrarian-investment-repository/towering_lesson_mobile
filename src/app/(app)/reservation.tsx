@@ -3,7 +3,7 @@ import {
     RESERVATION_TABS,
     ReservationTabScene,
 } from "@/components/golf/reservation/ReservationTabScene";
-import { AnimatedPressable, Screen } from "@/design-system";
+import { AnimatedPressable, Screen, triggerSelectionHaptic } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useMinuteClock } from "@/lib/hook/useMinuteClock";
@@ -11,7 +11,6 @@ import { MemberReservationType } from "@/service/reservation.service";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { MenuView, type MenuAction } from "@expo/ui/community/menu";
 import { format, subDays } from "date-fns";
-import * as Haptics from "expo-haptics";
 import { Stack } from "expo-router";
 import { Filter } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -72,7 +71,7 @@ export default function ReservationScreen() {
                 return;
             }
 
-            void Haptics.selectionAsync();
+            triggerSelectionHaptic();
             setActiveIndex(nextIndex);
         },
         [activeIndex],

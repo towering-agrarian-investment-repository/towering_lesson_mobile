@@ -1,12 +1,14 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import {
-  CircleLoader,
+  ActionButton,
   cn,
   EmptyState,
   ErrorState,
   AnimatedPressable,
   Screen,
+  Skeleton,
   StateList,
+  triggerImpactHaptic,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AppText } from "@/design-system/components/AppText";
@@ -31,7 +33,6 @@ import { formatRelativeTime } from "@/utils/relative-time";
 import {
   Button,
   Column,
-  Host,
   RNHostView,
   Row,
   Spacer,
@@ -54,7 +55,8 @@ import { Bell, MoreVertical } from "lucide-react-native";
 import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlashList } from "@shopify/flash-list";
-import { ActivityIndicator, Pressable, RefreshControl, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { ActivityIndicator, RefreshControl, View } from "react-native";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 const isIOS = process.env.EXPO_OS === "ios";
@@ -108,20 +110,22 @@ function NoticeScreen() {
   const markAllLocked = useRef(false);
   const deleteLocked = useRef(false);
   const handleDeleteNotification = useCallback((id: number) => {
-    if (deleteLocked.current || deleteAllLocked.current || isLocked || isDeletingNotification || isDeletingAllNotifications) return;
+    if (deleteLocked.current || deleteAllLocked.current || isLocked) return;
+    triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
     deleteLocked.current = true;
     deleteNotification(id, {
       onSettled: () => { deleteLocked.current = false; },
     });
-  }, [deleteNotification, isDeletingAllNotifications, isDeletingNotification, isLocked]);
+  }, [deleteNotification, isLocked]);
   const closeDeleteAllSheet = () => {
-    if (!deleteAllLocked.current) setIsDeleteAllConfirmationOpen(false);
+    setIsDeleteAllConfirmationOpen(false);
   };
   const confirmDeleteAll = () => {
-    if (deleteAllLocked.current || isDeletingAllNotifications) return;
+    if (deleteAllLocked.current) return;
+    triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
     deleteAllLocked.current = true;
+    setIsDeleteAllConfirmationOpen(false);
     deleteAllNotifications(undefined, {
-      onSuccess: () => setIsDeleteAllConfirmationOpen(false),
       onSettled: () => {
         deleteAllLocked.current = false;
       },
@@ -365,7 +369,7 @@ function NoticeScreen() {
       <PendingBottomSheet
         isPresented={isDeleteAllConfirmationOpen}
         onDismiss={closeDeleteAllSheet}
-        dismissDisabled={isDeletingAllNotifications}
+        dismissDisabled={false}
         modifiers={
           isIOS
             ? [
@@ -473,7 +477,7 @@ function NoticeScreen() {
         }
       >
         {isLoading ? (
-          <CircleLoader fullScreen />
+          <NotificationListSkeleton />
         ) : isError && !data ? (
           <StateList
             refreshing={isPullRefreshing}
@@ -613,7 +617,7 @@ function NotificationRow({
       dragOffsetFromRight={-24}
       rightThreshold={48}
       renderRightActions={() => (
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={t("notice.delete")}
           disabled={disabled}
@@ -630,13 +634,14 @@ function NotificationRow({
           >
             {isDeleting ? t("notice.deleting") : t("notice.delete")}
           </AppText>
-        </Pressable>
+        </AnimatedPressable>
       )}
     >
       <View className="bg-background">
         <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={item.title}
+          haptic="selection"
           className={cn("py-3 pr-4", disabled && "opacity-60")}
           disabled={disabled}
           onPress={() => onPress(item)}
@@ -697,32 +702,57 @@ function NotificationRow({
 
 const MemoNotificationRow = memo(NotificationRow);
 
+function NotificationRowSkeleton() {
+  return (
+    <View className="flex-row items-start gap-3 py-3 pr-4">
+      <Skeleton className="h-10 w-10 rounded-xl" />
+      <View className="min-w-0 flex-1 gap-2">
+        <Skeleton className="h-4 w-3/4 rounded-md" />
+        <Skeleton className="h-3.5 w-full rounded-md" />
+        <Skeleton className="h-3 w-24 rounded-md" />
+      </View>
+    </View>
+  );
+}
+
+function NotificationListSkeleton() {
+  return (
+    <View className="flex-1 pt-2">
+      {Array.from({ length: 6 }, (_, index) => (
+        <View
+          key={index}
+          className={index < 5 ? "border-b border-border" : undefined}
+        >
+          <NotificationRowSkeleton />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function NoticeListFooter({ onRetry }: { onRetry?: () => void }) {
-  const { colors } = useTheme();
   const { t } = useTranslation();
+
+  if (!onRetry) {
+    return (
+      <View className="py-2">
+        <NotificationRowSkeleton />
+      </View>
+    );
+  }
 
   return (
     <View className="items-center gap-3 py-5">
-      {onRetry ? (
-        <>
-          <NativeText variant="meta" color="mutedForeground" align="center">
-            {t("notice.failedMoreTitle", {
-              defaultValue: "Couldn't load more notifications",
-            })}
-          </NativeText>
-          <Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
-            <Button
-              variant="outlined"
-              label={t("common.refreshTryAgain")}
-              onPress={onRetry}
-              style={getNativeButtonStyle(colors, "outlined")}
-              modifiers={buttonSize}
-            />
-          </Host>
-        </>
-      ) : (
-        <CircleLoader />
-      )}
+      <NativeText variant="meta" color="mutedForeground" align="center">
+        {t("notice.failedMoreTitle", {
+          defaultValue: "Couldn't load more notifications",
+        })}
+      </NativeText>
+      <ActionButton
+        label={t("common.refreshTryAgain")}
+        appearance="outlined"
+        onPress={onRetry}
+      />
     </View>
   );
 }

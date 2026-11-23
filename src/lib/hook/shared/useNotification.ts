@@ -1,16 +1,64 @@
-import { ApiResponse, CursorPageResponse, responseError } from "@/lib/api-response/api-response";
 import {
+	ApiResponse,
+	CursorPageResponse,
+	responseError,
+} from "@/lib/api-response/api-response";
+import {
+	deleteAllNotifications,
+	deleteNotification,
 	getNotifications,
 	getUnreadNotificationCount,
 	markAllNotificationsAsRead,
 	markNotificationAsRead,
-	deleteNotification,
-	deleteAllNotifications,
 	NOTIFICATION_CURSOR_PAGE_SIZE,
 	type NotificationResponse,
 } from "@/service/shared/notification-service";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	type InfiniteData,
+	type QueryClient,
+	useInfiniteQuery,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 
+type NotificationInfiniteData = InfiniteData<
+	ApiResponse<CursorPageResponse<NotificationResponse>>
+>;
+
+type NotificationMutationContext = {
+	previousLists: [readonly unknown[], NotificationInfiniteData | undefined][];
+	previousUnreadCount: ApiResponse<number> | undefined;
+};
+
+async function snapshotNotifications(
+	queryClient: QueryClient,
+): Promise<NotificationMutationContext> {
+	await queryClient.cancelQueries({ queryKey: ["notifications"] });
+	const previousLists = queryClient.getQueriesData<NotificationInfiniteData>({
+		queryKey: ["notifications"],
+		predicate: (query) => query.queryKey[1] !== "unread-count",
+	});
+	const previousUnreadCount = queryClient.getQueryData<ApiResponse<number>>([
+		"notifications",
+		"unread-count",
+	]);
+	return { previousLists, previousUnreadCount };
+}
+
+function restoreNotifications(
+	queryClient: QueryClient,
+	context?: NotificationMutationContext,
+) {
+	if (!context) return;
+	for (const [key, data] of context.previousLists) {
+		queryClient.setQueryData(key, data);
+	}
+	queryClient.setQueryData(
+		["notifications", "unread-count"],
+		context.previousUnreadCount,
+	);
+}
 
 export const useGetNotifications = (isRead?: boolean) => {
 	return useInfiniteQuery<
@@ -59,13 +107,61 @@ export const useGetUnreadNotificationCount = () => {
 export const useMarkAsRead = () => {
 	const queryClient = useQueryClient();
 
-	return useMutation({
+	return useMutation<
+		ApiResponse<null>,
+		unknown,
+		number,
+		NotificationMutationContext
+	>({
 		mutationFn: markNotificationAsRead,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+		onMutate: async (notificationId) => {
+			const context = await snapshotNotifications(queryClient);
+			let wasUnread = false;
+
+			queryClient.setQueriesData<NotificationInfiniteData>(
+				{
+					queryKey: ["notifications"],
+					predicate: (query) => query.queryKey[1] !== "unread-count",
+				},
+				(old) => {
+					if (!old) return old;
+					return {
+						...old,
+						pages: old.pages.map((page) => ({
+							...page,
+							data: {
+								...page.data,
+								items: page.data.items.map((item) => {
+									if (item.id === notificationId) {
+										if (!item.isRead) wasUnread = true;
+										return { ...item, isRead: true };
+									}
+									return item;
+								}),
+							},
+						})),
+					};
+				},
+			);
+
+			if (wasUnread) {
+				queryClient.setQueryData<ApiResponse<number>>(
+					["notifications", "unread-count"],
+					(old) =>
+						old
+							? { ...old, data: Math.max(0, (old.data ?? 0) - 1) }
+							: old,
+				);
+			}
+
+			return context;
 		},
-		onError: (error) => {
+		onError: (error, _id, context) => {
+			restoreNotifications(queryClient, context);
 			responseError(error);
+		},
+		onSettled: () => {
+			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
 		},
 	});
 };
@@ -73,13 +169,52 @@ export const useMarkAsRead = () => {
 export const useMarkAllAsRead = () => {
 	const queryClient = useQueryClient();
 
-	return useMutation({
+	return useMutation<
+		ApiResponse<null>,
+		unknown,
+		void,
+		NotificationMutationContext
+	>({
 		mutationFn: markAllNotificationsAsRead,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+		onMutate: async () => {
+			const context = await snapshotNotifications(queryClient);
+
+			queryClient.setQueriesData<NotificationInfiniteData>(
+				{
+					queryKey: ["notifications"],
+					predicate: (query) => query.queryKey[1] !== "unread-count",
+				},
+				(old) => {
+					if (!old) return old;
+					return {
+						...old,
+						pages: old.pages.map((page) => ({
+							...page,
+							data: {
+								...page.data,
+								items: page.data.items.map((item) => ({
+									...item,
+									isRead: true,
+								})),
+							},
+						})),
+					};
+				},
+			);
+
+			queryClient.setQueryData<ApiResponse<number>>(
+				["notifications", "unread-count"],
+				(old) => (old ? { ...old, data: 0 } : old),
+			);
+
+			return context;
 		},
-		onError: (error) => {
+		onError: (error, _vars, context) => {
+			restoreNotifications(queryClient, context);
 			responseError(error);
+		},
+		onSettled: () => {
+			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
 		},
 	});
 };
@@ -87,13 +222,61 @@ export const useMarkAllAsRead = () => {
 export const useDeleteNotification = () => {
 	const queryClient = useQueryClient();
 
-	return useMutation({
+	return useMutation<
+		ApiResponse<null>,
+		unknown,
+		number,
+		NotificationMutationContext
+	>({
 		mutationFn: deleteNotification,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+		onMutate: async (notificationId) => {
+			const context = await snapshotNotifications(queryClient);
+			let deletedUnread = false;
+
+			queryClient.setQueriesData<NotificationInfiniteData>(
+				{
+					queryKey: ["notifications"],
+					predicate: (query) => query.queryKey[1] !== "unread-count",
+				},
+				(old) => {
+					if (!old) return old;
+					return {
+						...old,
+						pages: old.pages.map((page) => ({
+							...page,
+							data: {
+								...page.data,
+								items: page.data.items.filter((item) => {
+									if (item.id === notificationId) {
+										if (!item.isRead) deletedUnread = true;
+										return false;
+									}
+									return true;
+								}),
+							},
+						})),
+					};
+				},
+			);
+
+			if (deletedUnread) {
+				queryClient.setQueryData<ApiResponse<number>>(
+					["notifications", "unread-count"],
+					(old) =>
+						old
+							? { ...old, data: Math.max(0, (old.data ?? 0) - 1) }
+							: old,
+				);
+			}
+
+			return context;
 		},
-		onError: (error) => {
+		onError: (error, _id, context) => {
+			restoreNotifications(queryClient, context);
 			responseError(error);
+		},
+		onSettled: () => {
+			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
 		},
 	});
 };
@@ -101,13 +284,51 @@ export const useDeleteNotification = () => {
 export const useDeleteAllNotifications = () => {
 	const queryClient = useQueryClient();
 
-	return useMutation({
+	return useMutation<
+		ApiResponse<null>,
+		unknown,
+		void,
+		NotificationMutationContext
+	>({
 		mutationFn: deleteAllNotifications,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["notifications"] });
+		onMutate: async () => {
+			const context = await snapshotNotifications(queryClient);
+
+			queryClient.setQueriesData<NotificationInfiniteData>(
+				{
+					queryKey: ["notifications"],
+					predicate: (query) => query.queryKey[1] !== "unread-count",
+				},
+				(old) => {
+					if (!old) return old;
+					return {
+						...old,
+						pages: old.pages.map((page) => ({
+							...page,
+							data: {
+								...page.data,
+								items: [],
+								hasMore: false,
+								nextCursor: null,
+							},
+						})),
+					};
+				},
+			);
+
+			queryClient.setQueryData<ApiResponse<number>>(
+				["notifications", "unread-count"],
+				(old) => (old ? { ...old, data: 0 } : old),
+			);
+
+			return context;
 		},
-		onError: (error) => {
+		onError: (error, _vars, context) => {
+			restoreNotifications(queryClient, context);
 			responseError(error);
+		},
+		onSettled: () => {
+			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
 		},
 	});
 };

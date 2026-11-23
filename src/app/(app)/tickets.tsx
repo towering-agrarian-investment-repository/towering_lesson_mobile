@@ -1,11 +1,14 @@
 import { NativeText } from "@/design-system/components/NativeText";
 import { TICKET_TABS, TicketTabScene } from "@/components/golf/TicketTabScene";
-import { AnimatedPressable, Screen } from "@/design-system";
+import { AnimatedPressable, Screen, triggerSelectionHaptic } from "@/design-system";
+import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import * as Haptics from "expo-haptics";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { Stack, useRouter } from "expo-router";
+import { History } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, View } from "react-native";
+import { Animated, Pressable, View } from "react-native";
 import { TabView, type TabBarProps } from "react-native-tab-view";
 import { useReducedMotion } from "react-native-reanimated";
 
@@ -17,6 +20,9 @@ type TicketRoute = {
 export default function TicketsScreen() {
 
     const { t } = useTranslation();
+    const { colors } = useTheme();
+    const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
     const reducedMotion = useReducedMotion();
     const [activeIndex, setActiveIndex] = useState(0);
     const [tabBarWidth, setTabBarWidth] = useState(0);
@@ -34,7 +40,7 @@ export default function TicketsScreen() {
                 return;
             }
 
-            void Haptics.selectionAsync();
+            triggerSelectionHaptic();
             setActiveIndex(nextIndex);
         },
         [activeIndex],
@@ -61,7 +67,7 @@ export default function TicketsScreen() {
                     {tabBarWidth > 0 ? (
                         <Animated.View
                             pointerEvents="none"
-                            className="absolute inset-y-0 left-0 rounded-2xl bg-primary"
+                            className="absolute inset-y-0 left-0 rounded-xl bg-primary"
                             style={{
                                 width:
                                     (tabBarWidth -
@@ -108,7 +114,7 @@ export default function TicketsScreen() {
                                 accessibilityState={{
                                     selected: activeIndex === tabIndex,
                                 }}
-                                className="min-h-11 flex-1 items-center justify-center rounded-2xl px-1"
+                                className="min-h-11 flex-1 items-center justify-center rounded-xl px-1"
                                 onPress={() => handleTabChange(tabIndex)}
                             >
                                 <NativeText
@@ -145,16 +151,38 @@ export default function TicketsScreen() {
     );
 
     return (
-        <Screen scroll={false}>
-            <TabView
-                animationEnabled={!reducedMotion}
-                navigationState={{ index: activeIndex, routes }}
-                onIndexChange={handleTabChange}
-                renderScene={renderScene}
-                renderTabBar={renderTabBar}
-                lazy
-                style={{ flex: 1 }}
+        <>
+            <Stack.Screen
+                options={{
+                    headerRight: () => (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t("tickets.openHistoryAccessibility")}
+                            disabled={isLocked}
+                            onPress={() => {
+                                triggerSelectionHaptic();
+                                runWithNavigationLock(() => {
+                                    router.push("/ticket-history");
+                                });
+                            }}
+                            className="min-h-12 min-w-12 items-center justify-center active:opacity-70"
+                        >
+                            <History size={22} color={colors.foreground} />
+                        </Pressable>
+                    ),
+                }}
             />
-        </Screen>
+            <Screen scroll={false} bottomPadding={16}>
+                <TabView
+                    animationEnabled={!reducedMotion}
+                    navigationState={{ index: activeIndex, routes }}
+                    onIndexChange={handleTabChange}
+                    renderScene={renderScene}
+                    renderTabBar={renderTabBar}
+                    lazy
+                    style={{ flex: 1 }}
+                />
+            </Screen>
+        </>
     );
 }

@@ -2,11 +2,13 @@ import { PendingBottomSheet } from "@/design-system/components/PendingBottomShee
 import { ProfileImageViewer } from "@/components/golf/profile/ProfileImageViewer";
 import { ProfilePreferenceRow } from "@/components/golf/profile/ProfilePreferenceRow";
 import {
-  CircleLoader,
+  AnimatedPressable,
   Divider,
   ErrorState,
   ListRow,
   Screen,
+  Skeleton,
+  triggerImpactHaptic,
   type PrimaryColorPreference,
   type ThemePreference,
 } from "@/design-system";
@@ -50,6 +52,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
 import * as Updates from "expo-updates";
@@ -59,7 +62,6 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Modal,
-  Pressable,
   RefreshControl,
   View,
 } from "react-native";
@@ -199,6 +201,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     if (signOutLocked.current) return;
+    triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
     signOutLocked.current = true;
     setIsSigningOut(true);
 
@@ -249,7 +252,25 @@ export default function ProfileScreen() {
   };
 
   if (isLoading) {
-    return <CircleLoader fullScreen />;
+    return (
+      <Screen
+        bottomSafeArea={process.env.EXPO_OS === "ios"}
+        contentClassName="gap-6"
+      >
+        <View className="flex-row items-center gap-5">
+          <Skeleton className="h-24 w-24 rounded-full" />
+          <View className="min-w-0 flex-1 gap-2.5">
+            <Skeleton className="h-6 w-40 rounded-md" />
+            <Skeleton className="h-4 w-28 rounded-md" />
+          </View>
+        </View>
+        <View className="gap-3">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-16 w-full rounded-2xl" />
+          ))}
+        </View>
+      </Screen>
+    );
   }
 
   if (isError && !memberResponse) {
@@ -635,13 +656,14 @@ function ProfileHeader({
   return (
     <View className="flex-row items-center gap-5">
       {imageUrl ? (
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={t("profile.viewProfilePhoto")}
+          haptic="selection"
           onPress={onImagePress}
         >
           <ProfileAvatar name={name} imageUrl={imageUrl} size="large" />
-        </Pressable>
+        </AnimatedPressable>
       ) : (
         <ProfileAvatar name={name} size="large" />
       )}

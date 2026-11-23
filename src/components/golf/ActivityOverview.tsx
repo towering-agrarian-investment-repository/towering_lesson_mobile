@@ -3,7 +3,9 @@ import { AppText } from "@/design-system/components/AppText";
 import { NativeText } from "@/design-system/components/NativeText";
 import { ActivitySharePreview } from "@/components/golf/ActivitySharePreview";
 import { mapActivityDays } from "@/components/golf/activity-display-data";
-import ReservationCard from "@/components/golf/ReservationCard";
+import ReservationCard, {
+    ReservationCardSkeleton,
+} from "@/components/golf/ReservationCard";
 import {
     ActivityHeatmap,
     AnimatedPressable,
@@ -36,7 +38,6 @@ import { ChevronRight, Sparkles } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Pressable,
     RefreshControl,
     ScrollView,
     View,
@@ -259,7 +260,7 @@ export function ActivityOverview() {
                         {availableYears.map((year) => {
                             const isSelected = selectedYear === year;
                             return (
-                                <Pressable
+                                <AnimatedPressable
                                     key={year}
                                     accessibilityRole="button"
                                     accessibilityState={{ selected: isSelected }}
@@ -297,10 +298,10 @@ export function ActivityOverview() {
                                             {String(year ?? "")}
                                         </AppText>
                                     </View>
-                                </Pressable>
+                                </AnimatedPressable>
                             );
                         })}
-                        <Pressable
+                        <AnimatedPressable
                             accessibilityRole="button"
                             accessibilityState={{
                                 selected: selectedYear === "all",
@@ -334,7 +335,7 @@ export function ActivityOverview() {
                                     {t("activity.all")}
                                 </AppText>
                             </View>
-                        </Pressable>
+                        </AnimatedPressable>
                     </ScrollView>
                     <View
                         className={cn(
@@ -499,8 +500,8 @@ function ActivityDayReservations({
     if (!data && !isError) {
         return (
             <View className="gap-2.5" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
-                <ActivityReservationRowSkeleton />
-                <ActivityReservationRowSkeleton />
+                <ReservationCardSkeleton />
+                <ReservationCardSkeleton />
             </View>
         );
     }
@@ -521,9 +522,10 @@ function ActivityDayReservations({
     return (
         <View className="gap-2.5">
             {isError ? (
-                <Pressable
+                <AnimatedPressable
                     accessibilityRole="button"
                     disabled={isRefetching}
+                    haptic="selection"
                     accessibilityState={{ disabled: isRefetching, busy: isRefetching }}
                     className="min-h-12 justify-center rounded-xl bg-muted px-4"
                     onPress={() => { void refetch(); }}
@@ -531,7 +533,7 @@ function ActivityDayReservations({
                     <NativeText variant="subtext" color="mutedForeground">
                         {`${t("reservations.failedListTitle")} · ${t(isRefetching ? "common.refreshing" : "common.refreshTryAgain")}`}
                     </NativeText>
-                </Pressable>
+                </AnimatedPressable>
             ) : null}
             {data.length === 0 ? (
                 <CompactEmptyState title={t("reservations.noReservationsTitle")} />
@@ -585,7 +587,7 @@ function ActivityChartHeader({
             </NativeText>
             <View className="flex-row items-center gap-2">
                 {onTodayPress ? (
-                    <Pressable
+                    <AnimatedPressable
                         accessibilityRole="button"
                         accessibilityLabel={t("activity.today")}
                         hitSlop={8}
@@ -602,7 +604,7 @@ function ActivityChartHeader({
                                 {t("activity.today")}
                             </AppText>
                         </View>
-                    </Pressable>
+                    </AnimatedPressable>
                 ) : null}
                 <NativeText
                     variant="subtext"
@@ -673,8 +675,8 @@ function ActivityLoadingState({
                     </View>
                     {showSelectedDay ? (
                         <View className="gap-3">
-                            <ActivityReservationRowSkeleton />
-                            <ActivityReservationRowSkeleton />
+                            <ReservationCardSkeleton />
+                            <ReservationCardSkeleton />
                         </View>
                     ) : null}
                 </View>
@@ -730,25 +732,6 @@ function HeatmapSkeleton() {
                 </View>
                 <View className="h-3" />
             </Skeleton>
-        </View>
-    );
-}
-
-function ActivityReservationRowSkeleton() {
-    return (
-        <View className="gap-3 rounded-2xl border border-border bg-card p-4">
-            <View className="flex-row items-center justify-between gap-2">
-                <Skeleton className="h-4 w-36 rounded-full" />
-                <Skeleton className="h-5 w-16 rounded-md" />
-            </View>
-            <View className="flex-row items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-xl" />
-                <View className="min-w-0 flex-1 gap-1.5">
-                    <Skeleton className="h-4 w-3/5 rounded-full" />
-                    <Skeleton className="h-3.5 w-1/3 rounded-full" />
-                </View>
-                <Skeleton className="h-4 w-4 rounded-full" />
-            </View>
         </View>
     );
 }

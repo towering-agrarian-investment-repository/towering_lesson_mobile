@@ -4,6 +4,7 @@ import {
     AnimatedPressable,
     EmptyState,
     ErrorState,
+    ListRetryFooter,
     Screen,
     Skeleton,
     StateList,
@@ -23,7 +24,7 @@ import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, View } from "react-native";
+import { RefreshControl, View } from "react-native";
 
 const lessonLogKeyExtractor = (item: MemberLessonLogResponse) =>
     String(item.id);
@@ -156,21 +157,11 @@ function LessonLogScreen() {
                                 <Skeleton className="h-16 rounded-2xl" />
                             </View>
                         ) : isFetchNextPageError ? (
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityState={{
-                                    disabled: isFetching || isFetchingNextPage,
-                                    busy: isFetchingNextPage,
-                                }}
+                            <ListRetryFooter
                                 disabled={isFetching || isFetchingNextPage}
-                                className="items-center justify-center px-6 disabled:opacity-60"
-                                style={{ minHeight: 48 }}
-                                onPress={handleFetchNextPage}
-                            >
-                                <AppText variant="label" color="primary">
-                                    {t("common.refreshTryAgain")}
-                                </AppText>
-                            </Pressable>
+                                busy={isFetchingNextPage}
+                                onRetry={handleFetchNextPage}
+                            />
                         ) : undefined
                     }
                 />

@@ -1,5 +1,5 @@
 import { typography } from "@/design-system/utils/typography";
-import { useTheme } from "@/design-system";
+import { AnimatedPressable, useTheme } from "@/design-system";
 import { Host, TextInput, useNativeState } from "@expo/ui";
 import {
     defaultMinSize,
@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { useController, type FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
 import { FormInputBaseProps } from "./types";
 
@@ -21,6 +21,8 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     placeholder,
     rules,
     autoComplete,
+    returnKeyType,
+    onSubmitEditing,
     editable = true,
 }: FormInputBaseProps<TFieldValues>) {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -73,7 +75,10 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                         placeholder={placeholder}
                         placeholderTextColor={colors.mutedForeground}
                         autoCapitalize="none"
+                        autoCorrect={false}
                         autoComplete={autoComplete}
+                        returnKeyType={returnKeyType}
+                        onSubmitEditing={onSubmitEditing}
                         secureTextEntry={!isPasswordVisible}
                         editable={editable}
                         cursorColor={colors.primary}
@@ -86,7 +91,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                     />
                 </Host>
 
-                <Pressable
+                <AnimatedPressable
                     accessibilityRole="button"
                     accessibilityLabel={
                         isPasswordVisible
@@ -94,6 +99,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                             : t("common.showPassword")
                     }
                     accessibilityState={{ disabled: !editable }}
+                    haptic="selection"
                     onPress={() => {
                         setIsPasswordVisible((current) => !current);
                     }}
@@ -112,7 +118,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                             editable ? colors.mutedForeground : colors.border
                         }
                     />
-                </Pressable>
+                </AnimatedPressable>
             </View>
         </FormFieldShell>
     );

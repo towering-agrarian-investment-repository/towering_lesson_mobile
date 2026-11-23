@@ -1,6 +1,8 @@
-import ReservationCard from "@/components/golf/ReservationCard";
+import ReservationCard, {
+  ReservationCardSkeleton,
+} from "@/components/golf/ReservationCard";
 import {
-  CircleLoader,
+  ActionButton,
   EmptyState,
   ErrorState,
   Skeleton,
@@ -8,7 +10,6 @@ import {
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AppText } from "@/design-system/components/AppText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
@@ -18,12 +19,6 @@ import {
 import type { MemberReservationType } from "@/service/reservation.service";
 import type { MemberReservationResponse } from "@/types/member-reservation";
 import { formatDateValue } from "@/utils/time-helper";
-import { Button, Host } from "@expo/ui";
-import {
-  defaultMinSize,
-  fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
 import { FlashList } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -326,25 +321,6 @@ function ReservationListHeaderSkeleton() {
   );
 }
 
-function ReservationCardSkeleton() {
-  return (
-    <View className="gap-3 rounded-2xl border border-border bg-card p-4">
-      <View className="flex-row items-center justify-between gap-2">
-        <Skeleton className="h-4 w-36 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-md" />
-      </View>
-      <View className="flex-row items-center gap-3">
-        <Skeleton className="h-10 w-10 rounded-xl" />
-        <View className="min-w-0 flex-1 gap-1.5">
-          <Skeleton className="h-4 w-3/5 rounded-full" />
-          <Skeleton className="h-3.5 w-1/3 rounded-full" />
-        </View>
-        <Skeleton className="h-4 w-4 rounded-full" />
-      </View>
-    </View>
-  );
-}
-
 function ReservationListHeader({
   count,
   hasMore,
@@ -399,38 +375,28 @@ function ReservationListFooter({
   onRetry?: () => void;
   retrying?: boolean;
 }) {
-  const { colors } = useTheme();
   const { t } = useTranslation();
+
+  if (!onRetry) {
+    return (
+      <View className="py-3">
+        <ReservationCardSkeleton />
+      </View>
+    );
+  }
 
   return (
     <View className="items-center gap-3 py-5">
-      {onRetry ? (
-        <>
-          <NativeText variant="meta" color="mutedForeground" align="center">
-            {t("reservations.failedMoreTitle")}
-          </NativeText>
-          <Host
-            matchContents={{ vertical: true }}
-            style={{ width: "100%" }}
-            accessibilityState={{ disabled: retrying, busy: retrying }}
-          >
-            <Button
-              variant="outlined"
-              label={t("common.refreshTryAgain")}
-              disabled={retrying}
-              onPress={onRetry}
-              style={getNativeButtonStyle(colors, "outlined", retrying)}
-              modifiers={
-                process.env.EXPO_OS === "ios"
-                  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                  : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
-              }
-            />
-          </Host>
-        </>
-      ) : (
-        <CircleLoader />
-      )}
+      <NativeText variant="meta" color="mutedForeground" align="center">
+        {t("reservations.failedMoreTitle")}
+      </NativeText>
+      <ActionButton
+        label={t("common.refreshTryAgain")}
+        appearance="outlined"
+        disabled={retrying}
+        loading={retrying}
+        onPress={onRetry}
+      />
     </View>
   );
 }

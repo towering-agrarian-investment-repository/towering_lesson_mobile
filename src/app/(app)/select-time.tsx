@@ -229,6 +229,7 @@ const TimeSlotCard = memo(function TimeSlotCard({
       accessibilityRole="button"
       accessibilityLabel={timeRange}
       accessibilityState={{ disabled: isLocked }}
+      haptic="selection"
       className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
       onPress={() => onSelect(group)}
       disabled={isLocked}

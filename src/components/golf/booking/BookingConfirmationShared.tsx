@@ -1,5 +1,5 @@
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { Divider, Skeleton } from "@/design-system";
+import { Divider, Skeleton, triggerSuccessHaptic } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
@@ -7,8 +7,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import * as Haptics from "expo-haptics";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import type { ImperativeRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
@@ -24,8 +23,9 @@ type BookingConfirmationFooterProps = {
 type BookingSuccessDetails = {
     type: "bay" | "lesson";
     mode?: "booking" | "reschedule";
-    ticketId?: number | string | null;
     ticketName?: string | null;
+    ticketTotalCount?: number | null;
+    ticketUsedCount?: number | null;
     ticketRemainingCount?: number | null;
     ticketIsUnlimited?: boolean | null;
     date?: string | null;
@@ -41,13 +41,7 @@ export function handleBookingConfirmationSuccess(
     router: ImperativeRouter,
     details: BookingSuccessDetails,
 ) {
-    if (process.env.EXPO_OS === "android") {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } else if (process.env.EXPO_OS === "ios") {
-        void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-        );
-    }
+    triggerSuccessHaptic();
 
     const params: Record<string, string> = {
         type: details.type,
@@ -64,7 +58,8 @@ export function handleBookingConfirmationSuccess(
     };
 
     addParam("ticketName", details.ticketName);
-    addParam("ticketId", details.ticketId);
+    addParam("ticketTotalCount", details.ticketTotalCount);
+    addParam("ticketUsedCount", details.ticketUsedCount);
     addParam("ticketRemainingCount", details.ticketRemainingCount);
     addParam("ticketIsUnlimited", details.ticketIsUnlimited);
     addParam("date", details.date);
@@ -129,7 +124,7 @@ export function BookingConfirmationFooter({
                     <Row
                         modifiers={
                             process.env.EXPO_OS === "ios"
-                                ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                 : [fillMaxWidth()]
                         }
                         spacing={8}
