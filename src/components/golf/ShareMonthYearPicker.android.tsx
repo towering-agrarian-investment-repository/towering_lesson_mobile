@@ -1,10 +1,8 @@
 import { formatShareCardMonth } from "@/components/golf/monthly-share-card-layout";
 import type { ShareMonthYearPickerProps } from "@/components/golf/ShareMonthYearPicker";
+import { ActionButton, triggerSelectionHaptic } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
-import { useTheme } from "@/design-system/utils/theme";
-import { Button, Host, RNHostView, Text } from "@expo/ui";
-import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { RNHostView } from "@expo/ui";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
@@ -23,7 +21,10 @@ function Wheel({ values, selected, onSelect }: {
     const selectedIndex = Math.max(0, values.findIndex(item => item.value === selected));
     const settle = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const index = Math.max(0, Math.min(values.length - 1, Math.round(event.nativeEvent.contentOffset.y / ROW_HEIGHT)));
-        if (values[index].value !== selected) onSelect(values[index].value);
+        if (values[index].value !== selected) {
+            triggerSelectionHaptic();
+            onSelect(values[index].value);
+        }
     };
 
     return (
@@ -45,8 +46,9 @@ function Wheel({ values, selected, onSelect }: {
                     return (
                         <Pressable key={item.value} accessibilityRole="button"
                             accessibilityLabel={item.label} accessibilityState={{ selected: active }}
-                            className="items-center justify-center" style={{ height: ROW_HEIGHT }}
+                            className="items-center justify-center active:opacity-70" style={{ height: ROW_HEIGHT }}
                             onPress={() => {
+                                triggerSelectionHaptic();
                                 onSelect(item.value);
                                 scrollRef.current?.scrollTo({ y: index * ROW_HEIGHT, animated: !reducedMotion });
                             }}>
@@ -63,7 +65,6 @@ function Wheel({ values, selected, onSelect }: {
 }
 
 export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
-    const { colors, fontScale, resolvedScheme } = useTheme();
     const { t, i18n } = useTranslation();
     const monthFormatter = new Intl.DateTimeFormat(i18n.language, { month: "long", calendar: "gregory", timeZone: "UTC" });
     const months = Array.from({ length: 12 }, (_, value) => ({
@@ -83,13 +84,10 @@ export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onC
                     {!yearOnly && <Wheel values={months} selected={month} onSelect={value => onChange(year, value)} />}
                     <Wheel values={yearOptions} selected={year} onSelect={value => onChange(value, month)} />
                 </View>
-                <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={resolvedScheme} style={{ width: "100%" }}>
-                    <Button variant="text" onPress={() => onConfirm(year, month)} style={getNativeButtonStyle(colors, "filled")}
-                        modifiers={[fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
-                        <Text textStyle={getNativeButtonTextStyle(colors, "filled", fontScale)}
-                            modifiers={[fillMaxWidth()]}>{t("activity.ok")}</Text>
-                    </Button>
-                </Host>
+                <ActionButton
+                    label={t("activity.ok")}
+                    onPress={() => onConfirm(year, month)}
+                />
             </View>
         </RNHostView>
     );

@@ -1,15 +1,6 @@
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { Divider, Skeleton, triggerSuccessHaptic } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
-import { Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
+import { ActionButton, Divider, Skeleton, triggerSuccessHaptic } from "@/design-system";
 import type { ImperativeRouter } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 type BookingConfirmationFooterProps = {
     title: string;
@@ -17,8 +8,6 @@ type BookingConfirmationFooterProps = {
     disabled: boolean;
     onPress: () => void;
 };
-
-
 
 type BookingSuccessDetails = {
     type: "bay" | "lesson";
@@ -52,9 +41,10 @@ export function handleBookingConfirmationSuccess(
         key: string,
         value?: string | number | boolean | null,
     ) => {
-        if (value !== undefined && value !== null && String(value).trim()) {
-            params[key] = String(value);
-        }
+        if (value == null) return;
+        const normalized = String(value).trim();
+        if (!normalized) return;
+        params[key] = normalized;
     };
 
     addParam("ticketName", details.ticketName);
@@ -82,79 +72,14 @@ export function BookingConfirmationFooter({
     disabled,
     onPress,
 }: BookingConfirmationFooterProps) {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
     return (
-        <View>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
-                colorScheme={uiScheme}
-                seedColor={uiColors.primary}
-                accessibilityLabel={title}
-                accessibilityState={{
-                    disabled: disabled || loading,
-                    busy: loading,
-                }}
-                style={{ width: "100%" }}>
-                <Button
-                    modifiers={
-                        process.env.EXPO_OS === "ios"
-                            ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                            : [
-                                fillMaxWidth(),
-                                defaultMinSize({ minHeight: 48 }),
-                            ]
-                    }
-                    variant="text"
-                    disabled={disabled || loading}
-                    onPress={onPress}
-                    style={{
-                        ...getNativeButtonStyle(
-                            uiColors,
-                            "filled",
-                            disabled || loading,
-                            uiColors.primary,
-                        ), ...{ borderRadius: 12 }
-                    }}
-                >
-                    <Row
-                        modifiers={
-                            process.env.EXPO_OS === "ios"
-                                ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                : [fillMaxWidth()]
-                        }
-                        spacing={8}
-                        alignment="center"
-                    >
-                        <Spacer flexible />
-                        {loading ? (
-                            <RNHostView matchContents>
-                                <ActivityIndicator
-                                    color={uiColors.primaryForeground}
-                                />
-                            </RNHostView>
-                        ) : null}
-                        <Text
-                            textStyle={{
-                                textAlign: "center",
-                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                fontWeight: "600",
-                                color: uiColors.primaryForeground,
-                                fontSize:
-                                    typography.label.fontSize * uiFontScale,
-                            }}
-                        >
-                            {title}
-                        </Text>
-                        <Spacer flexible />
-                    </Row>
-                </Button>
-            </Host>
-        </View>
+        <ActionButton
+            label={title}
+            loading={loading}
+            disabled={disabled}
+            haptic="selection"
+            onPress={onPress}
+        />
     );
 }
 
@@ -181,4 +106,3 @@ export function BookingConfirmationLoadingState({
         </View>
     );
 }
-

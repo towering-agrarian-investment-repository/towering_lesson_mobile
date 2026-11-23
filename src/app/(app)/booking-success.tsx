@@ -1,16 +1,8 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { Badge, Divider, Screen } from "@/design-system";
+import { ActionButton, Badge, Divider, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import {
     useFocusEffect,
     useLocalSearchParams,
@@ -74,7 +66,7 @@ function BookingDetailRow({
 }
 
 export default function BookingSuccessScreen() {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const {
         type,
@@ -167,54 +159,12 @@ export default function BookingSuccessScreen() {
             : null;
 
     const footer = (
-        <View>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
-                colorScheme={uiScheme}
-                seedColor={colors.primary}
-                accessibilityLabel={t("activity.done")}
-                accessibilityState={{ disabled: isLocked, busy: false }}
-                style={{ width: "100%" }}>
-                <Button
-                    modifiers={
-                        process.env.EXPO_OS === "ios"
-                            ? [frame({ maxWidth: Infinity, minHeight: 56 })]
-                            : [
-                                fillMaxWidth(),
-                                defaultMinSize({ minHeight: 56 }),
-                            ]
-                    }
-                    variant="text"
-                    disabled={isLocked}
-                    onPress={handleGoHome}
-                    style={{
-                        ...getNativeButtonStyle(
-                            colors,
-                            "filled",
-                            isLocked,
-                            colors.primary,
-                        ), ...{ borderRadius: 12 }
-                    }}
-                >
-                    <Text
-                        modifiers={
-                            process.env.EXPO_OS === "ios"
-                                ? [frame({ maxWidth: Infinity, minHeight: 56 }), contentShape(shapes.rectangle())]
-                                : [fillMaxWidth()]
-                        }
-                        textStyle={{
-                            ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                            textAlign: "center",
-                            color: colors.primaryForeground,
-                            fontSize: typography.label.fontSize * uiFontScale,
-                        }}
-                    >
-                        {t("activity.done")}
-                    </Text>
-                </Button>
-            </Host>
-        </View>
+        <ActionButton
+            label={t("activity.done")}
+            disabled={isLocked}
+            haptic="selection"
+            onPress={handleGoHome}
+        />
     );
 
     return (

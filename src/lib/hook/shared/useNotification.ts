@@ -98,7 +98,7 @@ export const useGetNotifications = (isRead?: boolean) => {
 export const useGetUnreadNotificationCount = () => {
 	return useQuery({
 		queryKey: ["notifications", "unread-count"],
-		queryFn: getUnreadNotificationCount,
+		queryFn: ({ signal }) => getUnreadNotificationCount(signal),
 		staleTime: 15_000,
 		refetchOnWindowFocus: true,
 	});

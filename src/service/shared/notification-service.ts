@@ -67,9 +67,12 @@ export const getNotifications = async ({
 	});
 };
 
-export const getUnreadNotificationCount = async (): Promise<ApiResponse<number>> => {
+export const getUnreadNotificationCount = async (
+	signal?: AbortSignal,
+): Promise<ApiResponse<number>> => {
 	return apiClient("/notification/unread-count", {
 		method: "GET",
+		signal,
 	});
 };
 

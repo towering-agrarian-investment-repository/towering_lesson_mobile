@@ -133,8 +133,6 @@ export function ActivitySharePreview({
     } | null>(null);
     const [cardWidth, setCardWidth] = useState(0);
     const [readyCardKey, setReadyCardKey] = useState<string | null>(null);
-    const [failedCardKey, setFailedCardKey] = useState<string | null>(null);
-    const [retryCount, setRetryCount] = useState(0);
     const captureReadyRef = useRef(false);
     const shareCardRef = useRef<React.ElementRef<typeof View>>(null);
 
@@ -191,18 +189,15 @@ export function ActivitySharePreview({
         cardProps.memberImage ?? "",
         cardWidth,
         primaryColorPreference,
-        retryCount,
     ].join("|");
     const assetKey = [
         cardTheme,
         cardProps.memberImage ?? "",
-        retryCount,
     ].join("|");
     const canSave =
         canPreview &&
         !isPlaceholderData &&
-        readyCardKey === cardKey &&
-        failedCardKey !== cardKey;
+        readyCardKey === cardKey;
     const loadingValues = !shareActivity || isPlaceholderData;
 
     const handleReadyChange = useCallback(
@@ -210,10 +205,6 @@ export function ActivitySharePreview({
             captureReadyRef.current = ready;
             setReadyCardKey(ready ? cardKey : null);
         },
-        [cardKey],
-    );
-    const handleAssetError = useCallback(
-        () => setFailedCardKey(cardKey),
         [cardKey],
     );
 
@@ -661,9 +652,6 @@ export function ActivitySharePreview({
                                                         onReadyChange={
                                                             handleReadyChange
                                                         }
-                                                        onAssetError={
-                                                            handleAssetError
-                                                        }
                                                     />
                                                 ) : (
                                                     <YearlyShareCard
@@ -687,9 +675,6 @@ export function ActivitySharePreview({
                                                         width={cardWidth}
                                                         onReadyChange={
                                                             handleReadyChange
-                                                        }
-                                                        onAssetError={
-                                                            handleAssetError
                                                         }
                                                     />
                                                 )}
@@ -748,30 +733,6 @@ export function ActivitySharePreview({
                                         )}
                                     </View>
                                 </GestureDetector>
-
-                                {failedCardKey === cardKey ? (
-                                    <Animated.View
-                                        entering={reducedMotion ? undefined : FadeIn.duration(150)}
-                                        exiting={reducedMotion ? undefined : FadeOut.duration(120)}
-                                    >
-                                        <AnimatedPressable
-                                            accessibilityRole="button"
-                                            haptic="selection"
-                                            className="min-h-12 items-center justify-center"
-                                            onPress={() =>
-                                                setRetryCount((value) => value + 1)
-                                            }
-                                        >
-                                            <NativeText
-                                                variant="subtext"
-                                                color="danger"
-                                                align="center"
-                                            >
-                                                {t("common.refreshTryAgain")}
-                                            </NativeText>
-                                        </AnimatedPressable>
-                                    </Animated.View>
-                                ) : null}
 
                                 <View className="flex-row items-center justify-center gap-4">
                                     {SHARE_CARD_THEMES.map((themeOption) => {

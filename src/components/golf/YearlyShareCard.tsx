@@ -31,7 +31,6 @@ type YearlyShareCardProps = {
     memberName?: string;
     memberImage?: string | null;
     onReadyChange: (ready: boolean) => void;
-    onAssetError: () => void;
 };
 
 /** Pure vector annual scorecard poster on the exact same export canvas. */

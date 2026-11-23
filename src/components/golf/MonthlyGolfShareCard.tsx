@@ -33,7 +33,6 @@ type MonthlyGolfShareCardProps = {
     memberName?: string;
     memberImage?: string | null;
     onReadyChange: (ready: boolean) => void;
-    onAssetError: () => void;
 };
 
 const { components: measured } = layout;

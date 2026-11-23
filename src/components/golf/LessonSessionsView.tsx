@@ -54,6 +54,7 @@ const SessionSwitcherItem = memo(function SessionSwitcherItem({
             accessibilityLabel={t("lessonSessions.openSession", {
                 title: getSessionTitle(session),
             })}
+            haptic="selection"
             className={
                 isSelected
                     ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3"
@@ -415,18 +416,18 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
                 ) : null}
             </View>
 
-            <View className="px-4 py-4">
-                {memo ? (
-                    <View className="rounded-xl bg-background px-3 py-3">
-                        <NativeText variant="caption" color="mutedForeground" style={{ marginBottom: 4 }}>
+            {memo ? (
+                <View className="px-4 py-4">
+                    <View className="gap-1 rounded-xl bg-background px-3 py-3">
+                        <NativeText variant="caption" color="mutedForeground">
                             {t("lessonSessions.coachNote")}
                         </NativeText>
                         <NativeText variant="body">
                             {memo}
                         </NativeText>
                     </View>
-                ) : null}
-            </View>
+                </View>
+            ) : null}
         </View>
     );
 }

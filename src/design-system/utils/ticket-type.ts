@@ -22,7 +22,7 @@ const ticketTypeToneDefinitions: Record<
     bayUsage: {
         color: "ticketBay",
         badgeClassName: "bg-ticket-bay/10",
-        badgeSolidClassName: "bg-[#007EA7]",
+        badgeSolidClassName: "bg-ticket-bay",
         dotClassName: "bg-ticket-bay",
         borderClassName: "border-ticket-bay/20",
         emphasisBorderClassName: "border-ticket-bay",
@@ -40,7 +40,7 @@ const ticketTypeToneDefinitions: Record<
     groupLesson: {
         color: "ticketGroup",
         badgeClassName: "bg-ticket-group/10",
-        badgeSolidClassName: "bg-[#C77800]",
+        badgeSolidClassName: "bg-ticket-group",
         dotClassName: "bg-ticket-group",
         borderClassName: "border-ticket-group/20",
         emphasisBorderClassName: "border-ticket-group",
@@ -117,17 +117,4 @@ export function getTicketTypeTone(type?: TicketType | string | null) {
         name,
         ...tone,
     };
-}
-
-export function getTicketTypeStyles(
-    colorsOrType?: unknown,
-    maybeType?: TicketType | string | null,
-) {
-    const type =
-        maybeType ??
-        (typeof colorsOrType === "string" || colorsOrType == null
-            ? (colorsOrType as TicketType | string | null | undefined)
-            : undefined);
-
-    return getTicketTypeTone(type);
 }

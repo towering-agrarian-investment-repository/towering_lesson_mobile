@@ -2,7 +2,7 @@ import { NativeText } from "@/design-system/components/NativeText";
 import goLogoImage from "@/assets/images/img_go.png";
 import golfFieldImage from "@/assets/images/img_golf_filed.png";
 import { FormPasswordInput, FormTextInput } from "@/components/ui/form";
-import { Screen } from "@/design-system";
+import { Screen, triggerNotificationHaptic } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
@@ -19,6 +19,7 @@ import {
 } from "@expo/ui/jetpack-compose/modifiers";
 import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useState, useSyncExternalStore } from "react";
@@ -81,6 +82,7 @@ export default function LoginScreen() {
                 password: values.password,
             });
         } catch (error) {
+            triggerNotificationHaptic(Haptics.NotificationFeedbackType.Error);
             form.setError("password", {
                 type: "server",
                 message:

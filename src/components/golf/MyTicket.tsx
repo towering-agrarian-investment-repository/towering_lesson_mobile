@@ -1,4 +1,4 @@
-import { CompactEmptyState } from "@/design-system";
+import { AnimatedPressable, CompactEmptyState } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import TicketHistoryCard, {
     TicketHistoryCardSkeleton,
 } from "./TicketHistoryCard";
@@ -82,12 +82,13 @@ function MyTicket() {
                 {activeTickets.length > 1 ||
                 hasNextPage ||
                 allTickets.length > activeTickets.length ? (
-                    <Pressable
+                    <AnimatedPressable
                         accessibilityRole="button"
                         accessibilityLabel={t("tickets.viewAll")}
                         disabled={isLocked}
+                        haptic="selection"
                         style={{ minHeight: 48 }}
-                        className="justify-center rounded-lg px-2 active:opacity-70"
+                        className="justify-center rounded-lg px-2"
                         onPressIn={() => {
                             if (!isLocked) {
                                 void queryClient.prefetchInfiniteQuery(
@@ -113,7 +114,7 @@ function MyTicket() {
                         >
                             {t("tickets.viewAll")}
                         </NativeText>
-                    </Pressable>
+                    </AnimatedPressable>
                 ) : null}
             </View>
 

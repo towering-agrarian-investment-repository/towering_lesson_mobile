@@ -138,7 +138,7 @@ export default function LessonDetailScreen() {
                     <View className="flex-row flex-wrap gap-2">
                         {lesson.lessonStatus ? (
                             <Badge
-                                label={formatType(lesson.lessonStatus)}
+                                label={formatType(lesson.lessonStatus, t)}
                                 className={lessonStatusTone.className}
                                 color={lessonStatusTone.color}
                             />
@@ -241,7 +241,7 @@ export default function LessonDetailScreen() {
                             const url = media.fileUrl?.trim();
                             return (
                                 <ListRow
-                                    key={`media-${media.id ?? index}`}
+                                    key={`media-${media.id ?? media.fileUrl ?? media.description ?? "item"}`}
                                     title={
                                         media.description?.trim() ||
                                         t("lessons.mediaFallback", {
@@ -365,10 +365,10 @@ function HomeworkRow({
     const reviewStatus =
         latestSubmission?.review?.status ?? homework.currentReviewStatus;
     const statusLabel = reviewStatus
-        ? formatType(reviewStatus)
+        ? formatType(reviewStatus, t)
         : submissionStatus
-            ? formatType(submissionStatus)
-            : formatType(homework.homeworkStatus);
+            ? formatType(submissionStatus, t)
+            : formatType(homework.homeworkStatus, t);
     const statusTone = reviewStatus
         ? getHomeworkReviewTone(reviewStatus)
         : submissionStatus

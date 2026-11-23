@@ -261,7 +261,7 @@ export default function StandaloneLessonDetailScreen() {
                     <View className="gap-3">
                         {detail.media.map((media, index) => (
                             <ListRow
-                                key={`media-${media.id ?? index}`}
+                                key={`media-${media.id ?? media.fileUrl ?? media.description ?? "item"}`}
                                 title={
                                     media.description?.trim() ||
                                     t("lessons.mediaFallback", {

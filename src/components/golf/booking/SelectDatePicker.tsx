@@ -1,6 +1,7 @@
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
   cn,
+  CompactEmptyState,
   EmptyState,
   ErrorState,
   Screen,
@@ -464,6 +465,7 @@ export default function DateScreen() {
             onDayPress={(day: DateData) => handleDayPress(day.dateString)}
             dayComponent={renderDay}
             onMonthChange={(month: DateData) => {
+              triggerSelectionHaptic();
               const nextIndex = month.year * 12 + month.month;
               const next =
                 nextIndex < currentMonthIndex
@@ -533,6 +535,15 @@ export default function DateScreen() {
             }}
           />
         )}
+        {!isInitialLoading && !hasLoadError && availableDates.size === 0 ? (
+          <View className="px-6 pt-3">
+            <CompactEmptyState
+              title={t("booking.noAvailableDatesTitle", {
+                defaultValue: "No available dates this month",
+              })}
+            />
+          </View>
+        ) : null}
       </View>
     </Screen>
   );

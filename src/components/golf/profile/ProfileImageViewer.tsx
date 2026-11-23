@@ -1,9 +1,10 @@
+import { AnimatedPressable } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -31,16 +32,17 @@ export function ProfileImageViewer({
     >
       <StatusBar style="light" />
       <View className="items-end">
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={t("common.closeTitle", {
             title: t("profile.viewProfilePhoto"),
           })}
-          className="h-12 w-12 items-center justify-center rounded-full bg-white/20 active:opacity-70"
+          haptic="selection"
+          className="h-12 w-12 items-center justify-center rounded-full bg-white/20"
           onPress={onClose}
         >
           <X size={24} color={colors.primaryForeground} />
-        </Pressable>
+        </AnimatedPressable>
       </View>
       {imageUri ? (
         <Image
