@@ -53,8 +53,8 @@ import { useNavigation, useRouter } from "expo-router";
 import { Bell, MoreVertical } from "lucide-react-native";
 import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, View } from "react-native";
-import { FlatList, RefreshControl } from "react-native-gesture-handler";
+import { FlashList } from "@shopify/flash-list";
+import { ActivityIndicator, Pressable, RefreshControl, View } from "react-native";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 const isIOS = process.env.EXPO_OS === "ios";
@@ -65,6 +65,12 @@ const buttonSize = isIOS
 const buttonInnerSize = isIOS
   ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
   : [fillMaxWidth()];
+
+const notificationKeyExtractor = (item: NotificationResponse) => String(item.id);
+
+function NotificationSeparator() {
+  return <View className="h-px bg-border" />;
+}
 
 function NoticeScreen() {
   const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
@@ -334,10 +340,9 @@ function NoticeScreen() {
   }, [handleFetchNextPage, isFetchNextPageError]);
 
   const renderNotificationItem = useCallback(
-    ({ item, index }: { item: NotificationResponse; index: number }) => (
+    ({ item }: { item: NotificationResponse }) => (
       <MemoNotificationRow
         item={item}
-        isLast={index === notifications.length - 1}
         disabled={
           isLocked || isDeletingNotification || isDeletingAllNotifications
         }
@@ -352,7 +357,6 @@ function NoticeScreen() {
       isDeletingAllNotifications,
       isDeletingNotification,
       isLocked,
-      notifications.length,
     ],
   );
 
@@ -511,11 +515,11 @@ function NoticeScreen() {
             />
           </StateList>
         ) : (
-          <FlatList
-            style={{ flex: 1 }}
+          <FlashList
             data={notifications}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={notificationKeyExtractor}
             renderItem={renderNotificationItem}
+            ItemSeparatorComponent={NotificationSeparator}
             refreshControl={
               <RefreshControl
                 refreshing={isPullRefreshing}
@@ -585,14 +589,12 @@ function NoticeListHeader({
 
 function NotificationRow({
   item,
-  isLast,
   disabled,
   isDeleting,
   onDelete,
   onPress,
 }: {
   item: NotificationResponse;
-  isLast: boolean;
   disabled: boolean;
   isDeleting: boolean;
   onDelete: (id: number) => void;
@@ -631,9 +633,7 @@ function NotificationRow({
         </Pressable>
       )}
     >
-      <View
-        className={cn("bg-background", !isLast && "border-b border-border")}
-      >
+      <View className="bg-background">
         <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel={item.title}

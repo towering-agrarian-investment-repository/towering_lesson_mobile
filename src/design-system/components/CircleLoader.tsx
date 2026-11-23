@@ -1,6 +1,8 @@
 import { NativeText } from "./NativeText";
 import happyGolfToolbarLogo from "@/assets/images/happygolf_toolbar_logo.png";
-import { Image, View } from "react-native";
+import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import Animated, { cubicBezier, useReducedMotion } from "react-native-reanimated";
 import { useTheme } from "../utils/theme";
 
@@ -16,12 +18,13 @@ export function CircleLoader({
     logoOnly = false,
 }: CircleLoaderProps) {
     const { colors } = useTheme();
+    const { t } = useTranslation();
     const reduceMotion = useReducedMotion();
     const dotSize = fullScreen ? 12 : 8;
     return (
         <View
             accessibilityRole="progressbar"
-            accessibilityLabel={label}
+            accessibilityLabel={label ?? t("common.loading")}
             accessibilityState={{ busy: true }}
             className={
                 fullScreen
@@ -37,7 +40,11 @@ export function CircleLoader({
                     animationDirection: "alternate",
                     animationTimingFunction: cubicBezier(0.77, 0, 0.175, 1),
                 }}>
-                    <Image source={happyGolfToolbarLogo} className="h-14 w-64" resizeMode="contain" />
+                    <Image
+                        source={happyGolfToolbarLogo}
+                        style={{ width: 256, height: 56 }}
+                        contentFit="contain"
+                    />
                 </Animated.View>
             ) : (
                 <View className="flex-row items-center gap-2">

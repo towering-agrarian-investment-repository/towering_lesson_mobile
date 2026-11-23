@@ -1,14 +1,13 @@
-import { NativeText } from "@/design-system/components/NativeText";
 import {
-    Badge,
+    AnimatedPressable,
+    AppText,
+    cn,
     EmptyState,
     ErrorState,
-    AnimatedPressable,
     Skeleton,
+    triggerSelectionHaptic,
 } from "@/design-system";
-import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import {
     getMemberGroupByIdQueryOptions,
     useMemberGroups,
@@ -20,10 +19,30 @@ import { getGroupName } from "@/utils/member-lesson";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Href, useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
-import { useCallback } from "react";
+import { Calendar, ChevronRight, Clock } from "lucide-react-native";
+import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, View } from "react-native";
+
+const groupKeyExtractor = (group: MemberGroupSummaryResponse) =>
+    `group-${group.groupId}`;
+const GROUP_LIST_CONTENT_STYLE = { gap: 12, paddingBottom: 24 } as const;
+
+export function getGroupStatusTone(status?: string | null) {
+    const normalized = status?.toUpperCase();
+    if (normalized === "COMPLETED" || normalized === "FINISHED") {
+        return { className: "bg-success/10", color: "success" as const };
+    }
+    if (
+        normalized === "CANCELLED" ||
+        normalized === "CANCELED" ||
+        normalized === "INACTIVE" ||
+        normalized === "CLOSED"
+    ) {
+        return { className: "bg-muted", color: "mutedForeground" as const };
+    }
+    return { className: "bg-primary/10", color: "primary" as const };
+}
 
 export function MemberGroups({
     refreshing = false,
@@ -40,26 +59,37 @@ export function MemberGroups({
         useMemberGroups();
     const groups = data?.data ?? [];
 
+    const handleGroupPressIn = useCallback(
+        (groupId: number) => {
+            void queryClient.prefetchQuery(
+                getMemberGroupByIdQueryOptions(groupId),
+            );
+        },
+        [queryClient],
+    );
+
+    const handleGroupPress = useCallback(
+        (groupId: number) => {
+            triggerSelectionHaptic();
+            runWithNavigationLock(() => {
+                router.push(`/groups/${groupId}` as Href);
+            });
+        },
+        [router, runWithNavigationLock],
+    );
+
     const renderGroup = useCallback(
         ({ item }: { item: MemberGroupSummaryResponse }) => {
             return (
                 <GroupCard
                     group={item}
                     disabled={isLocked}
-                    onPressIn={() => {
-                        void queryClient.prefetchQuery(
-                            getMemberGroupByIdQueryOptions(item.groupId),
-                        );
-                    }}
-                    onPress={() => {
-                        runWithNavigationLock(() => {
-                            router.push(`/groups/${item.groupId}` as Href);
-                        });
-                    }}
+                    onPressIn={handleGroupPressIn}
+                    onPress={handleGroupPress}
                 />
             );
         },
-        [isLocked, queryClient, router, runWithNavigationLock],
+        [handleGroupPress, handleGroupPressIn, isLocked],
     );
 
     return (
@@ -69,7 +99,7 @@ export function MemberGroups({
             ) : isError && !data ? (
                 <ErrorState
                     title={t("groups.loadError")}
-                    message={t("common.pullToRefreshAndTryAgain")}
+                    message={t("home.checkConnection")}
                     actionLabel={
                         isRefetching
                             ? t("common.refreshing")
@@ -98,11 +128,10 @@ export function MemberGroups({
                 <FlatList
                     className="flex-1"
                     data={groups}
-                    keyExtractor={(group) => `group-${group.groupId}`}
+                    keyExtractor={groupKeyExtractor}
                     renderItem={renderGroup}
-                    ItemSeparatorComponent={() => <View className="h-3" />}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 24 }}
+                    contentContainerStyle={GROUP_LIST_CONTENT_STYLE}
                     refreshing={refreshing}
                     onRefresh={onRefresh}
                 />
@@ -111,7 +140,7 @@ export function MemberGroups({
     );
 }
 
-function GroupCard({
+const GroupCard = memo(function GroupCard({
     group,
     disabled,
     onPress,
@@ -119,27 +148,27 @@ function GroupCard({
 }: {
     group: MemberGroupSummaryResponse;
     disabled: boolean;
-    onPress: () => void;
-    onPressIn: () => void;
+    onPress: (groupId: number) => void;
+    onPressIn: (groupId: number) => void;
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const groupName = getGroupName(group);
     const statusLabel = group.groupStatus
-        ? formatType(group.groupStatus)
+        ? formatType(group.groupStatus, t)
         : null;
+    const statusTone = getGroupStatusTone(group.groupStatus);
     const startDate = formatDateForDisplay(group.programStartDate ?? null);
     const endDate = formatDateForDisplay(group.programEndDate ?? null);
     const dateRange =
-        startDate && endDate ? `${startDate} - ${endDate}` : startDate || "-";
+        startDate && endDate ? `${startDate} ~ ${endDate}` : startDate || "-";
     const timeRange = formatTimeRange(
         group.sessionStartTime,
         group.sessionEndTime,
     );
-    const lessonType = formatType(group.lessonType);
-    const capacity = group.capacity
-        ? t("groups.capacity", { value: group.capacity })
-        : t("groups.capacityEmpty");
+    const lessonType = formatType(group.lessonType, t);
+    const programName = group.lessonProgramName?.trim();
+    const subtitle = programName || undefined;
 
     return (
         <AnimatedPressable
@@ -147,121 +176,133 @@ function GroupCard({
             accessibilityLabel={t("groups.openGroup", { name: groupName })}
             disabled={disabled}
             className="disabled:opacity-60"
-            onPress={onPress}
-            onPressIn={onPressIn}
+            onPress={() => onPress(group.groupId)}
+            onPressIn={() => onPressIn(group.groupId)}
         >
-            <View
-                className={cn(
-                    "rounded-xl border border-border bg-card p-5",
-                    "gap-3 border-border bg-card p-4",
-                )}
-            >
-                <View className="flex-row items-start gap-3">
-                    <View className="min-w-0 flex-1 gap-1">
-                        <NativeText
-                            variant="h3"
-                            numberOfLines={2}
-                            textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
-                        >
-                            {groupName}
-                        </NativeText>
+            <View className="gap-3 rounded-2xl border border-border bg-card p-4">
+                <View className="flex-row items-center justify-between gap-2">
+                    <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
+                        {statusLabel ? (
+                            <View
+                                className={cn(
+                                    "rounded-md px-2 py-0.5",
+                                    statusTone.className,
+                                )}
+                            >
+                                <AppText
+                                    variant="badge"
+                                    wrap={false}
+                                    color={statusTone.color}
+                                    textStyle={{ fontWeight: "600" }}
+                                >
+                                    {statusLabel}
+                                </AppText>
+                            </View>
+                        ) : null}
 
-                        <NativeText
-                            variant="meta"
+                        {lessonType ? (
+                            <AppText
+                                variant="caption"
+                                color="mutedForeground"
+                                numberOfLines={1}
+                                textStyle={{ fontWeight: "500" }}
+                            >
+                                {lessonType}
+                            </AppText>
+                        ) : null}
+                    </View>
+
+                    <ChevronRight
+                        size={16}
+                        color={colors.mutedForeground}
+                        strokeWidth={2.2}
+                    />
+                </View>
+
+                <View className="gap-0.5">
+                    <AppText
+                        variant="body"
+                        numberOfLines={2}
+                        textStyle={{ fontWeight: "700" }}
+                    >
+                        {groupName}
+                    </AppText>
+                    {subtitle ? (
+                        <AppText
+                            variant="caption"
                             color="mutedForeground"
                             numberOfLines={1}
-                            textStyle={{ lineHeight: typography.subtext.lineHeight }}
                         >
-                            {group.lessonProgramName?.trim() || lessonType}
-                        </NativeText>
-                    </View>
-
-                    <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-muted">
-                        <ChevronRight
-                            size={18}
-                            color={colors.mutedForeground}
-                            strokeWidth={2.4}
-                        />
-                    </View>
-                </View>
-
-                <View className="flex-row flex-wrap gap-2">
-                    {statusLabel ? (
-                        <Badge
-                            label={statusLabel}
-                            className="bg-primary/10 px-2.5 py-1"
-                            color="primary"
-                        />
+                            {subtitle}
+                        </AppText>
                     ) : null}
-
-                    <Badge
-                        label={lessonType}
-                        className="bg-muted px-2.5 py-1"
-                        color="mutedForeground"
-                    />
-
-                    <Badge
-                        label={capacity}
-                        className="bg-muted px-2.5 py-1"
-                        color="mutedForeground"
-                    />
                 </View>
 
-                <View className="gap-2 rounded-xl bg-surface px-3 py-3">
-                    <GroupMetaRow
-                        label={t("common.schedule")}
-                        value={dateRange}
-                    />
-                    <GroupMetaRow label={t("common.time")} value={timeRange} />
+                <View className="flex-row flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border/60 pt-3">
+                    <View className="flex-row items-center gap-1.5">
+                        <Calendar
+                            size={14}
+                            color={colors.mutedForeground}
+                            strokeWidth={2}
+                        />
+                        <AppText
+                            variant="caption"
+                            color="mutedForeground"
+                            wrap={false}
+                            textStyle={{ fontVariant: ["tabular-nums"] }}
+                        >
+                            {dateRange}
+                        </AppText>
+                    </View>
+
+                    {timeRange && timeRange !== "-" ? (
+                        <View className="flex-row items-center gap-1.5">
+                            <Clock
+                                size={14}
+                                color={colors.mutedForeground}
+                                strokeWidth={2}
+                            />
+                            <AppText
+                                variant="caption"
+                                color="mutedForeground"
+                                wrap={false}
+                                textStyle={{ fontVariant: ["tabular-nums"] }}
+                            >
+                                {timeRange}
+                            </AppText>
+                        </View>
+                    ) : null}
                 </View>
             </View>
         </AnimatedPressable>
     );
-}
-
-function GroupMetaRow({ label, value }: { label: string; value: string }) {
-
-    return (
-        <View className="flex-row items-center justify-between gap-3">
-            <NativeText
-                variant="caption"
-                color="mutedForeground"
-                wrap={false}
-                style={{ flexShrink: 0 }}
-                textStyle={{ lineHeight: typography.subtext.lineHeight }}
-            >
-                {label}
-            </NativeText>
-            <NativeText
-                variant="caption"
-                align="right"
-                numberOfLines={1}
-                style={{ flex: 1, minWidth: 0 }}
-                textStyle={{ fontWeight: "500" as const, lineHeight: typography.subtext.lineHeight }}
-            >
-                {value}
-            </NativeText>
-        </View>
-    );
-}
+});
 
 function GroupListSkeleton() {
     return (
-        <View className="gap-3">
-            {Array.from({ length: 3 }, (_, index) => (
+        <View className="flex-1 gap-3 overflow-hidden">
+            {Array.from({ length: 5 }, (_, index) => (
                 <View
                     key={index}
-                    className="gap-3 rounded-xl border border-border bg-card p-4"
+                    className="gap-3 rounded-2xl border border-border bg-card p-4"
                 >
-                    <View className="flex-1 gap-2">
-                        <Skeleton className="h-6 w-3/4 rounded-full" />
-                        <Skeleton className="h-4 w-1/2 rounded-full" />
+                    <View className="flex-row items-center justify-between gap-2">
+                        <View className="flex-row items-center gap-2">
+                            <Skeleton className="h-5 w-14 rounded-md" />
+                            <Skeleton className="h-3.5 w-20 rounded-full" />
+                        </View>
+                        <Skeleton className="h-4 w-4 rounded-full" />
                     </View>
-                    <View className="flex-row gap-2">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                        <Skeleton className="h-6 w-24 rounded-full" />
+
+                    <View className="gap-1.5">
+                        <Skeleton className="h-4 w-3/4 rounded-full" />
+                        <Skeleton className="h-3.5 w-1/2 rounded-full" />
                     </View>
-                    <Skeleton className="h-16 w-full rounded-xl" />
+
+                    <View className="flex-row items-center gap-4 border-t border-border/60 pt-3">
+                        <Skeleton className="h-3.5 w-32 rounded-full" />
+                        <Skeleton className="h-3.5 w-24 rounded-full" />
+                    </View>
                 </View>
             ))}
         </View>

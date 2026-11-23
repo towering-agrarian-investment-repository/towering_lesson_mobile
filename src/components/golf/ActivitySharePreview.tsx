@@ -39,9 +39,9 @@ import {
     type ComponentProps,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Image } from "expo-image";
 import {
     ActivityIndicator,
-    Image,
     Modal,
     Pressable,
     StatusBar,
@@ -537,7 +537,9 @@ export function ActivitySharePreview({
                                     >
                                         <Image
                                             source={{ uri: savedPreviewUri }}
-                                            resizeMode="cover"
+                                            contentFit="cover"
+                                            cachePolicy="none"
+                                            transition={reducedMotion ? 0 : 150}
                                             accessible={false}
                                             style={{
                                                 width: 48,

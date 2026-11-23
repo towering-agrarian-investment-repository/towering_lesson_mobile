@@ -671,18 +671,24 @@ function ProfileAvatar({
   size?: "small" | "large";
 }) {
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const dimensionClassName = size === "large" ? "h-24 w-24" : "h-12 w-12";
   const textVariant = size === "large" ? "h1" : "h3";
 
-  if (imageUrl) {
+  if (imageUrl && failedUrl !== imageUrl) {
     return (
       <View
         className={`${dimensionClassName} shrink-0 overflow-hidden rounded-full bg-muted`}
       >
         <Image
           source={{ uri: imageUrl }}
+          cachePolicy="memory-disk"
+          recyclingKey={imageUrl}
+          transition={reducedMotion ? 0 : 150}
           style={{ width: "100%", height: "100%" }}
           contentFit="cover"
+          onError={() => setFailedUrl(imageUrl)}
         />
       </View>
     );

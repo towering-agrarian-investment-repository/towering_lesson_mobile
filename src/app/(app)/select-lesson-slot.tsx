@@ -51,6 +51,10 @@ function ItemSeparator() {
   return <View className="h-3" />;
 }
 
+const lessonSlotKeyExtractor = (item: MemberLessonSlotResponse) =>
+  String(item.id);
+const SLOT_LIST_CONTENT_STYLE = { paddingBottom: 24 } as const;
+
 export default function SelectLessonSlotScreen() {
   const { t } = useTranslation();
   const {
@@ -250,7 +254,7 @@ export default function SelectLessonSlotScreen() {
           <FlatList
             className="min-h-0 flex-1"
             data={slots}
-            keyExtractor={(slot) => String(slot.id)}
+            keyExtractor={lessonSlotKeyExtractor}
             ItemSeparatorComponent={ItemSeparator}
             refreshControl={
               <RefreshControl
@@ -258,7 +262,7 @@ export default function SelectLessonSlotScreen() {
                 onRefresh={handlePullRefresh}
               />
             }
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={SLOT_LIST_CONTENT_STYLE}
             showsVerticalScrollIndicator={false}
             renderItem={renderSlot}
           />

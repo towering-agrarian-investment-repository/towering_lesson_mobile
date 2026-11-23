@@ -7,7 +7,7 @@ import { formatType } from "@/utils/format-enum";
 import { getSessionTitle } from "@/utils/member-lesson";
 import { getSessionStatusTone, getSessionTypeTone } from "@/utils/status-tone";
 import { fmtDateTime } from "@/utils/time-helper";
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { memo, type RefObject, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     type LayoutChangeEvent,
@@ -22,6 +22,88 @@ import Animated, {
     useSharedValue,
     useReducedMotion,
 } from "react-native-reanimated";
+
+const sessionKeyExtractor = (session: SessionInstanceResponse) =>
+    String(session.id);
+
+function SessionSeparator() {
+    return <View className="w-3" />;
+}
+
+const SessionSwitcherItem = memo(function SessionSwitcherItem({
+    session,
+    index,
+    isSelected,
+    onItemLayout,
+    onSelect,
+}: {
+    session: SessionInstanceResponse;
+    index: number;
+    isSelected: boolean;
+    onItemLayout: (sessionId: number, event: LayoutChangeEvent) => void;
+    onSelect: (sessionId: number) => void;
+}) {
+    const { colors: uiColors } = useTheme();
+    const { t } = useTranslation();
+    const statusTone = getSessionStatusTone(session.status);
+
+    return (
+        <AnimatedPressable
+            accessibilityRole="button"
+            accessibilityLabel={t("lessonSessions.openSession", {
+                title: getSessionTitle(session),
+            })}
+            className={
+                isSelected
+                    ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3"
+                    : "min-h-16 min-w-32 rounded-2xl border border-border bg-card px-4 py-3"
+            }
+            onLayout={(event) => {
+                onItemLayout(session.id, event);
+            }}
+            onPress={() => {
+                onSelect(session.id);
+            }}
+        >
+            <View className="gap-1.5">
+                <NativeText
+                    variant="caption"
+                    textStyle={{
+                        color: isSelected
+                            ? uiColors.primary
+                            : uiColors.mutedForeground,
+                    }}
+                >
+                    {session.orderIndex != null
+                        ? t("lessonSessions.sessionNumber", {
+                              value: session.orderIndex,
+                          })
+                        : t("lessonSessions.sessionSequence", {
+                              value: index + 1,
+                          })}
+                </NativeText>
+                <NativeText
+                    variant="label"
+                    numberOfLines={2}
+                    textStyle={{
+                        color: isSelected
+                            ? uiColors.primary
+                            : uiColors.foreground,
+                    }}
+                >
+                    {getSessionTitle(session)}
+                </NativeText>
+                {session.status ? (
+                    <Badge
+                        label={formatType(session.status, t)}
+                        className={`px-2 py-1 ${statusTone.className}`}
+                        color={statusTone.color}
+                    />
+                ) : null}
+            </View>
+        </AnimatedPressable>
+    );
+});
 
 type LessonSessionsViewProps = {
     initialSessionId?: number | null;
@@ -152,7 +234,6 @@ function SessionSwitcher({
     onSelect: (sessionId: number) => void;
     scrollViewRef: RefObject<FlatList<SessionInstanceResponse> | null>;
 }) {
-    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const scrollX = useSharedValue(0);
     const handleScroll = useAnimatedScrollHandler((event) => {
@@ -162,6 +243,18 @@ function SessionSwitcher({
         opacity: contentWidth > containerWidth + 8 &&
             scrollX.get() < contentWidth - containerWidth - 12 ? 1 : 0,
     }));
+    const renderSessionItem = useCallback(
+        ({ item, index }: { item: SessionInstanceResponse; index: number }) => (
+            <SessionSwitcherItem
+                session={item}
+                index={index}
+                isSelected={item.id === selectedSessionId}
+                onItemLayout={onItemLayout}
+                onSelect={onSelect}
+            />
+        ),
+        [onItemLayout, onSelect, selectedSessionId],
+    );
     return (
         <View className="gap-3">
             <View className="flex-row items-center justify-between gap-4">
@@ -181,80 +274,11 @@ function SessionSwitcher({
                 <Animated.FlatList
                     ref={scrollViewRef}
                     data={sessions}
-                    keyExtractor={(session) => String(session.id)}
+                    keyExtractor={sessionKeyExtractor}
                     horizontal
-                    renderItem={({ item: session, index }) => {
-                        const isSelected = session.id === selectedSessionId;
-                        const statusTone = getSessionStatusTone(session.status);
-
-                        return (
-                            <AnimatedPressable
-                                accessibilityRole="button"
-                                accessibilityLabel={t(
-                                    "lessonSessions.openSession",
-                                    {
-                                        title: getSessionTitle(session),
-                                    },
-                                )}
-                                className={
-                                    isSelected
-                                        ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3"
-                                        : "min-h-16 min-w-32 rounded-2xl border border-border bg-card px-4 py-3"
-                                }
-                                onLayout={(event) => {
-                                    onItemLayout(session.id, event);
-                                }}
-                                onPress={() => {
-                                    onSelect(session.id);
-                                }}
-                            >
-                                <View className="gap-1.5">
-                                    <NativeText
-                                        variant="caption"
-                                        textStyle={{
-                                            color: isSelected
-                                                ? uiColors.primary
-                                                : uiColors.mutedForeground
-                                        }}
-                                    >
-                                        {session.orderIndex != null
-                                            ? t(
-                                                "lessonSessions.sessionNumber",
-                                                {
-                                                    value: session.orderIndex,
-                                                },
-                                            )
-                                            : t(
-                                                "lessonSessions.sessionSequence",
-                                                {
-                                                    value: index + 1,
-                                                },
-                                            )}
-                                    </NativeText>
-                                    <NativeText
-                                        variant="label"
-                                        numberOfLines={2}
-                                        textStyle={{
-                                            color: isSelected
-                                                ? uiColors.primary
-                                                : uiColors.foreground
-                                        }}
-                                    >
-                                        {getSessionTitle(session)}
-                                    </NativeText>
-                                    {session.status ? (
-                                        <Badge
-                                            label={formatType(session.status)}
-                                            className={`px-2 py-1 ${statusTone.className}`}
-                                            color={statusTone.color}
-                                        />
-                                    ) : null}
-                                </View>
-                            </AnimatedPressable>
-                        );
-                    }}
+                    renderItem={renderSessionItem}
                     showsHorizontalScrollIndicator={Platform.OS === "android"}
-                    ItemSeparatorComponent={() => <View className="w-3" />}
+                    ItemSeparatorComponent={SessionSeparator}
                     contentContainerStyle={{
                         paddingRight: contentWidth > containerWidth ? 28 : 0,
                     }}
@@ -327,7 +351,7 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
                     </View>
                     {session.status ? (
                         <Badge
-                            label={formatType(session.status)}
+                            label={formatType(session.status, t)}
                             className={statusTone.className}
                             color={statusTone.color}
                         />
@@ -346,7 +370,7 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
                     ) : null}
                     {session.typeSnapshot ? (
                         <Badge
-                            label={formatType(session.typeSnapshot)}
+                            label={formatType(session.typeSnapshot, t)}
                             className={typeTone.className}
                             color={typeTone.color}
                         />

@@ -1,4 +1,5 @@
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
+import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import {
   EmptyState,
   ErrorState,
@@ -12,10 +13,9 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
-import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
@@ -24,19 +24,20 @@ type TimeSlotItem = {
   availableBayCount: number;
 };
 
-function getAvailableBayCount(group: BaySlotGroupScheduleResponse) {
-  return group.baySlots.filter(
-    (slot) => !getBaySlotAvailability(slot).isDisabled,
-  ).length;
-}
-
 function ItemSeparator() {
   return <View className="h-3" />;
 }
 
+const slotGroupKeyExtractor = ({
+  group,
+}: {
+  group: BaySlotGroupScheduleResponse;
+}) => String(group.id);
+const SLOT_LIST_CONTENT_STYLE = { paddingBottom: 24 } as const;
+
 export default function TimeScreen() {
   const { t } = useTranslation();
-  const { date, ticketId, ticketName, ticketType, mode, reservationId, notes } =
+  const { date, ticketId, ticketName, ticketType, mode, reservationId, notes, conflictMessage, conflictId } =
     useLocalSearchParams<{
       date: string;
       ticketId?: string;
@@ -45,13 +46,18 @@ export default function TimeScreen() {
       mode?: string;
       reservationId?: string;
       notes?: string;
+      conflictMessage?: string;
+      conflictId?: string;
     }>();
 
   const router = useRouter();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
+  const [dismissedConflictId, setDismissedConflictId] = useState<string>();
+  const ticketIdNumber = Number(ticketId);
+  const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
 
   const { data, isLoading, isError, refetch, isRefetching } =
-    useMemberBaySlotGroups(date, date, Boolean(date));
+    useMemberBaySlotGroups(ticketIdNumber, date, date, Boolean(date));
   const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
     usePullToRefresh(() => refetch({ cancelRefetch: false }));
   const hasLoadError = isError && !data;
@@ -61,7 +67,7 @@ export default function TimeScreen() {
       (data?.data ?? [])
         .map((group) => ({
           group,
-          availableBayCount: getAvailableBayCount(group),
+          availableBayCount: group.totalReservableBaySlots,
         }))
         .filter((item) => item.availableBayCount > 0),
     [data?.data],
@@ -71,8 +77,9 @@ export default function TimeScreen() {
   const handleSelect = useCallback(
     (group: BaySlotGroupScheduleResponse) => {
       runWithNavigationLock(() => {
+        setDismissedConflictId(conflictId);
         router.push({
-          pathname: "/select-bay",
+          pathname: "/bay-booking-confirm",
           params: {
             date,
             ticketId,
@@ -89,6 +96,7 @@ export default function TimeScreen() {
       });
     },
     [
+      conflictId,
       date,
       mode,
       notes,
@@ -113,14 +121,29 @@ export default function TimeScreen() {
     [handleSelect, isLocked],
   );
 
+  if (!hasTicketId) {
+    return (
+      <Screen>
+        <EmptyState
+          title={t("bookingConfirmation.ticketInfoMissing")}
+          actionLabel={t("tickets.sectionTitle")}
+          onAction={() => runWithNavigationLock(() => router.dismissTo("/tickets"))}
+        />
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll={false} contentClassName="min-h-0 gap-6">
       <BookingStepHeader
         step={2}
-        totalSteps={4}
+        totalSteps={3}
         context={bookingContext}
         selectionTrail={[bookingContext, formatDateValue(date, "M.d")]}
       />
+      {conflictMessage && dismissedConflictId !== conflictId ? (
+        <AvailabilityConflictNotice message={conflictMessage} />
+      ) : null}
       {isLoading ? (
         <View className="items-center justify-center gap-3 py-2">
           {Array.from({ length: 4 }, (_, index) => (
@@ -168,7 +191,7 @@ export default function TimeScreen() {
         <FlatList
           className="min-h-0 flex-1"
           data={slotGroups}
-          keyExtractor={({ group }) => String(group.id)}
+          keyExtractor={slotGroupKeyExtractor}
           renderItem={renderItem}
           ItemSeparatorComponent={ItemSeparator}
           refreshControl={
@@ -177,7 +200,7 @@ export default function TimeScreen() {
               onRefresh={handlePullRefresh}
             />
           }
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={SLOT_LIST_CONTENT_STYLE}
           showsVerticalScrollIndicator={false}
         />
       ) : null}

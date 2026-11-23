@@ -3,7 +3,7 @@ import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
     AnimatedPressable,
-    InlineState,
+    CompactEmptyState,
     ListRow,
     useThemeColors,
 } from "@/design-system";
@@ -24,9 +24,11 @@ import { Host, Text } from "@expo/ui";
 import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { FileText } from "lucide-react-native";
+import { FileText, Play } from "lucide-react-native";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 type SessionResourceSectionProps = {
     resources: SessionResourcesFilesResponse[];
@@ -70,20 +72,36 @@ function ResourceVideo({ videoUrl }: { videoUrl: string }) {
     );
 }
 
+function getResourceKey(resource: SessionResourcesFilesResponse) {
+    if (resource.id != null) {
+        return `resource-${resource.id}`;
+    }
+    const url = resource.fileUrl ?? resource.externalUrl;
+    if (url) {
+        return `resource-${url}`;
+    }
+    return `resource-${resource.originalFileName ?? "unknown"}`;
+}
+
 export function SessionResourceSection({
     resources,
 }: SessionResourceSectionProps) {
     const { t } = useTranslation();
     if (resources.length === 0) {
-        return <InlineState title={t("sessionResources.noResources")} />;
+        return <CompactEmptyState title={t("sessionResources.noResources")} />;
     }
+
+    const videoCount = resources.filter(
+        (resource) => Boolean(getResourceUrl(resource)) && isVideoResource(resource),
+    ).length;
 
     return (
         <View className="gap-4">
-            {resources.map((resource, index) => (
+            {resources.map((resource) => (
                 <SessionResourceItem
-                    key={`resource-${resource.id ?? resource.fileUrl ?? resource.externalUrl ?? resource.originalFileName ?? index}`}
+                    key={getResourceKey(resource)}
                     resource={resource}
+                    deferVideo={videoCount > 1}
                 />
             ))}
         </View>
@@ -92,11 +110,15 @@ export function SessionResourceSection({
 
 function SessionResourceItem({
     resource,
+    deferVideo,
 }: {
     resource: SessionResourcesFilesResponse;
+    deferVideo: boolean;
 }) {
     const { colors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
+    const [videoActivated, setVideoActivated] = useState(!deferVideo);
     const url = getResourceUrl(resource);
     const title =
         resource.originalFileName?.trim() ||
@@ -143,7 +165,11 @@ function SessionResourceItem({
                 >
                     <Image
                         source={{ uri: url }}
+                        cachePolicy="memory-disk"
+                        recyclingKey={url}
                         contentFit="cover"
+                        transition={reducedMotion ? 0 : 150}
+                        className="bg-muted"
                         style={{ width: "100%", height: 220 }}
                     />
                     <View className="absolute inset-x-0 bottom-0 flex-row items-end justify-between gap-3 bg-black/45 px-4 py-3">
@@ -192,7 +218,21 @@ function SessionResourceItem({
                     </NativeText>
                     <BadgePill label={resourceTypeLabel} />
                 </View>
-                <ResourceVideo videoUrl={url} />
+                {videoActivated ? (
+                    <ResourceVideo videoUrl={url} />
+                ) : (
+                    <AnimatedPressable
+                        accessibilityRole="button"
+                        accessibilityLabel={title}
+                        onPress={() => setVideoActivated(true)}
+                        className="items-center justify-center overflow-hidden rounded-2xl border border-border bg-black"
+                        style={{ height: 240 }}
+                    >
+                        <View className="h-14 w-14 items-center justify-center rounded-full bg-white/20">
+                            <Play size={26} color={colors.primaryForeground} fill={colors.primaryForeground} />
+                        </View>
+                    </AnimatedPressable>
+                )}
             </View>
         );
     }

@@ -24,12 +24,12 @@ import {
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
+import { FlashList } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
-import { FlatList, RefreshControl } from "react-native-gesture-handler";
+import { RefreshControl, View } from "react-native";
 
 export const RESERVATION_TABS: MemberReservationType[] = [
   "all",
@@ -41,6 +41,14 @@ export const RESERVATION_TABS: MemberReservationType[] = [
 
 const reservationKeyExtractor = (item: MemberReservationResponse) =>
   `${item.reservationType}:${item.id}`;
+const RESERVATION_LIST_CONTENT_STYLE = {
+  paddingTop: 8,
+  paddingBottom: 40,
+} as const;
+
+function ReservationSeparator() {
+  return <View className="h-2.5" />;
+}
 
 type ReservationTabSceneProps = {
   type: MemberReservationType;
@@ -122,6 +130,14 @@ function ReservationTabSceneContent({
     [queryClient, router, runWithNavigationLock],
   );
 
+  const getReservationItemType = useCallback(
+    (item: MemberReservationResponse, index: number) =>
+      index === 0 || reservations[index - 1]?.reservationDate !== item.reservationDate
+        ? "header-card"
+        : "card",
+    [reservations],
+  );
+
   const renderReservationItem = useCallback(
     ({ item, index }: { item: MemberReservationResponse; index: number }) => (
       <View className="gap-2.5">
@@ -134,7 +150,11 @@ function ReservationTabSceneContent({
         ) : null}
         <ReservationCard
           reservation={item}
-          referenceTime={referenceTime}
+          referenceTime={
+            item.reservationStatus.toUpperCase() === "RESERVED"
+              ? referenceTime
+              : undefined
+          }
           disabled={isLocked}
           onPress={handleReservationPress}
         />
@@ -206,22 +226,19 @@ function ReservationTabSceneContent({
   }
 
   return (
-    <FlatList
+    <FlashList
       data={reservations}
       keyExtractor={reservationKeyExtractor}
+      getItemType={getReservationItemType}
       renderItem={renderReservationItem}
-      ItemSeparatorComponent={() => <View className="h-2.5" />}
-      style={{ flex: 1 }}
+      ItemSeparatorComponent={ReservationSeparator}
       refreshControl={
         <RefreshControl
           refreshing={isPullRefreshing}
           onRefresh={handleRefetch}
         />
       }
-      contentContainerStyle={{
-        paddingTop: 8,
-        paddingBottom: 40,
-      }}
+      contentContainerStyle={RESERVATION_LIST_CONTENT_STYLE}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={
         <ReservationListHeader

@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "react-native-reanimated";
 import {
@@ -15,6 +15,7 @@ import Svg, { Circle, Path, Text as SvgText } from "react-native-svg";
 import { AppText } from "../AppText";
 import { cn } from "../../utils/cn";
 import { colorWithOpacity } from "../../utils/color";
+import { triggerSelectionHaptic } from "../../utils/haptics";
 import { useTheme, type ThemeColors } from "../../utils/theme";
 import { getReservationStatusLabel } from "../../../utils/status-tone";
 import { formatDateForAPI } from "../../../utils/time-helper";
@@ -40,6 +41,8 @@ export type {
   ActivityHeatmapStatus,
   ActivityHeatmapValue,
 } from "./activity-chart-data";
+
+const weekKeyExtractor = (week: ActivityHeatmapWeek) => week.days[0].dateKey;
 
 export function ActivityStatusLegend({
   className,
@@ -119,7 +122,11 @@ export function ActivityStatusLegend({
   return (
     <ScrollView
       horizontal
-      style={{ width: "100%" }}
+      nestedScrollEnabled
+      directionalLockEnabled
+      contentInsetAdjustmentBehavior="never"
+      showsHorizontalScrollIndicator={false}
+      style={{ width: "100%", flexGrow: 0, flexShrink: 0 }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
     >
       {legend}
@@ -133,6 +140,8 @@ type ActivityHeatmapProps = Omit<ViewProps, "children"> & {
   numDays?: number;
   title?: string;
   legend?: boolean;
+  showSelectedHeader?: boolean;
+  focusTodayToken?: number;
   className?: string;
   selectedDateKey?: string | null;
   onDayPress?: (date: Date, count: number) => void;
@@ -147,6 +156,8 @@ export function ActivityHeatmap({
   numDays = 365,
   title,
   legend = true,
+  showSelectedHeader = false,
+  focusTodayToken = 0,
   className,
   selectedDateKey,
   onDayPress,
@@ -246,6 +257,7 @@ export function ActivityHeatmap({
   };
   const handleSelectDay = useCallback(
     (dateKey: string, date: Date, count: number) => {
+      triggerSelectionHaptic();
       setSelection({ rangeKey, dateKey });
       onDayPress?.(date, count);
     },
@@ -253,13 +265,31 @@ export function ActivityHeatmap({
   );
   const handleTodayPress = () => {
     if (todayWeekIndex >= 0) {
+      triggerSelectionHaptic();
       setSelection({ rangeKey, dateKey: todayKey });
       onDayPress?.(parseCalendarDate(todayKey), valuesByDate.get(todayKey)?.count ?? 0);
-      listRef.current?.scrollToIndex({ index: todayWeekIndex, animated: !reducedMotion, viewPosition: 0.5 });
+      listRef.current?.scrollToOffset({
+        offset: Math.min(
+          maxScrollOffset,
+          Math.max(0, todayWeekIndex - Math.floor(visibleWeeks / 2)) * (cellSize + CELL_GAP),
+        ),
+        animated: !reducedMotion,
+      });
     } else {
       onTodayPress?.();
     }
   };
+
+  useEffect(() => {
+    if (!focusTodayToken || todayWeekIndex < 0) return;
+    listRef.current?.scrollToOffset({
+      offset: Math.min(
+        maxScrollOffset,
+        Math.max(0, todayWeekIndex - Math.floor(visibleWeeks / 2)) * (cellSize + CELL_GAP),
+      ),
+      animated: !reducedMotion,
+    });
+  }, [cellSize, focusTodayToken, maxScrollOffset, reducedMotion, todayWeekIndex, visibleWeeks]);
   const renderWeek = useCallback(
     ({ item: week }: { item: ActivityHeatmapWeek }) => (
       <HeatmapWeekColumn
@@ -292,6 +322,15 @@ export function ActivityHeatmap({
     ],
   );
 
+  const getWeekItemLayout = useCallback(
+    (_: ArrayLike<ActivityHeatmapWeek> | null | undefined, index: number) => ({
+      length: cellSize + CELL_GAP,
+      offset: index * (cellSize + CELL_GAP),
+      index,
+    }),
+    [cellSize],
+  );
+
   return (
     <View
       {...props}
@@ -302,25 +341,26 @@ export function ActivityHeatmap({
         <AppText variant="h3">{title}</AppText>
       ) : null}
       <View className="flex-row" style={{ gap: CELL_GAP }}>
-        <Svg
-          width={labelColumnWidth}
-          height={cellSize * 7 + CELL_GAP * 6}
-          style={{ marginTop: monthLabelHeight + CELL_GAP }}
-          accessible={false}
-        >
-          {weekdayLabels.map((label, index) => (
-            <SvgText
-              key={WEEKDAY_OFFSETS[index]}
-              x={0}
-              y={WEEKDAY_OFFSETS[index] * (cellSize + CELL_GAP) + cellSize / 2}
-              alignmentBaseline="central"
-              fontSize={axisFontSize}
-              fill={colors.mutedForeground}
-            >
-              {label}
-            </SvgText>
-          ))}
-        </Svg>
+        <View style={{ paddingTop: monthLabelHeight + CELL_GAP }}>
+          <Svg
+            width={labelColumnWidth}
+            height={cellSize * 7 + CELL_GAP * 6}
+            accessible={false}
+          >
+            {weekdayLabels.map((label, index) => (
+              <SvgText
+                key={WEEKDAY_OFFSETS[index]}
+                x={0}
+                y={WEEKDAY_OFFSETS[index] * (cellSize + CELL_GAP) + cellSize / 2}
+                alignmentBaseline="central"
+                fontSize={axisFontSize}
+                fill={colors.mutedForeground}
+              >
+                {label}
+              </SvgText>
+            ))}
+          </Svg>
+        </View>
         {containerWidth > 0 ? (
           <View style={{ flex: 1 }}>
             <FlatList
@@ -333,18 +373,16 @@ export function ActivityHeatmap({
               initialNumToRender={visibleWeeks}
               maxToRenderPerBatch={visibleWeeks}
               windowSize={5}
-              keyExtractor={(week) => week.days[0].dateKey}
-              getItemLayout={(_, index) => ({
-                length: cellSize + CELL_GAP,
-                offset: index * (cellSize + CELL_GAP),
-                index,
-              })}
+              keyExtractor={weekKeyExtractor}
+              getItemLayout={getWeekItemLayout}
               horizontal
+              nestedScrollEnabled
+              directionalLockEnabled
+              contentInsetAdjustmentBehavior="never"
               snapToInterval={cellSize + CELL_GAP}
               decelerationRate="fast"
               style={{ flex: 1 }}
-              showsHorizontalScrollIndicator
-              contentContainerStyle={{ paddingBottom: 12 }}
+              showsHorizontalScrollIndicator={false}
               scrollEventThrottle={100}
               onScroll={(event) => {
                 const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -375,7 +413,7 @@ export function ActivityHeatmap({
                 style={{
                   position: "absolute",
                   top: 0,
-                  bottom: 12,
+                  bottom: 0,
                   left: 0,
                   width: cellSize,
                 }}
@@ -393,7 +431,7 @@ export function ActivityHeatmap({
                 style={{
                   position: "absolute",
                   top: 0,
-                  bottom: 12,
+                  bottom: 0,
                   right: 0,
                   width: cellSize,
                 }}
@@ -405,14 +443,14 @@ export function ActivityHeatmap({
       {legend ? (
         <ActivityStatusLegend
           className="justify-center"
-          includeToday
+          includeToday={showSelectedHeader}
           includeCancelled={values.some((value) =>
             value.status === "cancelled" || (value.statusBreakdown?.cancelled ?? 0) > 0
           )}
-          onTodayPress={handleTodayPress}
+          onTodayPress={showSelectedHeader ? handleTodayPress : undefined}
         />
       ) : null}
-      {selectedDay ? (
+      {showSelectedHeader && selectedDay ? (
         <View className="flex-row items-center justify-between gap-3">
           <AppText variant="h3" style={{ flex: 1, minWidth: 0 }}>
             {formatActivityDate(selectedDay, language)}
@@ -426,10 +464,27 @@ export function ActivityHeatmap({
   );
 }
 
-// Draw a status icon inside supported cells alongside their accessible labels.
-function StatusGlyph({ status, size }: { status: ActivityHeatmapStatus; size: number }) {
-  if (status === "cancelled" || status === "unknown") return null;
-  const ink = status === "mixed" || status === "checked-in" ? "#3B2400" : "#FFFFFF";
+// Draw a status icon inside exception cells alongside their accessible labels.
+function StatusGlyph({
+  status,
+  size,
+  colors,
+}: {
+  status: ActivityHeatmapStatus;
+  size: number;
+  colors: ThemeColors;
+}) {
+  if (
+    status === "completed" ||
+    status === "cancelled" ||
+    status === "unknown"
+  ) {
+    return null;
+  }
+  const ink =
+    status === "mixed" || status === "checked-in"
+      ? colors.foreground
+      : colors.primaryForeground;
   return (
     <Svg
       width={size}
@@ -438,7 +493,7 @@ function StatusGlyph({ status, size }: { status: ActivityHeatmapStatus; size: nu
       accessible={false}
       pointerEvents="none"
     >
-      {status === "completed" || status === "checked-in" ? (
+      {status === "checked-in" ? (
         <Path
           d="M2.5 6.5l2.3 2.3L9.5 4"
           fill="none"
@@ -498,7 +553,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
 }) {
   const { t } = useTranslation();
   return (
-    <View style={{ width: cellSize, gap: CELL_GAP, marginRight: CELL_GAP }}>
+    <View style={{ width: cellSize + CELL_GAP, paddingRight: CELL_GAP, gap: CELL_GAP }}>
       <View style={{ height: monthLabelHeight, overflow: "visible" }}>
         {week.monthLabel ? (
           <Svg
@@ -546,7 +601,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
                 colors,
                 day.status,
               ),
-              borderWidth: isSelected || isToday ? 1.5 : 0,
+              borderWidth: isSelected ? 2 : isToday ? 1.5 : 0,
               borderColor: isSelected ? colors.foreground : colors.primary,
             }}
             onPress={() => onSelectDay(day.dateKey, day.date, day.count)}
@@ -555,6 +610,21 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
               <StatusGlyph
                 status={day.status}
                 size={Math.round(cellSize * 0.5)}
+                colors={colors}
+              />
+            ) : null}
+            {isSelected && isToday ? (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  right: 2,
+                  width: 4,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: colors.primary,
+                }}
               />
             ) : null}
           </Pressable>

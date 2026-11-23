@@ -64,6 +64,14 @@ const PROGRESS_EASING = cubicBezier(0.23, 1, 0.32, 1);
 
 const reservationKeyExtractor = (item: MemberReservationResponse) =>
     `${item.reservationType}:${item.id}`;
+const RESERVATION_LIST_CONTENT_STYLE = {
+    flexGrow: 1,
+    paddingBottom: 32,
+} as const;
+
+function ReservationSeparator() {
+    return <View className="h-2.5" />;
+}
 
 function getDaysLeftCount(
     endDate: string | null,
@@ -179,7 +187,11 @@ export default function TicketDetailScreen() {
                 ) : null}
                 <ReservationCard
                     reservation={item}
-                    referenceTime={referenceTime}
+                    referenceTime={
+                        item.reservationStatus.toUpperCase() === "RESERVED"
+                            ? referenceTime
+                            : undefined
+                    }
                     disabled={isLocked}
                     onPress={handleReservationPress}
                 />
@@ -410,17 +422,14 @@ export default function TicketDetailScreen() {
                     data={reservations}
                     keyExtractor={reservationKeyExtractor}
                     renderItem={renderReservationItem}
-                    ItemSeparatorComponent={() => <View className="h-2.5" />}
+                    ItemSeparatorComponent={ReservationSeparator}
                     refreshControl={
                         <RefreshControl
                             refreshing={isPullRefreshing}
                             onRefresh={handlePullRefresh}
                         />
                     }
-                    contentContainerStyle={{
-                        flexGrow: 1,
-                        paddingBottom: 32,
-                    }}
+                    contentContainerStyle={RESERVATION_LIST_CONTENT_STYLE}
                     showsVerticalScrollIndicator={false}
                     ListHeaderComponent={
                         <TicketDetailHeader

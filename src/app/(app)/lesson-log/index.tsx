@@ -6,6 +6,7 @@ import {
     ErrorState,
     Screen,
     Skeleton,
+    StateList,
     triggerSelectionHaptic,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
@@ -16,12 +17,23 @@ import {
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import type { MemberLessonLogResponse } from "@/types/member-lesson-log";
 import { formatDateForDisplay } from "@/utils/time-helper";
+import { FlashList } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
+
+const lessonLogKeyExtractor = (item: MemberLessonLogResponse) =>
+    String(item.id);
+const LESSON_LOG_LIST_CONTENT_STYLE = {
+    paddingHorizontal: 24,
+} as const;
+
+function LessonLogSeparator() {
+    return <View className="h-3" />;
+}
 
 function LessonLogScreen() {
     const { t } = useTranslation();
@@ -43,33 +55,38 @@ function LessonLogScreen() {
             onRefresh={handlePullRefresh}
         />
     );
+    const handleLessonLogPress = useCallback(
+        (item: MemberLessonLogResponse) => {
+            const lessonLogId =
+                typeof item.id === "number" ? item.id : null;
+
+            if (lessonLogId != null) {
+                void queryClient.prefetchQuery(
+                    getMemberLessonLogByIdQueryOptions(lessonLogId),
+                );
+            }
+
+            runWithNavigationLock(() => {
+                router.push({
+                    pathname: "/lesson-log/[id]",
+                    params: {
+                        id: String(item.id),
+                    },
+                });
+            });
+        },
+        [queryClient, router, runWithNavigationLock],
+    );
+
     const renderLessonLogItem = useCallback(
         ({ item }: { item: MemberLessonLogResponse }) => (
             <LessonLogRow
                 item={item}
                 disabled={isLocked}
-                onPress={() => {
-                    const lessonLogId =
-                        typeof item.id === "number" ? item.id : null;
-
-                    if (lessonLogId != null) {
-                        void queryClient.prefetchQuery(
-                            getMemberLessonLogByIdQueryOptions(lessonLogId),
-                        );
-                    }
-
-                    runWithNavigationLock(() => {
-                        router.push({
-                            pathname: "/lesson-log/[id]",
-                            params: {
-                                id: String(item.id),
-                            },
-                        });
-                    });
-                }}
+                onPress={handleLessonLogPress}
             />
         ),
-        [isLocked, queryClient, router, runWithNavigationLock],
+        [handleLessonLogPress, isLocked],
     );
     const handleFetchNextPage = useCallback(() => {
         if (hasNextPage && !isFetching) {
@@ -84,50 +101,51 @@ function LessonLogScreen() {
         <Screen
             scroll={false}
             horizontalPadding={false}
+            bottomPadding={16}
             contentClassName="grow"
         >
             {isLoading ? (
                 <LessonLogListSkeleton />
             ) : isError && !data ? (
-                <LessonLogStateList
-                    refreshControl={refreshControl}
-                    emptyComponent={
-                        <ErrorState
-                            title={t("lessonLog.failedPostsTitle")}
-                            message={t("common.pullToRefreshAndTryAgain")}
-                            actionLabel={
-                                isRefetching
-                                    ? t("common.refreshing")
-                                    : t("common.refreshTryAgain")
-                            }
-                            actionPending={isRefetching || isPullRefreshing}
-                            onAction={handlePullRefresh}
-                        />
-                    }
-                />
+                <StateList
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
+                    contentContainerStyle={{ paddingHorizontal: 24 }}
+                >
+                    <ErrorState
+                        title={t("lessonLog.failedPostsTitle")}
+                        message={t("common.pullToRefreshAndTryAgain")}
+                        actionLabel={
+                            isRefetching
+                                ? t("common.refreshing")
+                                : t("common.refreshTryAgain")
+                        }
+                        actionPending={isRefetching || isPullRefreshing}
+                        onAction={handlePullRefresh}
+                    />
+                </StateList>
             ) : lessonLogs.length === 0 ? (
-                <LessonLogStateList
-                    refreshControl={refreshControl}
-                    emptyComponent={
-                        <EmptyState
-                            title={t("lessonLog.noPostsTitle")}
-                            message={t("lessonLog.noPostsMessage")}
-                            actionLabel={t("lessonLog.refresh")}
-                            actionPending={isRefetching || isPullRefreshing}
-                            onAction={handlePullRefresh}
-                        />
-                    }
-                />
+                <StateList
+                    refreshing={isPullRefreshing}
+                    onRefresh={handlePullRefresh}
+                    contentContainerStyle={{ paddingHorizontal: 24 }}
+                >
+                    <EmptyState
+                        title={t("lessonLog.noPostsTitle")}
+                        message={t("lessonLog.noPostsMessage")}
+                        actionLabel={t("lessonLog.refresh")}
+                        actionPending={isRefetching || isPullRefreshing}
+                        onAction={handlePullRefresh}
+                    />
+                </StateList>
             ) : (
-                <FlatList
+                <FlashList
                     data={lessonLogs}
-                    keyExtractor={(item) => String(item.id)}
+                    keyExtractor={lessonLogKeyExtractor}
                     renderItem={renderLessonLogItem}
+                    ItemSeparatorComponent={LessonLogSeparator}
                     refreshControl={refreshControl}
-                    contentContainerStyle={{
-                        gap: 12,
-                        paddingHorizontal: 24,
-                    }}
+                    contentContainerStyle={LESSON_LOG_LIST_CONTENT_STYLE}
                     contentInsetAdjustmentBehavior="automatic"
                     showsVerticalScrollIndicator={false}
                     onEndReached={handleEndReached}
@@ -140,7 +158,13 @@ function LessonLogScreen() {
                         ) : isFetchNextPageError ? (
                             <Pressable
                                 accessibilityRole="button"
-                                className="min-h-12 items-center justify-center px-6"
+                                accessibilityState={{
+                                    disabled: isFetching || isFetchingNextPage,
+                                    busy: isFetchingNextPage,
+                                }}
+                                disabled={isFetching || isFetchingNextPage}
+                                className="items-center justify-center px-6 disabled:opacity-60"
+                                style={{ minHeight: 48 }}
                                 onPress={handleFetchNextPage}
                             >
                                 <AppText variant="label" color="primary">
@@ -157,14 +181,14 @@ function LessonLogScreen() {
 
 export default LessonLogScreen;
 
-function LessonLogRow({
+const LessonLogRow = memo(function LessonLogRow({
     item,
     disabled,
     onPress,
 }: {
     item: MemberLessonLogResponse;
     disabled: boolean;
-    onPress: () => void;
+    onPress: (item: MemberLessonLogResponse) => void;
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
@@ -190,7 +214,7 @@ function LessonLogRow({
                 }
 
                 triggerSelectionHaptic();
-                onPress();
+                onPress(item);
             }}
         >
             <View className="min-w-0 flex-1 gap-2">
@@ -227,32 +251,7 @@ function LessonLogRow({
             </View>
         </AnimatedPressable>
     );
-}
-
-function LessonLogStateList({
-    emptyComponent,
-    refreshControl,
-}: {
-    emptyComponent: React.ReactElement;
-    refreshControl: React.ReactElement<
-        React.ComponentProps<typeof RefreshControl>
-    >;
-}) {
-    return (
-        <FlatList
-            data={[]}
-            renderItem={() => null}
-            refreshControl={refreshControl}
-            contentContainerStyle={{
-                flexGrow: 1,
-                justifyContent: "center",
-                paddingHorizontal: 24,
-            }}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={emptyComponent}
-        />
-    );
-}
+});
 
 function LessonLogListSkeleton() {
     return (

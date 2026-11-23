@@ -10,7 +10,10 @@ import {
   triggerNotificationHaptic,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
+import {
+  getNativeButtonStyle,
+  getNativeButtonTextStyle,
+} from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import {
@@ -42,7 +45,7 @@ import {
   defaultMinSize,
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -53,6 +56,7 @@ import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 const isIOS = process.env.EXPO_OS === "ios";
@@ -60,13 +64,13 @@ const buttonSize = isIOS
   ? [frame({ maxWidth: Infinity, minHeight: 48 })]
   : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })];
 const buttonInnerSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+  ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
   : [fillMaxWidth()];
 
 const createEditProfileSchema = (t: (key: string) => string) =>
   z.object({
     name: z.string().trim().min(1, t("profile.nameRequired")),
-    nickname: z.string().trim().max(50).optional(),
+    nickname: z.string().trim().max(50, t("profile.nicknameMaxLength")).optional(),
   });
 
 type EditProfileFormValues = z.infer<
@@ -101,6 +105,7 @@ export default function EditProfileScreen() {
   const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
   const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
     useState(false);
+  const [isConfirmingRemovePhoto, setIsConfirmingRemovePhoto] = useState(false);
 
   const member = memberResponse?.data;
   const memberId = member?.id;
@@ -156,6 +161,14 @@ export default function EditProfileScreen() {
 
   const handleInvalidSubmit = (errors: FieldErrors<EditProfileFormValues>) => {
     form.setFocus(errors.name ? "name" : "nickname");
+  };
+
+  const submitEditProfile = () => {
+    if (isSaveDisabled || submitting.current) {
+      return;
+    }
+
+    void form.handleSubmit(onSubmit, handleInvalidSubmit)();
   };
 
   const uploadSelectedProfileImage = (
@@ -277,12 +290,14 @@ export default function EditProfileScreen() {
       return;
     }
 
+    setIsConfirmingRemovePhoto(false);
     setIsPhotoSourceSheetVisible(true);
   };
 
   const closePhotoSourceSheet = () => {
     if (pickingImage.current || removalLock.current || isUpdatingImage) return;
     setIsPhotoSourceSheetVisible(false);
+    setIsConfirmingRemovePhoto(false);
   };
 
   const handleRemoveProfileImage = () => {
@@ -298,6 +313,7 @@ export default function EditProfileScreen() {
     removalLock.current = true;
     removeProfileImage(member.id, {
       onSuccess: () => {
+        setIsConfirmingRemovePhoto(false);
         setIsPhotoSourceSheetVisible(false);
         triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
         showAppToast({
@@ -361,10 +377,8 @@ export default function EditProfileScreen() {
               modifiers={buttonSize}
               variant="text"
               disabled={isSaveDisabled}
-              onPress={() => {
-                void form.handleSubmit(onSubmit, handleInvalidSubmit)();
-              }}
-              style={getNativeButtonStyle(colors, "filled")}
+              onPress={submitEditProfile}
+              style={getNativeButtonStyle(colors, "filled", isSaveDisabled)}
             >
               <Row modifiers={buttonInnerSize} spacing={8} alignment="center">
                 <Spacer flexible />
@@ -374,14 +388,11 @@ export default function EditProfileScreen() {
                   </RNHostView>
                 ) : null}
                 <Text
-                  textStyle={{
-                    textAlign: "center",
-                    ...typography.label,
-                    lineHeight: typography.label.lineHeight * uiFontScale,
-                    fontWeight: "600",
-                    color: colors.primaryForeground,
-                    fontSize: typography.label.fontSize * uiFontScale,
-                  }}
+                  textStyle={getNativeButtonTextStyle(
+                    colors,
+                    "filled",
+                    uiFontScale,
+                  )}
                 >
                   {isSubmitting
                     ? t("profile.saving")
@@ -402,92 +413,202 @@ export default function EditProfileScreen() {
         contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
       >
         <RNHostView matchContents={{ vertical: true }}>
-          <View className="gap-4">
-            <View className="gap-1">
-              <NativeText variant="h3">
-                {t("profile.changeProfilePhoto")}
-              </NativeText>
-              <NativeText variant="muted" color="mutedForeground">
-                {t("profile.changeProfilePhotoDescription")}
-              </NativeText>
+          {isConfirmingRemovePhoto ? (
+            <View className="gap-5">
+              <View className="gap-2">
+                <NativeText variant="h3" color="danger">
+                  {t("profile.removePhoto")}
+                </NativeText>
+                <NativeText variant="muted" color="mutedForeground">
+                  {t("profile.removePhotoConfirmMessage")}
+                </NativeText>
+              </View>
+              <View className="gap-3">
+                <Host
+                  matchContents={{ vertical: true }}
+                  ignoreSafeArea="all"
+                  colorScheme={uiScheme}
+                  seedColor={colors.danger}
+                  style={{ width: "100%" }}
+                  accessibilityLabel={
+                    isRemovingImage
+                      ? t("profile.removingPhoto")
+                      : t("profile.removePhoto")
+                  }
+                  accessibilityState={{
+                    disabled: isRemovingImage,
+                    busy: isRemovingImage,
+                  }}
+                >
+                  <Button
+                    variant="text"
+                    disabled={isRemovingImage}
+                    onPress={handleRemoveProfileImage}
+                    style={getNativeButtonStyle(
+                      colors,
+                      "filled",
+                      isRemovingImage,
+                      colors.danger,
+                    )}
+                    modifiers={buttonSize}
+                  >
+                    <Row
+                      modifiers={buttonInnerSize}
+                      spacing={8}
+                      alignment="center"
+                    >
+                      <Spacer flexible />
+                      {isRemovingImage ? (
+                        <RNHostView matchContents>
+                          <ActivityIndicator color={colors.primaryForeground} />
+                        </RNHostView>
+                      ) : null}
+                      <Text
+                        textStyle={getNativeButtonTextStyle(
+                          colors,
+                          "filled",
+                          uiFontScale,
+                          colors.danger,
+                        )}
+                      >
+                        {isRemovingImage
+                          ? t("profile.removingPhoto")
+                          : t("profile.removePhoto")}
+                      </Text>
+                      <Spacer flexible />
+                    </Row>
+                  </Button>
+                </Host>
+                <Host
+                  matchContents={{ vertical: true }}
+                  ignoreSafeArea="all"
+                  colorScheme={uiScheme}
+                  style={{ width: "100%" }}
+                  accessibilityLabel={t("common.cancel")}
+                  accessibilityState={{ disabled: isRemovingImage }}
+                >
+                  <Button
+                    variant="text"
+                    disabled={isRemovingImage}
+                    onPress={closePhotoSourceSheet}
+                    style={getNativeButtonStyle(
+                      colors,
+                      "text",
+                      isRemovingImage,
+                    )}
+                    modifiers={buttonSize}
+                  >
+                    <Text
+                      modifiers={buttonInnerSize}
+                      textStyle={getNativeButtonTextStyle(
+                        colors,
+                        "text",
+                        uiFontScale,
+                      )}
+                    >
+                      {t("common.cancel")}
+                    </Text>
+                  </Button>
+                </Host>
+              </View>
             </View>
-            <View className="gap-3">
-              <ListRow
-                title={t("profile.takePhoto")}
-                subtitle={t("profile.useCamera")}
-                titleStyle={{ fontWeight: "500" }}
-                leading={
-                  <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
-                    <Camera size={22} color={colors.foreground} />
-                  </View>
-                }
-                showChevron={false}
-                className="bg-surface"
-                disabled={isUpdatingImage || isSubmitting}
-                onPress={() => {
-                  void handleTakeProfileImage();
-                }}
-              />
-              <ListRow
-                title={t("profile.chooseFromLibrary")}
-                subtitle={t("profile.selectExistingPhoto")}
-                titleStyle={{ fontWeight: "500" }}
-                leading={
-                  <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
-                    <ImageIcon size={22} color={colors.foreground} />
-                  </View>
-                }
-                showChevron={false}
-                className="bg-surface"
-                disabled={isUpdatingImage || isSubmitting}
-                onPress={() => {
-                  void handlePickProfileImageFromLibrary();
-                }}
-              />
-              {member.profileImage ? (
+          ) : (
+            <View className="gap-4">
+              <View className="gap-1">
+                <NativeText variant="h3">
+                  {t("profile.changeProfilePhoto")}
+                </NativeText>
+                <NativeText variant="muted" color="mutedForeground">
+                  {t("profile.changeProfilePhotoDescription")}
+                </NativeText>
+              </View>
+              <View className="gap-3">
                 <ListRow
-                  title={t("profile.removePhoto")}
+                  title={t("profile.takePhoto")}
+                  subtitle={t("profile.useCamera")}
                   titleStyle={{ fontWeight: "500" }}
                   leading={
                     <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
-                      <Trash2 size={22} color={colors.danger} />
+                      <Camera size={22} color={colors.foreground} />
                     </View>
                   }
                   showChevron={false}
                   className="bg-surface"
                   disabled={isUpdatingImage || isSubmitting}
-                  onPress={handleRemoveProfileImage}
-                />
-              ) : null}
-            </View>
-            <Host
-              matchContents={{ vertical: true }}
-              ignoreSafeArea="all"
-              colorScheme={uiScheme}
-              style={{ width: "100%" }}
-            >
-              <Button
-                variant="text"
-                disabled={isUpdatingImage}
-                onPress={closePhotoSourceSheet}
-                style={getNativeButtonStyle(colors, "text")}
-                modifiers={buttonSize}
-              >
-                <Text
-                  modifiers={buttonInnerSize}
-                  textStyle={{
-                    ...typography.label,
-                    lineHeight: typography.label.lineHeight * uiFontScale,
-                    fontSize: typography.label.fontSize * uiFontScale,
-                    color: colors.foreground,
-                    textAlign: "center",
+                  onPress={() => {
+                    void handleTakeProfileImage();
                   }}
+                />
+                <ListRow
+                  title={t("profile.chooseFromLibrary")}
+                  subtitle={t("profile.selectExistingPhoto")}
+                  titleStyle={{ fontWeight: "500" }}
+                  leading={
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                      <ImageIcon size={22} color={colors.foreground} />
+                    </View>
+                  }
+                  showChevron={false}
+                  className="bg-surface"
+                  disabled={isUpdatingImage || isSubmitting}
+                  onPress={() => {
+                    void handlePickProfileImageFromLibrary();
+                  }}
+                />
+                {member.profileImage ? (
+                  <ListRow
+                    title={
+                      isRemovingImage
+                        ? t("profile.removingPhoto")
+                        : t("profile.removePhoto")
+                    }
+                    titleStyle={{ fontWeight: "500" }}
+                    leading={
+                      <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                        <Trash2 size={22} color={colors.danger} />
+                      </View>
+                    }
+                    trailing={
+                      isRemovingImage ? (
+                        <ActivityIndicator size="small" color={colors.danger} />
+                      ) : undefined
+                    }
+                    showChevron={false}
+                    className="bg-surface"
+                    disabled={isUpdatingImage || isSubmitting}
+                    onPress={() => {
+                      setIsConfirmingRemovePhoto(true);
+                    }}
+                  />
+                ) : null}
+              </View>
+              <Host
+                matchContents={{ vertical: true }}
+                ignoreSafeArea="all"
+                colorScheme={uiScheme}
+                style={{ width: "100%" }}
+              >
+                <Button
+                  variant="text"
+                  disabled={isUpdatingImage}
+                  onPress={closePhotoSourceSheet}
+                  style={getNativeButtonStyle(colors, "text", isUpdatingImage)}
+                  modifiers={buttonSize}
                 >
-                  {t("common.cancel")}
-                </Text>
-              </Button>
-            </Host>
-          </View>
+                  <Text
+                    modifiers={buttonInnerSize}
+                    textStyle={getNativeButtonTextStyle(
+                      colors,
+                      "text",
+                      uiFontScale,
+                    )}
+                  >
+                    {t("common.cancel")}
+                  </Text>
+                </Button>
+              </Host>
+            </View>
+          )}
         </RNHostView>
       </PendingBottomSheet>
 
@@ -549,18 +670,20 @@ export default function EditProfileScreen() {
             label={t("profile.fullName")}
             placeholder={t("profile.fullNamePlaceholder")}
             autoComplete="name"
+            returnKeyType="next"
+            onSubmitEditing={() => form.setFocus("nickname")}
+            editable={!isSubmitting && !isUpdatingImage}
           />
 
           <FormTextInput
             control={form.control}
             name="nickname"
-            label={t("profile.nickname", {
-              defaultValue: "Nickname",
-            })}
-            placeholder={t("profile.nicknamePlaceholder", {
-              defaultValue: "Enter a nickname",
-            })}
+            label={t("profile.nickname")}
+            placeholder={t("profile.nicknamePlaceholder")}
             autoComplete="nickname"
+            returnKeyType="done"
+            onSubmitEditing={submitEditProfile}
+            editable={!isSubmitting && !isUpdatingImage}
           />
         </View>
       </View>
@@ -619,12 +742,19 @@ function ProfileImagePreview({
   name?: string | null;
   imageUrl?: string | null;
 }) {
-  if (imageUrl) {
+  const reducedMotion = useReducedMotion();
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+
+  if (imageUrl && failedUrl !== imageUrl) {
     return (
       <Image
         source={{ uri: imageUrl }}
+        cachePolicy="memory-disk"
+        recyclingKey={imageUrl}
+        transition={reducedMotion ? 0 : 150}
         style={{ width: "100%", height: "100%" }}
         contentFit="cover"
+        onError={() => setFailedUrl(imageUrl)}
       />
     );
   }

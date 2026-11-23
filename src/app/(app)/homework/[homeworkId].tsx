@@ -49,13 +49,13 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame, textFieldStyle } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame, textFieldStyle } from "@expo/ui/swift-ui/modifiers";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
@@ -77,6 +77,17 @@ const HOMEWORK_MIME_BY_EXTENSION: Record<string, string> = {
     webp: "image/webp",
     mp4: "video/mp4",
 };
+
+const submissionKeyExtractor = (submission: MemberHomeworkSubmissionResponse) =>
+    `submission-${submission.id}`;
+const SUBMISSION_LIST_CONTENT_STYLE = {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+} as const;
+
+function SubmissionSeparator() {
+    return <View className="h-3" />;
+}
 
 export default function HomeworkDetailScreen() {
     const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
@@ -111,11 +122,11 @@ export default function HomeworkDetailScreen() {
     );
     const reviewTone = getHomeworkReviewTone(homework?.currentReviewStatus);
     const primaryStatusLabel = homework?.currentReviewStatus
-        ? formatType(homework.currentReviewStatus)
+        ? formatType(homework.currentReviewStatus, t)
         : homework?.currentSubmissionStatus
-            ? formatType(homework.currentSubmissionStatus)
+            ? formatType(homework.currentSubmissionStatus, t)
             : homework?.homeworkStatus
-                ? formatType(homework.homeworkStatus)
+                ? formatType(homework.homeworkStatus, t)
                 : null;
     const primaryStatusTone = homework?.currentReviewStatus
         ? reviewTone
@@ -292,7 +303,7 @@ export default function HomeworkDetailScreen() {
                             <Text
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 textStyle={{
@@ -347,7 +358,7 @@ export default function HomeworkDetailScreen() {
                             <Row
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 spacing={8}
@@ -383,15 +394,14 @@ export default function HomeworkDetailScreen() {
         >
             <FlatList
                 data={submissions}
-                keyExtractor={(submission) => `submission-${submission.id}`}
+                keyExtractor={submissionKeyExtractor}
                 renderItem={renderSubmission}
-                ItemSeparatorComponent={() => <View className="h-3" />}
+                ItemSeparatorComponent={SubmissionSeparator}
                 refreshControl={refreshControl}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    paddingBottom: 24,
-                }}
+                contentContainerStyle={SUBMISSION_LIST_CONTENT_STYLE}
                 ListHeaderComponent={
                     <View className="gap-5 pb-3">
                         <View
@@ -646,7 +656,7 @@ function createFileFromDocument(
     };
 }
 
-function SubmissionRow({
+const SubmissionRow = memo(function SubmissionRow({
     submission,
     iconColor,
 }: {
@@ -674,7 +684,7 @@ function SubmissionRow({
                     .filter((value) => value && value !== "-")
                     .join(" / ") || undefined
             }
-            meta={submission.status ? formatType(submission.status) : undefined}
+            meta={submission.status ? formatType(submission.status, t) : undefined}
             leading={
                 <View className="h-10 w-10 items-center justify-center rounded-xl bg-muted">
                     <FileCheck size={18} color={iconColor} />
@@ -691,4 +701,4 @@ function SubmissionRow({
             } : undefined}
         />
     );
-}
+});
