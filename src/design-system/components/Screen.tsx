@@ -8,6 +8,8 @@ import {
 import {
     KeyboardAvoidingView,
     KeyboardAwareScrollView,
+    KeyboardStickyView,
+    KeyboardToolbar,
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../utils/cn";
@@ -98,6 +100,28 @@ export function Screen({
     const needsKeyboardAvoidance = keyboardAware && !scroll;
     const RootContainer = needsKeyboardAvoidance ? KeyboardAvoidingView : View;
 
+    const footerNode = footer ? (
+        <View
+            className="border-t border-border bg-background"
+            style={{
+                paddingBottom: footerSafeArea ? insets.bottom : 0,
+            }}
+        >
+            <View
+                style={{
+                    width: "100%",
+                    maxWidth: SCREEN_MAX_WIDTH,
+                    alignSelf: "center",
+                    paddingVertical: 16,
+                    paddingLeft: Math.max(SCREEN_HORIZONTAL_PADDING, insets.left),
+                    paddingRight: Math.max(SCREEN_HORIZONTAL_PADDING, insets.right),
+                }}
+            >
+                {footer}
+            </View>
+        </View>
+    ) : null;
+
     return (
         <RootContainer
             className={cn("flex-1 bg-background", className)}
@@ -106,27 +130,21 @@ export function Screen({
                 : {})}
         >
             {screenContent}
-            {footer ? (
-                <View
-                    className="border-t border-border bg-background"
-                    style={{
-                        paddingBottom: footerSafeArea ? insets.bottom : 0,
-                    }}
-                >
-                    <View
-                        style={{
-                            width: "100%",
-                            maxWidth: SCREEN_MAX_WIDTH,
-                            alignSelf: "center",
-                            paddingVertical: 16,
-                            paddingLeft: Math.max(SCREEN_HORIZONTAL_PADDING, insets.left),
-                            paddingRight: Math.max(SCREEN_HORIZONTAL_PADDING, insets.right),
+            {footerNode ? (
+                keyboardAware && scroll ? (
+                    <KeyboardStickyView
+                        offset={{
+                            closed: 0,
+                            opened: footerSafeArea ? insets.bottom : 0,
                         }}
                     >
-                        {footer}
-                    </View>
-                </View>
+                        {footerNode}
+                    </KeyboardStickyView>
+                ) : (
+                    footerNode
+                )
             ) : null}
+            {keyboardAware ? <KeyboardToolbar /> : null}
         </RootContainer>
     );
 }

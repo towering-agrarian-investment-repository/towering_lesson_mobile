@@ -236,6 +236,10 @@ function LessonLogCommentScreen() {
                                         onSettled: () => { submitting.current = false; },
                                     },
                                 );
+                            }, (errors) => {
+                                if (errors.comment) {
+                                    form.setFocus("comment");
+                                }
                             })(); }}
                             style={{
                                 ...getNativeButtonStyle(
@@ -375,6 +379,7 @@ function LessonLogCommentScreen() {
                     placeholder={t("lessonLog.commentPlaceholder")}
                     multiline
                     numberOfLines={4}
+                    maxLength={500}
                     editable={!isPending}
                 />
             </View>

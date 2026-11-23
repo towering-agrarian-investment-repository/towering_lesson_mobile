@@ -17,7 +17,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -38,7 +38,6 @@ type LoginFormValues = z.infer<ReturnType<typeof createLoginSchema>>;
 export default function LoginScreen() {
     const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
-    const [isLoginPressed, setIsLoginPressed] = useState(false);
     const loginPending = useRef(false);
     const { t } = useTranslation();
     const showSessionEndedNotice = useSyncExternalStore(
@@ -54,11 +53,16 @@ export default function LoginScreen() {
             password: "",
         },
         resolver: zodResolver(loginSchema),
-        mode: "onChange",
+        mode: "onTouched",
     });
 
     const handleInvalidLogin = (errors: FieldErrors<LoginFormValues>) => {
         form.setFocus(errors.phoneNumber ? "phoneNumber" : "password");
+    };
+
+    const submitLogin = () => {
+        if (isLoggingIn || loginPending.current) return;
+        void form.handleSubmit(handleLogin, handleInvalidLogin)();
     };
 
     async function handleLogin(values: LoginFormValues) {
@@ -94,7 +98,6 @@ export default function LoginScreen() {
         <Screen
             headerShown={false}
             keyboardAware
-            keyboardShouldPersistTaps="always"
             horizontalPadding={false}
             contentClassName="justify-start"
         >
@@ -133,6 +136,8 @@ export default function LoginScreen() {
                                 keyboardType="phone-pad"
                                 autoCapitalize="none"
                                 autoComplete="tel"
+                                returnKeyType="next"
+                                onSubmitEditing={() => form.setFocus("password")}
                                 editable={!isLoggingIn}
                             />
 
@@ -142,17 +147,14 @@ export default function LoginScreen() {
                                 label={t("login.passwordLabel")}
                                 placeholder={t("login.passwordPlaceholder")}
                                 autoComplete="current-password"
+                                returnKeyType="done"
+                                onSubmitEditing={submitLogin}
                                 editable={!isLoggingIn}
                             />
                         </View>
 
                         <LinearGradient
-                            colors={isLoginPressed
-                                ? [colors.btnMainPressedStart, colors.btnMainPressedEnd]
-                                : [colors.btnMainStart, colors.btnMainEnd]}
-                            onTouchStart={() => { if (!isLoggingIn) setIsLoginPressed(true); }}
-                            onTouchEnd={() => setIsLoginPressed(false)}
-                            onTouchCancel={() => setIsLoginPressed(false)}
+                            colors={[colors.btnMainStart, colors.btnMainEnd]}
                             start={{ x: 0, y: 0.5 }}
                             end={{ x: 1, y: 0.5 }}
                             style={{ borderRadius: 12, overflow: "hidden", opacity: isLoggingIn ? 0.5 : 1 }}
@@ -172,14 +174,13 @@ export default function LoginScreen() {
                                         ? [frame({ maxWidth: Infinity, minHeight: 56 })]
                                         : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })]}
                                     disabled={isLoggingIn}
-                                    onPress={() => {
-                                        if (isLoggingIn) return;
-                                        void form.handleSubmit(handleLogin, handleInvalidLogin)();
-                                    }}
+                                    onPress={submitLogin}
                                 >
                                     <Text
+                                        // Plain SwiftUI buttons need a hit shape on the expanded label
+                                        // so taps beside the text activate the gradient button too.
                                         modifiers={process.env.EXPO_OS === "ios"
-                                            ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                                            ? [frame({ maxWidth: Infinity, minHeight: 56 }), contentShape(shapes.rectangle())]
                                             : [fillMaxWidth()]}
                                         textStyle={{ ...typography.label, lineHeight: typography.body.lineHeight * uiFontScale, fontSize: typography.body.fontSize * uiFontScale, fontWeight: "600", color: colors.primaryForeground, textAlign: "center" }}
                                     >
@@ -193,6 +194,7 @@ export default function LoginScreen() {
 
                 <Image
                     source={golfFieldImage}
+                    pointerEvents="none"
                     style={{
                         position: "absolute",
                         left: 0,

@@ -69,7 +69,7 @@ export default function BayBookingConfirmScreen() {
     const hasSlotGroupId = Number.isSafeInteger(slotGroupIdNumber) && slotGroupIdNumber > 0;
     const form = useForm<BayBookingFormValues>({
         defaultValues: { memberNotes: initialNotes ?? "" },
-        mode: "onChange",
+        mode: "onTouched",
     });
     const { mutateAsync: createReservation, isPending: isCreating } =
         useCreateMemberBayReservation();

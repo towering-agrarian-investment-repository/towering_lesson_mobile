@@ -1,5 +1,8 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
+import {
+    getNativeButtonStyle,
+    getNativeButtonTextStyle,
+} from "@/design-system/utils/native-button-styles";
 import { FormPasswordInput } from "@/components/ui/form";
 import { Screen, triggerNotificationHaptic } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
@@ -12,7 +15,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -64,7 +67,7 @@ function ChangePasswordScreen() {
             confirmPassword: "",
         },
         resolver: zodResolver(changePasswordSchema),
-        mode: "onChange",
+        mode: "onTouched",
     });
 
     const onSubmit = async (data: ChangePasswordFormValues) => {
@@ -118,6 +121,15 @@ function ChangePasswordScreen() {
         }
     };
 
+    const isSubmitDisabled =
+        form.formState.isSubmitting ||
+        !form.formState.isDirty;
+
+    const submitChangePassword = () => {
+        if (form.formState.isSubmitting || submitting.current) return;
+        void form.handleSubmit(onSubmit, handleInvalidSubmit)();
+    };
+
     return (
         <Screen
             keyboardAware
@@ -136,11 +148,7 @@ function ChangePasswordScreen() {
                                 : t("changePassword.confirm")
                         }
                         accessibilityState={{
-                            disabled:
-                                form.formState.isSubmitting ||
-                                !form.formState.isDirty ||
-                                !form.formState.isValid ||
-                                form.formState.isSubmitting,
+                            disabled: isSubmitDisabled,
                             busy: form.formState.isSubmitting,
                         }}
                     >
@@ -159,30 +167,19 @@ function ChangePasswordScreen() {
                                     ]
                             }
                             variant="text"
-                            disabled={
-                                form.formState.isSubmitting ||
-                                !form.formState.isDirty ||
-                                !form.formState.isValid
-                            }
-                            onPress={() => { void form.handleSubmit(
-                                onSubmit,
-                                handleInvalidSubmit,
-                            )(); }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    uiColors,
-                                    "filled",
-                                    form.formState.isSubmitting ||
-                                    !form.formState.isDirty ||
-                                    !form.formState.isValid,
-                                    uiColors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
+                            disabled={isSubmitDisabled}
+                            onPress={submitChangePassword}
+                            style={getNativeButtonStyle(
+                                uiColors,
+                                "filled",
+                                isSubmitDisabled,
+                                uiColors.primary,
+                            )}
                         >
                             <Row
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 spacing={8}
@@ -197,15 +194,11 @@ function ChangePasswordScreen() {
                                     </RNHostView>
                                 ) : null}
                                 <Text
-                                    textStyle={{
-                                        textAlign: "center",
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        fontWeight: "600",
-                                        color: uiColors.primaryForeground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
+                                    textStyle={getNativeButtonTextStyle(
+                                        uiColors,
+                                        "filled",
+                                        uiFontScale,
+                                    )}
                                 >
                                     {form.formState.isSubmitting
                                         ? t("changePassword.saving")
@@ -237,6 +230,9 @@ function ChangePasswordScreen() {
                         label={t("changePassword.currentPassword")}
                         placeholder={t("changePassword.passwordMask")}
                         autoComplete="current-password"
+                        returnKeyType="next"
+                        onSubmitEditing={() => form.setFocus("newPassword")}
+                        editable={!form.formState.isSubmitting}
                     />
                 </View>
 
@@ -255,6 +251,9 @@ function ChangePasswordScreen() {
                             label={t("changePassword.password")}
                             placeholder={t("changePassword.passwordMask")}
                             autoComplete="new-password"
+                            returnKeyType="next"
+                            onSubmitEditing={() => form.setFocus("confirmPassword")}
+                            editable={!form.formState.isSubmitting}
                         />
 
                         <FormPasswordInput
@@ -263,6 +262,9 @@ function ChangePasswordScreen() {
                             label={t("changePassword.confirmPassword")}
                             placeholder={t("changePassword.passwordMask")}
                             autoComplete="new-password"
+                            returnKeyType="done"
+                            onSubmitEditing={submitChangePassword}
+                            editable={!form.formState.isSubmitting}
                         />
                     </View>
                 </View>

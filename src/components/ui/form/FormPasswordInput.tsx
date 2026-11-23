@@ -1,18 +1,12 @@
-import { typography } from "@/design-system/utils/typography";
 import { AnimatedPressable, useTheme } from "@/design-system";
-import { Host, TextInput, useNativeState } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { frame, textFieldStyle } from "@expo/ui/swift-ui/modifiers";
+import { typography } from "@/design-system/utils/typography";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useController, type FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { TextInput, View } from "react-native";
 import { FormFieldShell } from "./FormFieldShell";
-import { FormInputBaseProps } from "./types";
+import { FormInputBaseProps, resolveTextContentType } from "./types";
 
 export function FormPasswordInput<TFieldValues extends FieldValues>({
     control,
@@ -20,76 +14,70 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     label,
     placeholder,
     rules,
-    autoComplete,
+    autoComplete = "password",
+    textContentType,
     returnKeyType,
     onSubmitEditing,
+    maxLength,
     editable = true,
-}: FormInputBaseProps<TFieldValues>) {
-    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
+    autoFocus,
+}: Omit<
+    FormInputBaseProps<TFieldValues>,
+    "autoCapitalize" | "keyboardType" | "multiline" | "numberOfLines"
+>) {
+    const { colors, resolvedScheme } = useTheme();
     const { t } = useTranslation();
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
     const {
         field: { value: fieldValue, onChange, onBlur, ref: inputRef },
         fieldState,
     } = useController({ control, name, rules });
     const value = String(fieldValue ?? "");
-    const nativeValue = useNativeState(value);
-
-    useEffect(() => {
-        if (nativeValue.get() !== value) nativeValue.set(value);
-    }, [nativeValue, value]);
 
     return (
         <FormFieldShell label={label} errorMessage={fieldState.error?.message}>
             <View
-                className="mt-2 min-h-12 flex-row items-center border-b"
+                className="min-h-12 flex-row items-center border-b"
                 style={{
-                    borderBottomColor: fieldState.error
-                        ? colors.danger
-                        : colors.border,
-                    borderBottomWidth: 1,
+                    borderColor: fieldState.error ? colors.danger : colors.border,
                 }}
             >
-                <Host
-                    matchContents={{ vertical: true }}
-                    ignoreSafeArea="all"
-                    colorScheme={resolvedScheme}
-                    seedColor={colors.primary}
-                    style={{ flex: 1, minWidth: 0 }}
+                <TextInput
+                    ref={inputRef}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder={placeholder}
+                    placeholderTextColor={colors.mutedForeground}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete={autoComplete}
+                    textContentType={resolveTextContentType(
+                        autoComplete,
+                        textContentType,
+                    )}
+                    keyboardAppearance={resolvedScheme}
+                    returnKeyType={returnKeyType}
+                    onSubmitEditing={onSubmitEditing}
+                    maxLength={maxLength}
+                    editable={editable}
+                    autoFocus={autoFocus}
+                    secureTextEntry={!isPasswordVisible}
+                    cursorColor={colors.primary}
+                    selectionColor={colors.primary}
                     accessibilityLabel={label}
                     accessibilityState={{ disabled: !editable }}
-                >
-                    <TextInput
-                        modifiers={
-                            process.env.EXPO_OS === "ios"
-                                ? [textFieldStyle("plain"), frame({ maxWidth: Infinity, minHeight: 48 })]
-                                : [
-                                    fillMaxWidth(),
-                                    defaultMinSize({ minHeight: 48 }),
-                                ]
-                        }
-                        value={nativeValue}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        ref={inputRef}
-                        placeholder={placeholder}
-                        placeholderTextColor={colors.mutedForeground}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        autoComplete={autoComplete}
-                        returnKeyType={returnKeyType}
-                        onSubmitEditing={onSubmitEditing}
-                        secureTextEntry={!isPasswordVisible}
-                        editable={editable}
-                        cursorColor={colors.primary}
-                        textStyle={{
-                            fontSize: typography.body.fontSize * uiFontScale,
-                            lineHeight: typography.body.lineHeight * uiFontScale,
-                            color: colors.foreground,
-                        }}
-                        style={{ paddingVertical: 12, paddingHorizontal: 6, backgroundColor: "transparent" }}
-                    />
-                </Host>
+                    style={{
+                        flex: 1,
+                        minHeight: 48,
+                        paddingVertical: 12,
+                        paddingHorizontal: 6,
+                        fontSize: typography.body.fontSize,
+                        lineHeight: typography.body.lineHeight,
+                        color: colors.foreground,
+                    }}
+                />
 
                 <AnimatedPressable
                     accessibilityRole="button"

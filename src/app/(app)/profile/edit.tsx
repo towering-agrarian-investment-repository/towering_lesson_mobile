@@ -119,7 +119,7 @@ export default function EditProfileScreen() {
       nickname: "",
     },
     resolver: zodResolver(editProfileSchema),
-    mode: "onChange",
+    mode: "onTouched",
   });
   const isSaveDisabled =
     isSubmitting || isUpdatingImage || !form.formState.isDirty;
@@ -680,6 +680,7 @@ export default function EditProfileScreen() {
             name="name"
             label={t("profile.fullName")}
             placeholder={t("profile.fullNamePlaceholder")}
+            autoCapitalize="words"
             autoComplete="name"
             returnKeyType="next"
             onSubmitEditing={() => form.setFocus("nickname")}
@@ -691,6 +692,7 @@ export default function EditProfileScreen() {
             name="nickname"
             label={t("profile.nickname")}
             placeholder={t("profile.nicknamePlaceholder")}
+            autoCapitalize="words"
             autoComplete="nickname"
             returnKeyType="done"
             onSubmitEditing={submitEditProfile}

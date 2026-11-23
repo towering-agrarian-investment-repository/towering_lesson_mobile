@@ -1,4 +1,5 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { FormTextInput } from "@/components/ui/form";
 import { NativeText } from "@/design-system/components/NativeText";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
@@ -42,20 +43,20 @@ import {
     RNHostView,
     Row,
     Text,
-    TextInput,
-    useNativeState, Spacer
+    Spacer,
 } from "@expo/ui";
 import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame, textFieldStyle } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { FileCheck, FileUp, MessageSquare } from "lucide-react-native";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
+import { type Control, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
@@ -63,8 +64,10 @@ import {
     Linking,
     type ListRenderItem,
     RefreshControl,
+    type ScrollViewProps,
     View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 type HomeworkParams = {
     homeworkId: string;
@@ -89,6 +92,37 @@ function SubmissionSeparator() {
     return <View className="h-3" />;
 }
 
+type HomeworkMemoFormValues = {
+    memo: string;
+};
+
+const renderHomeworkScrollComponent = (props: ScrollViewProps) => (
+    <KeyboardAwareScrollView {...props} bottomOffset={20} />
+);
+
+const HomeworkMemoSection = memo(function HomeworkMemoSection({
+    control,
+    editable,
+}: {
+    control: Control<HomeworkMemoFormValues>;
+    editable: boolean;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <FormTextInput
+            control={control}
+            name="memo"
+            label={t("homework.memo")}
+            placeholder={t("homework.noteForCoach")}
+            editable={editable}
+            multiline
+            numberOfLines={4}
+            maxLength={500}
+        />
+    );
+});
+
 export default function HomeworkDetailScreen() {
     const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
@@ -96,13 +130,12 @@ export default function HomeworkDetailScreen() {
     const numericHomeworkId = Number(homeworkId);
     const [selectedFile, setSelectedFile] =
         useState<HomeworkSubmissionFile | null>(null);
-    const [memo, setMemo] = useState("");
+    const memoForm = useForm<HomeworkMemoFormValues>({
+        defaultValues: { memo: "" },
+        mode: "onTouched",
+    });
     const submitting = useRef(false);
     const picking = useRef(false);
-    const nativeMemo = useNativeState("");
-    useEffect(() => {
-        if (nativeMemo.get() !== memo) nativeMemo.set(memo);
-    }, [memo, nativeMemo]);
     const { data, isLoading, isError, refetch, isRefetching } =
         useMemberHomeworkById(numericHomeworkId);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
@@ -197,7 +230,7 @@ export default function HomeworkDetailScreen() {
             {
                 homeworkId: homework.homeworkId,
                 file: selectedFile,
-                memberMemo: memo,
+                memberMemo: memoForm.getValues("memo"),
             },
             {
                 onSuccess: () => {
@@ -205,7 +238,7 @@ export default function HomeworkDetailScreen() {
                         Haptics.NotificationFeedbackType.Success,
                     );
                     setSelectedFile(null);
-                    setMemo("");
+                    memoForm.reset({ memo: "" });
                 },
                 onSettled: () => { submitting.current = false; },
             },
@@ -397,6 +430,7 @@ export default function HomeworkDetailScreen() {
                 keyExtractor={submissionKeyExtractor}
                 renderItem={renderSubmission}
                 ItemSeparatorComponent={SubmissionSeparator}
+                renderScrollComponent={renderHomeworkScrollComponent}
                 refreshControl={refreshControl}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
@@ -479,58 +513,10 @@ export default function HomeworkDetailScreen() {
                                 </View>
                             </View>
 
-                            <NativeText variant="label">
-                                {t("homework.memo")}
-                            </NativeText>
-                            <Host
-                                matchContents={{ vertical: true }}
-                                ignoreSafeArea="all"
-                                colorScheme={uiScheme}
-                                seedColor={colors.primary}
-                                accessibilityLabel={t("homework.memo")}
-                                style={{
-                                    width: "100%",
-                                    borderRadius: 12,
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.surface,
-                                    overflow: "hidden",
-                                }}
-                            >
-                                <TextInput
-                                    modifiers={
-                                        process.env.EXPO_OS === "ios"
-                                            ? [
-                                                textFieldStyle("plain"),
-                                                frame({
-                                                    maxWidth: Infinity,
-                                                    minHeight: 104,
-                                                }),
-                                            ]
-                                            : [
-                                                fillMaxWidth(),
-                                                defaultMinSize({
-                                                    minHeight: 128,
-                                                }),
-                                            ]
-                                    }
-                                    value={nativeMemo}
-                                    onChangeText={setMemo}
-                                    placeholder={t("homework.noteForCoach")}
-                                    editable={!isSubmitting}
-                                    multiline
-                                    numberOfLines={4}
-                                    placeholderTextColor={
-                                        colors.mutedForeground
-                                    }
-                                    textStyle={{
-                                        fontSize: typography.body.fontSize * uiFontScale,
-                                        lineHeight: typography.body.lineHeight * uiFontScale,
-                                        color: colors.foreground,
-                                    }}
-                                    style={{ paddingVertical: 12, paddingHorizontal: 8, backgroundColor: "transparent" }}
-                                />
-                            </Host>
+                            <HomeworkMemoSection
+                                control={memoForm.control}
+                                editable={!isSubmitting}
+                            />
                         </View>
 
                         {latestReview ? (
