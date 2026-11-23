@@ -16,6 +16,7 @@ import {
 } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
   useRemoveMemberProfileImage,
   useUpdateMemberProfileImage,
@@ -55,7 +56,7 @@ import { Camera, ImageIcon, Trash2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, RefreshControl, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
@@ -91,6 +92,8 @@ export default function EditProfileScreen() {
     refetch,
     isRefetching,
   } = useGetMemberProfile();
+  const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
+    usePullToRefresh(() => refetch({ cancelRefetch: false }));
   const { mutate: updateProfile, isPending: isSubmitting } =
     useUpdateMemberProfile();
   const { mutate: uploadProfileImage, isPending: isUploadingImage } =
@@ -344,17 +347,26 @@ export default function EditProfileScreen() {
 
   if (!member) {
     return (
-      <ErrorState
-        title={t("home.couldNotLoadProfile")}
-        message={t("home.checkConnection")}
-        actionLabel={
-          isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+      <Screen
+        contentClassName="grow"
+        bottomPadding={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={isPullRefreshing}
+            onRefresh={handlePullRefresh}
+          />
         }
-        actionPending={isRefetching}
-        onAction={() => {
-          void refetch();
-        }}
-      />
+      >
+        <ErrorState
+          title={t("home.couldNotLoadProfile")}
+          message={t("home.checkConnection")}
+          actionLabel={
+            isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+          }
+          actionPending={isRefetching || isPullRefreshing}
+          onAction={handlePullRefresh}
+        />
+      </Screen>
     );
   }
 

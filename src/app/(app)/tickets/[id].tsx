@@ -52,7 +52,6 @@ import { differenceInCalendarDays } from "date-fns";
 import { useMinuteClock } from "@/lib/hook/useMinuteClock";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import {
-    Stack,
     useLocalSearchParams,
     useRouter,
 } from "expo-router";
@@ -207,15 +206,9 @@ export default function TicketDetailScreen() {
         ],
     );
 
-    const screenOptions = {
-        title: t("tickets.detailTitle"),
-    } as const;
-
     if (isLoading && !ticket) {
         return (
-            <>
-                <Stack.Screen options={screenOptions} />
-                <Screen contentClassName="gap-6">
+            <Screen contentClassName="gap-6">
                     <View className="gap-5">
                         <View className="gap-2.5">
                             <View className="flex-row items-center justify-between gap-2">
@@ -267,14 +260,11 @@ export default function TicketDetailScreen() {
                         </View>
                     </View>
                 </Screen>
-            </>
         );
     }
 
     if (isError && !ticket) {
         return (
-            <>
-                <Stack.Screen options={screenOptions} />
                 <Screen
                     contentClassName="grow"
                     bottomPadding={16}
@@ -297,14 +287,11 @@ export default function TicketDetailScreen() {
                         onAction={handlePullRefresh}
                     />
                 </Screen>
-            </>
         );
     }
 
     if (!ticket) {
         return (
-            <>
-                <Stack.Screen options={screenOptions} />
                 <Screen
                     contentClassName="grow"
                     bottomPadding={16}
@@ -326,7 +313,6 @@ export default function TicketDetailScreen() {
                         }}
                     />
                 </Screen>
-            </>
         );
     }
 
@@ -399,9 +385,7 @@ export default function TicketDetailScreen() {
     ) : undefined;
 
     return (
-        <>
-            <Stack.Screen options={screenOptions} />
-            <Screen scroll={false} footer={footer}>
+        <Screen scroll={false} footer={footer}>
                 <FlatList
                     className="flex-1"
                     data={reservations}
@@ -446,7 +430,6 @@ export default function TicketDetailScreen() {
                     }
                 />
             </Screen>
-        </>
     );
 }
 

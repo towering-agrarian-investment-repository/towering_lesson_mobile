@@ -25,6 +25,7 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import Animated, { FadeIn, FadeOut, useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 const createLoginSchema = (t: (key: string) => string) =>
@@ -37,6 +38,7 @@ type LoginFormValues = z.infer<ReturnType<typeof createLoginSchema>>;
 
 export default function LoginScreen() {
     const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
+    const reducedMotion = useReducedMotion();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const loginPending = useRef(false);
     const { t } = useTranslation();
@@ -118,14 +120,18 @@ export default function LoginScreen() {
 
                     <View className="gap-6">
                         {showSessionEndedNotice ? (
-                            <View className="gap-2 rounded-xl border border-warning/30 bg-warning/10 p-4">
+                            <Animated.View
+                                entering={reducedMotion ? undefined : FadeIn.duration(150)}
+                                exiting={reducedMotion ? undefined : FadeOut.duration(120)}
+                                className="gap-2 rounded-xl border border-warning/30 bg-warning/10 p-4"
+                            >
                                 <NativeText variant="label" accessibilityRole="header">
                                     {t("login.sessionEndedTitle")}
                                 </NativeText>
                                 <NativeText variant="body" accessibilityLiveRegion="polite">
                                     {t("login.sessionEndedMessage")}
                                 </NativeText>
-                            </View>
+                            </Animated.View>
                         ) : null}
                         <View className="gap-5">
                             <FormTextInput

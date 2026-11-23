@@ -1,9 +1,10 @@
 import { formatShareCardMonth } from "@/components/golf/monthly-share-card-layout";
 import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
 import { Button, Column, Picker, Row, Text } from "@expo/ui";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -27,7 +28,18 @@ export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onC
 
     return (
         <Column spacing={16}>
-            <Text>{yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}</Text>
+            <Text
+                textStyle={{
+                    ...typography.h3,
+                    fontSize: typography.h3.fontSize * fontScale,
+                    lineHeight: typography.h3.lineHeight * fontScale,
+                    color: colors.foreground,
+                    fontWeight: "600",
+                    textAlign: "center",
+                }}
+            >
+                {yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}
+            </Text>
             <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
                 {!yearOnly && (
                     <Column modifiers={[frame({ maxWidth: Infinity })]}>
@@ -52,7 +64,7 @@ export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onC
             >
                 <Text
                     textStyle={getNativeButtonTextStyle(colors, "filled", fontScale)}
-                    modifiers={isIOS ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}
+                    modifiers={isIOS ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}
                 >
                     {t("activity.ok")}
                 </Text>

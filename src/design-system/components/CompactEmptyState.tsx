@@ -4,7 +4,7 @@ import { CircleAlert, Inbox } from "lucide-react-native";
 import { View } from "react-native";
 import { cn } from "../utils/cn";
 import { AnimatedPressable } from "./AnimatedPressable";
-import { NativeText } from "./NativeText";
+import { AppText } from "./AppText";
 
 type CompactEmptyStateTone = "neutral" | "danger";
 
@@ -54,17 +54,17 @@ export function CompactEmptyState({
             )}
 
             <View className="w-full items-center gap-1">
-                <NativeText
+                <AppText
                     variant="subtext"
                     color={isDanger ? "danger" : "mutedForeground"}
                     align="center"
                     textStyle={{ fontWeight: "500" }}
                 >
                     {title.trim()}
-                </NativeText>
+                </AppText>
 
                 {message ? (
-                    <NativeText
+                    <AppText
                         variant="caption"
                         color="mutedForeground"
                         align="center"
@@ -72,7 +72,7 @@ export function CompactEmptyState({
                         textStyle={{ lineHeight: typography.subtext.lineHeight }}
                     >
                         {message.trim()}
-                    </NativeText>
+                    </AppText>
                 ) : null}
             </View>
 
@@ -93,7 +93,7 @@ export function CompactEmptyState({
                         actionPending && "opacity-60",
                     )}
                 >
-                    <NativeText
+                    <AppText
                         variant="label"
                         color="primary"
                         align="center"
@@ -105,7 +105,7 @@ export function CompactEmptyState({
                         }}
                     >
                         {actionLabel}
-                    </NativeText>
+                    </AppText>
                 </AnimatedPressable>
             ) : null}
         </View>

@@ -171,15 +171,35 @@ export default function SelectLessonSlotScreen() {
     ],
   );
 
+  const screenOptions = useMemo(
+    () => ({
+      title: isGroupTicket
+        ? t("booking.selectGroupTitle")
+        : t("booking.selectSlotTitle"),
+    }),
+    [isGroupTicket, t],
+  );
+
+  if (!ticketIdNumber || !date || Number.isNaN(selectedDate.getTime())) {
+    return (
+      <>
+        <Stack.Screen options={screenOptions} />
+        <Screen contentClassName="grow">
+          <EmptyState
+            title={t("bookingConfirmation.ticketInfoMissing")}
+            actionLabel={t("tickets.sectionTitle")}
+            onAction={() =>
+              runWithNavigationLock(() => router.dismissTo("/tickets"))
+            }
+          />
+        </Screen>
+      </>
+    );
+  }
+
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: isGroupTicket
-            ? t("booking.selectGroupTitle")
-            : t("booking.selectSlotTitle"),
-        }}
-      />
+      <Stack.Screen options={screenOptions} />
 
       <Screen scroll={false} contentClassName="min-h-0 gap-6">
         <BookingStepHeader

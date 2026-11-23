@@ -79,6 +79,8 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     const [width, setWidth] = useState(0);
     const [failedImageUrls, setFailedImageUrls] = useState<string[]>([]);
     const indexRef = useRef(0);
+    const pauseTimerRef = useRef<(() => void) | null>(null);
+    const resumeTimerRef = useRef<(() => void) | null>(null);
 
     const items = useMemo(
         () =>
@@ -114,10 +116,14 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
                     listRef.current?.scrollToIndex({ index: next, animated: true });
                 }, AUTO_ROTATE_MS);
             };
+            pauseTimerRef.current = stop;
+            resumeTimerRef.current = syncTimer;
             syncTimer();
             const subscription = AppState.addEventListener("change", syncTimer);
 
             return () => {
+                pauseTimerRef.current = null;
+                resumeTimerRef.current = null;
                 stop();
                 subscription.remove();
             };
@@ -203,12 +209,19 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
                 extraData={extraData}
                 getItemLayout={getItemLayout}
                 renderItem={renderBannerItem}
+                onScrollBeginDrag={() => {
+                    pauseTimerRef.current?.();
+                }}
+                onScrollEndDrag={() => {
+                    resumeTimerRef.current?.();
+                }}
                 onMomentumScrollEnd={(event) => {
                     if (width > 0) {
                         indexRef.current = Math.round(
                             event.nativeEvent.contentOffset.x / width,
                         );
                     }
+                    resumeTimerRef.current?.();
                 }}
             />
         </View>

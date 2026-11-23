@@ -122,7 +122,12 @@ export default function WelcomeScreen() {
             }
         >
             <View className="grow justify-center gap-8 px-6 py-6">
-                <HappyGolfLogo width={148} height={35} />
+                <HappyGolfLogo
+                    width={148}
+                    height={35}
+                    primaryColor={colors.primary}
+                    accentColor={colors.warning}
+                />
 
                 <View className="w-full gap-8">
                     <View className="w-full items-center gap-3">

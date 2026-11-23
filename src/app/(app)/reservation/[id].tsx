@@ -46,7 +46,7 @@ import {
 import { contentShape, shapes, frame, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Href, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -153,63 +153,52 @@ export default function ReservationDetailScreen() {
 
     const { mutate: cancelBayReservation, isPending: isCancellingBay } =
         useCancelMemberBayReservation();
-    const screenOptions = {
-        title: t("reservations.reservationDetailTitle"),
-    } as const;
 
     if (isLoading) {
         return (
-            <>
-                <Stack.Screen options={screenOptions} />
+            <Screen contentClassName="flex-col gap-8">
+                <View className="flex-col gap-4">
+                    <Skeleton className="h-8 w-2/3 rounded-xl" />
+                    <Skeleton className="h-6 w-1/3 rounded-full" />
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                </View>
 
-                <Screen contentClassName="flex-col gap-8">
-                    <View className="flex-col gap-4">
-                        <Skeleton className="h-8 w-2/3 rounded-xl" />
-                        <Skeleton className="h-6 w-1/3 rounded-full" />
-                        <Skeleton className="h-16 w-full rounded-xl" />
-                    </View>
-
-                    <View className="flex-col gap-4">
-                        {Array.from({ length: 4 }, (_, index) => (
-                            <Skeleton
-                                key={index}
-                                className="h-16 w-full rounded-xl"
-                            />
-                        ))}
-                    </View>
-                </Screen>
-            </>
+                <View className="flex-col gap-4">
+                    {Array.from({ length: 4 }, (_, index) => (
+                        <Skeleton
+                            key={index}
+                            className="h-16 w-full rounded-xl"
+                        />
+                    ))}
+                </View>
+            </Screen>
         );
     }
 
     if (isError && (!data || "isListPreview" in data.data)) {
         return (
-            <>
-                <Stack.Screen options={screenOptions} />
-
-                <Screen
-                    contentClassName="grow"
-                    bottomPadding={16}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        />
-                    }
-                >
-                    <ErrorState
-                        title={t("reservations.failedDetailTitle")}
-                        message={t("common.pullToRefreshAndTryAgain")}
-                        actionLabel={
-                            isRefetching
-                                ? t("common.refreshing")
-                                : t("common.refreshTryAgain")
-                        }
-                        actionPending={isRefetching || isPullRefreshing}
-                        onAction={handlePullRefresh}
+            <Screen
+                contentClassName="grow"
+                bottomPadding={16}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
-                </Screen>
-            </>
+                }
+            >
+                <ErrorState
+                    title={t("reservations.failedDetailTitle")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
+                    actionPending={isRefetching || isPullRefreshing}
+                    onAction={handlePullRefresh}
+                />
+            </Screen>
         );
     }
 
@@ -219,35 +208,31 @@ export default function ReservationDetailScreen() {
 
     if (!reservation) {
         return (
-            <>
-                <Stack.Screen options={screenOptions} />
-
-                <Screen
-                    contentClassName="grow"
-                    bottomPadding={16}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        />
-                    }
-                >
-                    <EmptyState
-                        title={t("reservations.notAvailableTitle")}
-                        message={
-                            reservationType
-                                ? t("reservations.notFoundMessage")
-                                : t("reservations.typeMissingMessage")
-                        }
-                        actionLabel={t("navigation.screens.myReservations")}
-                        onAction={() => {
-                            runWithNavigationLock(() => {
-                                router.dismissTo("/reservation");
-                            });
-                        }}
+            <Screen
+                contentClassName="grow"
+                bottomPadding={16}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isPullRefreshing}
+                        onRefresh={handlePullRefresh}
                     />
-                </Screen>
-            </>
+                }
+            >
+                <EmptyState
+                    title={t("reservations.notAvailableTitle")}
+                    message={
+                        reservationType
+                            ? t("reservations.notFoundMessage")
+                            : t("reservations.typeMissingMessage")
+                    }
+                    actionLabel={t("navigation.screens.myReservations")}
+                    onAction={() => {
+                        runWithNavigationLock(() => {
+                            router.dismissTo("/reservation");
+                        });
+                    }}
+                />
+            </Screen>
         );
     }
 
@@ -386,7 +371,6 @@ export default function ReservationDetailScreen() {
 
     return (
         <>
-            <Stack.Screen options={screenOptions} />
             <PendingBottomSheet
                 isPresented={isCancelSheetVisible}
                 onDismiss={closeCancelSheet}
@@ -726,10 +710,8 @@ function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetai
     const policies = getReservationPolicies(t);
 
     return (
-        <>
-            <Stack.Screen options={{ title: t("reservations.reservationDetailTitle") }} />
-            <Screen contentClassName="grow">
-                <View className="grow flex-col gap-6 bg-background">
+        <Screen contentClassName="grow">
+            <View className="grow flex-col gap-6 bg-background">
                     <HeaderSection
                         title={title}
                         reservationStatus={reservation.reservationStatus}
@@ -775,7 +757,6 @@ function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetai
                     </ReservationContent>
                 </View>
             </Screen>
-        </>
     );
 }
 

@@ -1,6 +1,6 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import Animated, { FadeIn, FadeOut, useReducedMotion } from "react-native-reanimated";
 
 type AvailabilityConflictNoticeProps = {
     message: string;
@@ -9,23 +9,25 @@ type AvailabilityConflictNoticeProps = {
 export function AvailabilityConflictNotice({
     message,
 }: AvailabilityConflictNoticeProps) {
-
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
 
     return (
-        <View
+        <Animated.View
+            entering={reducedMotion ? undefined : FadeIn.duration(150)}
+            exiting={reducedMotion ? undefined : FadeOut.duration(120)}
             accessibilityRole="alert"
             className="gap-2 rounded-2xl border border-warning/30 bg-warning/10 p-4"
         >
-            <NativeText variant="label" color="warning">
+            <AppText variant="label" color="warning">
                 {t("booking.timeNoLongerAvailableTitle")}
-            </NativeText>
-            <NativeText variant="body">
+            </AppText>
+            <AppText variant="body">
                 {message}
-            </NativeText>
-            <NativeText variant="caption" color="mutedForeground">
+            </AppText>
+            <AppText variant="caption" color="mutedForeground">
                 {t("booking.availabilityRefreshedMessage")}
-            </NativeText>
-        </View>
+            </AppText>
+        </Animated.View>
     );
 }

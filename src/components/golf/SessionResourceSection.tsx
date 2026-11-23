@@ -1,12 +1,11 @@
-import { NativeText } from "@/design-system/components/NativeText";
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
 import {
     AnimatedPressable,
+    AppText,
     CompactEmptyState,
     ListRow,
     useThemeColors,
 } from "@/design-system";
+import { NativeText } from "@/design-system/components/NativeText";
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
@@ -20,7 +19,6 @@ import {
     RESOURCE_IMAGE_EXTENSIONS,
     RESOURCE_VIDEO_EXTENSIONS,
 } from "@/utils/media";
-import { Host, Text } from "@expo/ui";
 import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -115,7 +113,7 @@ function SessionResourceItem({
     resource: SessionResourcesFilesResponse;
     deferVideo: boolean;
 }) {
-    const { colors, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const reducedMotion = useReducedMotion();
     const [videoActivated, setVideoActivated] = useState(!deferVideo);
@@ -173,35 +171,25 @@ function SessionResourceItem({
                         style={{ width: "100%", height: 220 }}
                     />
                     <View className="absolute inset-x-0 bottom-0 flex-row items-end justify-between gap-3 bg-black/45 px-4 py-3">
-                        <Host
-                            matchContents={{ vertical: true }}
-                            ignoreSafeArea="all"
+                        <AppText
+                            variant="caption"
+                            color="primaryForeground"
+                            numberOfLines={1}
                             style={{ flex: 1, minWidth: 0 }}
+                            textStyle={{ fontWeight: "500" }}
                         >
-                            <Text
-                                numberOfLines={1}
-                                textStyle={{
-                                    ...typography.caption, lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    fontWeight: "500" as const,
-                                    color: colors.primaryForeground,
-                                    fontSize:
-                                        typography.caption.fontSize *
-                                        uiFontScale,
-                                }}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, alignment: "trailing" })] : [fillMaxWidth()]}>
-                                {title}
-                            </Text>
-                        </Host>
+                            {title}
+                        </AppText>
                         <View className="shrink-0 rounded-full bg-black/55 px-2.5 py-1">
-                            <NativeText
+                            <AppText
                                 variant="caption"
                                 wrap={false}
                                 numberOfLines={1}
                                 color="primaryForeground"
-                                textStyle={{ fontWeight: "500" as const }}
+                                textStyle={{ fontWeight: "500" }}
                             >
                                 {resourceTypeLabel}
-                            </NativeText>
+                            </AppText>
                         </View>
                     </View>
                 </AnimatedPressable>

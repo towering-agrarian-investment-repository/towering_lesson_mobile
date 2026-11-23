@@ -1,23 +1,26 @@
-import { Host, Text, type TextProps } from "@expo/ui";
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
-import type { ViewProps, ViewStyle } from "react-native";
-import { useTheme, type ThemeColors } from "../utils/theme";
-import { typography } from "../utils/typography";
+import type { TextProps as ExpoTextProps } from "@expo/ui";
+import type { ReactNode } from "react";
+import type { TextStyle, ViewProps, ViewStyle } from "react-native";
+import type { ThemeColors } from "../utils/theme";
+import type { typography } from "../utils/typography";
+import { AppText } from "./AppText";
 
-type NativeTextProps = Pick<TextProps, "children" | "numberOfLines"> & Pick<ViewProps, "accessibilityRole" | "accessibilityLiveRegion"> & {
+type NativeTextProps = Pick<ViewProps, "accessibilityRole" | "accessibilityLiveRegion"> & {
+    children?: ReactNode;
+    numberOfLines?: number;
     variant?: keyof typeof typography;
     color?: keyof ThemeColors;
     align?: "left" | "center" | "right";
-    /** Constrain the host width for wrapping; false keeps badges intrinsic. */
     wrap?: boolean;
-    /** Layout for the existing Host, including a measured width or row flex. */
-    style?: ViewStyle;
-    /** Unscaled native text overrides; font size and line height scale once. */
-    textStyle?: TextProps["textStyle"];
+    style?: ViewStyle & TextStyle;
+    textStyle?: ExpoTextProps["textStyle"] & TextStyle;
 };
 
-/** Standalone Expo text. Native button/Column children use Expo Text directly. */
+/**
+ * Compatibility alias delegating to native Fabric RN Text (`AppText`)
+ * without spawning an `@expo/ui` Host per standalone label.
+ * Inside an existing `@expo/ui` Host (Button, Picker, List, BottomSheet), use `@expo/ui` `Text` directly.
+ */
 export function NativeText({
     children,
     variant = "body",
@@ -30,37 +33,19 @@ export function NativeText({
     accessibilityRole,
     accessibilityLiveRegion,
 }: NativeTextProps) {
-    const { colors, fontScale } = useTheme();
-    const token = typography[variant];
-    const fillWidth = wrap && style?.width === undefined && style?.flex === undefined;
-    const textAlign = textStyle?.textAlign ?? align;
-
     return (
-        <Host
-            matchContents={wrap ? { vertical: true } : true}
-            ignoreSafeArea="all"
+        <AppText
+            variant={variant}
+            color={color}
+            align={align}
+            wrap={wrap}
+            numberOfLines={numberOfLines}
             accessibilityRole={accessibilityRole}
             accessibilityLiveRegion={accessibilityLiveRegion}
-            style={[fillWidth && { width: "100%" }, style]}
+            textStyle={textStyle as TextStyle}
+            style={style as TextStyle}
         >
-            <Text
-                numberOfLines={numberOfLines}
-                textStyle={{
-                    color: colors[color],
-                    ...token,
-                    ...textStyle,
-                    textAlign,
-                    fontSize: (textStyle?.fontSize ?? token.fontSize) * fontScale,
-                    lineHeight: (textStyle?.lineHeight ?? token.lineHeight) * fontScale,
-                }}
-                modifiers={wrap
-                    ? process.env.EXPO_OS === "ios"
-                        ? [frame({ maxWidth: Infinity, alignment: textAlign === "center" ? "center" : textAlign === "right" ? "trailing" : "leading" })]
-                        : [fillMaxWidth()]
-                    : undefined}
-            >
-                {children}
-            </Text>
-        </Host>
+            {children}
+        </AppText>
     );
 }

@@ -4,19 +4,14 @@ import { Badge, Divider, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useMemberTicketById } from "@/lib/hook/useTicket";
-import { useGetMemberProfile } from "@/lib/hook/useUser";
-import type { TicketListItemResponse } from "@/types/member-ticket";
-import { useQueryClient } from "@tanstack/react-query";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { Button, Host, Text } from "@expo/ui";
 import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import {
-    Stack,
     useFocusEffect,
     useLocalSearchParams,
     useRouter,
@@ -35,8 +30,9 @@ import { BackHandler, View } from "react-native";
 type BookingSuccessParams = {
     type?: "bay" | "lesson";
     mode?: "booking" | "reschedule";
-    ticketId?: string;
     ticketName?: string;
+    ticketTotalCount?: string;
+    ticketUsedCount?: string;
     ticketRemainingCount?: string;
     ticketIsUnlimited?: string;
     date?: string;
@@ -83,8 +79,9 @@ export default function BookingSuccessScreen() {
     const {
         type,
         mode,
-        ticketId,
         ticketName,
+        ticketTotalCount,
+        ticketUsedCount,
         ticketRemainingCount,
         ticketIsUnlimited,
         date,
@@ -96,39 +93,28 @@ export default function BookingSuccessScreen() {
         coachName,
     } = useLocalSearchParams<BookingSuccessParams>();
     const router = useRouter();
-    const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const parsedRemainingCount =
-        ticketRemainingCount == null ? null : Number(ticketRemainingCount);
-    const remainingCount =
-        parsedRemainingCount != null && Number.isFinite(parsedRemainingCount)
-            ? parsedRemainingCount
-            : null;
+    const parseFiniteParam = (value?: string) => {
+        if (value == null) return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+    const totalCount = parseFiniteParam(ticketTotalCount);
+    const usedCount = parseFiniteParam(ticketUsedCount);
+    const remainingCount = parseFiniteParam(ticketRemainingCount);
     const isUnlimited = ticketIsUnlimited === "true";
-    const { data: memberResponse } = useGetMemberProfile();
-    const numericTicketId = ticketId ? Number(ticketId) : undefined;
-    const selectedTicket = numericTicketId
-        ? queryClient.getQueryData<TicketListItemResponse>(["member", "selected-ticket", numericTicketId])
-        : undefined;
-    // A reschedule may reach this screen without a ticket selected from a list.
-    const { data: loadedTicket } = useMemberTicketById(
-        ticketId && !isUnlimited && !selectedTicket ? memberResponse?.data?.id : undefined,
-        numericTicketId,
-    );
-    const ticket = selectedTicket ?? loadedTicket;
-    const totalCount = ticket?.totalCount;
-    const usageLabel =
-        isUnlimited || ticket?.isUnlimited
-            ? t("tickets.unlimitedUsage")
-            : totalCount != null
-                ? t("tickets.usage", {
-                    used:
-                        remainingCount != null
-                            ? Math.max(0, totalCount - remainingCount)
-                            : (ticket?.usedCount ?? 0),
-                    total: totalCount,
-                })
-                : null;
+    const usageLabel = isUnlimited
+        ? t("tickets.unlimitedUsage")
+        : totalCount != null
+            ? t("tickets.usage", {
+                used:
+                    usedCount ??
+                    (remainingCount != null
+                        ? Math.max(0, totalCount - remainingCount)
+                        : 0),
+                total: totalCount,
+            })
+            : null;
     const isReschedule = mode === "reschedule";
 
     const handleGoHome = useCallback(() => {
@@ -214,7 +200,7 @@ export default function BookingSuccessScreen() {
                     <Text
                         modifiers={
                             process.env.EXPO_OS === "ios"
-                                ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                                ? [frame({ maxWidth: Infinity, minHeight: 56 }), contentShape(shapes.rectangle())]
                                 : [fillMaxWidth()]
                         }
                         textStyle={{
@@ -232,20 +218,11 @@ export default function BookingSuccessScreen() {
     );
 
     return (
-        <>
-            <Stack.Screen
-                options={{
-                    headerShown: false,
-                    gestureEnabled: false,
-                    fullScreenGestureEnabled: false,
-                }}
-            />
-
-            <Screen
-                headerShown={false}
-                contentClassName="grow gap-7 py-8"
-                footer={footer}
-            >
+        <Screen
+            headerShown={false}
+            contentClassName="grow gap-7 py-8"
+            footer={footer}
+        >
                 <View className="w-full items-center gap-3">
                     <View className="h-16 w-16 items-center justify-center rounded-full bg-success">
                         <Check
@@ -337,6 +314,12 @@ export default function BookingSuccessScreen() {
                     )}
                 </View>
 
+                {type === "bay" ? (
+                    <NativeText variant="caption" color="mutedForeground">
+                        {t("bookingConfirmation.bayRequestDisclaimer")}
+                    </NativeText>
+                ) : null}
+
                 {ticketName ? (
                     <>
                         <Divider />
@@ -355,6 +338,5 @@ export default function BookingSuccessScreen() {
                     </>
                 ) : null}
             </Screen>
-        </>
     );
 }

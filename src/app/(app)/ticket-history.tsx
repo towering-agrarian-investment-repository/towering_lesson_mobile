@@ -21,7 +21,7 @@ import type { TicketListItemResponse } from "@/types/member-ticket";
 import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
@@ -227,9 +227,7 @@ export default function TicketHistoryScreen() {
                 };
 
     return (
-        <>
-            <Stack.Screen options={{ title: t("tickets.historyTitle") }} />
-            <Screen scroll={false} bottomPadding={16}>
+        <Screen scroll={false} bottomPadding={16}>
                 <View className="flex-1 gap-3 pt-2">
                     <SegmentedControl
                         options={filterOptions}
@@ -331,7 +329,6 @@ export default function TicketHistoryScreen() {
                     )}
                 </View>
             </Screen>
-        </>
     );
 }
 

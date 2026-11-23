@@ -851,7 +851,7 @@ function LinkRow({
         trailing={
           <View className="min-h-8 flex-row items-center gap-2">
             {count ? (
-              <View className="h-6 min-w-6 items-center justify-center rounded-full bg-danger px-1.5">
+              <View className="min-h-6 min-w-6 items-center justify-center rounded-full bg-danger px-1.5 py-0.5">
                 <NativeText variant="badge" color="primaryForeground" align="center" wrap={false}>
                   {String(count)}
                 </NativeText>

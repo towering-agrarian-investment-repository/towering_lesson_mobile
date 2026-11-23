@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView, type StyleProp, View, type ViewStyle } from "react-native";
 import { useTheme } from "../utils/theme";
 import { ActionButton } from "./ActionButton";
-import { NativeText } from "./NativeText";
+import { AppText } from "./AppText";
 
 function StateCardShell({ children }: { children: ReactNode }) {
     return (
@@ -45,13 +45,13 @@ export function ErrorState({
                         />
                     </View>
                     <View className="w-full items-center gap-2">
-                        <NativeText variant="h3" align="center">
+                        <AppText variant="h3" align="center">
                             {title}
-                        </NativeText>
+                        </AppText>
                         {message ? (
-                            <NativeText variant="subtext" color="mutedForeground" align="center">
+                            <AppText variant="subtext" color="mutedForeground" align="center">
                                 {message}
-                            </NativeText>
+                            </AppText>
                         ) : null}
                     </View>
                 </View>
@@ -98,13 +98,13 @@ export function EmptyState({
                         />
                     </View>
                     <View className="w-full items-center gap-2">
-                        <NativeText variant="h3" align="center">
+                        <AppText variant="h3" align="center">
                             {title}
-                        </NativeText>
+                        </AppText>
                         {message ? (
-                            <NativeText variant="subtext" color="mutedForeground" align="center">
+                            <AppText variant="subtext" color="mutedForeground" align="center">
                                 {message}
-                            </NativeText>
+                            </AppText>
                         ) : null}
                     </View>
                 </View>

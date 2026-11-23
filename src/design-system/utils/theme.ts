@@ -249,3 +249,19 @@ export function useTheme(): ThemeContextValue {
 export function useThemeColors(): ThemeColors {
     return useTheme().colors;
 }
+
+export function getStackHeaderOptions(colors: ThemeColors) {
+    return {
+        headerStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.foreground,
+        headerTitleStyle: {
+            color: colors.foreground,
+            fontWeight: "700" as const,
+        },
+        headerTitleAlign: "left" as const,
+        headerLargeTitleStyle: {
+            color: colors.foreground,
+        },
+        contentStyle: { backgroundColor: colors.background },
+    } as const;
+}

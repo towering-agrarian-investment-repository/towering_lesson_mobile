@@ -14,6 +14,7 @@ export * from "./components/Screen";
 export * from "./components/SegmentedControl";
 export * from "./components/Skeleton";
 export * from "./components/StateCard";
+export * from "./components/SwipeableTabBar";
 
 export * from "./utils/cn";
 export * from "./utils/haptics";

@@ -18,9 +18,14 @@ export function PendingBottomSheet({
     useEffect(() => {
         if (isPresented) return;
         let cancelled = false;
-        void sheetRef.current?.hide().then(() => {
-            if (!cancelled) setMounted(false);
-        });
+        const hidePromise = sheetRef.current?.hide();
+        if (hidePromise) {
+            void hidePromise.finally(() => {
+                if (!cancelled) setMounted(false);
+            });
+        } else {
+            setMounted(false);
+        }
         return () => { cancelled = true; };
     }, [isPresented]);
 

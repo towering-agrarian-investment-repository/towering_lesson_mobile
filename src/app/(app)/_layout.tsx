@@ -1,4 +1,4 @@
-import { useThemeColors } from "@/design-system";
+import { getStackHeaderOptions, useThemeColors } from "@/design-system";
 import i18n from "@/i18n";
 import { verifyMemberSession } from "@/lib/auth-session";
 import { showAppToast } from "@/lib/toast/toast";
@@ -133,18 +133,8 @@ export default function AppLayout() {
         screenOptions={{
             animation: reducedMotion ? "fade" : "default",
             headerBackButtonDisplayMode: "minimal",
-            contentStyle: { backgroundColor: colors.background },
-            headerStyle: { backgroundColor: colors.background },
-            headerTintColor: colors.foreground,
-            headerTitleStyle: {
-              color: colors.foreground,
-              fontWeight: "700",
-            },
-            headerTitleAlign: "left",
-            headerLargeTitleStyle: {
-              color: colors.foreground,
-            },
             headerShadowVisible: false,
+            ...getStackHeaderOptions(colors),
           }}
         >
           <Stack.Screen

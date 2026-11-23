@@ -9,6 +9,7 @@ import {
   Skeleton,
   StateList,
   triggerImpactHaptic,
+  triggerSelectionHaptic,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AppText } from "@/design-system/components/AppText";
@@ -57,7 +58,9 @@ import { useTranslation } from "react-i18next";
 import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
-import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import Swipeable, {
+  type SwipeableMethods,
+} from "react-native-gesture-handler/ReanimatedSwipeable";
 
 const isIOS = process.env.EXPO_OS === "ios";
 const fullWidth = isIOS ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()];
@@ -109,6 +112,15 @@ function NoticeScreen() {
   const deleteAllLocked = useRef(false);
   const markAllLocked = useRef(false);
   const deleteLocked = useRef(false);
+  const openSwipeableRef = useRef<SwipeableMethods | null>(null);
+
+  const handleSwipeableWillOpen = useCallback((methods: SwipeableMethods) => {
+    if (openSwipeableRef.current && openSwipeableRef.current !== methods) {
+      openSwipeableRef.current.close();
+    }
+    openSwipeableRef.current = methods;
+    triggerSelectionHaptic();
+  }, []);
   const handleDeleteNotification = useCallback((id: number) => {
     if (deleteLocked.current || deleteAllLocked.current || isLocked) return;
     triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
@@ -353,11 +365,13 @@ function NoticeScreen() {
         isDeleting={isDeletingNotification}
         onDelete={handleDeleteNotification}
         onPress={handleNotificationPress}
+        onSwipeableWillOpen={handleSwipeableWillOpen}
       />
     ),
     [
       handleDeleteNotification,
       handleNotificationPress,
+      handleSwipeableWillOpen,
       isDeletingAllNotifications,
       isDeletingNotification,
       isLocked,
@@ -597,25 +611,34 @@ function NotificationRow({
   isDeleting,
   onDelete,
   onPress,
+  onSwipeableWillOpen,
 }: {
   item: NotificationResponse;
   disabled: boolean;
   isDeleting: boolean;
   onDelete: (id: number) => void;
   onPress: (item: NotificationResponse) => void;
+  onSwipeableWillOpen: (methods: SwipeableMethods) => void;
 }) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation();
+  const swipeableRef = useRef<SwipeableMethods | null>(null);
   const iconClassName = item.isRead ? "bg-muted" : "bg-primary/10";
   const iconColor = item.isRead ? colors.mutedForeground : colors.primary;
 
   return (
     <Swipeable
+      ref={swipeableRef}
       enabled={!disabled}
       friction={2}
       dragOffsetFromLeft={24}
       dragOffsetFromRight={-24}
       rightThreshold={48}
+      onSwipeableWillOpen={() => {
+        if (swipeableRef.current) {
+          onSwipeableWillOpen(swipeableRef.current);
+        }
+      }}
       renderRightActions={() => (
         <AnimatedPressable
           accessibilityRole="button"

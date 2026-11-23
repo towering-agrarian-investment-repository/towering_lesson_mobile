@@ -1,7 +1,8 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { View } from "react-native";
+import Animated, { FadeIn, FadeOut, useReducedMotion } from "react-native-reanimated";
 
 export function FormFieldShell({
     label,
@@ -15,24 +16,31 @@ export function FormFieldShell({
     children: ReactNode;
 }) {
     const { colors: uiColors } = useTheme();
+    const reducedMotion = useReducedMotion();
+
     return (
-        <View>
+        <View className="gap-1.5">
             {label ? (
-                <NativeText variant="label" textStyle={{ color: uiColors.foreground + "d9" }}>
+                <AppText variant="label" textStyle={{ color: uiColors.foreground + "d9" }}>
                     {label}
-                </NativeText>
+                </AppText>
             ) : null}
 
             {children}
 
             {errorMessage ? (
-                <NativeText variant="meta" color="danger" style={{ marginTop: 4 }}>
-                    {errorMessage}
-                </NativeText>
+                <Animated.View
+                    entering={reducedMotion ? undefined : FadeIn.duration(150)}
+                    exiting={reducedMotion ? undefined : FadeOut.duration(120)}
+                >
+                    <AppText variant="meta" color="danger">
+                        {errorMessage}
+                    </AppText>
+                </Animated.View>
             ) : helperText ? (
-                    <NativeText variant="caption" color="mutedForeground">
-                        {helperText}
-                    </NativeText>
+                <AppText variant="caption" color="mutedForeground">
+                    {helperText}
+                </AppText>
             ) : null}
         </View>
     );

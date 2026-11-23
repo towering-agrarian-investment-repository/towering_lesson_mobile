@@ -21,6 +21,7 @@ import Animated, {
     useAnimatedStyle,
     useSharedValue,
     useReducedMotion,
+    withTiming,
 } from "react-native-reanimated";
 
 const sessionKeyExtractor = (session: SessionInstanceResponse) =>
@@ -235,14 +236,21 @@ function SessionSwitcher({
     scrollViewRef: RefObject<FlatList<SessionInstanceResponse> | null>;
 }) {
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
     const scrollX = useSharedValue(0);
     const handleScroll = useAnimatedScrollHandler((event) => {
         scrollX.set(event.contentOffset.x);
     });
-    const cueStyle = useAnimatedStyle(() => ({
-        opacity: contentWidth > containerWidth + 8 &&
-            scrollX.get() < contentWidth - containerWidth - 12 ? 1 : 0,
-    }));
+    const cueStyle = useAnimatedStyle(() => {
+        const shouldShow =
+            contentWidth > containerWidth + 8 &&
+            scrollX.get() < contentWidth - containerWidth - 12;
+        return {
+            opacity: withTiming(shouldShow ? 1 : 0, {
+                duration: reducedMotion ? 0 : 150,
+            }),
+        };
+    });
     const renderSessionItem = useCallback(
         ({ item, index }: { item: SessionInstanceResponse; index: number }) => (
             <SessionSwitcherItem

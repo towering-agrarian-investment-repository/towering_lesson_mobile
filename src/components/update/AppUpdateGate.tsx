@@ -10,7 +10,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { Download } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -70,9 +70,14 @@ export function AppUpdateGate({
             : t("appUpdate.updateAvailableMessage"));
 
     return (
-        <Screen scroll={false} headerShown={false} contentClassName="flex-1">
+        <Screen headerShown={false} contentClassName="grow">
             <View className="items-center pt-4">
-                <HappyGolfLogo width={148} height={35} />
+                <HappyGolfLogo
+                    width={148}
+                    height={35}
+                    primaryColor={uiColors.primary}
+                    accentColor={uiColors.warning}
+                />
             </View>
 
             <View className="flex-1 justify-center gap-6">
@@ -123,7 +128,7 @@ export function AppUpdateGate({
                             <Text
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 textStyle={{
@@ -166,7 +171,7 @@ export function AppUpdateGate({
                             <Text
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 textStyle={{
@@ -227,7 +232,7 @@ export function AppUpdateGate({
                             <Text
                                 modifiers={
                                     process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                         : [fillMaxWidth()]
                                 }
                                 textStyle={{
@@ -267,13 +272,18 @@ export function AppUpdateGate({
 }
 
 export function AppUpdateCheckingScreen() {
-
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
 
     return (
-        <Screen scroll={false} headerShown={false} contentClassName="flex-1">
+        <Screen headerShown={false} contentClassName="grow">
             <View className="items-center pt-4">
-                <HappyGolfLogo width={148} height={35} />
+                <HappyGolfLogo
+                    width={148}
+                    height={35}
+                    primaryColor={uiColors.primary}
+                    accentColor={uiColors.warning}
+                />
             </View>
             <View className="flex-1 items-center justify-center gap-3">
                 <ActivityIndicator />

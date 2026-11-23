@@ -43,7 +43,7 @@ export default function GroupLessonSessionsScreen() {
     if (isError && !data) {
         return (
             <Screen
-                contentClassName="gap-5"
+                contentClassName="grow gap-5"
                 refreshControl={
                     <RefreshControl
                         refreshing={isPullRefreshing}

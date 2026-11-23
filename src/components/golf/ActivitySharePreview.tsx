@@ -40,10 +40,10 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Image } from "expo-image";
+import { StatusBar } from "expo-status-bar";
 import {
     ActivityIndicator,
     Modal,
-    StatusBar,
     View,
 } from "react-native";
 import {
@@ -53,6 +53,8 @@ import {
 } from "react-native-gesture-handler";
 import Animated, {
     Extrapolation,
+    FadeIn,
+    FadeOut,
     interpolate,
     ReduceMotion,
     useAnimatedStyle,
@@ -420,11 +422,7 @@ export function ActivitySharePreview({
                 onRequestClose={closePreview}
             >
                 <StatusBar
-                    barStyle={
-                        resolvedScheme === "dark"
-                            ? "light-content"
-                            : "dark-content"
-                    }
+                    style={resolvedScheme === "dark" ? "light" : "dark"}
                 />
                 {/* Full-screen modal needs its own SafeAreaProvider and GestureHandlerRootView. */}
                 <GestureHandlerRootView style={{ flex: 1 }}>
@@ -525,7 +523,11 @@ export function ActivitySharePreview({
                             </View>
 
                             {savedPreviewUri ? (
-                                <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                                <Animated.View
+                                    entering={reducedMotion ? undefined : FadeIn.duration(150)}
+                                    exiting={reducedMotion ? undefined : FadeOut.duration(120)}
+                                    className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3"
+                                >
                                     <AnimatedPressable
                                         accessibilityRole="button"
                                         accessibilityLabel={t(
@@ -589,7 +591,7 @@ export function ActivitySharePreview({
                                             color={colors.mutedForeground}
                                         />
                                     </AnimatedPressable>
-                                </View>
+                                </Animated.View>
                             ) : null}
 
                             <View className="w-full items-center gap-4">
@@ -748,22 +750,27 @@ export function ActivitySharePreview({
                                 </GestureDetector>
 
                                 {failedCardKey === cardKey ? (
-                                    <AnimatedPressable
-                                        accessibilityRole="button"
-                                        haptic="selection"
-                                        className="min-h-12 items-center justify-center"
-                                        onPress={() =>
-                                            setRetryCount((value) => value + 1)
-                                        }
+                                    <Animated.View
+                                        entering={reducedMotion ? undefined : FadeIn.duration(150)}
+                                        exiting={reducedMotion ? undefined : FadeOut.duration(120)}
                                     >
-                                        <NativeText
-                                            variant="subtext"
-                                            color="danger"
-                                            align="center"
+                                        <AnimatedPressable
+                                            accessibilityRole="button"
+                                            haptic="selection"
+                                            className="min-h-12 items-center justify-center"
+                                            onPress={() =>
+                                                setRetryCount((value) => value + 1)
+                                            }
                                         >
-                                            {t("common.refreshTryAgain")}
-                                        </NativeText>
-                                    </AnimatedPressable>
+                                            <NativeText
+                                                variant="subtext"
+                                                color="danger"
+                                                align="center"
+                                            >
+                                                {t("common.refreshTryAgain")}
+                                            </NativeText>
+                                        </AnimatedPressable>
+                                    </Animated.View>
                                 ) : null}
 
                                 <View className="flex-row items-center justify-center gap-4">

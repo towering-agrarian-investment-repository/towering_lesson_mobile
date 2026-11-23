@@ -1,4 +1,4 @@
-import { useThemeColors } from "@/design-system";
+import { getStackHeaderOptions, useThemeColors } from "@/design-system";
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 
@@ -9,9 +9,7 @@ export default function TabStackLayout() {
         <Stack
             screenOptions={{
                 headerShadowVisible: false,
-                headerStyle: { backgroundColor: colors.background },
-                headerTintColor: colors.foreground,
-                contentStyle: { backgroundColor: colors.background },
+                ...getStackHeaderOptions(colors),
             }}
         >
             <Stack.Screen
