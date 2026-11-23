@@ -20,12 +20,12 @@ import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
 export const TICKET_TABS = ["all", "bay", "lesson"] as const;
-export type TicketTabType = (typeof TICKET_TABS)[number];
+type TicketTabType = (typeof TICKET_TABS)[number];
 
 const TICKET_TYPES_BY_TAB: Record<TicketTabType, readonly TicketType[]> = {
     all: MY_TICKET_TYPES,
     bay: ["BAY_USAGE"],
-    lesson: ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"],
+    lesson: ["PRIVATE_LESSON", "GROUP_LESSON"],
 };
 
 const ticketKeyExtractor = (item: TicketListItemResponse) => String(item.id);

@@ -11,7 +11,7 @@ export type MemberHomeworkSummaryResponse = {
     submittedAt: string | null;
 };
 
-export type MemberHomeworkReviewResponse = {
+type MemberHomeworkReviewResponse = {
     id: number;
     score: number | null;
     coachFeedback: string | null;
@@ -48,7 +48,7 @@ export type MemberHomeworkDetailResponse = {
     submissions: MemberHomeworkSubmissionResponse[];
 };
 
-export type GenerateHomeworkSubmissionUploadFileRequest = {
+type GenerateHomeworkSubmissionUploadFileRequest = {
     originalFileName: string;
     mediaType: string;
     sizeBytes: number;
@@ -59,7 +59,7 @@ export type GenerateHomeworkSubmissionUploadsRequest = {
     files: GenerateHomeworkSubmissionUploadFileRequest[];
 };
 
-export type HomeworkSubmissionUploadTarget = {
+type HomeworkSubmissionUploadTarget = {
     key: string;
     uploadUrl: string;
     expiresAt: string;

@@ -14,7 +14,7 @@ import { AppText } from "./AppText";
 const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);
 const SEGMENT_GAP = 4;
 
-export type SegmentedOption<T extends string> = {
+type SegmentedOption<T extends string> = {
     value: T;
     label: string;
     accessibilityLabel?: string;

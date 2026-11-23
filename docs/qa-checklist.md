@@ -46,11 +46,11 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 - Bay ticket availability: verify month/day prefetch, date/time selection, confirmation refresh, and sold-out recovery all send the selected owned `ticketId` with `startDate` and `endDate`. Switch packages with different eligible bays and confirm availability refetches, counts match the backend, and the previous package's schedule never appears under the newly selected package. Check switching back to a cached package refetches; a missing, zero, or invalid ticket ID must offer ticket selection without requesting an unfiltered schedule.
 - Ticket filters, today's reservations, pagination, refresh, loading/error/empty states. Compare a one-hour reservation on Android and iOS: both must show an hour label, never `3,600s`.
 - Reservation list: All dates includes every date; Today and future includes today but no earlier dates; Past dates excludes today. Switch all five type tabs in each view, load another page, refresh, and check empty/error states. Reopen the app after the business date changes and confirm both date bounds update.
-- Open a reservation from a list while its full detail is still loading; the remaining-detail row uses the three-dot loader and then resolves to the full detail.
-- Lesson/group/session content, media playback/links, member feedback, homework upload/review/history.
-- Notification feed actions and push registration/tap navigation across app states and permission outcomes.
-- Activity filters, charts, image capture, photo-library permissions, saving.
-- Profile/image changes, all languages, both themes, primary-color preferences.
+- Open a reservation from a list while its full detail is still loading; the preview screen shows skeleton placeholders for the remaining detail rows and then resolves to the full detail.
+- Lesson/group/session content, media playback/links (confirm tapping Play on a deferred lesson/session video mounts and starts playback on the first tap), member feedback, homework upload/review/history.
+- Notification feed actions and push registration/tap navigation across app states and permission outcomes: verify 1:1 swipe-left to reveal Delete and swipe-right to close smoothly, auto-close on vertical scroll, no inherited open swipe state on recycled rows during fast scrolling, and no overlapping mark-read/delete rollback races.
+- Activity filters, charts (confirm heatmap cells are disabled while a newly selected year/month filter is loading placeholder data so stale dates cannot be selected under the new period), image capture, photo-library permissions, saving.
+- Profile/image changes (confirm Edit Personal Information renders avatar, full name, and nickname fields cleanly with keyboard scrolling and photo source bottom sheet), all languages, both themes, primary-color preferences.
 - On a device set to light, tap System → Light → Dark → System; repeat with the device set to dark. Check that Dark → System goes directly to the device appearance, the header icon updates on tap, and there is no visible stutter.
 - Cold restart after choosing explicit Light and Dark to confirm persistence; check that System follows later device appearance changes.
 - Check blue and green primary colors in both light and dark modes, including Expo UI controls and the navigation bar.

@@ -10,7 +10,6 @@ export const MY_TICKET_TYPES: readonly TicketType[] = [
     "BAY_USAGE",
     "PRIVATE_LESSON",
     "GROUP_LESSON",
-    "LESSON_PROGRAM",
     "LOCATION",
     "OTHER",
 ];

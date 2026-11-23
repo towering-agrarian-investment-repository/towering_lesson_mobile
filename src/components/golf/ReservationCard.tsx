@@ -27,7 +27,7 @@ const LIVE_PULSE_KEYFRAMES = {
     to: { opacity: 0.55 },
 };
 
-export type ReservationCardItem = MemberReservationSummaryResponse & {
+type ReservationCardItem = MemberReservationSummaryResponse & {
     durationMinutes?: number;
 };
 
@@ -228,13 +228,13 @@ export function ReservationCardSkeleton() {
                 <Skeleton className="h-4 w-28 rounded-md" />
                 <Skeleton className="h-5 w-16 rounded-md" />
             </View>
-            <View className="gap-1.5">
-                <Skeleton className="h-5 w-3/4 rounded-md" />
-                <Skeleton className="h-4 w-1/2 rounded-md" />
-            </View>
-            <View className="flex-row items-center justify-between gap-2 border-t border-border/60 pt-3">
-                <Skeleton className="h-4 w-28 rounded-md" />
-                <Skeleton className="h-4 w-20 rounded-md" />
+            <View className="flex-row items-center gap-3">
+                <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
+                <View className="min-w-0 flex-1 gap-1.5">
+                    <Skeleton className="h-5 w-3/4 rounded-md" />
+                    <Skeleton className="h-3.5 w-1/3 rounded-md" />
+                </View>
+                <Skeleton className="h-4 w-4 shrink-0 rounded-sm" />
             </View>
         </View>
     );

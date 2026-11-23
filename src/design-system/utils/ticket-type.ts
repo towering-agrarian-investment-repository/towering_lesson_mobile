@@ -2,7 +2,7 @@ import type { TicketType } from "@/types/member.type";
 import type { TFunction } from "i18next";
 import type { ThemeColors } from "./theme";
 
-export type TicketTypeToneName =
+type TicketTypeToneName =
     "bayUsage" | "privateLesson" | "groupLesson" | "lessonProgram" | "default";
 
 export function isBookableTicketType(type: string) {
@@ -70,7 +70,7 @@ const ticketTypeToneDefinitions: Record<
     },
 };
 
-export function getTicketTypeToneName(
+function getTicketTypeToneName(
     type?: TicketType | string | null,
 ): TicketTypeToneName {
     switch (String(type ?? "").toUpperCase()) {

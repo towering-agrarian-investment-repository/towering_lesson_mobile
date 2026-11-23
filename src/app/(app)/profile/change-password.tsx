@@ -1,28 +1,17 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import {
-    getNativeButtonStyle,
-    getNativeButtonTextStyle,
-} from "@/design-system/utils/native-button-styles";
 import { FormPasswordInput } from "@/components/ui/form";
-import { Screen, triggerNotificationHaptic } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
+import { ActionButton, Screen, triggerNotificationHaptic } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
 import { responseError } from "@/lib/api-response/api-response";
 import { showAppToast } from "@/lib/toast/toast";
 import { changePassword } from "@/service/auth";
-import { Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { z } from "zod";
 const createChangePasswordSchema = (t: (key: string) => string) =>
     z
@@ -49,11 +38,6 @@ type ChangePasswordFormValues = z.infer<
 >;
 
 function ChangePasswordScreen() {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
     const { t } = useTranslation();
 
     const router = useRouter();
@@ -135,80 +119,16 @@ function ChangePasswordScreen() {
             keyboardAware
             contentClassName="flex-grow"
             footer={
-                <View>
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
-                        style={{ width: "100%", borderRadius: 12 }}
-                        accessibilityLabel={
-                            form.formState.isSubmitting
-                                ? t("changePassword.saving")
-                                : t("changePassword.confirm")
-                        }
-                        accessibilityState={{
-                            disabled: isSubmitDisabled,
-                            busy: form.formState.isSubmitting,
-                        }}
-                    >
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={isSubmitDisabled}
-                            onPress={submitChangePassword}
-                            style={getNativeButtonStyle(
-                                uiColors,
-                                "filled",
-                                isSubmitDisabled,
-                                uiColors.primary,
-                            )}
-                        >
-                            <Row
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                spacing={8}
-                                alignment="center"
-                            >
-                                <Spacer flexible />
-                                {form.formState.isSubmitting ? (
-                                    <RNHostView matchContents>
-                                        <ActivityIndicator
-                                            color={uiColors.primaryForeground}
-                                        />
-                                    </RNHostView>
-                                ) : null}
-                                <Text
-                                    textStyle={getNativeButtonTextStyle(
-                                        uiColors,
-                                        "filled",
-                                        uiFontScale,
-                                    )}
-                                >
-                                    {form.formState.isSubmitting
-                                        ? t("changePassword.saving")
-                                        : t("changePassword.confirm")}
-                                </Text>
-                                <Spacer flexible />
-                            </Row>
-                        </Button>
-                    </Host>
-                </View>
+                <ActionButton
+                    label={
+                        form.formState.isSubmitting
+                            ? t("changePassword.saving")
+                            : t("changePassword.confirm")
+                    }
+                    disabled={isSubmitDisabled}
+                    loading={form.formState.isSubmitting}
+                    onPress={submitChangePassword}
+                />
             }
         >
             <View className="grow flex-col gap-6">

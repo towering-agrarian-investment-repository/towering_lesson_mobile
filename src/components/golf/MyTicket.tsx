@@ -73,7 +73,7 @@ function MyTicket() {
     );
 
     return (
-        <View className="gap-2">
+        <View className="gap-3">
             <View className="flex-row items-center justify-between gap-3">
                 <TitleSectionWithBadge
                     label={t("tickets.sectionTitle")}
@@ -88,8 +88,8 @@ function MyTicket() {
                         accessibilityLabel={t("tickets.viewAll")}
                         disabled={isLocked}
                         haptic="selection"
-                        style={{ minHeight: 48 }}
-                        className="justify-center rounded-lg px-2"
+                        hitSlop={12}
+                        className="justify-center rounded-lg px-2 py-1"
                         onPressIn={() => {
                             if (!isLocked) {
                                 void queryClient.prefetchInfiniteQuery(
@@ -119,7 +119,7 @@ function MyTicket() {
                 ) : null}
             </View>
 
-            <View className="gap-3 py-3">
+            <View className="gap-3">
                 {showInitialLoading ? (
                     <View className="gap-3">
                         {Array.from({ length: 2 }, (_, index) => (

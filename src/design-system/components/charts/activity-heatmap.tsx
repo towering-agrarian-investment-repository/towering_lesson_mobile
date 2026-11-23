@@ -44,7 +44,7 @@ export type {
 
 const weekKeyExtractor = (week: ActivityHeatmapWeek) => week.days[0].dateKey;
 
-export function ActivityStatusLegend({
+function ActivityStatusLegend({
   className,
   includeMixed = true,
   includeCancelled = false,

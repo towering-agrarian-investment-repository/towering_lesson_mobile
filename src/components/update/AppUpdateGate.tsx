@@ -1,20 +1,12 @@
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
-import { Screen } from "@/design-system";
+import { ActionButton, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import { openStore, type AppUpdateState } from "@/lib/update/app-update";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { Download } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 type AppUpdateGateProps = {
     state: AppUpdateState;
@@ -31,11 +23,7 @@ export function AppUpdateGate({
     isCheckingAgain,
     onCheckAgain,
 }: AppUpdateGateProps) {
-    const {
-        colors: uiColors,
-        resolvedScheme: uiScheme,
-        fontScale: uiFontScale,
-    } = useTheme();
+    const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const [isOpeningStore, setIsOpeningStore] = useState(false);
     const [storeOpenFailed, setStoreOpenFailed] = useState(false);
@@ -94,55 +82,14 @@ export function AppUpdateGate({
                 </View>
 
                 <View className="gap-2">
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
-                        accessibilityLabel={updateLabel}
-                        accessibilityState={{ disabled: isOpeningStore, busy: isOpeningStore }}
-                        style={{ width: "100%" }}>
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={isOpeningStore}
-                            onPress={() => {
-                                void handleOpenStore();
-                            }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    uiColors,
-                                    "filled",
-                                    isOpeningStore,
-                                    uiColors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    textAlign: "center",
-                                    color: uiColors.primaryForeground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                            >
-                                {updateLabel}
-                            </Text>
-                        </Button>
-                    </Host>
+                    <ActionButton
+                        label={updateLabel}
+                        disabled={isOpeningStore}
+                        loading={isOpeningStore}
+                        onPress={() => {
+                            void handleOpenStore();
+                        }}
+                    />
 
                     {storeOpenFailed ? (
                         <NativeText variant="subtext" color="danger" align="center">
@@ -150,42 +97,17 @@ export function AppUpdateGate({
                         </NativeText>
                     ) : null}
 
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
+                    <ActionButton
+                        label={isCheckingAgain ? t("appUpdate.checking") : t("appUpdate.checkAgain")}
                         accessibilityLabel={t("appUpdate.checkAgain")}
-                        accessibilityState={{ disabled: isCheckingAgain, busy: isCheckingAgain }}
-                        style={{ width: "100%" }}>
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                    : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
-                            }
-                            variant="text"
-                            disabled={isCheckingAgain}
-                            onPress={() => { void handleCheckAgain(); }}
-                            style={getNativeButtonStyle(uiColors, "text", isCheckingAgain)}>
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.subtext,
-                                    lineHeight: typography.subtext.lineHeight * uiFontScale,
-                                    fontSize: typography.subtext.fontSize * uiFontScale,
-                                    fontWeight: "500",
-                                    textAlign: "center",
-                                    color: uiColors.primary,
-                                }}>
-                                {isCheckingAgain ? t("appUpdate.checking") : t("appUpdate.checkAgain")}
-                            </Text>
-                        </Button>
-                    </Host>
+                        appearance="text"
+                        tone="primary"
+                        disabled={isCheckingAgain}
+                        loading={isCheckingAgain}
+                        onPress={() => {
+                            void handleCheckAgain();
+                        }}
+                    />
 
                     {checkFailed ? (
                         <NativeText variant="subtext" color="danger" align="center">
@@ -195,58 +117,11 @@ export function AppUpdateGate({
                 </View>
 
                 {!force && onContinue ? (
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={uiColors.primary}
-                        accessibilityLabel={t("appUpdate.continue")}
-                        accessibilityState={{ disabled: false, busy: false }}
-                        style={{ width: "100%" }}>
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={false}
-                            onPress={onContinue}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    uiColors,
-                                    "outlined",
-                                    false,
-                                    uiColors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    textAlign: "center",
-                                    color: uiColors.foreground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                            >
-                                {t("appUpdate.continue")}
-                            </Text>
-                        </Button>
-                    </Host>
+                    <ActionButton
+                        label={t("appUpdate.continue")}
+                        appearance="outlined"
+                        onPress={onContinue}
+                    />
                 ) : null}
 
                 <View className="gap-1">
@@ -266,30 +141,6 @@ export function AppUpdateGate({
                         </View>
                     ) : null}
                 </View>
-            </View>
-        </Screen>
-    );
-}
-
-export function AppUpdateCheckingScreen() {
-    const { colors: uiColors } = useTheme();
-    const { t } = useTranslation();
-
-    return (
-        <Screen headerShown={false} contentClassName="grow">
-            <View className="items-center pt-4">
-                <HappyGolfLogo
-                    width={148}
-                    height={35}
-                    primaryColor={uiColors.primary}
-                    accentColor={uiColors.warning}
-                />
-            </View>
-            <View className="flex-1 items-center justify-center gap-3">
-                <ActivityIndicator />
-                <NativeText variant="muted" color="mutedForeground" align="center">
-                    {t("appUpdate.checking")}
-                </NativeText>
             </View>
         </Screen>
     );

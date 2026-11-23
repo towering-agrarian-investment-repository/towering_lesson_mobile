@@ -1,9 +1,9 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 
-export type PushTokenPlatform = "EXPO";
+type PushTokenPlatform = "EXPO";
 
-export interface SavePushTokenRequest {
+interface SavePushTokenRequest {
     deviceId: string;
     pushToken: string;
     platform: PushTokenPlatform;

@@ -1,6 +1,6 @@
 import { TZDate } from "@date-fns/tz";
 
-export const APP_TIME_ZONE = "Asia/Phnom_Penh";
+const APP_TIME_ZONE = "Asia/Phnom_Penh";
 
 function toValidDate(value: string | number | Date): Date | null {
     const date = value instanceof Date ? value : new Date(value);

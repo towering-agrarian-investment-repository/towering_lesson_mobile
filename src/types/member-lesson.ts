@@ -6,21 +6,11 @@ import type {
 import type { MemberLessonLogResponse as MemberLessonLogSummaryResponse } from "./member-lesson-log";
 import type { MemberReservationDomain } from "./member-reservation";
 import type { SessionInstanceResponse } from "./member-session";
+import type { TicketStatus, TicketType } from "./member.type";
 
-export type TicketStatus = "ACTIVE" | "EXPIRED" | "IN_USE" | "FULLY_USED" | "CANCELLED";
+type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
 
-export type TicketType =
-    | "BAY_USAGE"
-    | "PRIVATE_LESSON"
-    | "GROUP_LESSON"
-    | "LESSON_PROGRAM"
-    | "LOCKER_SERVICE"
-    | "LOCATION"
-    | "OTHER";
-
-export type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
-
-export type LessonSlotStatus = "AVAILABLE" | "BLOCKED" | "CANCELLED";
+type LessonSlotStatus = "AVAILABLE" | "BLOCKED" | "CANCELLED";
 
 export type LessonReservationStatus =
     | "RESERVED"
@@ -28,33 +18,6 @@ export type LessonReservationStatus =
     | "COMPLETED"
     | "CANCELLED"
     | "NO_SHOW";
-
-export type MemberLessonLogStatus = "DRAFT" | "FINAL" | "SENT";
-
-export type MemberLessonLogResponse = {
-    id: number;
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    updatedBy: string;
-    lessonInstanceId: number;
-    lessonReservationId: number | null;
-    memberId: number;
-    coachId: number;
-    lessonDate: string;
-    memberName: string;
-    phoneNumber: string | null;
-    school: string | null;
-    body: string;
-    comment: string | null;
-    videoUrl: string | null;
-    thumbnailUrl: string | null;
-    ratings: number | null;
-    isReviewed: boolean;
-    isConfirmed: boolean;
-    confirmedDate: string | null;
-    status: MemberLessonLogStatus;
-};
 
 export type MemberLessonSummaryResponse = {
     lessonId: number;
@@ -71,7 +34,7 @@ export type MemberLessonSummaryResponse = {
     reservationStatus: LessonReservationStatus | null;
 };
 
-export type LessonMediaResponse = {
+type LessonMediaResponse = {
     id: number;
     lessonInstanceId: number;
     memberId: number | null;
@@ -98,7 +61,7 @@ export type MemberLessonDetailResponse = {
     currentHomeworkSubmissions: MemberHomeworkSubmissionResponse[];
 };
 
-export type MemberLessonAvailabilityReservationSummary = {
+type MemberLessonAvailabilityReservationSummary = {
     id: number;
     memberId?: number | null;
     reservationStatus?: LessonReservationStatus | null;
@@ -132,18 +95,13 @@ export type CreateLessonReservationRequest = {
     notes?: string | null;
 };
 
-export type RescheduleLessonReservationRequest = {
-    lessonAvailabilityId: number;
-    notes?: string | null;
-};
-
-export type MemberLessonReservationRelatedCoach = {
+type MemberLessonReservationRelatedCoach = {
     id: number;
     name: string;
     profileImage: string | null;
 };
 
-export type MemberLessonReservationRelatedTicket = {
+type MemberLessonReservationRelatedTicket = {
     id: number;
     name: string;
     type: TicketType | null;
@@ -154,7 +112,7 @@ export type MemberLessonReservationRelatedTicket = {
     remainingCount: number | null;
 };
 
-export type MemberLessonReservationRelatedLessonAvailability = {
+type MemberLessonReservationRelatedLessonAvailability = {
     id: number;
     name: string;
     startTime: string;
@@ -165,7 +123,7 @@ export type MemberLessonReservationRelatedLessonAvailability = {
     slotStatus: LessonSlotStatus | null;
 };
 
-export type MemberLessonReservationRelatedLessonLog = {
+type MemberLessonReservationRelatedLessonLog = {
     id: number;
     name: string;
 };

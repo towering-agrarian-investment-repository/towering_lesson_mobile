@@ -22,7 +22,7 @@ import { formatDateForDisplay } from "@/utils/time-helper";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Animated, { cubicBezier, useReducedMotion } from "react-native-reanimated";
 import Svg, { Line } from "react-native-svg";
 import { TicketTypeIcon } from "./TicketTypeIcon";
@@ -234,19 +234,19 @@ function TicketHistoryCard({
                         !item.fullyUsed &&
                         isBookableTicketType(item.type) &&
                         onBookPress ? (
-                            <Pressable
+                            <AnimatedPressable
                                 accessibilityRole="button"
                                 accessibilityLabel={`${t("tickets.bookWithTicket")} — ${item.name}`}
                                 accessibilityState={{ disabled }}
                                 disabled={disabled}
-                                hitSlop={8}
+                                hitSlop={12}
                                 onPress={(event) => {
                                     event.stopPropagation();
                                     if (disabled) return;
                                     triggerImpactHaptic();
                                     onBookPress(item);
                                 }}
-                                className="shrink-0 rounded-lg bg-primary px-3 py-1.5 active:opacity-80"
+                                className="shrink-0 flex-row items-center gap-1 rounded-lg bg-primary px-3 py-1.5"
                             >
                                 <AppText
                                     variant="badge"
@@ -256,7 +256,12 @@ function TicketHistoryCard({
                                 >
                                     {t("tickets.bookWithTicket")}
                                 </AppText>
-                            </Pressable>
+                                <ChevronRight
+                                    size={13}
+                                    color={colors.primaryForeground}
+                                    strokeWidth={2.5}
+                                />
+                            </AnimatedPressable>
                         ) : showBookAction &&
                           !isInactive &&
                           item.type === "LESSON_PROGRAM" ? (
@@ -276,15 +281,17 @@ function TicketHistoryCard({
                             </View>
                         ) : (
                             <View className="shrink-0 flex-row items-center gap-1">
-                                <AppText
-                                    variant="caption"
-                                    color="mutedForeground"
-                                    wrap={false}
-                                >
-                                    {t("tickets.reservationCount", {
-                                        count: totalReservations,
-                                    })}
-                                </AppText>
+                                 {item.type !== "LOCKER_SERVICE" ? (
+                                     <AppText
+                                         variant="caption"
+                                         color="mutedForeground"
+                                         wrap={false}
+                                     >
+                                         {t("tickets.reservationCount", {
+                                             count: totalReservations,
+                                         })}
+                                     </AppText>
+                                 ) : null}
                                 <ChevronRight
                                     size={15}
                                     color={colors.mutedForeground}

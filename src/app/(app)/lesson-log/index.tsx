@@ -21,7 +21,7 @@ import { formatDateForDisplay } from "@/utils/time-helper";
 import { FlashList } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import { BookOpenText, ChevronRight } from "lucide-react-native";
 import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
@@ -29,7 +29,8 @@ import { RefreshControl, View } from "react-native";
 const lessonLogKeyExtractor = (item: MemberLessonLogResponse) =>
     String(item.id);
 const LESSON_LOG_LIST_CONTENT_STYLE = {
-    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 32,
 } as const;
 
 function LessonLogSeparator() {
@@ -101,7 +102,6 @@ function LessonLogScreen() {
     return (
         <Screen
             scroll={false}
-            horizontalPadding={false}
             bottomPadding={16}
             contentClassName="grow"
         >
@@ -111,7 +111,6 @@ function LessonLogScreen() {
                 <StateList
                     refreshing={isPullRefreshing}
                     onRefresh={handlePullRefresh}
-                    contentContainerStyle={{ paddingHorizontal: 24 }}
                 >
                     <ErrorState
                         title={t("lessonLog.failedPostsTitle")}
@@ -129,7 +128,6 @@ function LessonLogScreen() {
                 <StateList
                     refreshing={isPullRefreshing}
                     onRefresh={handlePullRefresh}
-                    contentContainerStyle={{ paddingHorizontal: 24 }}
                 >
                     <EmptyState
                         title={t("lessonLog.noPostsTitle")}
@@ -153,8 +151,8 @@ function LessonLogScreen() {
                     onEndReachedThreshold={0.4}
                     ListFooterComponent={
                         isFetchingNextPage ? (
-                            <View className="px-6 py-3">
-                                <Skeleton className="h-16 rounded-2xl" />
+                            <View className="py-3">
+                                <Skeleton className="h-20 rounded-2xl" />
                             </View>
                         ) : isFetchNextPageError ? (
                             <ListRetryFooter
@@ -198,7 +196,7 @@ const LessonLogRow = memo(function LessonLogRow({
                 date: formatDateForDisplay(item.lessonDate),
             })}
             disabled={disabled}
-            className="min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60"
+            className="gap-3 rounded-2xl border border-border bg-card p-4 disabled:opacity-60"
             onPress={() => {
                 if (disabled) {
                     return;
@@ -208,36 +206,68 @@ const LessonLogRow = memo(function LessonLogRow({
                 onPress(item);
             }}
         >
-            <View className="min-w-0 flex-1 gap-2">
+            <View className="flex-row items-center justify-between gap-2">
+                <AppText
+                    variant="meta"
+                    numberOfLines={1}
+                    style={{ flex: 1, minWidth: 0 }}
+                    textStyle={{
+                        fontWeight: "700",
+                        fontVariant: ["tabular-nums"],
+                    }}
+                >
+                    {formatDateForDisplay(item.lessonDate)}
+                </AppText>
+
                 <View
-                    className={`self-start rounded-full px-3 py-1.5 ${hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
-                        }`}
+                    className={`shrink-0 rounded-md px-2 py-0.5 ${
+                        hasSubmittedReview ? "bg-success/10" : "bg-warning/10"
+                    }`}
                 >
                     <AppText
-                        variant="caption"
+                        variant="badge"
                         wrap={false}
                         color={hasSubmittedReview ? "success" : "warning"}
+                        textStyle={{ fontWeight: "600" }}
                     >
                         {reviewLabel}
                     </AppText>
                 </View>
-
-                <AppText variant="body" numberOfLines={2} textStyle={{ fontWeight: "700" as const }}>
-                    {`${formatDateForDisplay(item.lessonDate)} / ${item.coachName ?? t("lessonLog.coachFallback")}`}
-                </AppText>
-
-                {reservationName ? (
-                    <AppText variant="caption" color="mutedForeground" numberOfLines={2}>
-                        {reservationName}
-                    </AppText>
-                ) : null}
             </View>
 
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <View className="flex-row items-center gap-3">
+                <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <BookOpenText
+                        size={19}
+                        color={colors.primary}
+                        strokeWidth={2.2}
+                    />
+                </View>
+
+                <View className="min-w-0 flex-1 gap-0.5">
+                    <AppText
+                        variant="body"
+                        numberOfLines={1}
+                        textStyle={{ fontWeight: "600" }}
+                    >
+                        {item.coachName ?? t("lessonLog.coachFallback")}
+                    </AppText>
+
+                    {reservationName ? (
+                        <AppText
+                            variant="caption"
+                            color="mutedForeground"
+                            numberOfLines={1}
+                        >
+                            {reservationName}
+                        </AppText>
+                    ) : null}
+                </View>
+
                 <ChevronRight
                     size={18}
                     color={colors.mutedForeground}
-                    strokeWidth={2.25}
+                    strokeWidth={2}
                 />
             </View>
         </AnimatedPressable>
@@ -246,19 +276,23 @@ const LessonLogRow = memo(function LessonLogRow({
 
 function LessonLogListSkeleton() {
     return (
-        <View className="gap-3 px-6">
+        <View className="gap-3 pt-3">
             {Array.from({ length: 5 }, (_, index) => (
                 <View
                     key={index}
-                    className="min-h-16 flex-row items-center justify-between gap-4 rounded-2xl border border-border bg-card px-4 py-4"
+                    className="gap-3 rounded-2xl border border-border bg-card p-4"
                 >
-                    <View className="flex-1 gap-2">
-                        <Skeleton className="h-5 w-4/5 rounded-full" />
-                        <Skeleton className="h-4 w-2/5 rounded-full" />
-                        <Skeleton className="h-4 w-1/3 rounded-full" />
+                    <View className="flex-row items-center justify-between gap-2">
+                        <Skeleton className="h-4 w-28 rounded-md" />
+                        <Skeleton className="h-5 w-24 rounded-md" />
                     </View>
-
-                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <View className="flex-row items-center gap-3">
+                        <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
+                        <View className="min-w-0 flex-1 gap-1.5">
+                            <Skeleton className="h-5 w-36 rounded-md" />
+                            <Skeleton className="h-3.5 w-28 rounded-md" />
+                        </View>
+                    </View>
                 </View>
             ))}
         </View>

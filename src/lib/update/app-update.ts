@@ -132,7 +132,7 @@ export function isVersionLessThan(current: string, minimum: string | null) {
     return false;
 }
 
-export function getStoreUrl(state: AppUpdateState) {
+function getStoreUrl(state: AppUpdateState) {
     if (Platform.OS === "android") {
         const androidStoreUrl = state.androidStoreUrl
             ?.trim()

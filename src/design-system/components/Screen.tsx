@@ -8,8 +8,7 @@ import {
 import {
     KeyboardAvoidingView,
     KeyboardAwareScrollView,
-    KeyboardStickyView,
-    KeyboardToolbar,
+    type KeyboardAwareScrollViewProps,
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../utils/cn";
@@ -30,6 +29,7 @@ type ScreenProps = {
     headerShown?: boolean;
     horizontalPadding?: boolean;
     keyboardAware?: boolean;
+    keyboardScrollMode?: KeyboardAwareScrollViewProps["mode"];
     keyboardDismissMode?: ScrollViewProps["keyboardDismissMode"];
     keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
     scroll?: boolean;
@@ -48,6 +48,7 @@ export function Screen({
     headerShown = true,
     horizontalPadding = true,
     keyboardAware = false,
+    keyboardScrollMode = "layout",
     keyboardDismissMode = "on-drag",
     keyboardShouldPersistTaps = "handled",
     scroll = true,
@@ -76,6 +77,7 @@ export function Screen({
     );
     const scrollProps = {
         className: "flex-1 bg-background",
+        style: { flex: 1 },
         contentContainerStyle: { flexGrow: 1 },
         keyboardShouldPersistTaps,
         keyboardDismissMode,
@@ -85,7 +87,7 @@ export function Screen({
     } as const;
     const screenContent = scroll ? (
         keyboardAware ? (
-            <KeyboardAwareScrollView {...scrollProps} bottomOffset={20}>
+            <KeyboardAwareScrollView {...scrollProps} bottomOffset={20} mode={keyboardScrollMode}>
                 {content}
             </KeyboardAwareScrollView>
         ) : (
@@ -130,21 +132,7 @@ export function Screen({
                 : {})}
         >
             {screenContent}
-            {footerNode ? (
-                keyboardAware && scroll ? (
-                    <KeyboardStickyView
-                        offset={{
-                            closed: 0,
-                            opened: footerSafeArea ? insets.bottom : 0,
-                        }}
-                    >
-                        {footerNode}
-                    </KeyboardStickyView>
-                ) : (
-                    footerNode
-                )
-            ) : null}
-            {keyboardAware ? <KeyboardToolbar /> : null}
+            {footerNode}
         </RootContainer>
     );
 }

@@ -62,24 +62,27 @@ export default function HomeScreen() {
             <Screen
                 headerShown={false}
                 bottomSafeArea={process.env.EXPO_OS === "ios"}
-                contentClassName="gap-6"
+                contentClassName="flex-grow"
             >
-                <View className="items-center py-2">
+                <View className="grow gap-4">
                     <HappyGolfLogo
-                        width={220}
-                        height={48}
+                        width={120}
+                        height={28}
                         primaryColor={colors.primary}
                         accentColor={colors.warning}
                     />
-                </View>
-                <View className="gap-3">
-                    <Skeleton className="h-5 w-32 rounded-full" />
-                    <TicketHistoryCardSkeleton />
-                </View>
-                <View className="gap-3">
-                    <Skeleton className="h-5 w-40 rounded-full" />
-                    <ReservationCardSkeleton />
-                    <ReservationCardSkeleton />
+                    <View className="gap-6">
+                        <Skeleton className="h-44 w-full rounded-2xl" />
+                        <View className="gap-3">
+                            <Skeleton className="h-5 w-32 rounded-full" />
+                            <TicketHistoryCardSkeleton />
+                        </View>
+                        <View className="gap-3">
+                            <Skeleton className="h-5 w-40 rounded-full" />
+                            <ReservationCardSkeleton />
+                            <ReservationCardSkeleton />
+                        </View>
+                    </View>
                 </View>
             </Screen>
         );

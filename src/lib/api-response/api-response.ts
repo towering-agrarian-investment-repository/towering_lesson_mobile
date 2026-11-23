@@ -7,7 +7,7 @@ export type CursorPageResponse<T> = {
     hasMore: boolean;
 };
 
-export type ApiStatus = {
+type ApiStatus = {
     code: number;
     message: string;
     timestamp: string;
@@ -35,7 +35,7 @@ export const API_ERROR_CODE = {
     RESERVATION_SLOT_UNAVAILABLE: "RESERVATION_SLOT_UNAVAILABLE",
 } as const;
 
-export type ApiErrorCode =
+type ApiErrorCode =
     (typeof API_ERROR_CODE)[keyof typeof API_ERROR_CODE];
 
 export type ApiErrorResponse = {

@@ -4,6 +4,7 @@ import ReservationCard, {
 import { TicketTypeIcon } from "@/components/golf/TicketTypeIcon";
 import TitleSectionWithBadge from "@/components/golf/TitleSectionWithBadge";
 import {
+    ActionButton,
     cn,
     CompactEmptyState,
     Divider,
@@ -15,10 +16,6 @@ import {
 } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { NativeText } from "@/design-system/components/NativeText";
-import {
-    getNativeButtonStyle,
-    getNativeButtonTextStyle,
-} from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
 import {
     formatTicketTypeLabel,
@@ -42,12 +39,6 @@ import {
 } from "@/utils/status-tone";
 import { formatDateForDisplay, formatDateValue } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { differenceInCalendarDays } from "date-fns";
 import { useMinuteClock } from "@/lib/hook/useMinuteClock";
@@ -89,8 +80,6 @@ function getDaysLeftCount(
 
 export default function TicketDetailScreen() {
     const { t } = useTranslation();
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } =
-        useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -317,6 +306,11 @@ export default function TicketDetailScreen() {
         );
     }
 
+    const hasReservationHistory = ticket.type !== "LOCKER_SERVICE";
+    const reservationsCount = hasReservationHistory
+        ? ticket.reservations?.length ??
+          (ticket.reservationCount ?? 0) + (ticket.bayReservationCount ?? 0)
+        : null;
     const effectiveStatus = getEffectiveTicketStatus(
         ticket.status,
         ticket.fullyUsed,
@@ -327,69 +321,18 @@ export default function TicketDetailScreen() {
         isBookableTicketType(ticket.type);
 
     const footer = canBook ? (
-        <View>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
-                colorScheme={uiScheme}
-                seedColor={colors.primary}
-                accessibilityLabel={t("tickets.bookWithTicket")}
-                accessibilityState={{ disabled: isLocked, busy: false }}
-                style={{ width: "100%" }}
-            >
-                <Button
-                    variant="text"
-                    disabled={isLocked}
-                    onPress={handleBookPress}
-                    style={{
-                        ...getNativeButtonStyle(
-                            colors,
-                            "filled",
-                            isLocked,
-                            colors.primary,
-                        ),
-                        borderRadius: 12,
-                    }}
-                    modifiers={
-                        process.env.EXPO_OS === "ios"
-                            ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                            : [
-                                  fillMaxWidth(),
-                                  defaultMinSize({ minHeight: 48 }),
-                              ]
-                    }
-                >
-                    <Text
-                        modifiers={
-                            process.env.EXPO_OS === "ios"
-                                ? [
-                                      frame({
-                                          maxWidth: Infinity,
-                                          minHeight: 48,
-                                      }),
-                                      contentShape(shapes.rectangle()),
-                                  ]
-                                : [fillMaxWidth()]
-                        }
-                        textStyle={getNativeButtonTextStyle(
-                            colors,
-                            "filled",
-                            uiFontScale,
-                            colors.primary,
-                        )}
-                    >
-                        {t("tickets.bookWithTicket")}
-                    </Text>
-                </Button>
-            </Host>
-        </View>
+        <ActionButton
+            label={t("tickets.bookWithTicket")}
+            disabled={isLocked}
+            onPress={handleBookPress}
+        />
     ) : undefined;
 
     return (
         <Screen scroll={false} footer={footer}>
                 <FlatList
                     className="flex-1"
-                    data={reservations}
+                    data={hasReservationHistory ? reservations : undefined}
                     keyExtractor={reservationKeyExtractor}
                     renderItem={renderReservationItem}
                     ItemSeparatorComponent={ReservationSeparator}
@@ -405,16 +348,11 @@ export default function TicketDetailScreen() {
                         <TicketDetailHeader
                             ticket={ticket}
                             referenceTime={referenceTime}
-                            reservationsCount={
-                                ticket.reservations != null
-                                    ? ticket.reservations.length
-                                    : (ticket.reservationCount ?? 0) +
-                                      (ticket.bayReservationCount ?? 0)
-                            }
+                            reservationsCount={reservationsCount}
                         />
                     }
                     ListEmptyComponent={
-                        isPlaceholderData && ticket.reservations === undefined ? (
+                        !hasReservationHistory ? undefined : isPlaceholderData && ticket.reservations === undefined ? (
                             <View
                                 className="gap-2.5"
                                 accessibilityLiveRegion="polite"
@@ -441,7 +379,7 @@ function TicketDetailHeader({
 }: {
     ticket: TicketDetailResponse;
     referenceTime: number;
-    reservationsCount: number;
+    reservationsCount: number | null;
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
@@ -666,10 +604,12 @@ function TicketDetailHeader({
                 </View>
             ) : null}
 
-            <TitleSectionWithBadge
-                label={t("tickets.reservationsTitle")}
-                length={reservationsCount}
-            />
+            {reservationsCount !== null ? (
+                <TitleSectionWithBadge
+                    label={t("tickets.reservationsTitle")}
+                    length={reservationsCount}
+                />
+            ) : null}
         </View>
     );
 }

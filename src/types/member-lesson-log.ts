@@ -1,6 +1,6 @@
-export type LessonLogStatus = "NOT_WRITTEN" | "AWAITING" | "APPROVED";
+type LessonLogStatus = "NOT_WRITTEN" | "AWAITING" | "APPROVED";
 
-export type RelatedReservation = {
+type RelatedReservation = {
 	id: number;
 	name: string | null;
 };

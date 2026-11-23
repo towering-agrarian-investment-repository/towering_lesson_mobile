@@ -1,4 +1,5 @@
 import { AppText } from "@/design-system/components/AppText";
+import { cn } from "@/design-system/utils/cn";
 import { typography } from "@/design-system/utils/typography";
 import { View } from "react-native";
 
@@ -9,6 +10,8 @@ type Props = {
 };
 
 function TitleSectionWithBadge({ label, length, variant = "h3" }: Props) {
+    const isZero = length === 0 || length === "0";
+
     return (
         <View className="min-w-0 flex-row items-center gap-2">
             <AppText
@@ -21,10 +24,15 @@ function TitleSectionWithBadge({ label, length, variant = "h3" }: Props) {
                 {label}
             </AppText>
 
-            <View className="min-w-[24px] shrink-0 items-center justify-center rounded-full bg-danger px-1.5 py-1">
+            <View
+                className={cn(
+                    "h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5",
+                    isZero ? "bg-muted" : "bg-primary/10",
+                )}
+            >
                 <AppText
                     variant="count"
-                    color="primaryForeground"
+                    color={isZero ? "mutedForeground" : "primary"}
                     wrap={false}
                     textStyle={{
                         lineHeight: typography.caption.lineHeight,

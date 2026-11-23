@@ -455,12 +455,12 @@ export default function ProfileScreen() {
             />
           </View>
         ) : null}
-        <View className="gap-12 pt-6">
+        <View className="gap-6 pt-6">
             <View className="gap-6">
               <View className="gap-2">
                 <SectionTitle title={t("profile.personalRecord")} />
 
-                <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
+                <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                   <LinkRow
                     label={t("profile.lessonLog")}
                     href="/lesson-log"
@@ -485,7 +485,7 @@ export default function ProfileScreen() {
               <View className="gap-2">
                 <SectionTitle title={t("profile.generalInfo")} />
 
-                <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
+                <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                   {generalInfoRows.map((row, index) => (
                     <View key={row.label}>
                       {index > 0 ? <Divider className="bg-border" /> : null}
@@ -499,7 +499,7 @@ export default function ProfileScreen() {
                 <View className="gap-2">
                   <SectionTitle title={t("profile.schoolInfo")} />
 
-                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
+                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                     {schoolInfoRows.map((row, index) => (
                       <View key={row.label}>
                         {index > 0 ? <Divider className="bg-border" /> : null}
@@ -514,7 +514,7 @@ export default function ProfileScreen() {
                 <View className="gap-2">
                   <SectionTitle title={t("profile.parentsGuardians")} />
 
-                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
+                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                     {member.parents.map((parent, index) => (
                       <View key={parent.id}>
                         {index > 0 ? <Divider className="bg-border" /> : null}
@@ -535,7 +535,7 @@ export default function ProfileScreen() {
                 <View className="gap-2">
                   <SectionTitle title={t("profile.settings")} />
 
-                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
+                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                     <LinkRow
                       label={t("profile.changePassword")}
                       href="/profile/change-password"
@@ -555,7 +555,7 @@ export default function ProfileScreen() {
                 <View className="gap-2">
                   <SectionTitle title={t("profile.appearance")} />
 
-                  <View className="overflow-hidden rounded-xl border border-border bg-card px-3">
+                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                     <PrimaryColorPreferenceRow
                       preference={primaryColorPreference}
                       disabled={!isThemeReady}
@@ -877,9 +877,19 @@ function ThemePreferenceRow({
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const leadingIcon =
+    preference === "dark" ? (
+      <Moon size={20} color={colors.foreground} />
+    ) : preference === "light" ? (
+      <Sun size={20} color={colors.foreground} />
+    ) : (
+      <Smartphone size={20} color={colors.foreground} />
+    );
+
   return (
     <ProfilePreferenceRow
       title={t("profile.theme")}
+      leading={leadingIcon}
       accessibilityLabel={t("profile.chooseAppAppearance")}
       sheetTitle={t("profile.appearance")}
       description={t("profile.appearanceDescription")}

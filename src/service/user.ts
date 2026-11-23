@@ -30,7 +30,7 @@ export const updateMemberProfile = async (
     });
 };
 
-export type StagedUpload = {
+type StagedUpload = {
     uploadUrl: string;
     key: string;
     expiresAt: string;

@@ -17,37 +17,10 @@ import {
     triggerSelectionHaptic,
 } from "../utils/haptics";
 
+const ReanimatedPressable = Animated.createAnimatedComponent(Pressable);
 const PRESS_EASING = Easing.bezier(0.23, 1, 0.32, 1);
 const PRESS_DURATION_MS = 120;
 const PRESSED_SCALE = 0.97;
-const PRESSED_OPACITY = 0.92;
-const OUTER_CLASS_TOKEN =
-    /^(?:(?:disabled:)?opacity-\S+|flex-1|grow|shrink(?:-0)?|self-\S+|w-full)$/;
-
-function splitPressableClassName(className?: string) {
-    if (!className) {
-        return { outerClassName: undefined, innerClassName: undefined };
-    }
-    const outerTokens: string[] = [];
-    const innerTokens: string[] = [];
-    for (const token of className.trim().split(/\s+/)) {
-        if (!token) continue;
-        if (OUTER_CLASS_TOKEN.test(token)) {
-            outerTokens.push(token);
-            if (token === "w-full") {
-                innerTokens.push(token);
-            }
-        } else {
-            innerTokens.push(token);
-        }
-    }
-    return {
-        outerClassName:
-            outerTokens.length > 0 ? outerTokens.join(" ") : undefined,
-        innerClassName:
-            innerTokens.length > 0 ? innerTokens.join(" ") : undefined,
-    };
-}
 
 type AnimatedPressableProps = Omit<PressableProps, "style"> & {
     className?: string;
@@ -60,8 +33,6 @@ export const AnimatedPressable = forwardRef<
     AnimatedPressableProps
 >(function AnimatedPressable(
     {
-        children,
-        className,
         disabled,
         pressRetentionOffset = 16,
         haptic = false,
@@ -75,8 +46,6 @@ export const AnimatedPressable = forwardRef<
 ) {
     const pressed = useSharedValue(0);
     const reducedMotion = useReducedMotion();
-    const { outerClassName, innerClassName } =
-        splitPressableClassName(className);
 
     useEffect(() => {
         if (disabled) {
@@ -87,7 +56,6 @@ export const AnimatedPressable = forwardRef<
     const animatedStyle = useAnimatedStyle(() => {
         const progress = pressed.get();
         return {
-            opacity: 1 - progress * (1 - PRESSED_OPACITY),
             transform: [
                 {
                     scale: reducedMotion
@@ -99,11 +67,10 @@ export const AnimatedPressable = forwardRef<
     });
 
     return (
-        <Pressable
+        <ReanimatedPressable
             {...props}
             ref={ref}
             disabled={disabled}
-            className={outerClassName}
             pressRetentionOffset={pressRetentionOffset}
             onPress={
                 onPress
@@ -143,21 +110,14 @@ export const AnimatedPressable = forwardRef<
                 );
                 onPressOut?.(event);
             }}
-        >
-            {(state: PressableStateCallbackType) => (
-                <Animated.View
-                    className={innerClassName}
-                    style={[
-                        { flexGrow: 1 },
-                        typeof style === "function" ? style(state) : style,
-                        animatedStyle,
-                    ]}
-                >
-                    {typeof children === "function"
-                        ? children(state)
-                        : children}
-                </Animated.View>
-            )}
-        </Pressable>
+            style={
+                typeof style === "function"
+                    ? (state: PressableStateCallbackType) => [
+                          style(state),
+                          animatedStyle,
+                      ]
+                    : [style, animatedStyle]
+            }
+        />
     );
 });

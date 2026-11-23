@@ -24,8 +24,8 @@ const BUTTON_INNER_MODIFIERS = isIOS
     ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
     : [fillMaxWidth()];
 
-export type ActionButtonAppearance = "filled" | "outlined" | "text";
-export type ActionButtonTone = "primary" | "danger";
+type ActionButtonAppearance = "filled" | "outlined" | "text";
+type ActionButtonTone = "primary" | "danger";
 
 type ActionButtonProps = {
     label: string;

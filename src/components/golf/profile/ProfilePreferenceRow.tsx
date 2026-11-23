@@ -1,11 +1,8 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { NativeText } from "@/design-system/components/NativeText";
-import { ListRow, useTheme } from "@/design-system";
+import { ActionButton, ListRow, useTheme } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
-import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
-import { Button, Host, RNHostView, Text } from "@expo/ui";
-import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
+import { RNHostView } from "@expo/ui";
 import { Check } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -40,7 +37,7 @@ export function ProfilePreferenceRow<T extends string>({
     disabled: boolean;
     onChange: (value: T) => void | Promise<void>;
 }) {
-    const { colors, resolvedScheme, fontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const { height } = useWindowDimensions();
     const [isPresented, setIsPresented] = useState(false);
@@ -124,22 +121,13 @@ export function ProfilePreferenceRow<T extends string>({
                                 {saveError}
                             </NativeText>
                         ) : null}
-                        <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={resolvedScheme} style={{ width: "100%" }}>
-                            <Button
-                                variant="text"
-                                disabled={pending}
-                                onPress={close}
-                                style={getNativeButtonStyle(colors, "text")}
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}
-                            >
-                                <Text
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}
-                                    textStyle={getNativeButtonTextStyle(colors, "text", fontScale)}
-                                >
-                                    {t("common.cancel")}
-                                </Text>
-                            </Button>
-                        </Host>
+                        <ActionButton
+                            label={t("common.cancel")}
+                            appearance="text"
+                            disabled={pending}
+                            haptic="selection"
+                            onPress={close}
+                        />
                     </View>
                 </RNHostView>
             </PendingBottomSheet>

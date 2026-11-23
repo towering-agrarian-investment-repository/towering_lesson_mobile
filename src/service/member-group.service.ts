@@ -14,15 +14,6 @@ export async function getMemberGroups(
     });
 }
 
-export async function getMemberGroupHistory(
-    signal?: AbortSignal,
-): Promise<ApiResponse<MemberGroupSummaryResponse[]>> {
-    return apiClient("/member/groups/history", {
-        method: "GET",
-        signal,
-    });
-}
-
 export async function getMemberGroupById(
     groupId: number,
     signal?: AbortSignal,

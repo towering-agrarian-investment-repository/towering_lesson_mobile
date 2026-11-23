@@ -5,7 +5,6 @@ import {
     GenerateHomeworkSubmissionUploadsResponse,
     MemberHomeworkDetailResponse,
     MemberHomeworkSubmissionResponse,
-    MemberHomeworkSummaryResponse,
     SubmitHomeworkRequest,
 } from "@/types/member-homework";
 import {
@@ -22,15 +21,6 @@ export type HomeworkSubmissionFile = {
     type: string;
     size: number;
 };
-
-export async function getMemberHomeworks(
-    signal?: AbortSignal,
-): Promise<ApiResponse<MemberHomeworkSummaryResponse[]>> {
-    return apiClient("/member/homeworks", {
-        method: "GET",
-        signal,
-    });
-}
 
 export async function getMemberHomeworkById(
     homeworkId: number,

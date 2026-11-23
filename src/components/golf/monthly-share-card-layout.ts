@@ -18,7 +18,7 @@ export const SHARE_CARD_THEMES: readonly ShareCardTheme[] = [
     "minimal",
 ];
 
-export type ShareCardThemePalette = {
+type ShareCardThemePalette = {
     isDark: boolean;
     showContours: boolean;
     canvas: string;

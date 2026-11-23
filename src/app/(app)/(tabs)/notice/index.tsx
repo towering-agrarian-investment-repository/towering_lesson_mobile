@@ -139,6 +139,12 @@ function NoticeScreen() {
       openSwipeableRef.current = null;
     }
   }, []);
+  const handleCloseOpenSwipeable = useCallback(() => {
+    if (openSwipeableRef.current) {
+      openSwipeableRef.current.close();
+      openSwipeableRef.current = null;
+    }
+  }, []);
   const handleDeleteNotification = useCallback(
     (id: number) => {
       if (
@@ -591,6 +597,7 @@ function NoticeScreen() {
             renderItem={renderNotificationItem}
             renderScrollComponent={GestureHandlerScrollView}
             ItemSeparatorComponent={NotificationSeparator}
+            onScrollBeginDrag={handleCloseOpenSwipeable}
             refreshControl={
               <RefreshControl
                 refreshing={isPullRefreshing}
@@ -722,11 +729,12 @@ function NotificationRow({
     <Swipeable
       ref={swipeableRef}
       enabled={!disabled}
-      friction={2}
+      friction={1}
       overshootLeft={false}
-      dragOffsetFromLeft={10000}
-      dragOffsetFromRight={-24}
-      rightThreshold={48}
+      overshootFriction={8}
+      dragOffsetFromLeft={10}
+      dragOffsetFromRight={-10}
+      rightThreshold={32}
       onSwipeableWillOpen={handleWillOpen}
       renderRightActions={renderRightActions}
     >

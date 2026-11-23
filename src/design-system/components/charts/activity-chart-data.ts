@@ -1,7 +1,6 @@
-import type { TFunction } from "i18next";
 import { colorWithOpacity } from "../../utils/color";
 import type { ThemeColors } from "../../utils/theme";
-import { getReservationStatusColor, getReservationStatusLabel } from "../../../utils/status-tone";
+import { getReservationStatusColor } from "../../../utils/status-tone";
 
 export type ActivityHeatmapStatus =
     "completed" | "checked-in" | "no-show" | "cancelled" | "reserved" | "mixed" | "unknown";
@@ -12,7 +11,7 @@ export type ActivityHeatmapValue = {
     statusBreakdown?: Partial<Record<ActivityHeatmapStatus, number>>;
     typeCounts?: { lesson: number; bay: number };
 };
-export type ActivityHeatmapDay = Omit<ActivityHeatmapValue, "date"> & {
+type ActivityHeatmapDay = Omit<ActivityHeatmapValue, "date"> & {
     date: Date;
     dateKey: string;
 };
@@ -20,46 +19,6 @@ export type ActivityHeatmapWeek = {
     days: ActivityHeatmapDay[];
     monthLabel?: string;
 };
-
-export type WeeklySummaryValue = {
-    weekStart: string | number | Date;
-    total: number;
-    status?: ActivityHeatmapStatus;
-    statusBreakdown?: Partial<Record<ActivityHeatmapStatus, number>>;
-    typeCounts?: { lesson: number; bay: number };
-};
-export type WeeklyWeek = Omit<WeeklySummaryValue, "weekStart"> & {
-    weekStart: Date;
-    label: string;
-};
-
-export function getWeekStart(value: string | number | Date) {
-    const date = parseCalendarDate(value);
-    date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-    return date;
-}
-
-export function buildWeekSummaries(
-    values: WeeklySummaryValue[], startDate: Date | undefined,
-    endDate: Date, numWeeks: number, language: string,
-): WeeklyWeek[] {
-    const end = getWeekStart(endDate);
-    if (!Number.isFinite(end.getTime())) return [];
-    if (!startDate && (!Number.isFinite(numWeeks) || numWeeks < 1)) return [];
-    const start = startDate ? getWeekStart(startDate) : new Date(end);
-    if (!startDate) start.setDate(start.getDate() - (Math.floor(numWeeks) - 1) * 7);
-    if (!Number.isFinite(start.getTime()) || start > end) return [];
-    const totals = new Map(values.map(value => [toDateKey(getWeekStart(value.weekStart)), value]));
-    const formatter = new Intl.DateTimeFormat(language, { month: "short", day: "numeric" });
-    const weeks: WeeklyWeek[] = [];
-    // Calendar increments preserve the final week across daylight-saving changes.
-    for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 7)) {
-        const weekStart = new Date(cursor);
-        const value = totals.get(toDateKey(weekStart));
-        weeks.push({ ...value, weekStart, total: value?.total ?? 0, label: formatter.format(weekStart) });
-    }
-    return weeks;
-}
 
 export function toDateKey(date: string | number | Date) {
     // Date-only API values are local calendar dates, not UTC timestamps.
@@ -142,33 +101,4 @@ export function getActivityStatusColor(status: ActivityHeatmapStatus | undefined
     if (status === "mixed") return colors.warning;
     if (!status || status === "unknown") return colors.primary;
     return getReservationStatusColor(colors, status);
-}
-
-export function formatStatusBreakdown(
-    breakdown: Partial<Record<ActivityHeatmapStatus, number>> | undefined,
-    t: TFunction,
-) {
-    if (!breakdown) return "";
-    const labels: Record<ActivityHeatmapStatus, string> = {
-        completed: getReservationStatusLabel("COMPLETED", t),
-        "checked-in": getReservationStatusLabel("CHECKED_IN", t),
-        "no-show": getReservationStatusLabel("NO_SHOW", t),
-        cancelled: getReservationStatusLabel("CANCELLED", t),
-        reserved: getReservationStatusLabel("RESERVED", t),
-        mixed: t("activity.mixed"),
-        unknown: t("activity.other"),
-    };
-    const details = Object.entries(breakdown)
-        .filter(([, count]) => count && count > 0)
-        .map(([status, count]) => `${count} ${labels[status as ActivityHeatmapStatus]}`)
-        .join(" · ");
-    return details ? ` · ${details}` : "";
-}
-
-export function formatTypeBreakdown(typeCounts: { lesson: number; bay: number } | undefined, t: TFunction) {
-    if (!typeCounts) return "";
-    return [
-        typeCounts.bay > 0 ? `${typeCounts.bay} ${t("activity.bay")}` : null,
-        typeCounts.lesson > 0 ? `${typeCounts.lesson} ${t("activity.lesson")}` : null,
-    ].filter(Boolean).join(" · ");
 }

@@ -5,7 +5,6 @@ import {
 import {
     generateHomeworkSubmissionUpload,
     getMemberHomeworkById,
-    getMemberHomeworks,
     HomeworkSubmissionFile,
     submitHomework,
     uploadHomeworkSubmissionFile,
@@ -14,13 +13,8 @@ import {
     getMemberLessonById,
     getMemberLessonByIdAndGroupId,
 } from "@/service/member-lesson.service";
-import { getMemberSessionInstancesByLessonId } from "@/service/member-session.service";
-import {
-    MemberHomeworkDetailResponse,
-    MemberHomeworkSummaryResponse,
-} from "@/types/member-homework";
+import { MemberHomeworkDetailResponse } from "@/types/member-homework";
 import { MemberLessonDetailResponse } from "@/types/member-lesson";
-import { SessionInstanceResponse } from "@/types/member-session";
 import {
     hasExpired,
     HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
@@ -37,7 +31,7 @@ import {
     UserFacingError,
 } from "../api-response/api-response";
 
-export function getMemberGroupsQueryOptions() {
+function getMemberGroupsQueryOptions() {
     return {
         queryKey: ["member", "groups"] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) => getMemberGroups(signal),
@@ -66,7 +60,7 @@ export function getMemberLessonByGroupQueryOptions(
     };
 }
 
-export function getMemberLessonByIdQueryOptions(lessonId: number) {
+function getMemberLessonByIdQueryOptions(lessonId: number) {
     return {
         queryKey: ["member", "lessons", lessonId] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
@@ -118,23 +112,6 @@ export function useMemberLessonById(lessonId: number) {
     return useQuery<ApiResponse<MemberLessonDetailResponse>>({
         ...getMemberLessonByIdQueryOptions(lessonId),
         enabled: Number.isFinite(lessonId) && lessonId > 0,
-        staleTime: 60_000,
-    });
-}
-
-export function useMemberSessionInstancesByLesson(lessonId: number) {
-    return useQuery<ApiResponse<SessionInstanceResponse[]>>({
-        queryKey: ["member", "lessons", lessonId, "sessions"],
-        queryFn: ({ signal }) => getMemberSessionInstancesByLessonId(lessonId, signal),
-        enabled: Number.isFinite(lessonId) && lessonId > 0,
-        staleTime: 60_000,
-    });
-}
-
-export function useMemberHomeworks() {
-    return useQuery<ApiResponse<MemberHomeworkSummaryResponse[]>>({
-        queryKey: ["member", "homeworks"],
-        queryFn: ({ signal }) => getMemberHomeworks(signal),
         staleTime: 60_000,
     });
 }

@@ -22,19 +22,19 @@ function TodayReservation() {
     const showLoadError = !data && (todayReservationError || errorUpdateCount > 0);
 
     return (
-        <View className="gap-2">
+        <View className="gap-3">
             <TitleSectionWithBadge
                 label={t("reservations.todayTitle")}
                 length={todayReservations.length}
             />
 
             {showInitialLoading ? (
-                <View className="gap-2.5 py-3">
+                <View className="gap-3">
                     <ReservationCardSkeleton />
                     <ReservationCardSkeleton />
                 </View>
             ) : showLoadError ? (
-                <View className="min-h-40 items-center justify-center py-3">
+                <View className="min-h-40 items-center justify-center">
                     <CompactEmptyState
                         title={t("reservations.loadError")}
                         tone="danger"
@@ -50,11 +50,11 @@ function TodayReservation() {
                     />
                 </View>
             ) : todayReservations.length === 0 ? (
-                <View className="min-h-40 items-center justify-center py-3">
+                <View className="min-h-40 items-center justify-center">
                     <CompactEmptyState title={t("reservations.empty")} />
                 </View>
             ) : (
-                <View className="gap-2.5 py-3">
+                <View className="gap-3">
                     {todayReservations.map((reservation) => (
                         <TodayReservationCard
                             key={`${reservation.reservationType}:${reservation.id}`}

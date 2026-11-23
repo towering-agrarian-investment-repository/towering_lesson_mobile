@@ -1,6 +1,6 @@
-export type MemberActivityStatus = "RESERVED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+type MemberActivityStatus = "RESERVED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 export type MemberActivityStatusCounts = Record<MemberActivityStatus, number>;
-export type MemberActivityTypeCounts = { lesson: number; bay: number };
+type MemberActivityTypeCounts = { lesson: number; bay: number };
 
 export type MemberActivityDay = {
     date: string;
@@ -9,7 +9,7 @@ export type MemberActivityDay = {
     typeCounts: MemberActivityTypeCounts;
 };
 
-export type MemberActivityWeek = {
+type MemberActivityWeek = {
     weekStart: string;
     weekEnd: string;
     count: number;
@@ -17,7 +17,7 @@ export type MemberActivityWeek = {
     typeCounts: MemberActivityTypeCounts;
 };
 
-export type MonthlyActivity = {
+type MonthlyActivity = {
     year: number;
     month: number;
     totalReservations: number;

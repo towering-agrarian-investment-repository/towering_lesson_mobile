@@ -1,8 +1,8 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { FormTextInput } from "@/components/ui/form";
 import {
+    ActionButton,
     EmptyState,
     ErrorState,
     AnimatedPressable,
@@ -12,18 +12,11 @@ import {
     triggerSelectionHaptic,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import {
     useMemberLessonLogById,
     useUpdateMemberLessonLog,
 } from "@/lib/hook/useLessonLog";
 import { formatDateForDisplay } from "@/utils/time-helper";
-import { Button, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -32,7 +25,6 @@ import { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
     RefreshControl,
     View,
 } from "react-native";
@@ -48,7 +40,7 @@ type LessonLogCommentFormValues = {
 };
 
 function LessonLogCommentScreen() {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
@@ -179,37 +171,16 @@ function LessonLogCommentScreen() {
             keyboardAware
             contentClassName="grow gap-5"
             footer={
-                <View>
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        accessibilityLabel={t(
-                            "lessonLog.submitCommentAccessibility",
-                        )}
-                        accessibilityState={{
-                            disabled: isPending,
-                            busy: isPending,
-                        }}
-                        style={{ width: "100%" }}>
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={isPending}
-                            onPress={() => { void form.handleSubmit((values) => {
+                <ActionButton
+                    label={t("lessonLog.submit")}
+                    accessibilityLabel={t(
+                        "lessonLog.submitCommentAccessibility",
+                    )}
+                    disabled={isPending}
+                    loading={isPending}
+                    onPress={() => {
+                        void form.handleSubmit(
+                            (values) => {
                                 if (submitting.current || isPending || !canReview) return;
                                 submitting.current = true;
                                 updateLessonLog(
@@ -233,58 +204,20 @@ function LessonLogCommentScreen() {
                                                 },
                                             });
                                         },
-                                        onSettled: () => { submitting.current = false; },
+                                        onSettled: () => {
+                                            submitting.current = false;
+                                        },
                                     },
                                 );
-                            }, (errors) => {
+                            },
+                            (errors) => {
                                 if (errors.comment) {
                                     form.setFocus("comment");
                                 }
-                            })(); }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "filled",
-                                    isPending,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Row
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                spacing={8}
-                                alignment="center"
-                            >
-                                <Spacer flexible />
-                                {isPending ? (
-                                    <RNHostView matchContents>
-                                        <ActivityIndicator
-                                            color={colors.primaryForeground}
-                                        />
-                                    </RNHostView>
-                                ) : null}
-                                <Text
-                                    textStyle={{
-                                        textAlign: "center",
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        fontWeight: "600",
-                                        color: colors.primaryForeground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {t("lessonLog.submit")}
-                                </Text>
-                                <Spacer flexible />
-                            </Row>
-                        </Button>
-                    </Host>
-                </View>
+                            },
+                        )();
+                    }}
+                />
             }
         >
             <View className="gap-2">

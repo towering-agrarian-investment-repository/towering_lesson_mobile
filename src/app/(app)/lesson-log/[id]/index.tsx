@@ -1,7 +1,9 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { AppText } from "@/design-system/components/AppText";
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
+    ActionButton,
+    cn,
     EmptyState,
     ErrorState,
     ListRow,
@@ -14,17 +16,11 @@ import { useMemberLessonLogById } from "@/lib/hook/useLessonLog";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import { formatDateForDisplay } from "@/utils/time-helper";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "expo";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { Star } from "lucide-react-native";
+import { CalendarDays, Star } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
@@ -72,7 +68,7 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
     );
 }
 function LessonLogDetailsScreen() {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
@@ -174,76 +170,24 @@ function LessonLogDetailsScreen() {
             }
             footer={
                 canReview ? (
-                    <View>
-                        <Host
-                            matchContents={{ vertical: true }}
-                            ignoreSafeArea="all"
-                            colorScheme={uiScheme}
-                            seedColor={colors.primary}
-                            accessibilityLabel={t(
-                                "lessonLog.leaveCommentAccessibility",
-                            )}
-                            accessibilityState={{
-                                disabled: isLocked,
-                                busy: false,
-                            }}
-                            style={{ width: "100%" }}>
-                            <Button
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [
-                                            frame({
-                                                maxWidth: Infinity,
-                                                minHeight: 48,
-                                            }),
-                                        ]
-                                        : [
-                                            fillMaxWidth(),
-                                            defaultMinSize({ minHeight: 48 }),
-                                        ]
-                                }
-                                variant="text"
-                                disabled={isLocked}
-                                onPress={() => {
-                                    runWithNavigationLock(() => {
-                                        router.push({
-                                            pathname:
-                                                "/lesson-log/[id]/comment",
-                                            params: {
-                                                id: String(lessonLog.id),
-                                            },
-                                        });
-                                    });
-                                }}
-                                style={{
-                                    ...getNativeButtonStyle(
-                                        colors,
-                                        "filled",
-                                        isLocked,
-                                        colors.primary,
-                                    ), ...{ borderRadius: 12 }
-                                }}
-                            >
-                                <Text
-                                    modifiers={
-                                        process.env.EXPO_OS === "ios"
-                                            ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                            : [fillMaxWidth()]
-                                    }
-                                    textStyle={{
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        textAlign: "center",
-                                        color: colors.primaryForeground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {t("lessonLog.leaveComment")}
-                                </Text>
-                            </Button>
-                        </Host>
-                    </View>
+                    <ActionButton
+                        label={t("lessonLog.leaveComment")}
+                        accessibilityLabel={t(
+                            "lessonLog.leaveCommentAccessibility",
+                        )}
+                        disabled={isLocked}
+                        haptic="selection"
+                        onPress={() => {
+                            runWithNavigationLock(() => {
+                                router.push({
+                                    pathname: "/lesson-log/[id]/comment",
+                                    params: {
+                                        id: String(lessonLog.id),
+                                    },
+                                });
+                            });
+                        }}
+                    />
                 ) : null
             }
         >
@@ -324,18 +268,20 @@ function LessonLogDetailsScreen() {
                         </NativeText>
                 )}
 
-                <View className="self-start rounded-full bg-muted px-3 py-1.5">
-                    <NativeText
-                        variant="caption"
+                <View
+                    className={cn(
+                        "self-start rounded-md px-2.5 py-1",
+                        hasSubmittedReview ? "bg-success/10" : "bg-warning/10",
+                    )}
+                >
+                    <AppText
+                        variant="badge"
                         wrap={false}
-                        textStyle={{
-                            color: hasSubmittedReview
-                                ? colors.success
-                                : colors.warning
-                        }}
+                        color={hasSubmittedReview ? "success" : "warning"}
+                        textStyle={{ fontWeight: "600" }}
                     >
                         {reviewStateLabel}
-                    </NativeText>
+                    </AppText>
                 </View>
             </View>
 
@@ -359,6 +305,15 @@ function LessonLogDetailsScreen() {
                             asChild
                         >
                             <ListRow
+                                leading={
+                                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                                        <CalendarDays
+                                            size={19}
+                                            color={colors.primary}
+                                            strokeWidth={2.2}
+                                        />
+                                    </View>
+                                }
                                 title={
                                     lessonLog.reservation.name?.trim() ||
                                     t(

@@ -11,7 +11,7 @@ export type SessionResourcesFilesResponse = {
     fileUrl: string | null;
 };
 
-export type MemberSessionResponse = {
+type MemberSessionResponse = {
     id: number;
     sessionInstanceId: number;
     markByCoachId: number | null;

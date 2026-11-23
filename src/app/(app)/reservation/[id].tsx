@@ -1,13 +1,17 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
+import { TicketTypeIcon } from "@/components/golf/TicketTypeIcon";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { AppText } from "@/design-system/components/AppText";
 import { NativeText } from "@/design-system/components/NativeText";
+import { colorWithOpacity } from "@/design-system/utils/color";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
     ReservationContent,
     ReservationDetailField,
 } from "@/components/golf/reservation/ReservationSections";
 import {
-    Badge,
+    ActionButton,
+    cn,
     Divider,
     EmptyState,
     ErrorState,
@@ -38,7 +42,7 @@ import { MemberLessonReservationResponse } from "@/types/member-lesson";
 import { MemberReservationDomain } from "@/types/member-reservation";
 import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { Button, Column, Host, RNHostView, Row, Text, Spacer } from "@expo/ui";
+import { Button, Column, RNHostView, Row, Text, Spacer } from "@expo/ui";
 import {
     defaultMinSize,
     fillMaxWidth,
@@ -127,7 +131,6 @@ function getReservationPolicies(t: (key: string) => string) {
 export default function ReservationDetailScreen() {
     const {
         colors: uiColors,
-        resolvedScheme: uiScheme,
         fontScale: uiFontScale,
     } = useTheme();
     const { t } = useTranslation();
@@ -412,155 +415,21 @@ export default function ReservationDetailScreen() {
                     canCancelReservation || canRescheduleReservation ? (
                         <View className="gap-3">
                             {canRescheduleReservation ? (
-                                <Host
-                                    matchContents={{ vertical: true }}
-                                    ignoreSafeArea="all"
-                                    colorScheme={uiScheme}
-                                    seedColor={uiColors.primary}
-                                    style={{ width: "100%", borderRadius: 12 }}
-                                    accessibilityLabel={t(
-                                        "reservations.reschedule",
-                                    )}
-                                    accessibilityState={{
-                                        disabled: isLocked,
-                                        busy: false,
-                                    }}
-                                >
-                                    <Button
-                                        modifiers={
-                                            process.env.EXPO_OS === "ios"
-                                                ? [
-                                                    frame({
-                                                        maxWidth: Infinity,
-                                                        minHeight: 48,
-                                                    }),
-                                                ]
-                                                : [
-                                                    fillMaxWidth(),
-                                                    defaultMinSize({
-                                                        minHeight: 48,
-                                                    }),
-                                                ]
-                                        }
-                                        variant="text"
-                                        disabled={isLocked}
-                                        onPress={handleRescheduleReservation}
-                                        style={{
-                                            ...getNativeButtonStyle(
-                                                uiColors,
-                                                "filled",
-                                                isLocked,
-                                                uiColors.primary,
-                                            ), ...{ borderRadius: 12 }
-                                        }}
-                                    >
-                                        <Text
-                                            modifiers={
-                                                process.env.EXPO_OS === "ios"
-                                                    ? [
-                                                        frame({
-                                                            maxWidth: Infinity, minHeight: 48,
-                                                        }), contentShape(shapes.rectangle()),
-                                                    ]
-                                                    : [fillMaxWidth()]
-                                            }
-                                            textStyle={{
-                                                ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                                textAlign: "center",
-                                                color: uiColors.primaryForeground,
-                                                fontSize:
-                                                    typography.label.fontSize *
-                                                    uiFontScale,
-                                            }}
-                                        >
-                                            {t("reservations.reschedule")}
-                                        </Text>
-                                    </Button>
-                                </Host>
+                                <ActionButton
+                                    label={t("reservations.reschedule")}
+                                    disabled={isLocked}
+                                    onPress={handleRescheduleReservation}
+                                />
                             ) : null}
 
                             {canCancelReservation ? (
-                                <Host
-                                    matchContents={{ vertical: true }}
-                                    ignoreSafeArea="all"
-                                    colorScheme={uiScheme}
-                                    seedColor={uiColors.danger}
-                                    style={{ width: "100%", borderRadius: 12 }}
-                                    accessibilityLabel={t(
-                                        "reservations.cancelTitle",
-                                    )}
-                                    accessibilityState={{
-                                        disabled: isCancelling,
-                                        busy: isCancelling,
-                                    }}
-                                >
-                                    <Button
-                                        modifiers={
-                                            process.env.EXPO_OS === "ios"
-                                                ? [
-                                                    frame({
-                                                        maxWidth: Infinity,
-                                                        minHeight: 48,
-                                                    }),
-                                                ]
-                                                : [
-                                                    fillMaxWidth(),
-                                                    defaultMinSize({
-                                                        minHeight: 48,
-                                                    }),
-                                                ]
-                                        }
-                                        variant="text"
-                                        disabled={isCancelling}
-                                        onPress={handleCancelReservation}
-                                        style={getNativeButtonStyle(
-                                            uiColors,
-                                            "filled",
-                                            isCancelling,
-                                            uiColors.danger,
-                                        )}
-                                    >
-                                        <Row
-                                            modifiers={
-                                                process.env.EXPO_OS === "ios"
-                                                    ? [
-                                                        frame({
-                                                            maxWidth: Infinity, minHeight: 48,
-                                                        }), contentShape(shapes.rectangle()),
-                                                    ]
-                                                    : [fillMaxWidth()]
-                                            }
-                                            spacing={8}
-                                            alignment="center"
-                                        >
-                                            <Spacer flexible />
-                                            {isCancelling ? (
-                                                <RNHostView matchContents>
-                                                    <ActivityIndicator
-                                                        color={
-                                                            uiColors.primaryForeground
-                                                        }
-                                                    />
-                                                </RNHostView>
-                                            ) : null}
-                                            <Text
-                                                textStyle={{
-                                                    textAlign: "center",
-                                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                                    fontWeight: "600",
-                                                    color: uiColors.primaryForeground,
-                                                    fontSize:
-                                                        typography.label
-                                                            .fontSize *
-                                                        uiFontScale,
-                                                }}
-                                            >
-                                                {t("reservations.cancelTitle")}
-                                            </Text>
-                                            <Spacer flexible />
-                                        </Row>
-                                    </Button>
-                                </Host>
+                                <ActionButton
+                                    label={t("reservations.cancelTitle")}
+                                    tone="danger"
+                                    disabled={isCancelling}
+                                    loading={isCancelling}
+                                    onPress={handleCancelReservation}
+                                />
                             ) : null}
                         </View>
                     ) : null
@@ -769,56 +638,75 @@ function HeaderSection({
     reservationStatus?: string | null;
     ticketType?: string | null;
 }) {
-
-    const { t } = useTranslation();
-    const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
-
-    return (
-        <View className="flex-col gap-3">
-            {ticketType && ticketTone ? (
-                <View className="flex-row flex-wrap">
-                    <Badge
-                        label={formatTicketTypeLabel(ticketType, t)}
-                        className={`${ticketTone.badgeSolidClassName} px-2 py-0.5`}
-                        color="primaryForeground"
-                    />
-                </View>
-            ) : null}
-
-            <NativeText variant="h3">
-                {title}
-            </NativeText>
-
-            <ReservationStatusBanner reservationStatus={reservationStatus} />
-        </View>
-    );
-}
-
-function ReservationStatusBanner({
-    reservationStatus,
-}: {
-    reservationStatus?: string | null;
-}) {
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
+    const typeLabel = ticketType ? formatTicketTypeLabel(ticketType, t) : null;
     const statusLabel = getReservationStatusLabel(reservationStatus, t);
     const statusColor = getReservationStatusColor(colors, reservationStatus);
 
-    if (statusLabel === "-") {
-        return null;
-    }
-
     return (
-        <View className="flex-row items-center gap-2">
-            <NativeText variant="label" color="mutedForeground" wrap={false}>
-                {t("reservations.statusLabel") + ":"}
-            </NativeText>
-            <NativeText
-                variant="h3"
-                wrap={false}
-                textStyle={{ color: statusColor, fontSize: typography.subtitle.fontSize, fontWeight: "700" as const }}
-            >
-                {statusLabel}
+        <View className="flex-col gap-2.5">
+            {ticketTone || statusLabel !== "-" ? (
+                <View className="flex-row items-center justify-between gap-2">
+                    <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                        {ticketType && ticketTone ? (
+                            <>
+                                <View
+                                    className={cn(
+                                        "h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+                                        ticketTone.badgeClassName,
+                                    )}
+                                >
+                                    <TicketTypeIcon
+                                        type={ticketType}
+                                        size={15}
+                                        color={colors[ticketTone.color]}
+                                        strokeWidth={2.2}
+                                    />
+                                </View>
+                                {typeLabel ? (
+                                    <AppText
+                                        variant="meta"
+                                        color="mutedForeground"
+                                        numberOfLines={1}
+                                        style={{ flex: 1, minWidth: 0 }}
+                                        textStyle={{ fontWeight: "600" }}
+                                    >
+                                        {typeLabel}
+                                    </AppText>
+                                ) : null}
+                            </>
+                        ) : null}
+                    </View>
+
+                    {statusLabel !== "-" ? (
+                        <View
+                            className="shrink-0 rounded-md px-2.5 py-1"
+                            style={{
+                                backgroundColor: colorWithOpacity(
+                                    statusColor,
+                                    0.12,
+                                ),
+                            }}
+                        >
+                            <AppText
+                                variant="badge"
+                                wrap={false}
+                                textStyle={{
+                                    color: statusColor,
+                                    fontWeight: "600",
+                                }}
+                            >
+                                {statusLabel}
+                            </AppText>
+                        </View>
+                    ) : null}
+                </View>
+            ) : null}
+
+            <NativeText variant="h2" textStyle={{ fontWeight: "700" }}>
+                {title}
             </NativeText>
         </View>
     );

@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
-export type ReservationPolicy = {
+type ReservationPolicy = {
     title: string;
     description: string;
 };
@@ -31,13 +31,13 @@ export function ReservationDetailField({
 }) {
     const { colors: uiColors } = useTheme();
     return (
-        <View className="flex-col gap-3">
+        <View className="flex-col gap-1.5">
             <ReservationFieldLabel>{label}</ReservationFieldLabel>
 
             <View className="flex-row items-center gap-3">
                 {leftElement ? leftElement : null}
 
-                <View className="min-w-0 flex-1 flex-col gap-3">
+                <View className="min-w-0 flex-1 flex-col gap-1">
                     <ReservationFieldValue selectable={selectable}>{value}</ReservationFieldValue>
 
                     {description ? (
@@ -52,7 +52,7 @@ export function ReservationDetailField({
     );
 }
 
-export function ReservationPoliciesSection({
+function ReservationPoliciesSection({
     title,
     policies,
 }: {
@@ -71,7 +71,7 @@ export function ReservationPoliciesSection({
 
             <View className="gap-3">
                 {policies.map((policy) => (
-                    <View key={policy.title} className="flex-col gap-3">
+                    <View key={policy.title} className="flex-col gap-1">
                         <NativeText variant="label">
                             {"- " + policy.title}
                         </NativeText>
@@ -86,7 +86,7 @@ export function ReservationPoliciesSection({
     );
 }
 
-export function ReservationFieldLabel({
+function ReservationFieldLabel({
     children,
     className,
 }: {
@@ -103,7 +103,7 @@ export function ReservationFieldLabel({
     );
 }
 
-export function ReservationFieldValue({
+function ReservationFieldValue({
     children,
     className,
     selectable = false,

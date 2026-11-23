@@ -1,7 +1,7 @@
 import { ApiResponse, CursorPageResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 
-export type NotificationType =
+type NotificationType =
 	| "BOOKING_CONFIRMED"
 	| "BOOKING_CANCELLED"
 	| "TEE_TIME_REMINDER"
@@ -34,7 +34,7 @@ export interface NotificationResponse {
 	createdAt: string;
 }
 
-export type NotificationListParams = {
+type NotificationListParams = {
 	cursor?: string;
 	limit?: number;
 	isRead?: boolean;

@@ -17,9 +17,6 @@ function setup() {
         'react-native': {
             View: mockView('View'),
             ScrollView: mockView('ScrollView'),
-            TouchableWithoutFeedback: mockView('KeyboardDismiss'),
-            Keyboard: { dismiss() {} },
-            useWindowDimensions: () => ({ width: 390 }),
         },
         'react-native-keyboard-controller': {
             KeyboardAvoidingView: mockView('KeyboardAvoidingView'),
@@ -58,17 +55,28 @@ for (const scroll of [true, false]) {
     });
 }
 
-test('scrolling forms use one keyboard-aware scroll view without a second avoidance layer', () => {
+test('scrolling forms use one keyboard-aware scroll view in layout mode without a second avoidance layer', () => {
     const screen = setup();
     const html = screen.render({ keyboardAware: true });
-    assert.equal(screen.mounted.filter(view => view.name === 'KeyboardAwareScrollView').length, 1);
+    const scrollViews = screen.mounted.filter(view => view.name === 'KeyboardAwareScrollView');
+    assert.equal(scrollViews.length, 1);
+    assert.equal(scrollViews[0].props.mode, 'layout');
+    assert.equal(scrollViews[0].props.style?.flex, 1);
     assert.equal(screen.mounted.filter(view => view.name === 'KeyboardAvoidingView').length, 0);
-    assert.equal(screen.mounted.filter(view => view.name === 'KeyboardDismiss').length, 1);
     assert.ok(html.includes('Screen content'));
     assert.ok(html.includes('Footer content'));
 });
 
-test('non-scrolling forms retain keyboard avoidance, dismissal and footer safe-area spacing', () => {
+test('a scrolling form can override keyboardScrollMode', () => {
+    const screen = setup();
+    const html = screen.render({ keyboardAware: true, keyboardScrollMode: 'insets' });
+    const scrollView = screen.mounted.find(view => view.name === 'KeyboardAwareScrollView');
+    assert.equal(scrollView.props.mode, 'insets');
+    assert.ok(html.includes('Screen content'));
+    assert.ok(html.includes('Footer content'));
+});
+
+test('non-scrolling forms retain keyboard avoidance and footer safe-area spacing', () => {
     const screen = setup();
     const html = screen.render({ keyboardAware: true, scroll: false });
     const avoidance = screen.mounted.filter(view => view.name === 'KeyboardAvoidingView');
@@ -76,7 +84,6 @@ test('non-scrolling forms retain keyboard avoidance, dismissal and footer safe-a
     assert.equal(avoidance[0].props.automaticOffset, true);
     assert.equal(avoidance[0].props.behavior, 'padding');
     assert.equal(screen.mounted.filter(view => view.name === 'KeyboardAwareScrollView').length, 0);
-    assert.equal(screen.mounted.filter(view => view.name === 'KeyboardDismiss').length, 1);
     assert.ok(screen.mounted.some(view => view.props.style?.paddingBottom === 20));
     assert.ok(html.includes('Screen content'));
     assert.ok(html.includes('Footer content'));

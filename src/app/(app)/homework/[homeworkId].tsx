@@ -1,8 +1,8 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { FormTextInput } from "@/components/ui/form";
 import { NativeText } from "@/design-system/components/NativeText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import {
+    ActionButton,
     Badge,
     CompactEmptyState,
     ErrorState,
@@ -11,7 +11,6 @@ import {
     Skeleton,
     triggerNotificationHaptic,
 } from "@/design-system";
-import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import {
@@ -37,19 +36,6 @@ import {
     getHomeworkSubmissionTone,
 } from "@/utils/status-tone";
 import { fmtDateTime, formatDateForDisplay } from "@/utils/time-helper";
-import {
-    Button,
-    Host,
-    RNHostView,
-    Row,
-    Text,
-    Spacer,
-} from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
@@ -59,7 +45,6 @@ import { memo, useCallback, useRef, useState } from "react";
 import { type Control, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
     FlatList,
     Linking,
     type ListRenderItem,
@@ -84,7 +69,7 @@ const HOMEWORK_MIME_BY_EXTENSION: Record<string, string> = {
 const submissionKeyExtractor = (submission: MemberHomeworkSubmissionResponse) =>
     `submission-${submission.id}`;
 const SUBMISSION_LIST_CONTENT_STYLE = {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 24,
 } as const;
 
@@ -97,7 +82,7 @@ type HomeworkMemoFormValues = {
 };
 
 const renderHomeworkScrollComponent = (props: ScrollViewProps) => (
-    <KeyboardAwareScrollView {...props} bottomOffset={20} />
+    <KeyboardAwareScrollView {...props} bottomOffset={20} mode="layout" />
 );
 
 const HomeworkMemoSection = memo(function HomeworkMemoSection({
@@ -124,7 +109,7 @@ const HomeworkMemoSection = memo(function HomeworkMemoSection({
 });
 
 export default function HomeworkDetailScreen() {
-    const { colors, resolvedScheme: uiScheme, fontScale: uiFontScale } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
     const { homeworkId } = useLocalSearchParams<HomeworkParams>();
     const numericHomeworkId = Number(homeworkId);
@@ -294,134 +279,20 @@ export default function HomeworkDetailScreen() {
             contentClassName="min-h-0"
             footer={
                 <View className="gap-3">
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        accessibilityLabel={t("homework.chooseFile")}
-                        accessibilityState={{
-                            disabled: isSubmitting,
-                            busy: false,
+                    <ActionButton
+                        label={t("homework.chooseFile")}
+                        appearance="outlined"
+                        disabled={isSubmitting}
+                        onPress={() => {
+                            void handlePickFile();
                         }}
-                        style={{ width: "100%" }}>
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={isSubmitting}
-                            onPress={() => {
-                                void handlePickFile();
-                            }}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "outlined",
-                                    isSubmitting,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                    textAlign: "center",
-                                    color: colors.foreground,
-                                    fontSize:
-                                        typography.label.fontSize * uiFontScale,
-                                }}
-                            >
-                                {t("homework.chooseFile")}
-                            </Text>
-                        </Button>
-                    </Host>
-                    <Host
-                        matchContents={{ vertical: true }}
-                        ignoreSafeArea="all"
-                        colorScheme={uiScheme}
-                        seedColor={colors.primary}
-                        accessibilityLabel={t("homework.submitHomework")}
-                        accessibilityState={{
-                            disabled: isSubmitDisabled,
-                            busy: isSubmitting,
-                        }}
-                        style={{ width: "100%" }}>
-                        <Button
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [
-                                        frame({
-                                            maxWidth: Infinity,
-                                            minHeight: 48,
-                                        }),
-                                    ]
-                                    : [
-                                        fillMaxWidth(),
-                                        defaultMinSize({ minHeight: 48 }),
-                                    ]
-                            }
-                            variant="text"
-                            disabled={isSubmitDisabled}
-                            onPress={handleSubmit}
-                            style={{
-                                ...getNativeButtonStyle(
-                                    colors,
-                                    "filled",
-                                    isSubmitDisabled,
-                                    colors.primary,
-                                ), ...{ borderRadius: 12 }
-                            }}
-                        >
-                            <Row
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-                                        : [fillMaxWidth()]
-                                }
-                                spacing={8}
-                                alignment="center"
-                            >
-                                <Spacer flexible />
-                                {isSubmitting ? (
-                                    <RNHostView matchContents>
-                                        <ActivityIndicator
-                                            color={colors.primaryForeground}
-                                        />
-                                    </RNHostView>
-                                ) : null}
-                                <Text
-                                    textStyle={{
-                                        textAlign: "center",
-                                        ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale,
-                                        fontWeight: "600",
-                                        color: colors.primaryForeground,
-                                        fontSize:
-                                            typography.label.fontSize *
-                                            uiFontScale,
-                                    }}
-                                >
-                                    {t("homework.submitHomework")}
-                                </Text>
-                                <Spacer flexible />
-                            </Row>
-                        </Button>
-                    </Host>
+                    />
+                    <ActionButton
+                        label={t("homework.submitHomework")}
+                        disabled={isSubmitDisabled}
+                        loading={isSubmitting}
+                        onPress={handleSubmit}
+                    />
                 </View>
             }
         >
@@ -438,12 +309,7 @@ export default function HomeworkDetailScreen() {
                 contentContainerStyle={SUBMISSION_LIST_CONTENT_STYLE}
                 ListHeaderComponent={
                     <View className="gap-5 pb-3">
-                        <View
-                            className={cn(
-                                "rounded-xl border border-border bg-card p-5",
-                                "overflow-hidden border-border bg-card p-0",
-                            )}
-                        >
+                        <View className="overflow-hidden rounded-2xl border border-border bg-card">
                             <View className="gap-4 bg-surface px-4 py-4">
                                 <View className="gap-2">
                                     <NativeText variant="h3" numberOfLines={2} textStyle={{ fontWeight: "600" as const }}>
@@ -486,12 +352,7 @@ export default function HomeworkDetailScreen() {
                             </View>
                         </View>
 
-                        <View
-                            className={cn(
-                                "rounded-xl border border-border bg-card p-5",
-                                "gap-4 border-border bg-card p-4",
-                            )}
-                        >
+                        <View className="gap-4 rounded-2xl border border-border bg-card p-4">
                             <View className="flex-row items-center gap-3">
                                 <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                                     <FileUp size={20} color={colors.primary} />
@@ -520,12 +381,7 @@ export default function HomeworkDetailScreen() {
                         </View>
 
                         {latestReview ? (
-                            <View
-                                className={cn(
-                                    "rounded-xl border border-border bg-card p-5",
-                                    "gap-3 border-border bg-card p-4",
-                                )}
-                            >
+                            <View className="gap-3 rounded-2xl border border-border bg-card p-4">
                                 <View className="flex-row items-center gap-3">
                                     <View className="h-10 w-10 items-center justify-center rounded-xl bg-muted">
                                         <MessageSquare

@@ -22,13 +22,13 @@ type MemberReservationResponseBase = {
     adminNotes: string | null;
 };
 
-export type MemberLessonReservationListResponse =
+type MemberLessonReservationListResponse =
     MemberReservationResponseBase & {
         reservationType: "lesson";
         reservationStatus: LessonReservationStatus;
     };
 
-export type MemberBayReservationListResponse = MemberReservationResponseBase & {
+type MemberBayReservationListResponse = MemberReservationResponseBase & {
     reservationType: "bay";
     reservationStatus: string;
 };
@@ -55,13 +55,13 @@ type MemberReservationSummaryBase = Pick<
     | "adminNotes"
 >;
 
-export type MemberLessonReservationSummaryResponse =
+type MemberLessonReservationSummaryResponse =
     MemberReservationSummaryBase & {
         reservationType: "lesson";
         reservationStatus: LessonReservationStatus;
     };
 
-export type MemberBayReservationSummaryResponse =
+type MemberBayReservationSummaryResponse =
     MemberReservationSummaryBase & {
         reservationType: "bay";
         reservationStatus: string;
@@ -70,8 +70,3 @@ export type MemberBayReservationSummaryResponse =
 export type MemberReservationSummaryResponse =
     | MemberLessonReservationSummaryResponse
     | MemberBayReservationSummaryResponse;
-
-export type MemberReservationCalendarResponse = {
-    reservationDate: string;
-    reservations: MemberReservationSummaryResponse[];
-};

@@ -1,6 +1,6 @@
 import type { MemberReservationDomain } from "./member-reservation";
 
-export type MemberBayReservationTicket = {
+type MemberBayReservationTicket = {
     id: number;
     name: string;
     type: string;
@@ -11,7 +11,7 @@ export type MemberBayReservationTicket = {
     remainingCount: number | null;
 };
 
-export type MemberBayReservationParticipant = {
+type MemberBayReservationParticipant = {
     id: number;
     bayReservationId: number;
     memberId: number;
@@ -22,11 +22,11 @@ export type MemberBayReservationParticipant = {
     notes: string | null;
 };
 
-export type AttendanceStatus = "PENDING" | "PRESENT" | "ABSENT";
+type AttendanceStatus = "PENDING" | "PRESENT" | "ABSENT";
 
-export type AttendanceReservationDomain = "LESSON" | "BAY";
+type AttendanceReservationDomain = "LESSON" | "BAY";
 
-export type MemberReservationAttendance = {
+type MemberReservationAttendance = {
     id: number;
     reservationId: number;
     reservationDomain: AttendanceReservationDomain;
@@ -57,7 +57,7 @@ export type MemberBayReservationResponse = {
     isCancellable: boolean;
 };
 
-export type BaySlotScheduleResponse = {
+type BaySlotScheduleResponse = {
     id: number;
     ruleId: number | null;
     ruleName: string | null;

@@ -15,7 +15,7 @@ export type MemberSelfResponse = {
     parents: ParentSummaryResponse[];
 };
 
-export type ParentSummaryResponse = {
+type ParentSummaryResponse = {
     id: number;
     name: string;
     phoneNumber: string | null;
@@ -24,7 +24,7 @@ export type ParentSummaryResponse = {
     role?: string | null;
 };
 
-export type MemberGradeResponse = {
+type MemberGradeResponse = {
     id: number;
     name: string;
     code: string;
@@ -33,7 +33,7 @@ export type MemberGradeResponse = {
     schoolCode: string;
 };
 
-export type TicketResponse = {
+type TicketResponse = {
     id: number;
     transactionId: number;
     name: string;
@@ -61,27 +61,7 @@ export type TicketType =
     | "LOCATION"
     | "OTHER";
 
-export type MemberStats = {
-    total: number;
-    active: number;
-};
-
-export type MemberRequest = {
-    firstName: string;
-    lastName: string;
-    birthDate: string;
-    gender: string;
-    nationality: string;
-    gradeId?: number;
-    phone: string;
-};
-
 export interface UpdateMyProfileRequest {
     name?: string | null;
     nickname?: string | null;
-}
-export interface UpdatePasswordRequest {
-    currentPassword: string; // @NotBlank → required
-    newPassword: string; // @NotBlank + @Size(min=8) → required
-    confirmPassword?: string; // @Size(min=8) but NOT @NotBlank → optional
 }
