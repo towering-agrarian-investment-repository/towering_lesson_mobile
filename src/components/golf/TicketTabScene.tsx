@@ -7,18 +7,26 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
     getMemberTicketByIdQueryOptions,
+    MY_TICKET_TYPES,
     useMemberTickets,
 } from "@/lib/hook/useTicket";
 import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { TicketType } from "@/types/member.type";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
 export const TICKET_TABS = ["all", "bay", "lesson"] as const;
 export type TicketTabType = (typeof TICKET_TABS)[number];
+
+const TICKET_TYPES_BY_TAB: Record<TicketTabType, readonly TicketType[]> = {
+    all: MY_TICKET_TYPES,
+    bay: ["BAY_USAGE"],
+    lesson: ["PRIVATE_LESSON", "GROUP_LESSON", "LESSON_PROGRAM"],
+};
 
 const ticketKeyExtractor = (item: TicketListItemResponse) => String(item.id);
 const TICKET_LIST_CONTENT_STYLE = {
@@ -51,22 +59,10 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         hasNextPage,
         isFetchingNextPage,
         isFetchNextPageError,
-    } = useMemberTickets();
+    } = useMemberTickets({ types: TICKET_TYPES_BY_TAB[type] });
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
         usePullToRefresh(() => refetch({ cancelRefetch: false }));
-    const filteredTickets = useMemo(() => {
-        const tickets = data?.items ?? [];
-
-        if (type === "all") {
-            return tickets;
-        }
-
-        return tickets.filter((ticket) =>
-            type === "bay"
-                ? ticket.type === "BAY_USAGE"
-                : ticket.type !== "BAY_USAGE",
-        );
-    }, [data?.items, type]);
+    const tickets = data?.items ?? [];
 
     const handleFetchNextPage = useCallback(() => {
         if (hasNextPage && !isFetching) {
@@ -80,14 +76,14 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     useEffect(() => {
         if (
             isActive &&
-            filteredTickets.length === 0 &&
+            tickets.length === 0 &&
             hasNextPage &&
             !isFetchNextPageError
         ) {
             handleFetchNextPage();
         }
     }, [
-        filteredTickets.length,
+        tickets.length,
         handleFetchNextPage,
         hasNextPage,
         isActive,
@@ -170,7 +166,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         );
     }
 
-    if (filteredTickets.length === 0 && isFetchNextPageError) {
+    if (tickets.length === 0 && isFetchNextPageError) {
         return (
             <StateList
                 refreshing={isPullRefreshing}
@@ -187,7 +183,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         );
     }
 
-    if (filteredTickets.length === 0 && hasNextPage) {
+    if (tickets.length === 0 && hasNextPage) {
         return (
             <View className="flex-1 gap-3 overflow-hidden pt-4">
                 {Array.from({ length: 6 }, (_, index) => (
@@ -197,7 +193,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         );
     }
 
-    if (filteredTickets.length === 0) {
+    if (tickets.length === 0) {
         return (
             <StateList
                 refreshing={isPullRefreshing}
@@ -215,7 +211,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
 
     return (
         <FlashList
-            data={filteredTickets}
+            data={tickets}
             keyExtractor={ticketKeyExtractor}
             renderItem={renderTicket}
             ItemSeparatorComponent={TicketSeparator}

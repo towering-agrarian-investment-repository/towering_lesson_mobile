@@ -11,7 +11,7 @@ import {
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { useTheme } from "@/design-system/utils/theme";
-import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { formatTicketTypeLabel, isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { applyCalendarLocale } from "@/lib/calendar-locale";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -210,9 +210,9 @@ export default function DateScreen() {
   const ticketIdNumber = Number(ticketId);
   const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
 
-  const isLessonTicket = LESSON_TICKET_TYPES.includes(
-    String(ticketType ?? "").toUpperCase(),
-  );
+  const normalizedTicketType = String(ticketType ?? "").toUpperCase();
+  const isLessonTicket = LESSON_TICKET_TYPES.includes(normalizedTicketType);
+  const isUnsupportedTicket = Boolean(normalizedTicketType) && !isBookableTicketType(normalizedTicketType);
 
   const { startDate, endDate } = useMemo(
     () => getMonthRange(visibleMonth),
@@ -225,7 +225,7 @@ export default function DateScreen() {
     isPending: isPendingBaySlotGroups,
     isRefetching: isRefetchingBaySlotGroups,
     isError: isErrorBaySlotGroups,
-  } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, !isLessonTicket);
+  } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, !isLessonTicket && !isUnsupportedTicket);
 
   const {
     data: lessonSlotData,
@@ -405,11 +405,11 @@ export default function DateScreen() {
     formatTicketTypeLabel(ticketType, t) || ticketName || t("common.noTicket");
   const calendarLocale = applyCalendarLocale(i18n.resolvedLanguage);
 
-  if (!hasTicketId) {
+  if (!hasTicketId || isUnsupportedTicket) {
     return (
       <Screen>
         <EmptyState
-          title={t("bookingConfirmation.ticketInfoMissing")}
+          title={t(hasTicketId ? "common.notAvailable" : "bookingConfirmation.ticketInfoMissing")}
           actionLabel={t("tickets.sectionTitle")}
           onAction={() => runWithNavigationLock(() => router.dismissTo("/tickets"))}
         />

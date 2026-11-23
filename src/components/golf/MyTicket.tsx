@@ -6,6 +6,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberTicketByIdQueryOptions,
     getMemberTicketsQueryOptions,
+    MY_TICKET_TYPES,
     useMemberTickets,
 } from "@/lib/hook/useTicket";
 import { TicketListItemResponse } from "@/types/member-ticket";
@@ -32,7 +33,7 @@ function MyTicket() {
         errorUpdateCount,
         hasNextPage,
         refetch,
-    } = useMemberTickets();
+    } = useMemberTickets({ types: MY_TICKET_TYPES });
     const allTickets = data?.items ?? [];
     const activeTickets = allTickets.filter((ticket) => !ticket.fullyUsed);
     const tickets = activeTickets.slice(0, 3);
@@ -92,7 +93,7 @@ function MyTicket() {
                         onPressIn={() => {
                             if (!isLocked) {
                                 void queryClient.prefetchInfiniteQuery(
-                                    getMemberTicketsQueryOptions(),
+                                    getMemberTicketsQueryOptions({ types: MY_TICKET_TYPES }),
                                 );
                             }
                         }}

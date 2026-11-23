@@ -73,7 +73,7 @@ export default function TicketHistoryScreen() {
         hasNextPage,
         isFetchingNextPage,
         isFetchNextPageError,
-    } = useMemberTickets(queryStatuses);
+    } = useMemberTickets({ statuses: queryStatuses });
 
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
         usePullToRefresh(() => refetch({ cancelRefetch: false }));

@@ -53,11 +53,18 @@ import { MenuView, type MenuAction } from "@expo/ui/community/menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { Bell, MoreVertical } from "lucide-react-native";
-import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
+import { ScrollView as GestureHandlerScrollView } from "react-native-gesture-handler";
 import Swipeable, {
   type SwipeableMethods,
 } from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -72,6 +79,8 @@ const buttonInnerSize = isIOS
   : [fillMaxWidth()];
 
 const notificationKeyExtractor = (item: NotificationResponse) => String(item.id);
+const getNotificationItemType = (item: NotificationResponse) =>
+  item.isRead ? "read" : "unread";
 
 function NotificationSeparator() {
   return <View className="h-px bg-border" />;
@@ -96,7 +105,8 @@ function NoticeScreen() {
     isFetchingNextPage,
     isFetchNextPageError,
   } = useGetNotifications();
-  const { mutateAsync: markAsRead } = useMarkAsRead();
+  const { mutateAsync: markAsRead, isPending: isMarkingAsRead } =
+    useMarkAsRead();
   const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } =
     useMarkAllAsRead();
   const { mutate: deleteNotification, isPending: isDeletingNotification } =
@@ -109,10 +119,13 @@ function NoticeScreen() {
     useState(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const refreshLocked = useRef(false);
-  const deleteAllLocked = useRef(false);
-  const markAllLocked = useRef(false);
-  const deleteLocked = useRef(false);
+  const notificationActionLocked = useRef(false);
   const openSwipeableRef = useRef<SwipeableMethods | null>(null);
+  const isNotificationActionPending =
+    isMarkingAsRead ||
+    isMarkingAllAsRead ||
+    isDeletingNotification ||
+    isDeletingAllNotifications;
 
   const handleSwipeableWillOpen = useCallback((methods: SwipeableMethods) => {
     if (openSwipeableRef.current && openSwipeableRef.current !== methods) {
@@ -121,25 +134,41 @@ function NoticeScreen() {
     openSwipeableRef.current = methods;
     triggerSelectionHaptic();
   }, []);
-  const handleDeleteNotification = useCallback((id: number) => {
-    if (deleteLocked.current || deleteAllLocked.current || isLocked) return;
-    triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    deleteLocked.current = true;
-    deleteNotification(id, {
-      onSettled: () => { deleteLocked.current = false; },
-    });
-  }, [deleteNotification, isLocked]);
+  const handleSwipeableReset = useCallback((methods: SwipeableMethods) => {
+    if (openSwipeableRef.current === methods) {
+      openSwipeableRef.current = null;
+    }
+  }, []);
+  const handleDeleteNotification = useCallback(
+    (id: number) => {
+      if (
+        notificationActionLocked.current ||
+        isNotificationActionPending ||
+        isLocked
+      ) {
+        return;
+      }
+      triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
+      notificationActionLocked.current = true;
+      deleteNotification(id, {
+        onSettled: () => {
+          notificationActionLocked.current = false;
+        },
+      });
+    },
+    [deleteNotification, isLocked, isNotificationActionPending],
+  );
   const closeDeleteAllSheet = () => {
     setIsDeleteAllConfirmationOpen(false);
   };
   const confirmDeleteAll = () => {
-    if (deleteAllLocked.current) return;
+    if (notificationActionLocked.current || isNotificationActionPending) return;
     triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    deleteAllLocked.current = true;
+    notificationActionLocked.current = true;
     setIsDeleteAllConfirmationOpen(false);
     deleteAllNotifications(undefined, {
       onSettled: () => {
-        deleteAllLocked.current = false;
+        notificationActionLocked.current = false;
       },
     });
   };
@@ -159,7 +188,7 @@ function NoticeScreen() {
         titleColor: colors.danger,
         attributes: {
           destructive: true,
-          disabled: isDeletingAllNotifications || isMarkingAllAsRead,
+          disabled: isNotificationActionPending,
         },
       },
     ];
@@ -172,20 +201,27 @@ function NoticeScreen() {
               accessibilityRole="button"
               accessibilityLabel={t("notice.markAllAsRead")}
               accessibilityState={{
-                disabled: isMarkingAllAsRead || isDeletingAllNotifications,
+                disabled: isNotificationActionPending,
                 busy: isMarkingAllAsRead,
               }}
-              disabled={isMarkingAllAsRead || isDeletingAllNotifications}
+              disabled={isNotificationActionPending}
               className={cn(
                 "items-center justify-center px-2",
-                isMarkingAllAsRead && "opacity-60",
+                isNotificationActionPending && "opacity-60",
               )}
               style={{ minHeight: 48 }}
               onPress={() => {
-                if (markAllLocked.current || deleteAllLocked.current || isMarkingAllAsRead || isDeletingAllNotifications) return;
-                markAllLocked.current = true;
+                if (
+                  notificationActionLocked.current ||
+                  isNotificationActionPending
+                ) {
+                  return;
+                }
+                notificationActionLocked.current = true;
                 markAllAsRead(undefined, {
-                  onSettled: () => { markAllLocked.current = false; },
+                  onSettled: () => {
+                    notificationActionLocked.current = false;
+                  },
                 });
               }}
             >
@@ -203,8 +239,8 @@ function NoticeScreen() {
               onPressAction={({ nativeEvent }) => {
                 if (
                   nativeEvent.event === "delete-all" &&
-                  !isDeletingAllNotifications &&
-                  !isMarkingAllAsRead
+                  !isNotificationActionPending &&
+                  !notificationActionLocked.current
                 ) {
                   setIsDeleteAllConfirmationOpen(true);
                 }
@@ -216,11 +252,11 @@ function NoticeScreen() {
                   defaultValue: "More actions",
                 })}
                 accessibilityState={{
-                  disabled: isDeletingAllNotifications || isMarkingAllAsRead,
+                  disabled: isNotificationActionPending,
                 }}
                 className={cn(
                   "items-center justify-center",
-                  isDeletingAllNotifications && "opacity-60",
+                  isNotificationActionPending && "opacity-60",
                 )}
                 style={{ minHeight: 48, minWidth: 48 }}
               >
@@ -237,6 +273,7 @@ function NoticeScreen() {
     hasUnread,
     isDeletingAllNotifications,
     isMarkingAllAsRead,
+    isNotificationActionPending,
     markAllAsRead,
     navigation,
     notifications.length,
@@ -298,6 +335,9 @@ function NoticeScreen() {
 
   const handleNotificationPress = useCallback(
     (item: NotificationResponse) => {
+      if (notificationActionLocked.current || isNotificationActionPending) {
+        return;
+      }
       const referenceId =
         item.referenceId != null ? String(item.referenceId) : null;
       const didLock = runWithNavigationLock(() => {});
@@ -307,7 +347,12 @@ function NoticeScreen() {
       }
 
       if (!item.isRead) {
-        void markAsRead(item.id).catch(() => {});
+        notificationActionLocked.current = true;
+        void markAsRead(item.id)
+          .catch(() => {})
+          .finally(() => {
+            notificationActionLocked.current = false;
+          });
       }
 
       if (!referenceId) {
@@ -324,7 +369,13 @@ function NoticeScreen() {
         unlock();
       }
     },
-    [markAsRead, navigateFromNotification, runWithNavigationLock, unlock],
+    [
+      isNotificationActionPending,
+      markAsRead,
+      navigateFromNotification,
+      runWithNavigationLock,
+      unlock,
+    ],
   );
 
   const handleRefresh = async () => {
@@ -359,22 +410,22 @@ function NoticeScreen() {
     ({ item }: { item: NotificationResponse }) => (
       <MemoNotificationRow
         item={item}
-        disabled={
-          isLocked || isDeletingNotification || isDeletingAllNotifications
-        }
+        disabled={isLocked || isNotificationActionPending}
         isDeleting={isDeletingNotification}
         onDelete={handleDeleteNotification}
         onPress={handleNotificationPress}
+        onSwipeableReset={handleSwipeableReset}
         onSwipeableWillOpen={handleSwipeableWillOpen}
       />
     ),
     [
       handleDeleteNotification,
       handleNotificationPress,
+      handleSwipeableReset,
       handleSwipeableWillOpen,
-      isDeletingAllNotifications,
       isDeletingNotification,
       isLocked,
+      isNotificationActionPending,
     ],
   );
 
@@ -536,7 +587,9 @@ function NoticeScreen() {
           <FlashList
             data={notifications}
             keyExtractor={notificationKeyExtractor}
+            getItemType={getNotificationItemType}
             renderItem={renderNotificationItem}
+            renderScrollComponent={GestureHandlerScrollView}
             ItemSeparatorComponent={NotificationSeparator}
             refreshControl={
               <RefreshControl
@@ -611,6 +664,7 @@ function NotificationRow({
   isDeleting,
   onDelete,
   onPress,
+  onSwipeableReset,
   onSwipeableWillOpen,
 }: {
   item: NotificationResponse;
@@ -618,47 +672,63 @@ function NotificationRow({
   isDeleting: boolean;
   onDelete: (id: number) => void;
   onPress: (item: NotificationResponse) => void;
+  onSwipeableReset: (methods: SwipeableMethods) => void;
   onSwipeableWillOpen: (methods: SwipeableMethods) => void;
 }) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation();
   const swipeableRef = useRef<SwipeableMethods | null>(null);
+  const lastItemIdRef = useRef(item.id);
   const iconClassName = item.isRead ? "bg-muted" : "bg-primary/10";
   const iconColor = item.isRead ? colors.mutedForeground : colors.primary;
+
+  useLayoutEffect(() => {
+    if (lastItemIdRef.current !== item.id) {
+      lastItemIdRef.current = item.id;
+      if (swipeableRef.current) {
+        onSwipeableReset(swipeableRef.current);
+        swipeableRef.current.reset();
+      }
+    }
+  }, [item.id, onSwipeableReset]);
+
+  const handleWillOpen = useCallback(() => {
+    if (swipeableRef.current) {
+      onSwipeableWillOpen(swipeableRef.current);
+    }
+  }, [onSwipeableWillOpen]);
+
+  const renderRightActions = useCallback(
+    () => (
+      <AnimatedPressable
+        accessibilityRole="button"
+        accessibilityLabel={t("notice.delete")}
+        disabled={disabled}
+        className={cn(
+          "w-24 items-center justify-center bg-danger",
+          disabled && "opacity-60",
+        )}
+        onPress={() => onDelete(item.id)}
+      >
+        <AppText variant="label" wrap={false} color="primaryForeground">
+          {isDeleting ? t("notice.deleting") : t("notice.delete")}
+        </AppText>
+      </AnimatedPressable>
+    ),
+    [disabled, isDeleting, item.id, onDelete, t],
+  );
 
   return (
     <Swipeable
       ref={swipeableRef}
       enabled={!disabled}
       friction={2}
-      dragOffsetFromLeft={24}
+      overshootLeft={false}
+      dragOffsetFromLeft={10000}
       dragOffsetFromRight={-24}
       rightThreshold={48}
-      onSwipeableWillOpen={() => {
-        if (swipeableRef.current) {
-          onSwipeableWillOpen(swipeableRef.current);
-        }
-      }}
-      renderRightActions={() => (
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel={t("notice.delete")}
-          disabled={disabled}
-          className={cn(
-            "w-24 items-center justify-center bg-danger",
-            disabled && "opacity-60",
-          )}
-          onPress={() => onDelete(item.id)}
-        >
-          <AppText
-            variant="label"
-            wrap={false}
-            color="primaryForeground"
-          >
-            {isDeleting ? t("notice.deleting") : t("notice.delete")}
-          </AppText>
-        </AnimatedPressable>
-      )}
+      onSwipeableWillOpen={handleWillOpen}
+      renderRightActions={renderRightActions}
     >
       <View className="bg-background">
         <AnimatedPressable

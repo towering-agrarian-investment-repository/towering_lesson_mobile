@@ -5,6 +5,10 @@ import type { ThemeColors } from "./theme";
 export type TicketTypeToneName =
     "bayUsage" | "privateLesson" | "groupLesson" | "lessonProgram" | "default";
 
+export function isBookableTicketType(type: string) {
+    return type === "BAY_USAGE" || type === "PRIVATE_LESSON" || type === "GROUP_LESSON";
+}
+
 type TicketTypeToneDefinition = {
     color: keyof ThemeColors;
     badgeClassName: string;

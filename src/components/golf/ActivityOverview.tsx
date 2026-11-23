@@ -101,13 +101,18 @@ export function ActivityOverview() {
         : isLeapYear(activityYear)
             ? 366
             : 365;
+    const heatmapStartDate = isAllActivity
+        ? firstDate
+        : new Date(activityYear, 0, 1);
     const heatmapEndDate = isAllActivity
         ? lastDate
         : new Date(activityYear, 11, 31);
+    const heatmapStartKey = toDateKey(heatmapStartDate);
+    const heatmapEndKey = toDateKey(heatmapEndDate);
     const activityLabel = isAllActivity
         ? t("activity.allTime")
         : String(activityYear);
-    const selectedDateKey = daySelection?.filter === selectedYear
+    const candidateDateKey = daySelection?.filter === selectedYear
         ? daySelection.dateKey
         : selectedYear === currentYear ||
             (selectedYear === "all" &&
@@ -115,8 +120,14 @@ export function ActivityOverview() {
                 todayKey <= toDateKey(lastDate))
             ? todayKey
             : null;
+    const selectedDateKey =
+        candidateDateKey &&
+        candidateDateKey >= heatmapStartKey &&
+        candidateDateKey <= heatmapEndKey
+            ? candidateDateKey
+            : null;
     const dayReservationsQuery = useMemberReservationsForDay(
-        activity ? selectedDateKey : null,
+        activity && !isPlaceholderData ? selectedDateKey : null,
         isFocused,
     );
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
@@ -404,7 +415,7 @@ export function ActivityOverview() {
                                 title={t("activity.golfActivity")}
                                 period={activityLabel}
                                 onTodayPress={
-                                    showTodayShortcut
+                                    !isPlaceholderData && showTodayShortcut
                                         ? handleTodayJump
                                         : undefined
                                 }
@@ -415,11 +426,21 @@ export function ActivityOverview() {
                                 numDays={daysInYear}
                                 selectedDateKey={selectedDateKey}
                                 focusTodayToken={focusTodayToken}
-                                onDayPress={(date) => setDaySelection({
-                                    filter: selectedYear,
-                                    dateKey: toDateKey(date),
-                                })}
-                                onTodayPress={handleTodayJump}
+                                disabled={isPlaceholderData}
+                                onDayPress={
+                                    isPlaceholderData
+                                        ? undefined
+                                        : (date) =>
+                                              setDaySelection({
+                                                  filter: selectedYear,
+                                                  dateKey: toDateKey(date),
+                                              })
+                                }
+                                onTodayPress={
+                                    isPlaceholderData
+                                        ? undefined
+                                        : handleTodayJump
+                                }
                             />
                             {selectedDateKey ? (
                                 <View className="gap-3 pt-1">

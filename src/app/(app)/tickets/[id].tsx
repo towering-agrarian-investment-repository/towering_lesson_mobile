@@ -23,6 +23,7 @@ import { useTheme } from "@/design-system/utils/theme";
 import {
     formatTicketTypeLabel,
     getTicketTypeTone,
+    isBookableTicketType,
 } from "@/design-system/utils/ticket-type";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -152,7 +153,7 @@ export default function TicketDetailScreen() {
     );
 
     const handleBookPress = useCallback(() => {
-        if (!ticket || isLocked) return;
+        if (!ticket || !isBookableTicketType(ticket.type) || isLocked) return;
         triggerImpactHaptic();
         prefetchTicketAvailability(queryClient, ticket);
         runWithNavigationLock(() => {
@@ -323,7 +324,7 @@ export default function TicketDetailScreen() {
     const canBook =
         (effectiveStatus === "ACTIVE" || effectiveStatus === "IN_USE") &&
         !ticket.fullyUsed &&
-        ticket.type !== "LESSON_PROGRAM";
+        isBookableTicketType(ticket.type);
 
     const footer = canBook ? (
         <View>

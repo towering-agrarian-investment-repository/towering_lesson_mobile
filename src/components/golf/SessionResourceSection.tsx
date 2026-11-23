@@ -34,11 +34,19 @@ type SessionResourceSectionProps = {
 
 const VIDEO_BACKGROUND_COLOR = "#000";
 
-function ResourceVideo({ videoUrl }: { videoUrl: string }) {
-
+function ResourceVideo({
+    videoUrl,
+    autoPlay = false,
+}: {
+    videoUrl: string;
+    autoPlay?: boolean;
+}) {
     const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
+        if (autoPlay) {
+            videoPlayer.play();
+        }
     });
 
     const { status } = useEvent(player, "statusChange", {
@@ -116,7 +124,8 @@ function SessionResourceItem({
     const { colors } = useTheme();
     const { t } = useTranslation();
     const reducedMotion = useReducedMotion();
-    const [videoActivated, setVideoActivated] = useState(!deferVideo);
+    const [playRequested, setPlayRequested] = useState(false);
+    const shouldMountVideo = !deferVideo || playRequested;
     const url = getResourceUrl(resource);
     const title =
         resource.originalFileName?.trim() ||
@@ -206,13 +215,13 @@ function SessionResourceItem({
                     </NativeText>
                     <BadgePill label={resourceTypeLabel} />
                 </View>
-                {videoActivated ? (
-                    <ResourceVideo videoUrl={url} />
+                {shouldMountVideo ? (
+                    <ResourceVideo videoUrl={url} autoPlay={playRequested} />
                 ) : (
                     <AnimatedPressable
                         accessibilityRole="button"
                         accessibilityLabel={title}
-                        onPress={() => setVideoActivated(true)}
+                        onPress={() => setPlayRequested(true)}
                         className="items-center justify-center overflow-hidden rounded-2xl border border-border bg-black"
                         style={{ height: 240 }}
                     >

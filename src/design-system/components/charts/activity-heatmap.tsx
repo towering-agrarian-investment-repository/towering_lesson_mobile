@@ -142,6 +142,7 @@ type ActivityHeatmapProps = Omit<ViewProps, "children"> & {
   legend?: boolean;
   showSelectedHeader?: boolean;
   focusTodayToken?: number;
+  disabled?: boolean;
   className?: string;
   selectedDateKey?: string | null;
   onDayPress?: (date: Date, count: number) => void;
@@ -158,6 +159,7 @@ export function ActivityHeatmap({
   legend = true,
   showSelectedHeader = false,
   focusTodayToken = 0,
+  disabled = false,
   className,
   selectedDateKey,
   onDayPress,
@@ -257,13 +259,15 @@ export function ActivityHeatmap({
   };
   const handleSelectDay = useCallback(
     (dateKey: string, date: Date, count: number) => {
+      if (disabled) return;
       triggerSelectionHaptic();
       setSelection({ rangeKey, dateKey });
       onDayPress?.(date, count);
     },
-    [onDayPress, rangeKey],
+    [disabled, onDayPress, rangeKey],
   );
   const handleTodayPress = () => {
+    if (disabled) return;
     if (todayWeekIndex >= 0) {
       triggerSelectionHaptic();
       setSelection({ rangeKey, dateKey: todayKey });
@@ -305,6 +309,7 @@ export function ActivityHeatmap({
             ? selectedDay
             : null
         }
+        disabled={disabled}
         colors={colors}
         dateFormatter={dateFormatter}
         onSelectDay={handleSelectDay}
@@ -316,6 +321,7 @@ export function ActivityHeatmap({
       monthLabelHeight,
       todayKey,
       selectedDay,
+      disabled,
       colors,
       dateFormatter,
       handleSelectDay,
@@ -447,7 +453,7 @@ export function ActivityHeatmap({
           includeCancelled={values.some((value) =>
             value.status === "cancelled" || (value.statusBreakdown?.cancelled ?? 0) > 0
           )}
-          onTodayPress={showSelectedHeader ? handleTodayPress : undefined}
+          onTodayPress={!disabled && showSelectedHeader ? handleTodayPress : undefined}
         />
       ) : null}
       {showSelectedHeader && selectedDay ? (
@@ -537,6 +543,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
   monthLabelHeight,
   todayKey,
   selectedDay,
+  disabled,
   colors,
   dateFormatter,
   onSelectDay,
@@ -547,6 +554,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
   monthLabelHeight: number;
   todayKey: string;
   selectedDay: string | null;
+  disabled?: boolean;
   colors: ThemeColors;
   dateFormatter: Intl.DateTimeFormat;
   onSelectDay: (dateKey: string, date: Date, count: number) => void;
@@ -587,8 +595,12 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
           <Pressable
             key={day.dateKey}
             accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
+            accessibilityState={{
+              selected: isSelected,
+              disabled: Boolean(disabled),
+            }}
             accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateFormatter.format(day.date) })}${statusLabel ? ` · ${statusLabel}` : ""}${isToday ? ` (${t("activity.today")})` : ""}`}
+            disabled={disabled}
             hitSlop={CELL_GAP / 2}
             style={({ pressed }) => ({
               width: cellSize,
@@ -603,7 +615,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
               ),
               borderWidth: isSelected ? 2 : isToday ? 1.5 : 0,
               borderColor: isSelected ? colors.foreground : colors.primary,
-              opacity: pressed ? 0.7 : 1,
+              opacity: pressed && !disabled ? 0.7 : 1,
             })}
             onPress={() => onSelectDay(day.dateKey, day.date, day.count)}
           >

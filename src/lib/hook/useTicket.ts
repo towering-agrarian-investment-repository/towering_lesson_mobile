@@ -1,23 +1,34 @@
-import { getMemberTicketById, getMemberTickets, MEMBER_TICKET_PAGE_SIZE } from "@/service/ticket-service";
+import { getMemberTicketById, getMemberTickets, MEMBER_TICKET_PAGE_SIZE, type MemberTicketFilters } from "@/service/ticket-service";
 import type { TicketDetailResponse, TicketListItemResponse } from "@/types/member-ticket";
+import type { TicketType } from "@/types/member.type";
 import { type InfiniteData, type QueryClient, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiResponse, CursorPageResponse } from "../api-response/api-response";
 
 const DEFAULT_TICKET_STATUSES = ["ACTIVE", "IN_USE"];
 
+export const MY_TICKET_TYPES: readonly TicketType[] = [
+    "BAY_USAGE",
+    "PRIVATE_LESSON",
+    "GROUP_LESSON",
+    "LESSON_PROGRAM",
+    "LOCATION",
+    "OTHER",
+];
 
-export function getMemberTicketsQueryOptions(
-    statuses?: readonly string[],
+export function getMemberTicketsQueryOptions({
+    statuses = DEFAULT_TICKET_STATUSES,
+    types,
     limit = MEMBER_TICKET_PAGE_SIZE,
-) {
-    const resolvedStatuses = statuses ?? DEFAULT_TICKET_STATUSES;
+}: MemberTicketFilters = {}) {
+    const ticketTypes = types?.length ? types : undefined;
 
     return {
-        queryKey: ["member", "tickets", resolvedStatuses, limit] as const,
+        queryKey: ["member", "tickets", statuses, limit, ticketTypes] as const,
         initialPageParam: null as string | null,
         queryFn: ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) =>
             getMemberTickets({
-                statuses: resolvedStatuses,
+                statuses,
+                types: ticketTypes,
                 cursor: pageParam ?? undefined,
                 limit,
             }, signal),
@@ -27,10 +38,10 @@ export function getMemberTicketsQueryOptions(
     };
 }
 
-export function useMemberTickets(
-    statuses?: readonly string[],
-    limit = MEMBER_TICKET_PAGE_SIZE,
-) {
+export function useMemberTickets(filters?: MemberTicketFilters) {
+    const options = getMemberTicketsQueryOptions(filters);
+    const [, , , limit, types] = options.queryKey;
+
     return useInfiniteQuery<
         ApiResponse<CursorPageResponse<TicketListItemResponse>>,
         Error,
@@ -38,9 +49,12 @@ export function useMemberTickets(
         ReturnType<typeof getMemberTicketsQueryOptions>["queryKey"],
         string | null
     >({
-        ...getMemberTicketsQueryOptions(statuses, limit),
+        ...options,
         placeholderData: (previousData, previousQuery) =>
-            previousQuery?.queryKey[3] === limit ? previousData : undefined,
+            previousQuery?.queryKey[3] === limit &&
+            previousQuery.queryKey[4]?.join(",") === types?.join(",")
+                ? previousData
+                : undefined,
         select: (data) => ({ items: data.pages.flatMap((page) => page.data.items) }),
     });
 }

@@ -10,6 +10,7 @@ import { useTheme } from "@/design-system/utils/theme";
 import {
     formatTicketTypeLabel,
     getTicketTypeTone,
+    isBookableTicketType,
 } from "@/design-system/utils/ticket-type";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import {
@@ -231,7 +232,7 @@ function TicketHistoryCard({
                         {showBookAction &&
                         !isInactive &&
                         !item.fullyUsed &&
-                        item.type !== "LESSON_PROGRAM" &&
+                        isBookableTicketType(item.type) &&
                         onBookPress ? (
                             <Pressable
                                 accessibilityRole="button"

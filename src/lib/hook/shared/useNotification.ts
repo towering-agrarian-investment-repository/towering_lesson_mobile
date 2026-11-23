@@ -27,13 +27,39 @@ type NotificationInfiniteData = InfiniteData<
 >;
 
 type NotificationMutationContext = {
+	mutationId: number;
 	previousLists: [readonly unknown[], NotificationInfiniteData | undefined][];
 	previousUnreadCount: ApiResponse<number> | undefined;
 };
 
+type NotificationMutationTracker = {
+	activeCount: number;
+	latestId: number;
+};
+
+const mutationTrackers = new WeakMap<
+	QueryClient,
+	NotificationMutationTracker
+>();
+
+function getMutationTracker(
+	queryClient: QueryClient,
+): NotificationMutationTracker {
+	let tracker = mutationTrackers.get(queryClient);
+	if (!tracker) {
+		tracker = { activeCount: 0, latestId: 0 };
+		mutationTrackers.set(queryClient, tracker);
+	}
+	return tracker;
+}
+
 async function snapshotNotifications(
 	queryClient: QueryClient,
 ): Promise<NotificationMutationContext> {
+	const tracker = getMutationTracker(queryClient);
+	tracker.activeCount += 1;
+	const mutationId = ++tracker.latestId;
+
 	await queryClient.cancelQueries({ queryKey: ["notifications"] });
 	const previousLists = queryClient.getQueriesData<NotificationInfiniteData>({
 		queryKey: ["notifications"],
@@ -43,7 +69,7 @@ async function snapshotNotifications(
 		"notifications",
 		"unread-count",
 	]);
-	return { previousLists, previousUnreadCount };
+	return { mutationId, previousLists, previousUnreadCount };
 }
 
 function restoreNotifications(
@@ -51,6 +77,10 @@ function restoreNotifications(
 	context?: NotificationMutationContext,
 ) {
 	if (!context) return;
+	const tracker = getMutationTracker(queryClient);
+	if (context.mutationId !== tracker.latestId) {
+		return;
+	}
 	for (const [key, data] of context.previousLists) {
 		queryClient.setQueryData(key, data);
 	}
@@ -58,6 +88,14 @@ function restoreNotifications(
 		["notifications", "unread-count"],
 		context.previousUnreadCount,
 	);
+}
+
+function settleNotificationMutation(queryClient: QueryClient) {
+	const tracker = getMutationTracker(queryClient);
+	tracker.activeCount = Math.max(0, tracker.activeCount - 1);
+	if (tracker.activeCount === 0) {
+		void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+	}
 }
 
 export const useGetNotifications = (isRead?: boolean) => {
@@ -161,7 +199,7 @@ export const useMarkAsRead = () => {
 			responseError(error);
 		},
 		onSettled: () => {
-			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			settleNotificationMutation(queryClient);
 		},
 	});
 };
@@ -214,7 +252,7 @@ export const useMarkAllAsRead = () => {
 			responseError(error);
 		},
 		onSettled: () => {
-			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			settleNotificationMutation(queryClient);
 		},
 	});
 };
@@ -276,7 +314,7 @@ export const useDeleteNotification = () => {
 			responseError(error);
 		},
 		onSettled: () => {
-			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			settleNotificationMutation(queryClient);
 		},
 	});
 };
@@ -328,7 +366,7 @@ export const useDeleteAllNotifications = () => {
 			responseError(error);
 		},
 		onSettled: () => {
-			void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			settleNotificationMutation(queryClient);
 		},
 	});
 };

@@ -1,11 +1,18 @@
 import { ApiResponse, CursorPageResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 import type { TicketDetailResponse, TicketListItemResponse } from "@/types/member-ticket";
+import type { TicketType } from "@/types/member.type";
 
 export const MEMBER_TICKET_PAGE_SIZE = 20;
 
+export type MemberTicketFilters = {
+    statuses?: readonly string[];
+    types?: readonly TicketType[];
+    limit?: number;
+};
+
 export const getMemberTickets = async (
-    params: { statuses?: readonly string[]; cursor?: string; limit?: number } = {},
+    params: MemberTicketFilters & { cursor?: string } = {},
     signal?: AbortSignal,
 ): Promise<ApiResponse<CursorPageResponse<TicketListItemResponse>>> => {
     const searchParams = new URLSearchParams({
@@ -14,6 +21,10 @@ export const getMemberTickets = async (
 
     for (const status of params.statuses ?? []) {
         searchParams.append("statuses", status);
+    }
+
+    for (const type of params.types ?? []) {
+        searchParams.append("types", type);
     }
 
     if (params.cursor) searchParams.set("cursor", params.cursor);
