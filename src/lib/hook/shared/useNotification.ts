@@ -43,6 +43,7 @@ export const useGetNotifications = (isRead?: boolean) => {
 			hasMore: data.pages[data.pages.length - 1]?.data.hasMore ?? false,
 		}),
 		staleTime: 15_000,
+		refetchOnWindowFocus: true,
 	});
 };
 
@@ -51,6 +52,7 @@ export const useGetUnreadNotificationCount = () => {
 		queryKey: ["notifications", "unread-count"],
 		queryFn: getUnreadNotificationCount,
 		staleTime: 15_000,
+		refetchOnWindowFocus: true,
 	});
 };
 

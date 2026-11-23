@@ -24,7 +24,7 @@ import {
     MemberLessonSlotResponse,
 } from "@/types/member-lesson";
 import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
-import { type InfiniteData, keepPreviousData, QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_ERROR_CODE, ApiResponse, ApiErrorResponse, CursorPageResponse, isApiError, responseError, responseStatus } from "../api-response/api-response";
 
 
@@ -51,11 +51,12 @@ type RescheduleMemberBayReservationVariables = {
     data: RescheduleBayReservationRequest;
 };
 
-export function getMemberBaySlotGroupsQueryOptions(startDate: string, endDate: string) {
+export function getMemberBaySlotGroupsQueryOptions(ticketId: number, startDate: string, endDate: string) {
     return {
-        queryKey: ["member", "bay-slot-groups", startDate, endDate] as const,
+        queryKey: ["member", "bay-slot-groups", ticketId, startDate, endDate] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberBaySlotGroups(startDate, endDate, signal),
+            getMemberBaySlotGroups(ticketId, startDate, endDate, signal),
+        staleTime: 10_000,
     };
 }
 
@@ -98,6 +99,8 @@ export function useMemberReservations(type: MemberReservationType, from?: string
         string | null
     >({
         ...getMemberReservationsQueryOptions(type, from, to),
+        placeholderData: (previousData, previousQuery) =>
+            previousQuery?.queryKey[2] === type ? previousData : undefined,
         select: (data) => ({
             items: data.pages.flatMap((page) => page.data.items),
         }),
@@ -141,6 +144,7 @@ export function getMemberReservationDetailQueryOptions(
 ): {
     queryKey: readonly ["member", "reservations", "detail", "bay", number];
     queryFn: ({ signal }: { signal: AbortSignal }) => Promise<ApiResponse<MemberBayReservationResponse>>;
+    staleTime: number;
 };
 export function getMemberReservationDetailQueryOptions(
     id: number,
@@ -148,6 +152,7 @@ export function getMemberReservationDetailQueryOptions(
 ): {
     queryKey: readonly ["member", "reservations", "detail", "lesson", number];
     queryFn: ({ signal }: { signal: AbortSignal }) => Promise<ApiResponse<MemberLessonReservationResponse>>;
+    staleTime: number;
 };
 export function getMemberReservationDetailQueryOptions(
     id: number,
@@ -155,6 +160,7 @@ export function getMemberReservationDetailQueryOptions(
 ): {
     queryKey: readonly ["member", "reservations", "detail", MemberReservationDomain, number];
     queryFn: ({ signal }: { signal: AbortSignal }) => Promise<ApiResponse<MemberBayReservationResponse> | ApiResponse<MemberLessonReservationResponse>>;
+    staleTime: number;
 };
 export function getMemberReservationDetailQueryOptions(
     id: number,
@@ -169,6 +175,7 @@ export function getMemberReservationDetailQueryOptions(
 
             return getLessonReservationById(id, signal);
         },
+        staleTime: 30_000,
     };
 }
 
@@ -188,17 +195,57 @@ function refreshMemberReservationDetail(
     });
 }
 
+function patchCancelledReservationInLists(
+    queryClient: QueryClient,
+    reservationId: number,
+    domain: MemberReservationDomain,
+) {
+    const patchSummary = <T extends MemberReservationSummaryResponse>(item: T): T =>
+        item.id === reservationId && item.reservationType === domain
+            ? { ...item, reservationStatus: "CANCELLED" }
+            : item;
+
+    queryClient.setQueriesData<ApiResponse<MemberReservationSummaryResponse[]>>(
+        { queryKey: ["member", "reservations", "today"] },
+        (old) => (old ? { ...old, data: old.data.map(patchSummary) } : old),
+    );
+    queryClient.setQueriesData<ApiResponse<MemberReservationSummaryResponse[]>>(
+        { queryKey: ["member", "reservations", "by-date"] },
+        (old) => (old ? { ...old, data: old.data.map(patchSummary) } : old),
+    );
+    for (const type of ["all", "bay", "private", "group", "program"] as const) {
+        queryClient.setQueriesData<
+            InfiniteData<ApiResponse<CursorPageResponse<MemberReservationResponse>>>
+        >({ queryKey: ["member", "reservations", type] }, (old) => {
+            if (!old) return old;
+            return {
+                ...old,
+                pages: old.pages.map((page) => ({
+                    ...page,
+                    data: {
+                        ...page.data,
+                        items: page.data.items.map(patchSummary),
+                    },
+                })),
+            };
+        });
+    }
+}
+
 function refreshMemberReservationLists(queryClient: QueryClient) {
     void queryClient.invalidateQueries({
         queryKey: ["member", "reservations"],
         predicate: (query) => query.queryKey[2] !== "detail",
+    });
+    void queryClient.invalidateQueries({
+        queryKey: ["member", "activity"],
     });
 }
 
 function refreshMemberTickets(queryClient: QueryClient) {
     void queryClient.invalidateQueries({
         queryKey: ["member", "tickets"],
-        refetchType: "all",
+        refetchType: "active",
     });
 }
 
@@ -253,12 +300,14 @@ export function useMemberReservationById(id: number, domain?: MemberReservationD
 
 
 
-export function useMemberBaySlotGroups(startDate: string, endDate: string, enabled = true) {
+export function useMemberBaySlotGroups(ticketId: number, startDate: string, endDate: string, enabled = true) {
     return useQuery<ApiResponse<BaySlotGroupScheduleResponse[]>>({
-        ...getMemberBaySlotGroupsQueryOptions(startDate, endDate),
-        enabled: enabled && Boolean(startDate) && Boolean(endDate),
-        placeholderData: keepPreviousData,
-        staleTime: 30_000,
+        ...getMemberBaySlotGroupsQueryOptions(ticketId, startDate, endDate),
+        enabled: enabled && Number.isSafeInteger(ticketId) && ticketId > 0 && Boolean(startDate) && Boolean(endDate),
+        refetchOnWindowFocus: true,
+        // Keep date navigation smooth without displaying another ticket's schedule.
+        placeholderData: (previousData, previousQuery) =>
+            previousQuery?.queryKey[2] === ticketId ? previousData : undefined,
     });
 }
 
@@ -326,6 +375,7 @@ export function getMemberTicketLessonSlotsQueryOptions(
         queryKey: ["member", "ticket-lesson-slots", ticketId, year, month] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
             getTicketLessonSlots(ticketId, year, month, signal),
+        staleTime: 30_000,
     };
 }
 
@@ -339,8 +389,9 @@ export function useMemberTicketLessonSlots(
     return useQuery<ApiResponse<MemberLessonSlotResponse[]>>({
         ...getMemberTicketLessonSlotsQueryOptions(ticketId as number, year, month),
         enabled: enabled && Boolean(ticketId) && Boolean(year) && Boolean(month),
-        placeholderData: keepPreviousData,
-        staleTime: 30_000,
+        refetchOnWindowFocus: true,
+        placeholderData: (previousData, previousQuery) =>
+            previousQuery?.queryKey[2] === ticketId ? previousData : undefined,
     });
 }
 
@@ -351,7 +402,9 @@ export function useCancelMemberLessonReservation() {
         mutationFn: cancelLessonReservationById,
         onSuccess: (res, reservationId) => {
             responseStatus(res);
+            patchCancelledReservationInLists(queryClient, reservationId, "lesson");
             refreshMemberReservationLists(queryClient);
+            refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "ticket-lesson-slots"],
                 refetchType: "none",
@@ -374,7 +427,9 @@ export function useCancelMemberBayReservation() {
         mutationFn: cancelBayReservationById,
         onSuccess: (res, reservationId) => {
             responseStatus(res);
+            patchCancelledReservationInLists(queryClient, reservationId, "bay");
             refreshMemberReservationLists(queryClient);
+            refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "bay-slot-groups"],
                 refetchType: "none",

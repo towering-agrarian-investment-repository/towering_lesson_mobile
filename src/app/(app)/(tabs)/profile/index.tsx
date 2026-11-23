@@ -18,7 +18,7 @@ import {
 } from "@/design-system/utils/native-button-styles";
 import { getThemeColors, useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { setAppLanguage, type AppLanguage } from "@/i18n";
+import { resolveLanguage, setAppLanguage, type AppLanguage } from "@/i18n";
 import { useMemberLessonLogCount } from "@/lib/hook/useLessonLog";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
@@ -43,6 +43,8 @@ import {
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
 import {
+  contentShape,
+  shapes,
   frame,
   presentationCornerRadius,
 } from "@expo/ui/swift-ui/modifiers";
@@ -51,7 +53,7 @@ import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { Href, Link } from "expo-router";
 import * as Updates from "expo-updates";
-import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
+import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, Ticket, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -73,13 +75,13 @@ const buttonSize = isIOS
   ? [frame({ maxWidth: Infinity, minHeight: 48 })]
   : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })];
 const buttonInnerSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+  ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
   : [fillMaxWidth()];
 const signOutButtonSize = isIOS
   ? [frame({ maxWidth: Infinity, minHeight: 56 })]
   : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })];
 const signOutTextSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "center" })]
+  ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "center" }), contentShape(shapes.rectangle())]
   : [fillMaxWidth()];
 
 const LANGUAGES: {
@@ -138,6 +140,8 @@ export default function ProfileScreen() {
   const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const signOutLocked = useRef(false);
+  const openingStore = useRef(false);
+  const [isOpeningStore, setIsOpeningStore] = useState(false);
   const [isChangingLanguage, setIsChangingLanguage] = useState(false);
 
   const {
@@ -181,6 +185,18 @@ export default function ProfileScreen() {
       ].filter((row) => row.value)
     : [];
 
+  const handleOpenStore = async () => {
+    if (openingStore.current || !update.state) return;
+    openingStore.current = true;
+    setIsOpeningStore(true);
+    try {
+      await openStore(update.state);
+    } finally {
+      openingStore.current = false;
+      setIsOpeningStore(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (signOutLocked.current) return;
     signOutLocked.current = true;
@@ -222,6 +238,11 @@ export default function ProfileScreen() {
 
     try {
       await setAppLanguage(nextLanguage);
+    } catch {
+      showAppToast({
+        message: t("common.requestError"),
+        type: "error",
+      });
     } finally {
       setIsChangingLanguage(false);
     }
@@ -233,20 +254,33 @@ export default function ProfileScreen() {
 
   if (isError && !memberResponse) {
     return (
-      <ErrorState
-        title={t("home.couldNotLoadProfile")}
-        message={t("home.checkConnection")}
-        actionLabel={
-          isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+      <Screen
+        contentClassName="grow"
+        bottomPadding={16}
+        bottomSafeArea={process.env.EXPO_OS === "ios"}
+        refreshControl={
+          <RefreshControl
+            refreshing={isPullRefreshing}
+            onRefresh={handlePullRefresh}
+          />
         }
-        actionPending={isRefetching || isPullRefreshing}
-        onAction={handlePullRefresh}
-      />
+      >
+        <ErrorState
+          title={t("home.couldNotLoadProfile")}
+          message={t("home.checkConnection")}
+          actionLabel={
+            isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+          }
+          actionPending={isRefetching || isPullRefreshing}
+          onAction={handlePullRefresh}
+        />
+      </Screen>
     );
   }
 
   return (
     <Screen
+      bottomSafeArea={process.env.EXPO_OS === "ios"}
       refreshControl={
         <RefreshControl
           refreshing={isPullRefreshing}
@@ -381,7 +415,10 @@ export default function ProfileScreen() {
           <View className="mt-5 gap-3 rounded-xl border border-warning/30 bg-warning/10 p-4">
             <ListRow
               accessibilityLabel={t("appUpdate.updateAvailable")}
-              title={t("appUpdate.updateAvailable")}
+              title={t(isOpeningStore ? "appUpdate.openingStore" : "appUpdate.updateAvailable")}
+              disabled={isOpeningStore}
+              accessibilityState={{ disabled: isOpeningStore, busy: isOpeningStore }}
+              trailing={isOpeningStore ? <ActivityIndicator color={colors.warning} /> : undefined}
               subtitle={t("appUpdate.newVersion", {
                 version: update.state.latestVersion ?? "",
               })}
@@ -392,7 +429,7 @@ export default function ProfileScreen() {
               }
               className="border-0 bg-transparent px-0"
               onPress={() => {
-                void openStore(update.state!);
+                void handleOpenStore();
               }}
             />
           </View>
@@ -414,6 +451,12 @@ export default function ProfileScreen() {
                     label={t("navigation.tabs.lessons")}
                     href="/lessons"
                     icon={UsersRound}
+                  />
+                  <Divider className="bg-border" />
+                  <LinkRow
+                    label={t("tickets.historyTitle")}
+                    href="/ticket-history"
+                    icon={Ticket}
                   />
                 </View>
               </View>
@@ -479,7 +522,7 @@ export default function ProfileScreen() {
                     />
                     <Divider className="bg-border" />
                     <LanguagePreferenceRow
-                      currentLanguage={resolveProfileLanguage(
+                      currentLanguage={resolveLanguage(
                         i18n.resolvedLanguage || i18n.language,
                       )}
                       disabled={isChangingLanguage}
@@ -520,14 +563,13 @@ export default function ProfileScreen() {
                     style={{
                       ...getNativeButtonStyle(colors, "text", isSigningOut),
                       backgroundColor: colors.danger,
-                      paddingHorizontal: 16,
                     }}
                     modifiers={signOutButtonSize}
                     variant="text"
                     disabled={isSigningOut}
                     onPress={confirmSignOut}
                   >
-                    <Row spacing={8} alignment="center" modifiers={signOutTextSize}>
+                    <Row spacing={8} alignment="center" style={{ paddingHorizontal: 16 }} modifiers={signOutTextSize}>
                       <Spacer flexible />
                       <RNHostView matchContents>
                         <LogOut size={18} color={colors.primaryForeground} />
@@ -575,28 +617,6 @@ export default function ProfileScreen() {
       </View>
     </Screen>
   );
-}
-
-function resolveProfileLanguage(language: string | undefined): AppLanguage {
-  const normalizedLanguage = language?.toLowerCase();
-
-  if (normalizedLanguage?.startsWith("ko")) {
-    return "ko";
-  }
-
-  if (normalizedLanguage?.startsWith("ja")) {
-    return "ja";
-  }
-
-  if (normalizedLanguage?.startsWith("zh")) {
-    return "zh";
-  }
-
-  if (normalizedLanguage?.startsWith("km")) {
-    return "km";
-  }
-
-  return "en";
 }
 
 function ProfileHeader({
@@ -750,6 +770,8 @@ function ParentRow({
   phoneNumber?: string | null;
   imageUrl?: string | null;
 }) {
+  const { t } = useTranslation();
+
   return (
     <View className="min-h-16 flex-row items-center gap-3 py-2">
       <ProfileAvatar name={name} imageUrl={imageUrl} />
@@ -771,7 +793,7 @@ function ParentRow({
       {role ? (
         <View className="max-w-[38%] rounded-full bg-muted px-2.5 py-1">
           <NativeText variant="caption" align="center" wrap={false} numberOfLines={1} textStyle={{ fontWeight: "600" }}>
-            {formatType(role)}
+            {formatType(role, t)}
           </NativeText>
         </View>
       ) : null}

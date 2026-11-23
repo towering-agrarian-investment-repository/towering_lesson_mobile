@@ -4,6 +4,7 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
+  StateList,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AppText } from "@/design-system/components/AppText";
@@ -11,6 +12,7 @@ import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
+  getMemberReservationDetailQueryOptions,
   useMemberReservations,
 } from "@/lib/hook/useReservation";
 import type { MemberReservationType } from "@/service/reservation.service";
@@ -22,6 +24,7 @@ import {
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
 import { frame } from "@expo/ui/swift-ui/modifiers";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -58,6 +61,7 @@ function ReservationTabSceneContent({
 }: ReservationTabSceneProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { isLocked, runWithNavigationLock } = useNavigationLock();
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const refreshLocked = useRef(false);
@@ -99,6 +103,12 @@ function ReservationTabSceneContent({
 
   const handleReservationPress = useCallback(
     (reservation: MemberReservationResponse) => {
+      void queryClient.prefetchQuery(
+        getMemberReservationDetailQueryOptions(
+          reservation.id,
+          reservation.reservationType,
+        ),
+      );
       runWithNavigationLock(() => {
         router.push({
           pathname: "/reservation/[id]",
@@ -109,15 +119,18 @@ function ReservationTabSceneContent({
         });
       });
     },
-    [router, runWithNavigationLock],
+    [queryClient, router, runWithNavigationLock],
   );
 
   const renderReservationItem = useCallback(
     ({ item, index }: { item: MemberReservationResponse; index: number }) => (
-      <View>
+      <View className="gap-2.5">
         {index === 0 || reservations[index - 1].reservationDate !== item.reservationDate ? (
-          <ReservationDateHeader startTime={item.startTime}
-            count={dateCounts.get(item.reservationDate) ?? 1} />
+          <ReservationDateHeader
+            startTime={item.startTime}
+            count={dateCounts.get(item.reservationDate) ?? 1}
+            isFirst={index === 0}
+          />
         ) : null}
         <ReservationCard
           reservation={item}
@@ -158,7 +171,7 @@ function ReservationTabSceneContent({
 
   if (isError && !data) {
     return (
-      <ReservationStateList
+      <StateList
         refreshing={isPullRefreshing}
         onRefresh={handleRefetch}
       >
@@ -171,13 +184,13 @@ function ReservationTabSceneContent({
           actionPending={isRefetching}
           onAction={handleRefetch}
         />
-      </ReservationStateList>
+      </StateList>
     );
   }
 
   if (reservations.length === 0) {
     return (
-      <ReservationStateList
+      <StateList
         refreshing={isPullRefreshing}
         onRefresh={handleRefetch}
       >
@@ -188,7 +201,7 @@ function ReservationTabSceneContent({
           actionPending={period === "all" && isRefetching}
           onAction={period === "all" ? handleRefetch : () => onPeriodChange("all")}
         />
-      </ReservationStateList>
+      </StateList>
     );
   }
 
@@ -197,6 +210,7 @@ function ReservationTabSceneContent({
       data={reservations}
       keyExtractor={reservationKeyExtractor}
       renderItem={renderReservationItem}
+      ItemSeparatorComponent={() => <View className="h-2.5" />}
       style={{ flex: 1 }}
       refreshControl={
         <RefreshControl
@@ -223,7 +237,10 @@ function ReservationTabSceneContent({
         isFetchingNextPage ? (
           <ReservationListFooter />
         ) : isFetchNextPageError ? (
-          <ReservationListFooter onRetry={handleFetchNextPage} />
+          <ReservationListFooter
+            onRetry={handleFetchNextPage}
+            retrying={isFetching || isFetchingNextPage}
+          />
         ) : undefined
       }
     />
@@ -234,11 +251,14 @@ export const ReservationTabScene = memo(ReservationTabSceneContent);
 
 function ReservationLoadingState() {
   return (
-    <View className="flex-col gap-3 pb-10 pt-5">
+    <View className="flex-1 flex-col gap-3 overflow-hidden pb-10 pt-5">
       <ReservationListHeaderSkeleton />
-      <Skeleton className="h-9 w-full rounded-xl" />
-      <View>
-        {Array.from({ length: 3 }, (_, index) => (
+      <View className="flex-row items-baseline justify-between px-0.5 pt-2">
+        <Skeleton className="h-4 w-32 rounded-full" />
+        <Skeleton className="h-3.5 w-16 rounded-full" />
+      </View>
+      <View className="gap-2.5">
+        {Array.from({ length: 5 }, (_, index) => (
           <ReservationCardSkeleton key={index} />
         ))}
       </View>
@@ -246,17 +266,34 @@ function ReservationLoadingState() {
   );
 }
 
-function ReservationDateHeader({ startTime, count }: { startTime: string; count: number }) {
-  const { t, i18n } = useTranslation();
+function ReservationDateHeader({
+  startTime,
+  count,
+  isFirst = false,
+}: {
+  startTime: string;
+  count: number;
+  isFirst?: boolean;
+}) {
+  const { t } = useTranslation();
 
   return (
-    <View className="mb-1 mt-4 flex-row items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2.5">
-      <AppText variant="eyebrow" color="mutedForeground" numberOfLines={2}
+    <View
+      className={
+        isFirst
+          ? "flex-row items-baseline justify-between gap-2 px-0.5 pt-1"
+          : "flex-row items-baseline justify-between gap-2 px-0.5 pt-3.5"
+      }
+    >
+      <AppText
+        variant="label"
+        numberOfLines={1}
         style={{ flex: 1, minWidth: 0 }}
-        textStyle={{ letterSpacing: 0.2 }}>
-        {formatDateValue(startTime, "EEEE, MMM d, yyyy").toLocaleUpperCase(i18n.language)}
+        textStyle={{ fontWeight: "700" }}
+      >
+        {formatDateValue(startTime, "EEE, MMM d, yyyy")}
       </AppText>
-      <AppText variant="meta" color="mutedForeground" wrap={false} numberOfLines={1}>
+      <AppText variant="caption" color="mutedForeground" wrap={false} numberOfLines={1}>
         {t("reservations.count", { count })}
       </AppText>
     </View>
@@ -265,27 +302,28 @@ function ReservationDateHeader({ startTime, count }: { startTime: string; count:
 
 function ReservationListHeaderSkeleton() {
   return (
-    <View className="flex-row items-center justify-between">
+    <View className="flex-row items-center justify-between px-0.5">
       <Skeleton className="h-4 w-24 rounded-full" />
-      <Skeleton className="h-4 w-20 rounded-full" />
+      <Skeleton className="h-3.5 w-16 rounded-full" />
     </View>
   );
 }
 
 function ReservationCardSkeleton() {
   return (
-    <View className="flex-row items-center gap-2.5 border-b border-border bg-card px-3 py-3">
-      <View className="w-[72px] gap-2 border-r border-border pr-2">
-        <Skeleton className="h-4 w-14 rounded-full" />
-        <Skeleton className="h-3 w-12 rounded-full" />
+    <View className="gap-3 rounded-2xl border border-border bg-card p-4">
+      <View className="flex-row items-center justify-between gap-2">
+        <Skeleton className="h-4 w-36 rounded-full" />
+        <Skeleton className="h-5 w-16 rounded-md" />
       </View>
-      <Skeleton className="h-10 w-10 rounded-xl" />
-      <View className="min-w-0 flex-1 gap-2.5">
-        <Skeleton className="h-4 w-32 rounded-full" />
-        <Skeleton className="h-3 w-24 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-full" />
+      <View className="flex-row items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-xl" />
+        <View className="min-w-0 flex-1 gap-1.5">
+          <Skeleton className="h-4 w-3/5 rounded-full" />
+          <Skeleton className="h-3.5 w-1/3 rounded-full" />
+        </View>
+        <Skeleton className="h-4 w-4 rounded-full" />
       </View>
-      <Skeleton className="h-4 w-4 rounded-full" />
     </View>
   );
 }
@@ -337,7 +375,13 @@ function ReservationListHeader({
   );
 }
 
-function ReservationListFooter({ onRetry }: { onRetry?: () => void }) {
+function ReservationListFooter({
+  onRetry,
+  retrying = false,
+}: {
+  onRetry?: () => void;
+  retrying?: boolean;
+}) {
   const { colors } = useTheme();
   const { t } = useTranslation();
 
@@ -348,12 +392,17 @@ function ReservationListFooter({ onRetry }: { onRetry?: () => void }) {
           <NativeText variant="meta" color="mutedForeground" align="center">
             {t("reservations.failedMoreTitle")}
           </NativeText>
-          <Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
+          <Host
+            matchContents={{ vertical: true }}
+            style={{ width: "100%" }}
+            accessibilityState={{ disabled: retrying, busy: retrying }}
+          >
             <Button
               variant="outlined"
               label={t("common.refreshTryAgain")}
+              disabled={retrying}
               onPress={onRetry}
-              style={getNativeButtonStyle(colors, "outlined")}
+              style={getNativeButtonStyle(colors, "outlined", retrying)}
               modifiers={
                 process.env.EXPO_OS === "ios"
                   ? [frame({ maxWidth: Infinity, minHeight: 48 })]
@@ -366,32 +415,5 @@ function ReservationListFooter({ onRetry }: { onRetry?: () => void }) {
         <CircleLoader />
       )}
     </View>
-  );
-}
-
-function ReservationStateList({
-  children,
-  refreshing,
-  onRefresh,
-}: {
-  children: React.ReactElement;
-  refreshing: boolean;
-  onRefresh: () => void;
-}) {
-  return (
-    <FlatList
-      style={{ flex: 1 }}
-      data={[]}
-      renderItem={() => null}
-      contentContainerStyle={{
-        flexGrow: 1,
-        justifyContent: "center",
-      }}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      ListEmptyComponent={children}
-      showsVerticalScrollIndicator={false}
-    />
   );
 }

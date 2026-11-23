@@ -6,16 +6,17 @@ import {
 import { AnimatedPressable, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
+import { useMinuteClock } from "@/lib/hook/useMinuteClock";
 import { MemberReservationType } from "@/service/reservation.service";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { MenuView, type MenuAction } from "@expo/ui/community/menu";
 import { format, subDays } from "date-fns";
 import * as Haptics from "expo-haptics";
-import { Stack, useFocusEffect } from "expo-router";
+import { Stack } from "expo-router";
 import { Filter } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, AppState, View } from "react-native";
+import { Animated, View } from "react-native";
 import { TabView, type TabBarProps } from "react-native-tab-view";
 import { useReducedMotion } from "react-native-reanimated";
 
@@ -34,7 +35,7 @@ export default function ReservationScreen() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [period, setPeriod] = useState<ReservationPeriod>("all");
     const [tabBarWidth, setTabBarWidth] = useState(0);
-    const [referenceTime, setReferenceTime] = useState(Date.now);
+    const referenceTime = useMinuteClock();
     const businessDate = toAppTimeZoneDate(referenceTime)!;
     const today = format(businessDate, "yyyy-MM-dd");
     const yesterday = format(subDays(businessDate, 1), "yyyy-MM-dd");
@@ -57,23 +58,6 @@ export default function ReservationScreen() {
             state: period === "past" ? "on" : "off",
         },
     ];
-    useFocusEffect(useCallback(() => {
-        let timer: ReturnType<typeof setInterval> | undefined;
-        const syncClock = () => {
-            if (timer !== undefined) clearInterval(timer);
-            timer = undefined;
-            if (AppState.currentState !== "active") return;
-            setReferenceTime(Date.now());
-            timer = setInterval(() => setReferenceTime(Date.now()), 60_000);
-        };
-
-        syncClock();
-        const subscription = AppState.addEventListener("change", syncClock);
-        return () => {
-            if (timer !== undefined) clearInterval(timer);
-            subscription.remove();
-        };
-    }, []));
     const routes = useMemo(
         () =>
             RESERVATION_TABS.map((key) => ({
@@ -236,7 +220,7 @@ export default function ReservationScreen() {
                     </MenuView>
                 ),
             }} />
-            <Screen scroll={false}>
+            <Screen scroll={false} bottomPadding={16}>
                 <TabView
                     animationEnabled={!reducedMotion}
                     navigationState={{ index: activeIndex, routes }}

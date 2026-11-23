@@ -4,13 +4,15 @@ import {
 } from "@/lib/hook/useReservation";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { formatDateForAPI } from "@/utils/time-helper";
+import { toAppTimeZoneDate } from "@/utils/timezone";
 import type { QueryClient } from "@tanstack/react-query";
+import { endOfMonth, startOfMonth } from "date-fns";
 
 export function prefetchTicketAvailability(
     queryClient: QueryClient,
-    ticket: TicketListItemResponse,
+    ticket: Pick<TicketListItemResponse, "id" | "type">,
 ) {
-    const today = new Date();
+    const today = toAppTimeZoneDate(new Date()) ?? new Date();
 
     if (ticket.type === "PRIVATE_LESSON" || ticket.type === "GROUP_LESSON") {
         void queryClient.prefetchQuery(
@@ -23,14 +25,12 @@ export function prefetchTicketAvailability(
         return;
     }
 
-    if (ticket.type === "BAY_USAGE") {
-        const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
+    if (ticket.type === "BAY_USAGE" && Number.isSafeInteger(ticket.id) && ticket.id > 0) {
         void queryClient.prefetchQuery(
             getMemberBaySlotGroupsQueryOptions(
-                formatDateForAPI(startDate),
-                formatDateForAPI(endDate),
+                ticket.id,
+                formatDateForAPI(startOfMonth(today)),
+                formatDateForAPI(endOfMonth(today)),
             ),
         );
     }

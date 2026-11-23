@@ -1,15 +1,31 @@
-import { AnimatedPressable, triggerSelectionHaptic } from "@/design-system";
+import { AnimatedPressable, cn, triggerSelectionHaptic } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
-import { getTicketTypeTone } from "@/design-system/utils/ticket-type";
+import { colorWithOpacity } from "@/design-system/utils/color";
+import {
+    formatTicketTypeLabel,
+    getTicketTypeTone,
+} from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
+import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatTimeRange } from "@/utils/time-helper";
-import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
+import {
+    getReservationStatusColor,
+    getReservationStatusLabel,
+} from "@/utils/status-tone";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
-import { BookOpen, ChevronRight, Flag, UserRound, UsersRound } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
+import { TicketTypeIcon } from "./TicketTypeIcon";
+
+const LIVE_PULSE_KEYFRAMES = {
+    from: { opacity: 1 },
+    to: { opacity: 0.55 },
+};
 
 type Props = {
     reservation: MemberReservationSummaryResponse;
@@ -18,10 +34,10 @@ type Props = {
 function TodayReservationCard({ reservation }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const reducedMotion = useReducedMotion();
     const tone = getTicketTypeTone(reservation.ticketType);
-    const Icon = tone.name === "bayUsage" ? Flag
-        : tone.name === "privateLesson" ? UserRound
-            : tone.name === "groupLesson" ? UsersRound : BookOpen;
+    const typeLabel = formatTicketTypeLabel(reservation.ticketType, t);
     const title = reservation.bayName ?? reservation.lessonAvailabilityName
         ?? reservation.lessonProgramGroupName ?? reservation.lessonProgramName
         ?? t("reservations.reservationFallbackWithId", { id: reservation.id });
@@ -30,6 +46,8 @@ function TodayReservationCard({ reservation }: Props) {
         ? t("reservations.statusUnavailable")
         : backendStatusLabel;
     const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
+    const isCheckedIn = reservation.reservationStatus.toUpperCase() === "CHECKED_IN";
+    const timeRange = formatTimeRange(reservation.startTime, reservation.endTime);
 
     return (
         <Link
@@ -42,24 +60,105 @@ function TodayReservationCard({ reservation }: Props) {
             <AnimatedPressable
                 accessibilityRole="button"
                 accessibilityLabel={t("reservations.openLabel", { title })}
-                className="min-h-16 w-full flex-row items-center gap-3 rounded-xl bg-card px-2 py-2"
-                onPress={triggerSelectionHaptic}
+                className="w-full rounded-2xl border border-border bg-card p-4"
+                onPress={() => {
+                    triggerSelectionHaptic();
+                    void queryClient.prefetchQuery(
+                        getMemberReservationDetailQueryOptions(
+                            reservation.id,
+                            reservation.reservationType,
+                        ),
+                    );
+                }}
             >
-                <View className={`h-12 w-12 shrink-0 items-center justify-center rounded-lg ${tone.badgeSolidClassName}`}>
-                    <Icon size={24} color={colors.primaryForeground} strokeWidth={2.3} />
+                <View className="gap-3">
+                    <View className="flex-row items-center justify-between gap-2">
+                        <AppText
+                            variant="meta"
+                            numberOfLines={1}
+                            style={{ flex: 1, minWidth: 0 }}
+                            textStyle={{
+                                fontWeight: "700",
+                                fontVariant: ["tabular-nums"],
+                            }}
+                        >
+                            {timeRange}
+                        </AppText>
+
+                        <Animated.View
+                            className="shrink-0 rounded-md px-2 py-0.5"
+                            style={[
+                                {
+                                    backgroundColor: colorWithOpacity(
+                                        statusColor,
+                                        0.12,
+                                    ),
+                                },
+                                isCheckedIn && !reducedMotion
+                                    ? {
+                                          animationName: LIVE_PULSE_KEYFRAMES,
+                                          animationDuration: "1600ms",
+                                          animationIterationCount: "infinite",
+                                          animationDirection: "alternate",
+                                          animationTimingFunction: "ease-in-out",
+                                      }
+                                    : undefined,
+                            ]}
+                        >
+                            <AppText
+                                variant="badge"
+                                wrap={false}
+                                textStyle={{
+                                    color: statusColor,
+                                    fontWeight: "600",
+                                }}
+                            >
+                                {statusLabel}
+                            </AppText>
+                        </Animated.View>
+                    </View>
+
+                    <View className="flex-row items-center gap-3">
+                        <View
+                            className={cn(
+                                "h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                                tone.badgeClassName,
+                            )}
+                        >
+                            <TicketTypeIcon
+                                type={reservation.ticketType}
+                                size={19}
+                                color={colors[tone.color]}
+                                strokeWidth={2.2}
+                            />
+                        </View>
+
+                        <View className="min-w-0 flex-1 gap-0.5">
+                            <AppText
+                                variant="body"
+                                numberOfLines={1}
+                                textStyle={{ fontWeight: "600" }}
+                            >
+                                {title}
+                            </AppText>
+                            {typeLabel ? (
+                                <AppText
+                                    variant="caption"
+                                    color="mutedForeground"
+                                    numberOfLines={1}
+                                >
+                                    {typeLabel}
+                                </AppText>
+                            ) : null}
+                        </View>
+
+                        <ChevronRight
+                            size={18}
+                            color={colors.mutedForeground}
+                            strokeWidth={2}
+                        />
+                    </View>
                 </View>
-                <View className="min-w-0 flex-1 gap-0.5">
-                    <AppText variant="label" numberOfLines={1}>{title}</AppText>
-                    <AppText variant="label" numberOfLines={1}
-                        textStyle={{ fontWeight: "600" }}>
-                        {formatTimeRange(reservation.startTime, reservation.endTime)}
-                    </AppText>
-                    <AppText variant="subtext" wrap={false}
-                        textStyle={{ color: statusColor, fontWeight: "700" }}>
-                        {statusLabel}
-                    </AppText>
-                </View>
-                <ChevronRight size={18} color={colors.mutedForeground} />
             </AnimatedPressable>
         </Link>
     );

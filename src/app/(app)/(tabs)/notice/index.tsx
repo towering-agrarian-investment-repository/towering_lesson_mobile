@@ -6,6 +6,7 @@ import {
   ErrorState,
   AnimatedPressable,
   Screen,
+  StateList,
 } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
 import { AppText } from "@/design-system/components/AppText";
@@ -41,19 +42,20 @@ import {
   fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
 import {
+  contentShape,
+  shapes,
   frame,
   presentationCornerRadius,
 } from "@expo/ui/swift-ui/modifiers";
+import { MenuView, type MenuAction } from "@expo/ui/community/menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { Bell, MoreVertical } from "lucide-react-native";
 import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Modal, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { FlatList, RefreshControl } from "react-native-gesture-handler";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { useReducedMotion } from "react-native-reanimated";
 
 const isIOS = process.env.EXPO_OS === "ios";
 const fullWidth = isIOS ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()];
@@ -61,13 +63,11 @@ const buttonSize = isIOS
   ? [frame({ maxWidth: Infinity, minHeight: 48 })]
   : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })];
 const buttonInnerSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+  ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
   : [fillMaxWidth()];
 
 function NoticeScreen() {
-  const reducedMotion = useReducedMotion();
-  const { colors, fontScale: uiFontScale } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -94,12 +94,20 @@ function NoticeScreen() {
     mutate: deleteAllNotifications,
     isPending: isDeletingAllNotifications,
   } = useDeleteAllNotifications();
-  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const [isDeleteAllConfirmationOpen, setIsDeleteAllConfirmationOpen] =
     useState(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const refreshLocked = useRef(false);
   const deleteAllLocked = useRef(false);
+  const markAllLocked = useRef(false);
+  const deleteLocked = useRef(false);
+  const handleDeleteNotification = useCallback((id: number) => {
+    if (deleteLocked.current || deleteAllLocked.current || isLocked || isDeletingNotification || isDeletingAllNotifications) return;
+    deleteLocked.current = true;
+    deleteNotification(id, {
+      onSettled: () => { deleteLocked.current = false; },
+    });
+  }, [deleteNotification, isDeletingAllNotifications, isDeletingNotification, isLocked]);
   const closeDeleteAllSheet = () => {
     if (!deleteAllLocked.current) setIsDeleteAllConfirmationOpen(false);
   };
@@ -118,18 +126,45 @@ function NoticeScreen() {
   const hasUnread = notifications.some((item) => !item.isRead);
 
   useLayoutEffect(() => {
+    const moreActions: MenuAction[] = [
+      {
+        id: "delete-all",
+        title: isDeletingAllNotifications
+          ? t("notice.deleting")
+          : t("notice.deleteAll"),
+        image: "trash",
+        imageColor: colors.danger,
+        titleColor: colors.danger,
+        attributes: {
+          destructive: true,
+          disabled: isDeletingAllNotifications || isMarkingAllAsRead,
+        },
+      },
+    ];
+
     navigation.setOptions({
       headerRight: () => (
-        <View className="flex-row items-center gap-4">
+        <View className="flex-row items-center gap-2">
           {hasUnread ? (
             <AnimatedPressable
               accessibilityRole="button"
               accessibilityLabel={t("notice.markAllAsRead")}
+              accessibilityState={{
+                disabled: isMarkingAllAsRead || isDeletingAllNotifications,
+                busy: isMarkingAllAsRead,
+              }}
               disabled={isMarkingAllAsRead || isDeletingAllNotifications}
-              className={isMarkingAllAsRead ? "opacity-60" : undefined}
-              hitSlop={10}
+              className={cn(
+                "items-center justify-center px-2",
+                isMarkingAllAsRead && "opacity-60",
+              )}
+              style={{ minHeight: 48 }}
               onPress={() => {
-                markAllAsRead();
+                if (markAllLocked.current || deleteAllLocked.current || isMarkingAllAsRead || isDeletingAllNotifications) return;
+                markAllLocked.current = true;
+                markAllAsRead(undefined, {
+                  onSettled: () => { markAllLocked.current = false; },
+                });
               }}
             >
               <NativeText variant="meta" color="primary" wrap={false}>
@@ -140,23 +175,42 @@ function NoticeScreen() {
             </AnimatedPressable>
           ) : null}
           {notifications.length > 0 ? (
-            <AnimatedPressable
-              accessibilityRole="button"
-              accessibilityLabel={t("notice.moreActions", {
-                defaultValue: "More actions",
-              })}
-              disabled={isDeletingAllNotifications || isMarkingAllAsRead}
-              className={isDeletingAllNotifications ? "opacity-60" : undefined}
-              hitSlop={10}
-              onPress={() => setIsActionsMenuOpen(true)}
+            <MenuView
+              actions={moreActions}
+              colorScheme={resolvedScheme}
+              onPressAction={({ nativeEvent }) => {
+                if (
+                  nativeEvent.event === "delete-all" &&
+                  !isDeletingAllNotifications &&
+                  !isMarkingAllAsRead
+                ) {
+                  setIsDeleteAllConfirmationOpen(true);
+                }
+              }}
             >
-              <MoreVertical size={22} color={colors.foreground} />
-            </AnimatedPressable>
+              <View
+                accessibilityRole="button"
+                accessibilityLabel={t("notice.moreActions", {
+                  defaultValue: "More actions",
+                })}
+                accessibilityState={{
+                  disabled: isDeletingAllNotifications || isMarkingAllAsRead,
+                }}
+                className={cn(
+                  "items-center justify-center",
+                  isDeletingAllNotifications && "opacity-60",
+                )}
+                style={{ minHeight: 48, minWidth: 48 }}
+              >
+                <MoreVertical size={22} color={colors.foreground} />
+              </View>
+            </MenuView>
           ) : null}
         </View>
       ),
     });
   }, [
+    colors.danger,
     colors.foreground,
     hasUnread,
     isDeletingAllNotifications,
@@ -164,6 +218,7 @@ function NoticeScreen() {
     markAllAsRead,
     navigation,
     notifications.length,
+    resolvedScheme,
     t,
   ]);
 
@@ -287,12 +342,12 @@ function NoticeScreen() {
           isLocked || isDeletingNotification || isDeletingAllNotifications
         }
         isDeleting={isDeletingNotification}
-        onDelete={deleteNotification}
+        onDelete={handleDeleteNotification}
         onPress={handleNotificationPress}
       />
     ),
     [
-      deleteNotification,
+      handleDeleteNotification,
       handleNotificationPress,
       isDeletingAllNotifications,
       isDeletingNotification,
@@ -303,40 +358,6 @@ function NoticeScreen() {
 
   return (
     <>
-      <Modal
-        transparent
-        visible={isActionsMenuOpen}
-        animationType={reducedMotion ? "none" : "fade"}
-        onRequestClose={() => setIsActionsMenuOpen(false)}
-      >
-        <Pressable
-          className="flex-1"
-          onPress={() => setIsActionsMenuOpen(false)}
-        >
-          <View
-            className="absolute top-16 w-44 rounded-xl border border-border bg-card p-1 shadow-lg"
-            style={{ right: Math.max(insets.right, 16) }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("notice.deleteAll")}
-              disabled={isDeletingAllNotifications}
-              className="rounded-lg px-3 py-2 active:bg-muted"
-              onPress={() => {
-                setIsActionsMenuOpen(false);
-                setIsDeleteAllConfirmationOpen(true);
-              }}
-            >
-              <NativeText variant="label" color="danger" wrap={false}>
-                {isDeletingAllNotifications
-                  ? t("notice.deleting")
-                  : t("notice.deleteAll")}
-              </NativeText>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-
       <PendingBottomSheet
         isPresented={isDeleteAllConfirmationOpen}
         onDismiss={closeDeleteAllSheet}
@@ -440,35 +461,55 @@ function NoticeScreen() {
         </Column>
       </PendingBottomSheet>
 
-      <Screen scroll={false} bottomPadding={0}>
+      <Screen
+        scroll={false}
+        bottomSafeArea={process.env.EXPO_OS === "ios"}
+        bottomPadding={
+          isLoading || (isError && !data) || notifications.length === 0 ? 16 : 0
+        }
+      >
         {isLoading ? (
           <CircleLoader fullScreen />
         ) : isError && !data ? (
-          <ErrorState
-            title={t("notice.failedNotificationsTitle")}
-            message={t("common.pullToRefreshAndTryAgain")}
-            actionLabel={
-              isRefetching
-                ? t("common.refreshing")
-                : t("common.refreshTryAgain")
-            }
-            actionPending={isRefetching}
-            onAction={() => {
-              void refetch();
+          <StateList
+            refreshing={isPullRefreshing}
+            onRefresh={() => {
+              void handleRefresh();
             }}
-          />
+          >
+            <ErrorState
+              title={t("notice.failedNotificationsTitle")}
+              message={t("common.pullToRefreshAndTryAgain")}
+              actionLabel={
+                isRefetching
+                  ? t("common.refreshing")
+                  : t("common.refreshTryAgain")
+              }
+              actionPending={isRefetching || isPullRefreshing}
+              onAction={() => {
+                void refetch();
+              }}
+            />
+          </StateList>
         ) : notifications.length === 0 ? (
-          <EmptyState
-            title={t("notice.noNotificationsTitle")}
-            message={t("notice.noNotificationsMessage")}
-            actionLabel={t("common.refresh", {
-              defaultValue: "Refresh",
-            })}
-            actionPending={isRefetching}
-            onAction={() => {
-              void refetch();
+          <StateList
+            refreshing={isPullRefreshing}
+            onRefresh={() => {
+              void handleRefresh();
             }}
-          />
+          >
+            <EmptyState
+              title={t("notice.noNotificationsTitle")}
+              message={t("notice.noNotificationsMessage")}
+              actionLabel={t("common.refresh", {
+                defaultValue: "Refresh",
+              })}
+              actionPending={isRefetching || isPullRefreshing}
+              onAction={() => {
+                void refetch();
+              }}
+            />
+          </StateList>
         ) : (
           <FlatList
             style={{ flex: 1 }}

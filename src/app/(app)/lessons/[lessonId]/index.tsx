@@ -141,7 +141,7 @@ export default function StandaloneLessonDetailScreen() {
                     <View className="flex-row flex-wrap gap-2">
                         {lesson.lessonStatus ? (
                             <Badge
-                                label={formatType(lesson.lessonStatus)}
+                                label={formatType(lesson.lessonStatus, t)}
                                 className={lessonStatusTone.className}
                                 color={lessonStatusTone.color}
                             />
@@ -320,7 +320,7 @@ function SessionRow({
     const colors = useThemeColors();
     const isCompleted = session.status === "COMPLETED" || !!session.completedAt;
     const rowClassName = isCompleted
-        ? "border-emerald-100 bg-emerald-50/60 px-4 py-3.5"
+        ? "border-success/20 bg-success/10 px-4 py-3.5"
         : "border-border bg-card px-4 py-3.5";
 
     return (
@@ -378,10 +378,10 @@ function HomeworkRow({
     const reviewStatus =
         latestSubmission?.review?.status ?? homework.currentReviewStatus;
     const statusLabel = reviewStatus
-        ? formatType(reviewStatus)
+        ? formatType(reviewStatus, t)
         : submissionStatus
-            ? formatType(submissionStatus)
-            : formatType(homework.homeworkStatus);
+            ? formatType(submissionStatus, t)
+            : formatType(homework.homeworkStatus, t);
     const statusTone = reviewStatus
         ? getHomeworkReviewTone(reviewStatus)
         : submissionStatus
@@ -468,20 +468,20 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 function getFallbackHomeworkTone(status?: string | null) {
     if (status === "COMPLETED" || status === "SUBMITTED") {
         return {
-            className: "bg-emerald-100",
+            className: "bg-success/10",
             color: "success" as const,
         };
     }
 
     if (status === "OVERDUE" || status === "REJECTED" || status === "MISSING") {
         return {
-            className: "bg-rose-100",
+            className: "bg-danger/10",
             color: "danger" as const,
         };
     }
 
     return {
-        className: "bg-amber-100",
+        className: "bg-warning/10",
         color: "warning" as const,
     };
 }
@@ -496,7 +496,7 @@ function getHomeworkRowClassName(
         submissionStatus === "REVIEWED" ||
         homeworkStatus === "COMPLETED"
     ) {
-        return "border-emerald-100 bg-emerald-50/60 px-4 py-3.5";
+        return "border-success/20 bg-success/10 px-4 py-3.5";
     }
 
     if (
@@ -504,7 +504,7 @@ function getHomeworkRowClassName(
         homeworkStatus === "REJECTED" ||
         homeworkStatus === "MISSING"
     ) {
-        return "border-rose-100 bg-rose-50/70 px-4 py-3.5";
+        return "border-danger/20 bg-danger/10 px-4 py-3.5";
     }
 
     return "border-border bg-card px-4 py-3.5";

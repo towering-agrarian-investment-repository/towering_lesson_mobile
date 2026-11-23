@@ -1,5 +1,5 @@
 import { MemberLessonLogResponse, MemberLessonLogUpdateRequest } from "@/types/member-lesson-log";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiResponse, CursorPageResponse, responseError, responseStatus } from "../api-response/api-response";
 import { getMemberLessonLogById, getMemberLessonLogCount, getMemberLessonLogs, MEMBER_LESSON_LOG_PAGE_SIZE, updateMemberLessonLog } from "@/service/member-lesson-log.service";
 
@@ -7,6 +7,7 @@ export function getMemberLessonLogByIdQueryOptions(id: number) {
 	return {
 		queryKey: ["member", "lesson-logs", String(id)] as const,
 		queryFn: ({ signal }: { signal: AbortSignal }) => getMemberLessonLogById(id, signal),
+		staleTime: 60_000,
 	};
 }
 
@@ -65,6 +66,23 @@ export function useUpdateMemberLessonLog() {
 				getMemberLessonLogByIdQueryOptions(variables.lessonLogId).queryKey,
 				res,
 			);
+			queryClient.setQueryData<
+				InfiniteData<ApiResponse<CursorPageResponse<MemberLessonLogResponse>>>
+			>(["member", "lesson-logs", "list"], (old) => {
+				if (!old || !res.data) return old;
+				return {
+					...old,
+					pages: old.pages.map((page) => ({
+						...page,
+						data: {
+							...page.data,
+							items: page.data.items.map((item) =>
+								item.id === variables.lessonLogId ? res.data : item,
+							),
+						},
+					})),
+				};
+			});
 			void queryClient.invalidateQueries({ queryKey: ["member", "lesson-logs", "list"] });
 			void queryClient.invalidateQueries({ queryKey: ["member", "lesson-logs", "count"] });
 		},

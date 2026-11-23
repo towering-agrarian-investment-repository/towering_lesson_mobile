@@ -23,6 +23,7 @@ import {
     getTicketTypeTone,
 } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
+import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     MemberReservationDetailResponse,
@@ -41,7 +42,8 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { Href, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -134,6 +136,7 @@ export default function ReservationDetailScreen() {
     const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
     const cancelLocked = useRef(false);
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
     const reservationType = isReservationDomain(type) ? type : undefined;
@@ -186,6 +189,7 @@ export default function ReservationDetailScreen() {
 
                 <Screen
                     contentClassName="grow"
+                    bottomPadding={16}
                     refreshControl={
                         <RefreshControl
                             refreshing={isPullRefreshing}
@@ -220,6 +224,7 @@ export default function ReservationDetailScreen() {
 
                 <Screen
                     contentClassName="grow"
+                    bottomPadding={16}
                     refreshControl={
                         <RefreshControl
                             refreshing={isPullRefreshing}
@@ -255,7 +260,9 @@ export default function ReservationDetailScreen() {
         reservation.reservationStatus === "RESERVED" &&
         reservation.isCancellable;
     const canRescheduleReservation =
-        isBayReservation && reservation.isCancellable;
+        isBayReservation &&
+        reservation.isCancellable &&
+        Boolean(reservation.ticket?.id);
     const isCancelling = isBayReservation
         ? isCancellingBay
         : isCancellingLesson;
@@ -335,6 +342,7 @@ export default function ReservationDetailScreen() {
             return;
         }
 
+        prefetchTicketAvailability(queryClient, reservation.ticket);
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/select-date",
@@ -404,7 +412,7 @@ export default function ReservationDetailScreen() {
                     </Column>
                     <Column spacing={12} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}>
                         <Button variant="text" disabled={isCancelling} onPress={confirmCancelReservation} style={getNativeButtonStyle(uiColors, "filled", isCancelling, uiColors.danger)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
-                            <Row spacing={8} alignment="center" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}>
+                            <Row spacing={8} alignment="center" modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}>
                                 <Spacer flexible />
                                 {isCancelling ? <RNHostView matchContents><ActivityIndicator color={uiColors.primaryForeground} /></RNHostView> : null}
                                 <Text textStyle={{ textAlign: "center", ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.primaryForeground, fontSize: typography.label.fontSize * uiFontScale }}>{t("reservations.cancelTitle")}</Text>
@@ -412,7 +420,7 @@ export default function ReservationDetailScreen() {
                             </Row>
                         </Button>
                         <Button variant="text" disabled={isCancelling} onPress={closeCancelSheet} style={getNativeButtonStyle(uiColors, "text", isCancelling)} modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}>
-                            <Text modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]} textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.foreground, fontSize: typography.label.fontSize * uiFontScale, textAlign: "center" }}>{t("reservations.keepReservation")}</Text>
+                            <Text modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]} textStyle={{ ...typography.label, lineHeight: typography.label.lineHeight * uiFontScale, fontWeight: "600", color: uiColors.foreground, fontSize: typography.label.fontSize * uiFontScale, textAlign: "center" }}>{t("reservations.keepReservation")}</Text>
                         </Button>
                     </Column>
                 </Column>
@@ -477,7 +485,7 @@ export default function ReservationDetailScreen() {
                                                     ? [
                                                         frame({
                                                             maxWidth: Infinity, minHeight: 48,
-                                                        }),
+                                                        }), contentShape(shapes.rectangle()),
                                                     ]
                                                     : [fillMaxWidth()]
                                             }
@@ -507,7 +515,7 @@ export default function ReservationDetailScreen() {
                                         "reservations.cancelTitle",
                                     )}
                                     accessibilityState={{
-                                        disabled: isCancelling || isCancelling,
+                                        disabled: isCancelling,
                                         busy: isCancelling,
                                     }}
                                 >
@@ -528,16 +536,14 @@ export default function ReservationDetailScreen() {
                                                 ]
                                         }
                                         variant="text"
-                                        disabled={isCancelling || isCancelling}
+                                        disabled={isCancelling}
                                         onPress={handleCancelReservation}
-                                        style={{
-                                            ...getNativeButtonStyle(
-                                                uiColors,
-                                                "filled",
-                                                isCancelling || isCancelling,
-                                                uiColors.danger,
-                                            ), ...{ borderRadius: 12 }
-                                        }}
+                                        style={getNativeButtonStyle(
+                                            uiColors,
+                                            "filled",
+                                            isCancelling,
+                                            uiColors.danger,
+                                        )}
                                     >
                                         <Row
                                             modifiers={
@@ -545,7 +551,7 @@ export default function ReservationDetailScreen() {
                                                     ? [
                                                         frame({
                                                             maxWidth: Infinity, minHeight: 48,
-                                                        }),
+                                                        }), contentShape(shapes.rectangle()),
                                                     ]
                                                     : [fillMaxWidth()]
                                             }
@@ -674,6 +680,27 @@ export default function ReservationDetailScreen() {
                                             router.push(
                                                 lessonLogHref as Href,
                                             );
+                                        });
+                                    }}
+                                />
+                            </>
+                        ) : null}
+
+                        {reservation.ticket?.id && reservation.ticket?.name ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <DetailRow
+                                    label={t("bookingConfirmation.ticketLabel")}
+                                    value={reservation.ticket.name}
+                                    disabled={isLocked}
+                                    onPress={() => {
+                                        runWithNavigationLock(() => {
+                                            router.push({
+                                                pathname: "/tickets/[id]",
+                                                params: {
+                                                    id: String(reservation.ticket!.id),
+                                                },
+                                            });
                                         });
                                     }}
                                 />

@@ -1,12 +1,15 @@
-import { AppToastProvider, useThemeColors } from "@/design-system";
+import { useThemeColors } from "@/design-system";
 import i18n from "@/i18n";
 import { verifyMemberSession } from "@/lib/auth-session";
 import { showAppToast } from "@/lib/toast/toast";
 import {
+  focusManager,
+  onlineManager,
   QueryCache,
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
+import * as Network from "expo-network";
 import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
@@ -45,6 +48,7 @@ export default function AppLayout() {
             staleTime: 30_000,
             gcTime: 10 * 60_000,
             retry: 1,
+            refetchOnWindowFocus: false,
           },
         },
       }),
@@ -54,21 +58,44 @@ export default function AppLayout() {
   const { t } = useTranslation();
 
   useEffect(() => {
+    onlineManager.setEventListener((setOnline) => {
+      let isCancelled = false;
+      void Network.getNetworkStateAsync()
+        .then((state) => {
+          if (!isCancelled) {
+            setOnline(
+              state.isConnected !== false && state.isInternetReachable !== false,
+            );
+          }
+        })
+        .catch(() => {});
+
+      const subscription = Network.addNetworkStateListener((state) => {
+        setOnline(
+          state.isConnected !== false && state.isInternetReachable !== false,
+        );
+      });
+
+      return () => {
+        isCancelled = true;
+        subscription.remove();
+      };
+    });
+
+    if (process.env.EXPO_OS !== "web") {
+      focusManager.setEventListener((setFocused) => {
+        const subscription = AppState.addEventListener("change", (state) => {
+          setFocused(state === "active");
+        });
+
+        return () => subscription.remove();
+      });
+    }
+
     let previousState = AppState.currentState;
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active" && previousState !== "active") {
         void verifyMemberSession();
-        void queryClient.refetchQueries({
-          queryKey: ["notifications"],
-          type: "active",
-          stale: true,
-        });
-        void queryClient.refetchQueries({
-          queryKey: ["member", "lesson-logs"],
-          predicate: (query) => query.queryKey[2] === "list" || query.queryKey[2] === "count",
-          type: "active",
-          stale: true,
-        });
       }
       previousState = state;
     });
@@ -90,6 +117,10 @@ export default function AppLayout() {
       });
 
     return () => {
+      onlineManager.setEventListener(() => () => {});
+      if (process.env.EXPO_OS !== "web") {
+        focusManager.setEventListener(() => () => {});
+      }
       subscription.remove();
       notificationSubscription.remove();
       queryClient.clear();
@@ -98,9 +129,8 @@ export default function AppLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppToastProvider>
-        <Stack
-          screenOptions={{
+      <Stack
+        screenOptions={{
             animation: reducedMotion ? "fade" : "default",
             headerBackButtonDisplayMode: "minimal",
             contentStyle: { backgroundColor: colors.background },
@@ -145,16 +175,23 @@ export default function AppLayout() {
           />
 
           <Stack.Screen
-            name="select-date"
+            name="ticket-history"
             options={{
-              title: t("navigation.screens.selectDate"),
+              title: t("tickets.historyTitle"),
             }}
           />
 
           <Stack.Screen
-            name="select-bay"
+            name="tickets/[id]"
             options={{
-              title: t("navigation.screens.selectBay"),
+              title: t("tickets.detailTitle"),
+            }}
+          />
+
+          <Stack.Screen
+            name="select-date"
+            options={{
+              title: t("navigation.screens.selectDate"),
             }}
           />
 
@@ -279,8 +316,7 @@ export default function AppLayout() {
               title: t("profile.editPersonalInformation"),
             }}
           />
-        </Stack>
-      </AppToastProvider>
+      </Stack>
     </QueryClientProvider>
   );
 }

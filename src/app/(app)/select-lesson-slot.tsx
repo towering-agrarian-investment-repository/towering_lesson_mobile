@@ -11,6 +11,7 @@ import {
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { useMinuteClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
@@ -32,7 +33,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { UserRound } from "lucide-react-native";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
@@ -44,17 +45,6 @@ function getMinutesUntilStart(slot: MemberLessonSlotResponse, now: number) {
   const minutesUntilStart = (new Date(slot.startTime).getTime() - now) / 60000;
 
   return minutesUntilStart >= 0 ? Math.ceil(minutesUntilStart) : null;
-}
-
-function useMinuteTick() {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60000);
-    return () => clearInterval(id);
-  }, []);
-
-  return now;
 }
 
 function ItemSeparator() {
@@ -87,7 +77,7 @@ export default function SelectLessonSlotScreen() {
   const { isLocked, runWithNavigationLock } = useNavigationLock();
   const { data: memberResponse } = useGetMemberProfile();
   const memberId = memberResponse?.data.id;
-  const now = useMinuteTick();
+  const now = useMinuteClock();
   const [dismissedConflictId, setDismissedConflictId] = useState<string>();
   const isGroupTicket =
     String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
@@ -129,7 +119,7 @@ export default function SelectLessonSlotScreen() {
             ticketName,
             ticketType,
             lessonAvailabilityId: String(slot.id),
-            lessonName: getLessonSlotDisplayName(slot),
+            lessonName: getLessonSlotDisplayName(slot, t),
             coachName: slot.coachName ?? "",
             startTime: slot.startTime,
             endTime: slot.endTime,
@@ -145,6 +135,7 @@ export default function SelectLessonSlotScreen() {
       notes,
       router,
       runWithNavigationLock,
+      t,
       ticketId,
       ticketName,
       ticketType,
@@ -305,7 +296,7 @@ const LessonSlotCard = memo(function LessonSlotCard({
   const disabled = wasJustBooked || alreadyBooked || isLessonSlotFull(slot);
   const minutesUntilStart = disabled ? null : getMinutesUntilStart(slot, now);
   const startingSoon = minutesUntilStart != null && minutesUntilStart <= 60;
-  const lessonTitle = getLessonSlotDisplayName(slot);
+  const lessonTitle = getLessonSlotDisplayName(slot, t);
 
   const statusLabel = wasJustBooked
     ? t("booking.justBooked")

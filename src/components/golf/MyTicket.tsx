@@ -1,51 +1,62 @@
+import { CompactEmptyState } from "@/design-system";
 import { NativeText } from "@/design-system/components/NativeText";
-import { InlineState, Skeleton } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
+    getMemberTicketByIdQueryOptions,
     getMemberTicketsQueryOptions,
     useMemberTickets,
 } from "@/lib/hook/useTicket";
-import { showAppToast } from "@/lib/toast/toast";
 import { TicketListItemResponse } from "@/types/member-ticket";
-import { MemberSelfResponse } from "@/types/member.type";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
-import TicketCard from "./TicketCard";
+import TicketHistoryCard, {
+    TicketHistoryCardSkeleton,
+} from "./TicketHistoryCard";
 import TitleSectionWithBadge from "./TitleSectionWithBadge";
 
-type Props = {
-    member: MemberSelfResponse;
-};
-
-function MyTicket({ member }: Props) {
-
+function MyTicket() {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data, isLoading, isError, hasNextPage } = useMemberTickets(member.id, undefined, 3);
+    const {
+        data,
+        isLoading,
+        isError,
+        isFetching,
+        errorUpdateCount,
+        hasNextPage,
+        refetch,
+    } = useMemberTickets();
     const allTickets = data?.items ?? [];
-    const tickets = allTickets.filter((ticket) => !ticket.fullyUsed);
+    const activeTickets = allTickets.filter((ticket) => !ticket.fullyUsed);
+    const tickets = activeTickets.slice(0, 3);
+    const showInitialLoading = isLoading && errorUpdateCount === 0;
+    const showLoadError = !data && (isError || errorUpdateCount > 0);
 
     const handleTicketPress = useCallback(
         (item: TicketListItemResponse) => {
-            queryClient.setQueryData(["member", "selected-ticket", item.id], item);
-            if (item.type === "LESSON_PROGRAM") {
-                showAppToast({
-                    message: t("tickets.adminEnrollmentMessage"),
-                    duration: 5000,
-                    type: "info",
+            void queryClient.prefetchQuery(
+                getMemberTicketByIdQueryOptions(item.id),
+            );
+            runWithNavigationLock(() => {
+                router.push({
+                    pathname: "/tickets/[id]",
+                    params: { id: String(item.id) },
                 });
-                return;
-            }
+            });
+        },
+        [queryClient, router, runWithNavigationLock],
+    );
 
+    const handleBookPress = useCallback(
+        (item: TicketListItemResponse) => {
             prefetchTicketAvailability(queryClient, item);
-
             runWithNavigationLock(() => {
                 router.push({
                     pathname: "/select-date",
@@ -57,7 +68,7 @@ function MyTicket({ member }: Props) {
                 });
             });
         },
-        [queryClient, router, runWithNavigationLock, t],
+        [queryClient, router, runWithNavigationLock],
     );
 
     return (
@@ -65,19 +76,22 @@ function MyTicket({ member }: Props) {
             <View className="flex-row items-center justify-between gap-3">
                 <TitleSectionWithBadge
                     label={t("tickets.sectionTitle")}
-                    length={`${tickets.length}${hasNextPage ? "+" : ""}`}
+                    length={`${activeTickets.length}${hasNextPage ? "+" : ""}`}
                 />
 
-                {tickets.length > 1 || hasNextPage || allTickets.length > tickets.length ? (
+                {activeTickets.length > 1 ||
+                hasNextPage ||
+                allTickets.length > activeTickets.length ? (
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t("tickets.viewAll")}
                         disabled={isLocked}
-                        className="rounded-lg px-1 py-2 active:opacity-70"
+                        style={{ minHeight: 48 }}
+                        className="justify-center rounded-lg px-2 active:opacity-70"
                         onPressIn={() => {
                             if (!isLocked) {
                                 void queryClient.prefetchInfiniteQuery(
-                                    getMemberTicketsQueryOptions(member.id),
+                                    getMemberTicketsQueryOptions(),
                                 );
                             }
                         }}
@@ -91,7 +105,11 @@ function MyTicket({ member }: Props) {
                             variant="label"
                             color="primary"
                             wrap={false}
-                            textStyle={{ lineHeight: typography.subtext.lineHeight, fontSize: typography.subtext.fontSize, fontWeight: "600" as const }}
+                            textStyle={{
+                                lineHeight: typography.subtext.lineHeight,
+                                fontSize: typography.subtext.fontSize,
+                                fontWeight: "600" as const,
+                            }}
                         >
                             {t("tickets.viewAll")}
                         </NativeText>
@@ -100,35 +118,43 @@ function MyTicket({ member }: Props) {
             </View>
 
             <View className="gap-3 py-3">
-                {isLoading ? (
+                {showInitialLoading ? (
                     <View className="gap-3">
-                        {Array.from({ length: 3 }, (_, index) => (
-                            <Skeleton
-                                key={index}
-                                className="h-40 w-full rounded-xl"
-                            />
+                        {Array.from({ length: 2 }, (_, index) => (
+                            <TicketHistoryCardSkeleton key={index} />
                         ))}
                     </View>
-                ) : isError && !data ? (
-                    <InlineState title={t("tickets.loadError")} tone="danger" />
+                ) : showLoadError ? (
+                    <View className="min-h-40 items-center justify-center">
+                        <CompactEmptyState
+                            title={t("tickets.loadError")}
+                            tone="danger"
+                            actionLabel={
+                                isFetching
+                                    ? t("common.refreshing")
+                                    : t("common.refreshTryAgain")
+                            }
+                            actionPending={isFetching}
+                            onAction={() => {
+                                void refetch();
+                            }}
+                        />
+                    </View>
                 ) : tickets.length === 0 ? (
-                    <View className="h-40 items-center justify-center">
-                        <InlineState title={t("tickets.empty")} />
+                    <View className="min-h-40 items-center justify-center">
+                        <CompactEmptyState title={t("tickets.empty")} />
                     </View>
                 ) : (
-                    <View className="flex-row flex-wrap gap-3">
+                    <View className="gap-3">
                         {tickets.map((ticket) => (
-                            <View
+                            <TicketHistoryCard
                                 key={ticket.id}
-                                style={{ flexBasis: 280, flexGrow: 1 }}
-                            >
-                                <TicketCard
-                                    item={ticket}
-                                    disabled={isLocked}
-                                    onPress={handleTicketPress}
-                                    fullWidth
-                                />
-                            </View>
+                                item={ticket}
+                                showBookAction
+                                disabled={isLocked}
+                                onPress={handleTicketPress}
+                                onBookPress={handleBookPress}
+                            />
                         ))}
                     </View>
                 )}

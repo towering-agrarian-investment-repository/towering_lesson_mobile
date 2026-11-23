@@ -9,8 +9,8 @@ import MyTicket from "@/components/golf/MyTicket";
 import TodayReservation from "@/components/golf/TodayReservation";
 import {
     CircleLoader,
+    CompactEmptyState,
     ErrorState,
-    InlineState,
     Screen,
 } from "@/design-system";
 import { usePublishedBanners } from "@/lib/hook/useBanner";
@@ -22,7 +22,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -70,19 +70,34 @@ export default function HomeScreen() {
 
     if (isError && !memberResponse) {
         return (
-            <ErrorState
-                title={t("home.couldNotLoadProfile")}
-                message={t("home.checkConnection")}
-                actionLabel={
-                    isRefetching
-                        ? t("common.refreshing")
-                        : t("common.refreshTryAgain")
+            <Screen
+                headerShown={false}
+                contentClassName="grow"
+                bottomPadding={16}
+                bottomSafeArea={process.env.EXPO_OS === "ios"}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => {
+                            void handleRefresh();
+                        }}
+                    />
                 }
-                actionPending={isRefetching}
-                onAction={() => {
-                    void refetch();
-                }}
-            />
+            >
+                <ErrorState
+                    title={t("home.couldNotLoadProfile")}
+                    message={t("home.checkConnection")}
+                    actionLabel={
+                        isRefetching
+                            ? t("common.refreshing")
+                            : t("common.refreshTryAgain")
+                    }
+                    actionPending={isRefetching || refreshing}
+                    onAction={() => {
+                        void refetch();
+                    }}
+                />
+            </Screen>
         );
     }
 
@@ -123,7 +138,7 @@ export default function HomeScreen() {
                             }}
                         >
                             <Text
-                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}
+                                modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}
                                 textStyle={getNativeButtonTextStyle(
                                     colors,
                                     "filled",
@@ -158,9 +173,9 @@ export default function HomeScreen() {
                     <HomeBanner banners={publishedBanners} />
 
                     {member ? (
-                        <MyTicket member={member} />
+                        <MyTicket />
                     ) : (
-                        <InlineState title={t("home.noMemberProfile")} />
+                        <CompactEmptyState title={t("home.noMemberProfile")} />
                     )}
                     <TodayReservation />
                 </View>

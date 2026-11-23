@@ -1,6 +1,7 @@
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
   cn,
+  EmptyState,
   ErrorState,
   Screen,
   triggerNotificationHaptic,
@@ -14,12 +15,12 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
   getMemberBaySlotGroupsQueryOptions,
+  getMemberTicketLessonSlotsQueryOptions,
   useMemberBaySlotGroups,
   useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/lib/toast/toast";
-import { getBaySlotAvailability } from "@/utils/bay-slot";
 import { isLessonSlotBookedByMember, isLessonSlotFull } from "@/utils/lesson-slot";
 import { formatDateForAPI, formatDateValue } from "@/utils/time-helper";
 import { Ionicons } from "@expo/vector-icons";
@@ -134,11 +135,11 @@ const DayCell = memo(function DayCell({
       accessibilityRole="button"
       accessibilityLabel={dateString}
       onPress={() => onPress(dateString)}
-      className="h-10 w-10 items-center justify-center"
+      className="min-h-10 min-w-10 items-center justify-center"
     >
       <View
         className={cn(
-          "h-10 w-10 items-center justify-center rounded-full",
+          "min-h-10 min-w-10 items-center justify-center rounded-full px-1",
           isToday
             ? "bg-success/15"
             : isAvailableFuture
@@ -149,7 +150,7 @@ const DayCell = memo(function DayCell({
         <NativeText
           variant="body"
           align="center"
-          style={{ width: 40, opacity: isPast && !isToday ? 0.4 : 1 }}
+          style={{ minWidth: 40, opacity: isPast && !isToday ? 0.4 : 1 }}
           textStyle={{
             color: textColor,
             ...(isToday || isAvailableFuture
@@ -174,7 +175,7 @@ const DayCell = memo(function DayCell({
 });
 
 export default function DateScreen() {
-  const { colors } = useTheme();
+  const { colors, resolvedScheme, primaryColorPreference } = useTheme();
   const { i18n, t } = useTranslation();
 
   const { ticketId, ticketName, ticketType, mode, reservationId, notes } =
@@ -201,7 +202,8 @@ export default function DateScreen() {
     parseMonth(formatDateForAPI(new Date())),
   );
 
-  const ticketIdNumber = ticketId ? Number(ticketId) : null;
+  const ticketIdNumber = Number(ticketId);
+  const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
 
   const isLessonTicket = LESSON_TICKET_TYPES.includes(
     String(ticketType ?? "").toUpperCase(),
@@ -218,7 +220,7 @@ export default function DateScreen() {
     isPending: isPendingBaySlotGroups,
     isRefetching: isRefetchingBaySlotGroups,
     isError: isErrorBaySlotGroups,
-  } = useMemberBaySlotGroups(startDate, endDate, !isLessonTicket);
+  } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, !isLessonTicket);
 
   const {
     data: lessonSlotData,
@@ -251,11 +253,7 @@ export default function DateScreen() {
       }
     } else {
       for (const group of baySlotGroupData?.data ?? []) {
-        const hasAvailableBay = group.baySlots.some(
-          (slot) => !getBaySlotAvailability(slot).isDisabled,
-        );
-
-        if (hasAvailableBay) {
+        if (group.totalReservableBaySlots > 0) {
           const date = formatDateForAPI(group.startDateTime);
           if (date) {
             dates.add(date);
@@ -282,13 +280,14 @@ export default function DateScreen() {
 
         runWithNavigationLock(() => {
           if (!isLessonTicket && baySlotGroupData) {
-            const dayQueryKey = getMemberBaySlotGroupsQueryOptions(
+            const dayQueryOptions = getMemberBaySlotGroupsQueryOptions(
+              ticketIdNumber,
               dateString,
               dateString,
-            ).queryKey;
+            );
 
-            if (!queryClient.getQueryData(dayQueryKey)) {
-              queryClient.setQueryData(dayQueryKey, {
+            if (!queryClient.getQueryData(dayQueryOptions.queryKey)) {
+              queryClient.setQueryData(dayQueryOptions.queryKey, {
                 ...baySlotGroupData,
                 data: baySlotGroupData.data.filter(
                   (group) =>
@@ -298,11 +297,7 @@ export default function DateScreen() {
             }
 
             // Keep the calendar data visible while the selected day refreshes.
-            void queryClient.invalidateQueries({
-              queryKey: dayQueryKey,
-              exact: true,
-              refetchType: "all",
-            });
+            void queryClient.prefetchQuery(dayQueryOptions);
           }
 
           router.push({
@@ -352,6 +347,7 @@ export default function DateScreen() {
       runWithNavigationLock,
       t,
       ticketId,
+      ticketIdNumber,
       ticketName,
       ticketType,
       today,
@@ -400,6 +396,18 @@ export default function DateScreen() {
     formatTicketTypeLabel(ticketType, t) || ticketName || t("common.noTicket");
   const calendarLocale = applyCalendarLocale(i18n.resolvedLanguage);
 
+  if (!hasTicketId) {
+    return (
+      <Screen>
+        <EmptyState
+          title={t("bookingConfirmation.ticketInfoMissing")}
+          actionLabel={t("tickets.sectionTitle")}
+          onAction={() => runWithNavigationLock(() => router.dismissTo("/tickets"))}
+        />
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       contentClassName="gap-6"
@@ -419,7 +427,7 @@ export default function DateScreen() {
       <View className="px-6">
         <BookingStepHeader
           step={1}
-          totalSteps={isLessonTicket ? 3 : 4}
+          totalSteps={3}
           context={bookingContext}
           selectionTrail={[bookingContext]}
         />
@@ -444,7 +452,7 @@ export default function DateScreen() {
           </View>
         ) : (
           <Calendar
-            key={calendarLocale}
+            key={`${calendarLocale}-${resolvedScheme}-${primaryColorPreference}`}
             style={[s.calendar, { backgroundColor: colors.card }]}
             current={startDate}
             minDate={today}
@@ -463,6 +471,32 @@ export default function DateScreen() {
                   ? prev
                   : next,
               );
+
+              if (hasTicketId) {
+                const followingMonth: VisibleMonth =
+                  next.month === 12
+                    ? { year: next.year + 1, month: 1 }
+                    : { year: next.year, month: next.month + 1 };
+
+                if (isLessonTicket) {
+                  void queryClient.prefetchQuery(
+                    getMemberTicketLessonSlotsQueryOptions(
+                      ticketIdNumber,
+                      followingMonth.year,
+                      followingMonth.month,
+                    ),
+                  );
+                } else {
+                  const followingRange = getMonthRange(followingMonth);
+                  void queryClient.prefetchQuery(
+                    getMemberBaySlotGroupsQueryOptions(
+                      ticketIdNumber,
+                      followingRange.startDate,
+                      followingRange.endDate,
+                    ),
+                  );
+                }
+              }
             }}
             renderArrow={(dir) => (
               <Ionicons
@@ -502,6 +536,6 @@ export default function DateScreen() {
 
 const s = StyleSheet.create({
   calendar: {
-    height: 520,
+    minHeight: 520,
   },
 });

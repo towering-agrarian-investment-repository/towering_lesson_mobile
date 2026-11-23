@@ -1,8 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import {
-    Keyboard,
     ScrollView,
-    TouchableWithoutFeedback,
     View,
     type RefreshControlProps,
     type ScrollViewProps,
@@ -24,10 +22,13 @@ type ScreenProps = {
     footer?: ReactNode;
     /** Disable when the parent navigator already insets the entire screen, as Android native tabs do. */
     footerSafeArea?: boolean;
+    /** Adds bottom safe-area inset to content padding when no footer is present. Opt out inside Android native tabs. */
+    bottomSafeArea?: boolean;
     bottomPadding?: number;
     headerShown?: boolean;
     horizontalPadding?: boolean;
     keyboardAware?: boolean;
+    keyboardDismissMode?: ScrollViewProps["keyboardDismissMode"];
     keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
     scroll?: boolean;
     refreshControl?: ReactElement<RefreshControlProps>;
@@ -40,10 +41,12 @@ export function Screen({
     contentClassName,
     footer,
     footerSafeArea = true,
+    bottomSafeArea,
     bottomPadding = 24,
     headerShown = true,
     horizontalPadding = true,
     keyboardAware = false,
+    keyboardDismissMode = "on-drag",
     keyboardShouldPersistTaps = "handled",
     scroll = true,
     refreshControl,
@@ -52,12 +55,13 @@ export function Screen({
     const insets = useSafeAreaInsets();
     const edgePadding = horizontalPadding ? SCREEN_HORIZONTAL_PADDING : 0;
     const automaticTopInset = scroll && process.env.EXPO_OS === "ios" && contentInsetAdjustmentBehavior !== "never";
+    const resolvedBottomSafeArea = bottomSafeArea ?? !footer;
     const bodyStyle = {
         width: "100%",
         maxWidth: SCREEN_MAX_WIDTH,
         alignSelf: "center",
         paddingTop: headerShown || automaticTopInset ? 16 : insets.top + 16,
-        paddingBottom: bottomPadding,
+        paddingBottom: bottomPadding + (resolvedBottomSafeArea ? insets.bottom : 0),
         paddingLeft: Math.max(edgePadding, insets.left),
         paddingRight: Math.max(edgePadding, insets.right),
     } as const;
@@ -72,8 +76,7 @@ export function Screen({
         className: "flex-1 bg-background",
         contentContainerStyle: { flexGrow: 1 },
         keyboardShouldPersistTaps,
-        keyboardDismissMode:
-            process.env.EXPO_OS === "ios" ? "interactive" : "on-drag",
+        keyboardDismissMode,
         showsVerticalScrollIndicator: false,
         refreshControl,
         contentInsetAdjustmentBehavior,
@@ -102,16 +105,7 @@ export function Screen({
                 ? { automaticOffset: true, behavior: "padding" as const }
                 : {})}
         >
-            {keyboardAware ? (
-                <TouchableWithoutFeedback
-                    accessible={false}
-                    onPress={Keyboard.dismiss}
-                >
-                    {screenContent}
-                </TouchableWithoutFeedback>
-            ) : (
-                screenContent
-            )}
+            {screenContent}
             {footer ? (
                 <View
                     className="border-t border-border bg-background"

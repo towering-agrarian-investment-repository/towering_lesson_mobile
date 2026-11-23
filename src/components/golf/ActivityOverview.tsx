@@ -1,34 +1,44 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { AppText } from "@/design-system/components/AppText";
 import { NativeText } from "@/design-system/components/NativeText";
 import { ActivitySharePreview } from "@/components/golf/ActivitySharePreview";
 import { mapActivityDays } from "@/components/golf/activity-display-data";
+import ReservationCard from "@/components/golf/ReservationCard";
 import {
     ActivityHeatmap,
+    AnimatedPressable,
+    cn,
+    CompactEmptyState,
+    EmptyState,
     ErrorState,
     Screen,
     SCREEN_HORIZONTAL_PADDING,
     SCREEN_MAX_WIDTH,
     Skeleton,
-    AnimatedPressable,
     triggerSelectionHaptic,
+    useTheme,
 } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import { useMemberActivity, useMemberActivitySummary } from "@/lib/hook/useMemberActivity";
+import { useMinuteClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { useMemberReservationsForDay } from "@/lib/hook/useReservation";
+import {
+    getMemberReservationDetailQueryOptions,
+    useMemberReservationsForDay,
+} from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { parseCalendarDate, toDateKey } from "@/design-system/components/charts/activity-chart-data";
+import { formatActivityDate, toDateKey } from "@/design-system/components/charts/activity-chart-data";
 import { HEATMAP_CELL_GAP, HEATMAP_CELL_RADIUS, getActivityHeatmapLayout } from "@/design-system/components/charts/activity-heatmap-layout";
-import { formatDateForAPI, formatTimeRange } from "@/utils/time-helper";
-import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
+import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
+import { formatDateForAPI } from "@/utils/time-helper";
+import { useQueryClient } from "@tanstack/react-query";
 import { useIsFocused, useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { ChevronRight, Sparkles } from "lucide-react-native";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Pressable,
     RefreshControl,
+    ScrollView,
     View,
     useWindowDimensions,
     type LayoutChangeEvent,
@@ -36,13 +46,16 @@ import {
 
 type ActivityFilter = number | "all";
 export function ActivityOverview() {
-    const { colors: uiColors } = useTheme();
-    const { t } = useTranslation();
+    const { colors } = useTheme();
+    const { t, i18n } = useTranslation();
     const isFocused = useIsFocused();
-    const todayKey = formatDateForAPI(new Date());
+    const [showShareCard, setShowShareCard] = useState(false);
+    const referenceTime = useMinuteClock();
+    const todayKey = formatDateForAPI(new Date(referenceTime));
     const currentYear = Number(todayKey.slice(0, 4));
     const [selectedYear, setSelectedYear] =
         useState<ActivityFilter>(currentYear);
+    const [focusTodayToken, setFocusTodayToken] = useState(0);
     const [daySelection, setDaySelection] = useState<{
         filter: ActivityFilter;
         dateKey: string;
@@ -53,6 +66,7 @@ export function ActivityOverview() {
         data: activity,
         isLoading,
         isError,
+        isPlaceholderData,
         refetch,
         isRefetching,
     } = useMemberActivity(selectedYear, isFocused);
@@ -117,6 +131,8 @@ export function ActivityOverview() {
             availableYears={summaryQuery.data?.availableYears ?? []}
             selectedYear={selectedYear}
             initialDailyValues={activityValues}
+            open={showShareCard}
+            onOpenChange={setShowShareCard}
             cardProps={{
                 memberName: memberProfile?.data.name,
                 memberImage: memberProfile?.data.profileImage,
@@ -137,19 +153,31 @@ export function ActivityOverview() {
         return (
             <>
                 {preview}
-                <ErrorState
-                    title={t("activity.couldNotLoad")}
-                    message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={
-                        isRefetching
-                            ? t("common.refreshing")
-                            : t("common.refreshTryAgain")
+                <Screen
+                    contentClassName="grow"
+                    bottomPadding={16}
+                    bottomSafeArea={process.env.EXPO_OS === "ios"}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isPullRefreshing}
+                            onRefresh={handlePullRefresh}
+                        />
                     }
-                    actionPending={isRefetching || isPullRefreshing}
-                    onAction={() => {
-                        void refetch();
-                    }}
-                />
+                >
+                    <ErrorState
+                        title={t("activity.couldNotLoad")}
+                        message={t("home.checkConnection")}
+                        actionLabel={
+                            isRefetching
+                                ? t("common.refreshing")
+                                : t("common.refreshTryAgain")
+                        }
+                        actionPending={isRefetching || isPullRefreshing}
+                        onAction={() => {
+                            void refetch();
+                        }}
+                    />
+                </Screen>
             </>
         );
     }
@@ -158,15 +186,56 @@ export function ActivityOverview() {
         return (
             <>
                 {preview}
-                <ActivityLoadingState yearCount={availableYears.length} showSelectedDay={Boolean(selectedDateKey)} />
+                <Screen
+                    contentClassName="grow"
+                    bottomPadding={16}
+                    bottomSafeArea={process.env.EXPO_OS === "ios"}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isPullRefreshing}
+                            onRefresh={handlePullRefresh}
+                        />
+                    }
+                >
+                    <EmptyState
+                        title={t("activity.emptyTitle")}
+                        message={t("activity.emptyMessage")}
+                        actionLabel={
+                            isRefetching
+                                ? t("common.refreshing")
+                                : t("common.refreshTryAgain")
+                        }
+                        actionPending={isRefetching || isPullRefreshing}
+                        onAction={() => {
+                            void refetch();
+                        }}
+                    />
+                </Screen>
             </>
         );
     }
+
+    const handleTodayJump = () => {
+        triggerSelectionHaptic();
+        setSelectedYear(currentYear);
+        setDaySelection({ filter: currentYear, dateKey: todayKey });
+        setFocusTodayToken((token) => token + 1);
+    };
+
+    const showTodayShortcut =
+        selectedYear !== currentYear || selectedDateKey !== todayKey;
+
+    const selectedDayHeatmapCount = selectedDateKey
+        ? activityValues.find((value) => toDateKey(value.date) === selectedDateKey)?.count ?? 0
+        : 0;
+    const selectedDayCount =
+        dayReservationsQuery.data?.length ?? selectedDayHeatmapCount;
 
     return (
         <>
             {preview}
             <Screen
+                bottomSafeArea={process.env.EXPO_OS === "ios"}
                 refreshControl={
                     <RefreshControl
                         refreshing={isPullRefreshing}
@@ -175,98 +244,216 @@ export function ActivityOverview() {
                 }
             >
                 <View className="gap-5">
-                    <View className="gap-2">
-                        <View className="flex-row flex-wrap gap-2">
-                            {availableYears.map((year) => (
+                    <ScrollView
+                        horizontal
+                        nestedScrollEnabled
+                        directionalLockEnabled
+                        contentInsetAdjustmentBehavior="never"
+                        showsHorizontalScrollIndicator={false}
+                        style={{ flexGrow: 0, flexShrink: 0 }}
+                        contentContainerStyle={{
+                            gap: 8,
+                            alignItems: "center",
+                        }}
+                    >
+                        {availableYears.map((year) => {
+                            const isSelected = selectedYear === year;
+                            return (
                                 <Pressable
                                     key={year}
                                     accessibilityRole="button"
-                                    accessibilityState={{
-                                        selected: selectedYear === year,
-                                    }}
+                                    accessibilityState={{ selected: isSelected }}
                                     accessibilityLabel={t("activity.showYear", {
                                         year,
                                     })}
-                                    className={`min-h-12 items-center justify-center rounded-full px-4 py-2 ${selectedYear === year ? "bg-primary" : "bg-muted"}`}
-                                    onPress={() => setSelectedYear(year)}
-                                >
-                                    <NativeText
-                                        variant="caption"
-                                        wrap={false}
-                                        textStyle={{
-                                            fontWeight: "600" as const, color:
-                                                selectedYear === year
-                                                    ? uiColors.primaryForeground
-                                                    : uiColors.mutedForeground, fontSize: typography.subtext
-                                                        .fontSize
-                                        }}
-                                    >
-                                        {String(year ?? "")}
-                                    </NativeText>
-                                </Pressable>
-                            ))}
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityState={{
-                                    selected: selectedYear === "all",
-                                }}
-                                accessibilityLabel={t("activity.showAll")}
-                                className={`min-h-12 items-center justify-center rounded-full px-4 py-2 ${selectedYear === "all" ? "bg-primary" : "bg-muted"}`}
-                                onPress={() => setSelectedYear("all")}
-                            >
-                                <NativeText
-                                    variant="caption"
-                                    wrap={false}
-                                    textStyle={{
-                                        fontWeight: "600" as const, color:
-                                            selectedYear === "all"
-                                                ? uiColors.primaryForeground
-                                                : uiColors.mutedForeground, fontSize: typography.subtext.fontSize
+                                    className="min-h-12 justify-center"
+                                    onPress={() => {
+                                        if (selectedYear === year) return;
+                                        triggerSelectionHaptic();
+                                        setSelectedYear(year);
                                     }}
                                 >
-                                    {t("activity.all")}
-                                </NativeText>
-                            </Pressable>
-                        </View>
-                    </View>
-                    <View className="flex-row gap-3">
-                        <ActivityStat
-                            value={String(activeDays)}
-                            label={t("activity.reservationDays")}
-                        />
-                        <ActivityStat
-                            value={t("activity.hoursValue", {
-                                value: totalHours.toFixed(1),
-                            })}
-                            label={t("activity.reservationHours")}
-                        />
-                        <ActivityStat
-                            value={String(totalReservations)}
-                            label={t("activity.totalReservations")}
-                        />
-                    </View>
-                    <View className="gap-4">
-                        <ActivityChartHeader
-                            title={t("activity.golfActivity")}
-                            period={activityLabel}
-                        />
-                        <ActivityHeatmap
-                            values={activityValues}
-                            endDate={heatmapEndDate}
-                            numDays={daysInYear}
-                            selectedDateKey={selectedDateKey}
-                            onDayPress={(date) => setDaySelection({
-                                filter: selectedYear,
-                                dateKey: toDateKey(date),
-                            })}
-                            onTodayPress={() => {
-                                setDaySelection({ filter: currentYear, dateKey: todayKey });
-                                setSelectedYear(currentYear);
+                                    <View
+                                        className={cn(
+                                            "items-center justify-center rounded-full px-3.5 py-1.5",
+                                            isSelected
+                                                ? "bg-primary"
+                                                : "bg-muted",
+                                        )}
+                                    >
+                                        <AppText
+                                            variant="meta"
+                                            wrap={false}
+                                            color={
+                                                isSelected
+                                                    ? "primaryForeground"
+                                                    : "mutedForeground"
+                                            }
+                                            textStyle={{
+                                                fontWeight: "600",
+                                                fontVariant: ["tabular-nums"],
+                                            }}
+                                        >
+                                            {String(year ?? "")}
+                                        </AppText>
+                                    </View>
+                                </Pressable>
+                            );
+                        })}
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityState={{
+                                selected: selectedYear === "all",
                             }}
-                        />
-                        {selectedDateKey ? (
-                            <ActivityDayReservations query={dayReservationsQuery} />
+                            accessibilityLabel={t("activity.showAll")}
+                            className="min-h-12 justify-center"
+                            onPress={() => {
+                                if (selectedYear === "all") return;
+                                triggerSelectionHaptic();
+                                setSelectedYear("all");
+                            }}
+                        >
+                            <View
+                                className={cn(
+                                    "items-center justify-center rounded-full px-3.5 py-1.5",
+                                    selectedYear === "all"
+                                        ? "bg-primary"
+                                        : "bg-muted",
+                                )}
+                            >
+                                <AppText
+                                    variant="meta"
+                                    wrap={false}
+                                    color={
+                                        selectedYear === "all"
+                                            ? "primaryForeground"
+                                            : "mutedForeground"
+                                    }
+                                    textStyle={{ fontWeight: "600" }}
+                                >
+                                    {t("activity.all")}
+                                </AppText>
+                            </View>
+                        </Pressable>
+                    </ScrollView>
+                    <View
+                        className={cn(
+                            "gap-5",
+                            isPlaceholderData && "opacity-60",
+                        )}
+                    >
+                        <View className="flex-row gap-3">
+                            <ActivityStat
+                                value={String(activeDays)}
+                                label={t("activity.reservationDays")}
+                            />
+                            <ActivityStat
+                                value={t("activity.hoursValue", {
+                                    value: totalHours.toFixed(1),
+                                })}
+                                label={t("activity.reservationHours")}
+                            />
+                            <ActivityStat
+                                value={String(totalReservations)}
+                                label={t("activity.totalReservations")}
+                            />
+                        </View>
+                        {totalReservations > 0 ? (
+                            <AnimatedPressable
+                                accessibilityRole="button"
+                                accessibilityLabel={t("shareCard.bannerTitle")}
+                                onPress={() => {
+                                    triggerSelectionHaptic();
+                                    setShowShareCard(true);
+                                }}
+                                className="flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+                            >
+                                <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                                    <Sparkles
+                                        size={18}
+                                        color={colors.primary}
+                                        strokeWidth={2.2}
+                                    />
+                                </View>
+                                <View className="min-w-0 flex-1 gap-0.5">
+                                    <AppText
+                                        variant="meta"
+                                        numberOfLines={1}
+                                        textStyle={{ fontWeight: "700" }}
+                                    >
+                                        {t("shareCard.bannerTitle")}
+                                    </AppText>
+                                    <AppText
+                                        variant="caption"
+                                        color="mutedForeground"
+                                        numberOfLines={1}
+                                    >
+                                        {t("shareCard.bannerSubtitle")}
+                                    </AppText>
+                                </View>
+                                <ChevronRight
+                                    size={16}
+                                    color={colors.mutedForeground}
+                                    strokeWidth={2.2}
+                                />
+                            </AnimatedPressable>
                         ) : null}
+                        <View className="gap-4">
+                            <ActivityChartHeader
+                                title={t("activity.golfActivity")}
+                                period={activityLabel}
+                                onTodayPress={
+                                    showTodayShortcut
+                                        ? handleTodayJump
+                                        : undefined
+                                }
+                            />
+                            <ActivityHeatmap
+                                values={activityValues}
+                                endDate={heatmapEndDate}
+                                numDays={daysInYear}
+                                selectedDateKey={selectedDateKey}
+                                focusTodayToken={focusTodayToken}
+                                onDayPress={(date) => setDaySelection({
+                                    filter: selectedYear,
+                                    dateKey: toDateKey(date),
+                                })}
+                                onTodayPress={handleTodayJump}
+                            />
+                            {selectedDateKey ? (
+                                <View className="gap-3 pt-1">
+                                    <View className="flex-row items-center justify-between gap-3">
+                                        <AppText
+                                            variant="h3"
+                                            style={{ flex: 1, minWidth: 0 }}
+                                        >
+                                            {formatActivityDate(
+                                                selectedDateKey,
+                                                i18n.language,
+                                            )}
+                                        </AppText>
+                                        <AppText
+                                            variant="subtext"
+                                            color="mutedForeground"
+                                            align="right"
+                                            wrap={false}
+                                            textStyle={{
+                                                fontWeight: "600",
+                                                fontVariant: ["tabular-nums"],
+                                            }}
+                                        >
+                                            {t("activity.sessionCount", {
+                                                count: selectedDayCount,
+                                            })}
+                                        </AppText>
+                                    </View>
+                                    <ActivityDayReservations
+                                        query={dayReservationsQuery}
+                                        referenceTime={referenceTime}
+                                    />
+                                </View>
+                            ) : null}
+                        </View>
                     </View>
                 </View>
             </Screen>
@@ -277,19 +464,41 @@ export function ActivityOverview() {
 
 function ActivityDayReservations({
     query,
+    referenceTime,
 }: {
     query: ReturnType<typeof useMemberReservationsForDay>;
+    referenceTime: number;
 }) {
-    const { colors } = useTheme();
-    const { t, i18n } = useTranslation();
-    const weekdayFormatter = new Intl.DateTimeFormat(i18n.language, { weekday: "short" });
+    const { t } = useTranslation();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const { data, isError, isRefetching, refetch } = query;
 
+    const handleReservationPress = useCallback(
+        (reservation: MemberReservationSummaryResponse) => {
+            void queryClient.prefetchQuery(
+                getMemberReservationDetailQueryOptions(
+                    reservation.id,
+                    reservation.reservationType,
+                ),
+            );
+            runWithNavigationLock(() => {
+                router.push({
+                    pathname: "/reservation/[id]",
+                    params: {
+                        id: String(reservation.id),
+                        type: reservation.reservationType,
+                    },
+                });
+            });
+        },
+        [queryClient, router, runWithNavigationLock],
+    );
+
     if (!data && !isError) {
         return (
-            <View className="gap-2" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
+            <View className="gap-2.5" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
                 <ActivityReservationRowSkeleton />
                 <ActivityReservationRowSkeleton />
             </View>
@@ -298,7 +507,8 @@ function ActivityDayReservations({
 
     if (!data) {
         return (
-            <ErrorState
+            <CompactEmptyState
+                tone="danger"
                 title={t("reservations.failedListTitle")}
                 message={t("common.pullToRefreshAndTryAgain")}
                 actionLabel={t("common.refreshTryAgain")}
@@ -309,7 +519,7 @@ function ActivityDayReservations({
     }
 
     return (
-        <View className="gap-3">
+        <View className="gap-2.5">
             {isError ? (
                 <Pressable
                     accessibilityRole="button"
@@ -324,65 +534,18 @@ function ActivityDayReservations({
                 </Pressable>
             ) : null}
             {data.length === 0 ? (
-                <NativeText variant="subtext" color="mutedForeground">
-                    {t("reservations.noReservationsTitle")}
-                </NativeText>
-            ) : data.map((reservation) => {
-                const title = reservation.bayName ??
-                    reservation.lessonAvailabilityName ??
-                    reservation.lessonProgramGroupName ??
-                    reservation.lessonProgramName ??
-                    t("reservations.reservationFallbackWithId", { id: reservation.id });
-                const date = parseCalendarDate(reservation.reservationDate);
-                const backendStatusLabel = getReservationStatusLabel(reservation.reservationStatus, t);
-                const statusLabel = backendStatusLabel === "-"
-                    ? t("reservations.statusUnavailable")
-                    : backendStatusLabel;
-                const statusColor = getReservationStatusColor(colors, reservation.reservationStatus);
-                return (
-                    <AnimatedPressable
+                <CompactEmptyState title={t("reservations.noReservationsTitle")} />
+            ) : (
+                data.map((reservation) => (
+                    <ReservationCard
                         key={`${reservation.reservationType}:${reservation.id}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={t("reservations.openLabel", { title })}
-                        accessibilityState={{ disabled: isLocked }}
+                        reservation={reservation}
+                        referenceTime={referenceTime}
                         disabled={isLocked}
-                        className="min-h-16 flex-row items-center gap-3 rounded-xl bg-card px-2 py-2"
-                        onPress={() => {
-                            runWithNavigationLock(() => {
-                                triggerSelectionHaptic();
-                                router.push({
-                                    pathname: "/reservation/[id]",
-                                    params: {
-                                        id: String(reservation.id),
-                                        type: reservation.reservationType,
-                                    },
-                                });
-                            });
-                        }}
-                    >
-                        <View className="h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <NativeText variant="label" wrap={false} textStyle={{ fontWeight: "700" }}>
-                                {String(date.getDate())}
-                            </NativeText>
-                            <NativeText variant="badge" color="mutedForeground" wrap={false}>
-                                {weekdayFormatter.format(date)}
-                            </NativeText>
-                        </View>
-                        <View className="min-w-0 flex-1 gap-1">
-                            <NativeText variant="label" numberOfLines={1}>{title}</NativeText>
-                            <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
-                                <NativeText variant="subtext" wrap={false} textStyle={{ color: statusColor, fontWeight: "700" }}>
-                                    {statusLabel}
-                                </NativeText>
-                                <NativeText variant="subtext" color="mutedForeground" wrap={false}>
-                                    {formatTimeRange(reservation.startTime, reservation.endTime)}
-                                </NativeText>
-                            </View>
-                        </View>
-                        <ChevronRight size={18} color={colors.mutedForeground} />
-                    </AnimatedPressable>
-                );
-            })}
+                        onPress={handleReservationPress}
+                    />
+                ))
+            )}
         </View>
     );
 }
@@ -404,23 +567,54 @@ function daysBetween(start: Date, end: Date) {
     );
 }
 
-function ActivityChartHeader({ title, period }: { title: string; period: string }) {
+function ActivityChartHeader({
+    title,
+    period,
+    onTodayPress,
+}: {
+    title: string;
+    period: string;
+    onTodayPress?: () => void;
+}) {
+    const { t } = useTranslation();
 
     return (
         <View className="flex-row items-center justify-between gap-3">
             <NativeText variant="h3" style={{ flex: 1, minWidth: 0 }}>
                 {title}
             </NativeText>
-            <NativeText
-                variant="subtext"
-                color="mutedForeground"
-                align="right"
-                wrap={false}
-                style={{ flexShrink: 0 }}
-                textStyle={{ fontWeight: "600" }}
-            >
-                {period}
-            </NativeText>
+            <View className="flex-row items-center gap-2">
+                {onTodayPress ? (
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("activity.today")}
+                        hitSlop={8}
+                        className="justify-center"
+                        onPress={onTodayPress}
+                    >
+                        <View className="rounded-full bg-muted px-3 py-1">
+                            <AppText
+                                variant="caption"
+                                color="primary"
+                                wrap={false}
+                                textStyle={{ fontWeight: "700" }}
+                            >
+                                {t("activity.today")}
+                            </AppText>
+                        </View>
+                    </Pressable>
+                ) : null}
+                <NativeText
+                    variant="subtext"
+                    color="mutedForeground"
+                    align="right"
+                    wrap={false}
+                    style={{ flexShrink: 0 }}
+                    textStyle={{ fontWeight: "600" }}
+                >
+                    {period}
+                </NativeText>
+            </View>
         </View>
     );
 }
@@ -435,14 +629,16 @@ function ActivityLoadingState({
     const { t } = useTranslation();
 
     return (
-        <Screen>
+        <Screen bottomSafeArea={process.env.EXPO_OS === "ios"}>
             <View className="gap-5" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
-                <View className="gap-2">
-                    <View className="flex-row flex-wrap gap-2">
-                        {Array.from({ length: yearCount }, (_, index) => (
-                            <Skeleton key={index} className="h-12 w-20 rounded-full" />
-                        ))}
-                        <Skeleton className="h-12 w-16 rounded-full" />
+                <View className="flex-row flex-wrap items-center gap-2">
+                    {Array.from({ length: yearCount }, (_, index) => (
+                        <View key={index} className="min-h-12 justify-center">
+                            <Skeleton className="h-8 w-16 rounded-full" />
+                        </View>
+                    ))}
+                    <View className="min-h-12 justify-center">
+                        <Skeleton className="h-8 w-14 rounded-full" />
                     </View>
                 </View>
                 <View className="flex-row gap-3">
@@ -540,14 +736,20 @@ function HeatmapSkeleton() {
 
 function ActivityReservationRowSkeleton() {
     return (
-        <Skeleton className="h-16 flex-row items-center gap-3 rounded-xl bg-card px-2 py-2">
-            <View className="h-12 w-12 shrink-0 rounded-lg bg-muted" />
-            <View className="min-w-0 flex-1 gap-2">
-                <View className="h-4 w-28 max-w-full rounded-md bg-muted" />
-                <View className="h-3 w-40 max-w-full rounded-md bg-muted" />
+        <View className="gap-3 rounded-2xl border border-border bg-card p-4">
+            <View className="flex-row items-center justify-between gap-2">
+                <Skeleton className="h-4 w-36 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-md" />
             </View>
-            <View className="h-4 w-2 rounded-md bg-muted" />
-        </Skeleton>
+            <View className="flex-row items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-xl" />
+                <View className="min-w-0 flex-1 gap-1.5">
+                    <Skeleton className="h-4 w-3/5 rounded-full" />
+                    <Skeleton className="h-3.5 w-1/3 rounded-full" />
+                </View>
+                <Skeleton className="h-4 w-4 rounded-full" />
+            </View>
+        </View>
     );
 }
 
@@ -558,15 +760,22 @@ function ActivityStat({
     value: string;
     label: string;
 }) {
-
     return (
-        <View className="min-w-0 flex-1 gap-1 py-2">
-            <NativeText variant="h1" color="primary">
+        <View className="min-w-0 flex-1 gap-1 py-1">
+            <AppText
+                variant="h1"
+                color="primary"
+                numberOfLines={1}
+                textStyle={{
+                    fontWeight: "800",
+                    fontVariant: ["tabular-nums"],
+                }}
+            >
                 {value}
-            </NativeText>
-            <NativeText variant="caption" color="mutedForeground">
+            </AppText>
+            <AppText variant="caption" color="mutedForeground" numberOfLines={2}>
                 {label}
-            </NativeText>
+            </AppText>
         </View>
     );
 }

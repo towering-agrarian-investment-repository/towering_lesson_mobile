@@ -22,6 +22,7 @@ import {
 import { MemberLessonDetailResponse } from "@/types/member-lesson";
 import { SessionInstanceResponse } from "@/types/member-session";
 import {
+    hasExpired,
     HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
     HOMEWORK_SUBMISSION_MIME_TYPES,
     isAllowedMimeType,
@@ -40,6 +41,7 @@ export function getMemberGroupsQueryOptions() {
     return {
         queryKey: ["member", "groups"] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) => getMemberGroups(signal),
+        staleTime: 60_000,
     };
 }
 
@@ -48,6 +50,7 @@ export function getMemberGroupByIdQueryOptions(groupId: number) {
         queryKey: ["member", "groups", groupId] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
             getMemberGroupById(groupId, signal),
+        staleTime: 60_000,
     };
 }
 
@@ -59,6 +62,7 @@ export function getMemberLessonByGroupQueryOptions(
         queryKey: ["member", "groups", groupId, "lessons", lessonId] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
             getMemberLessonByIdAndGroupId(lessonId, groupId, signal),
+        staleTime: 60_000,
     };
 }
 
@@ -67,6 +71,7 @@ export function getMemberLessonByIdQueryOptions(lessonId: number) {
         queryKey: ["member", "lessons", lessonId] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
             getMemberLessonById(lessonId, signal),
+        staleTime: 60_000,
     };
 }
 
@@ -75,6 +80,7 @@ export function getMemberHomeworkByIdQueryOptions(homeworkId: number) {
         queryKey: ["member", "homeworks", homeworkId] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) =>
             getMemberHomeworkById(homeworkId, signal),
+        staleTime: 60_000,
     };
 }
 
@@ -219,7 +225,16 @@ export function useSubmitMemberHomework() {
                     nativeFile,
                     mediaType,
                 );
-            } catch {
+            } catch (error) {
+                const isForbidden =
+                    error instanceof Error &&
+                    "status" in error &&
+                    error.status === 403;
+
+                if (!hasExpired(uploadTarget.expiresAt) && !isForbidden) {
+                    throw error;
+                }
+
                 uploadTarget = await requestFreshUploadTarget();
                 await uploadHomeworkSubmissionFile(
                     uploadTarget.uploadUrl,
@@ -245,10 +260,4 @@ export function useSubmitMemberHomework() {
             responseError(error);
         },
     });
-}
-
-function hasExpired(expiresAt: string) {
-    const expiryTime = Date.parse(expiresAt);
-
-    return !Number.isFinite(expiryTime) || expiryTime <= Date.now();
 }
