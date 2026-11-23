@@ -16,6 +16,7 @@ import {
     useState,
     type ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View, type ViewStyle } from "react-native";
 import Animated, {
     cancelAnimation,
@@ -62,7 +63,9 @@ export function showAppToast({
     if (!normalizedMessage) return;
 
     if (!toastHandler) {
-        console.warn(`Toast not ready: ${normalizedMessage}`);
+        if (__DEV__) {
+            console.warn(`Toast not ready: ${normalizedMessage}`);
+        }
         return;
     }
 
@@ -84,6 +87,7 @@ const TOAST_EASING = Easing.bezier(0.23, 1, 0.32, 1);
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
     const { colors } = useTheme();
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const reducedMotion = useReducedMotion();
     const [toast, setToast] = useState<ActiveToast | null>(null);
@@ -207,8 +211,6 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
                     }}
                 >
                     <Animated.View
-                        accessible
-                        accessibilityLabel={toast.message}
                         accessibilityLiveRegion={
                             toast.type === "error" ? "assertive" : "polite"
                         }
@@ -240,7 +242,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Dismiss notification"
+                            accessibilityLabel={t("common.dismissNotification")}
                             hitSlop={12}
                             onPress={() => dismissToast(toast.id)}
                             className="h-9 w-9 shrink-0 items-center justify-center rounded-full active:bg-muted"

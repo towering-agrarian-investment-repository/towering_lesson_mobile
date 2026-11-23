@@ -116,8 +116,11 @@ export async function uploadHomeworkSubmissionFile(
     }
 
     if (!uploadResponse.ok) {
-        throw new Error(
-            `Storage upload failed: ${uploadResponse.status} ${await uploadResponse.text()}`,
+        throw Object.assign(
+            new Error(
+                `Storage upload failed: ${uploadResponse.status} ${await uploadResponse.text()}`,
+            ),
+            { status: uploadResponse.status },
         );
     }
 }

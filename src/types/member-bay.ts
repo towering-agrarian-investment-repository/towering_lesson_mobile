@@ -6,6 +6,8 @@ export type MemberBayReservationTicket = {
     type: string;
     status: string;
     isUnlimited: boolean;
+    totalCount: number | null;
+    usedCount: number;
     remainingCount: number | null;
 };
 
@@ -83,14 +85,11 @@ export type BaySlotGroupScheduleResponse = {
 };
 
 export type CreateBayReservationRequest = {
-    baySlotId: number;
+    baySlotGroupId: number;
     ticketId: number;
-    // Request-side `notes` maps to `memberNotes` in the backend.
-    notes?: string | null;
+    memberNotes?: string | null;
 };
 
 export type RescheduleBayReservationRequest = {
-    baySlotId: number;
-    // Request-side `notes` maps to `memberNotes` in the backend.
-    notes?: string | null;
+    baySlotGroupId: number;
 };

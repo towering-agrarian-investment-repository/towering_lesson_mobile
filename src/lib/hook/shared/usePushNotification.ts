@@ -10,6 +10,8 @@ type NotificationPayload = {
     referenceId?: string | number | null;
 };
 
+const NUMERIC_REFERENCE_ID_PATTERN = /^\d+$/;
+
 export const usePushNotification = (isLoggedIn: boolean) => {
     const router = useRouter();
     const lastHandledNotificationId = useRef<string | null>(null);
@@ -33,8 +35,12 @@ export const usePushNotification = (isLoggedIn: boolean) => {
                 ? data.referenceType.toUpperCase() as NotificationReferenceType
                 : null;
             const referenceId = data.referenceId != null ? String(data.referenceId) : null;
+            const hasValidReferenceId = referenceId !== null && NUMERIC_REFERENCE_ID_PATTERN.test(referenceId);
 
-            if (referenceType === "BOOKING_BAY" && referenceId) {
+            if (referenceType === "BOOKING_BAY") {
+                if (!hasValidReferenceId) {
+                    return;
+                }
                 router.push({
                     pathname: "/reservation/[id]",
                     params: {
@@ -45,7 +51,10 @@ export const usePushNotification = (isLoggedIn: boolean) => {
                 return;
             }
 
-            if (referenceType === "BOOKING_LESSON" && referenceId) {
+            if (referenceType === "BOOKING_LESSON") {
+                if (!hasValidReferenceId) {
+                    return;
+                }
                 router.push({
                     pathname: "/reservation/[id]",
                     params: {
@@ -56,7 +65,10 @@ export const usePushNotification = (isLoggedIn: boolean) => {
                 return;
             }
 
-            if (referenceType === "LESSON_LOG" && referenceId) {
+            if (referenceType === "LESSON_LOG") {
+                if (!hasValidReferenceId) {
+                    return;
+                }
                 router.push({
                     pathname: "/lesson-log/[id]",
                     params: {
@@ -66,7 +78,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
                 return;
             }
 
-            if (referenceType === "BOOKING" && referenceId) {
+            if (referenceType === "BOOKING") {
                 router.navigate("/reservation");
                 return;
             }
@@ -81,15 +93,15 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             return;
         }
 
-        let isActive = true;
-
         const registerPushToken = async (
             devicePushToken?: Notifications.DevicePushToken,
         ) => {
             try {
                 await registerForPushNotifications(devicePushToken);
             } catch (error) {
-                console.error("[push] Registration failed", error);
+                if (__DEV__) {
+                    console.error("[push] Registration failed", error);
+                }
             }
         };
 
@@ -105,16 +117,9 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             },
         );
 
-        void Notifications.getLastNotificationResponseAsync()
-            .then((response) => {
-                if (isActive) handleNotificationNavigation(response);
-            })
-            .catch((error) => {
-                console.error("[push] Failed to read the last notification response", error);
-            });
+        handleNotificationNavigation(Notifications.getLastNotificationResponse());
 
         return () => {
-            isActive = false;
             pushTokenSubscription.remove();
             responseSubscription.remove();
         };

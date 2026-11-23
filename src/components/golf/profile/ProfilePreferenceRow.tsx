@@ -1,11 +1,11 @@
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { NativeText } from "@/design-system/components/NativeText";
-import { InlineState, ListRow, useTheme } from "@/design-system";
+import { ListRow, useTheme } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
 import { Button, Host, RNHostView, Text } from "@expo/ui";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { Check } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -59,7 +59,7 @@ export function ProfilePreferenceRow<T extends string>({
             await onChange(nextValue);
             setIsPresented(false);
         } catch {
-            setSaveError(t("common.refreshTryAgain"));
+            setSaveError(t("common.requestError"));
         } finally {
             selectionLocked.current = false;
             setPendingValue(null);
@@ -119,7 +119,11 @@ export function ProfilePreferenceRow<T extends string>({
                                 />
                             ))}
                         </ScrollView>
-                        {saveError ? <InlineState title={saveError} tone="danger" /> : null}
+                        {saveError ? (
+                            <NativeText variant="meta" color="danger" align="center">
+                                {saveError}
+                            </NativeText>
+                        ) : null}
                         <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={resolvedScheme} style={{ width: "100%" }}>
                             <Button
                                 variant="text"
@@ -129,7 +133,7 @@ export function ProfilePreferenceRow<T extends string>({
                                 modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}
                             >
                                 <Text
-                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth()]}
+                                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}
                                     textStyle={getNativeButtonTextStyle(colors, "text", fontScale)}
                                 >
                                     {t("common.cancel")}

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { View, type StyleProp, type ViewStyle } from "react-native";
+import { type StyleProp, type ViewStyle } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { cn } from "../utils/cn";
 
@@ -32,18 +32,5 @@ export function Skeleton({ className, children, style }: SkeletonProps) {
         >
             {children}
         </Animated.View>
-    );
-}
-
-export function SkeletonLines({ lines = 3 }: { lines?: number }) {
-    return (
-        <Skeleton className="gap-3 rounded-none bg-transparent">
-            {Array.from({ length: lines }, (_, index) => (
-                <View
-                    key={index}
-                    className={cn("rounded-xl bg-muted", index === lines - 1 ? "h-4 w-2/3" : "h-4 w-full")}
-                />
-            ))}
-        </Skeleton>
     );
 }

@@ -52,10 +52,19 @@ export function ListRow({
         onPress?.(event);
     };
 
+    const accessibilityLabel = [
+        title,
+        subtitle,
+        typeof meta === "string" ? meta : null,
+    ]
+        .filter(Boolean)
+        .join(", ");
+
     return (
         <AnimatedPressable
-            accessibilityRole="button"
-            accessibilityLabel={title}
+            accessibilityRole={onPress ? "button" : undefined}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ disabled: Boolean(disabled) }}
             disabled={disabled}
             className={cn(
                 "min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60",
@@ -99,13 +108,11 @@ export function ListRow({
             {trailing}
 
             {showChevron ? (
-                <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
-                    <ChevronRight
-                        size={18}
-                        color={uiColors.mutedForeground}
-                        strokeWidth={2.25}
-                    />
-                </View>
+                <ChevronRight
+                    size={16}
+                    color={uiColors.mutedForeground}
+                    strokeWidth={2.2}
+                />
             ) : null}
         </AnimatedPressable>
     );

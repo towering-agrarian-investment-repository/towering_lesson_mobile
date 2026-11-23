@@ -5,6 +5,7 @@ import {
     MemberSelfResponse,
 } from "@/types/member.type";
 import {
+    hasExpired,
     PROFILE_IMAGE_MAX_SIZE_BYTES,
     type ProfileImageContentType,
 } from "@/utils/media";
@@ -86,6 +87,10 @@ export const updateMemberProfileImage = async (
         staged = await stageUpload();
     }
 
+    if (hasExpired(staged.expiresAt)) {
+        throw new Error("The API returned an expired staged upload.");
+    }
+
     let uploadResponse = await putProfileImage(staged, imageFile, contentType);
 
     if (!uploadResponse.ok && hasExpired(staged.expiresAt)) {
@@ -123,10 +128,4 @@ async function putProfileImage(
     } finally {
         clearTimeout(timeout);
     }
-}
-
-function hasExpired(expiresAt: string) {
-    const expiryTime = Date.parse(expiresAt);
-
-    return Number.isFinite(expiryTime) && expiryTime <= Date.now();
 }

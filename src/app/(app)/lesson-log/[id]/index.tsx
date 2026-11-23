@@ -19,7 +19,7 @@ import {
     defaultMinSize,
     fillMaxWidth,
 } from "@expo/ui/jetpack-compose/modifiers";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "expo";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
@@ -227,7 +227,7 @@ function LessonLogDetailsScreen() {
                                 <Text
                                     modifiers={
                                         process.env.EXPO_OS === "ios"
-                                            ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                                            ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
                                             : [fillMaxWidth()]
                                     }
                                     textStyle={{

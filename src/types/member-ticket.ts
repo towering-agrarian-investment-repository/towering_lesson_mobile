@@ -1,3 +1,5 @@
+import type { MemberReservationResponse } from "./member-reservation";
+
 export type TicketPauseResponse = {
 	id: number;
 	reason: string | null;
@@ -30,4 +32,8 @@ export type TicketListItemResponse = {
 	pauses: TicketPauseResponse[];
 	reservationCount: number;
 	bayReservationCount: number;
+};
+
+export type TicketDetailResponse = TicketListItemResponse & {
+	reservations?: MemberReservationResponse[];
 };

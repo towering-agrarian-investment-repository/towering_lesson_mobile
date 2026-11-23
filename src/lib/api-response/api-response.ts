@@ -73,18 +73,6 @@ export function isApiError(
     );
 }
 
-export type PagedResponse<T, M = Record<string, unknown>> = {
-    content: T[];
-    page: number;
-    size: number;
-    totalElements: number;
-    totalPages: number;
-    last: boolean;
-    totalAll?: number;
-    totalFiltered?: number;
-    meta?: M;
-};
-
 export function responseStatus<T>(res: ApiResponse<T>): void {
     showAppToast({
         message: res.status.message,

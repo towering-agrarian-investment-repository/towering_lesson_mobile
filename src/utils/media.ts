@@ -34,8 +34,14 @@ export function getFileExtension(value?: string | null) {
     }
 
     const normalized = value.split("?")[0].split("#")[0];
+    const basename = normalized.slice(normalized.lastIndexOf("/") + 1);
+    const dotIndex = basename.lastIndexOf(".");
 
-    return normalized.split(".").pop()?.toLowerCase() || null;
+    if (dotIndex <= 0 || dotIndex === basename.length - 1) {
+        return null;
+    }
+
+    return basename.slice(dotIndex + 1).toLowerCase();
 }
 
 export function isAllowedExtension(
@@ -63,17 +69,25 @@ export function isProfileImageContentType(
 }
 
 export function getProfileImageMimeType(extension: string) {
-    if (extension === "jpg" || extension === "jpeg") {
+    const normalized = extension.toLowerCase();
+
+    if (normalized === "jpg" || normalized === "jpeg") {
         return "image/jpeg";
     }
 
-    if (extension === "png") {
+    if (normalized === "png") {
         return "image/png";
     }
 
-    if (extension === "webp") {
+    if (normalized === "webp") {
         return "image/webp";
     }
 
     return null;
+}
+
+export function hasExpired(expiresAt: string) {
+    const expiryTime = Date.parse(expiresAt);
+
+    return !Number.isFinite(expiryTime) || expiryTime <= Date.now();
 }

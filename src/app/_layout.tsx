@@ -1,6 +1,6 @@
 import { AppUpdateGate } from "@/components/update/AppUpdateGate";
-import { ThemeProvider, useTheme } from "@/design-system";
-import "@/i18n";
+import { AppToastProvider, ThemeProvider, useTheme } from "@/design-system";
+import { i18nReady, isI18nReady } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { usePushNotification } from "@/lib/hook/shared/usePushNotification";
 import { VariableContextProvider } from "@/lib/react-native-css-variable-context";
@@ -107,16 +107,39 @@ function ThemedRoot({
     primaryColorPreference,
   } = useTheme();
   const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
+  const [isLanguageReady, setIsLanguageReady] = useState(isI18nReady);
 
   useEffect(() => {
-    if (isThemeReady && !isAuthPending) {
+    if (isLanguageReady) {
+      return;
+    }
+
+    let isMounted = true;
+    void i18nReady.then(() => {
+      if (isMounted) {
+        setIsLanguageReady(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLanguageReady]);
+
+  const isAppReady =
+    isThemeReady && isWelcomeReady && isLanguageReady && !isAuthPending;
+
+  useEffect(() => {
+    if (isAppReady) {
       void SplashScreen.hideAsync();
     }
-  }, [isThemeReady, isAuthPending]);
+  }, [isAppReady]);
 
   usePushNotification(
-    hasAuthorizedSession && isWelcomeReady && hasCompletedWelcome &&
-    !isAuthPending && !update.isForceUpdateRequired,
+    hasAuthorizedSession &&
+      isAppReady &&
+      hasCompletedWelcome &&
+      !update.isForceUpdateRequired,
   );
 
   const navigationTheme = useMemo(
@@ -139,60 +162,52 @@ function ThemedRoot({
       <VariableContextProvider
         value={primaryColorPreference === "green" ? greenOverrides : blueOverrides}
       >
-        {!isThemeReady || !isWelcomeReady || isAuthPending ? (
-          <View className="flex-1 bg-background" />
-        ) : null}
-
-        {isThemeReady &&
-        isWelcomeReady &&
-        update.isForceUpdateRequired &&
-        update.state ? (
-          <AppUpdateGate
-            state={update.state}
-            force
-            isCheckingAgain={update.isCheckingAgain}
-            onCheckAgain={update.checkAgain}
-          />
-        ) : null}
-
-        {isThemeReady &&
-        isWelcomeReady &&
-        !isAuthPending &&
-        !update.isForceUpdateRequired ? (
-          <View className="flex-1 bg-background">
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: "none",
-              }}
-            >
-              <Stack.Protected guard={!hasCompletedWelcome}>
-                <Stack.Screen
-                  name="welcome"
-                  options={{ headerShown: false, animation: "none" }}
-                />
-              </Stack.Protected>
-
-              <Stack.Protected
-                guard={hasCompletedWelcome && !hasAuthorizedSession}
+        <AppToastProvider>
+          {!isAppReady ? (
+            <View className="flex-1 bg-background" />
+          ) : update.isForceUpdateRequired && update.state ? (
+            <AppUpdateGate
+              state={update.state}
+              force
+              isCheckingAgain={update.isCheckingAgain}
+              onCheckAgain={update.checkAgain}
+            />
+          ) : (
+            <View className="flex-1 bg-background">
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: "none",
+                }}
               >
-                <Stack.Screen
-                  name="login"
-                  options={{ headerShown: false, animation: "fade" }}
-                />
-              </Stack.Protected>
+                <Stack.Protected guard={!hasCompletedWelcome}>
+                  <Stack.Screen
+                    name="welcome"
+                    options={{ headerShown: false, animation: "none" }}
+                  />
+                </Stack.Protected>
 
-              <Stack.Protected
-                guard={hasCompletedWelcome && hasAuthorizedSession}
-              >
-                <Stack.Screen
-                  name="(app)"
-                  options={{ headerShown: false, animation: "none" }}
-                />
-              </Stack.Protected>
-            </Stack>
-          </View>
-        ) : null}
+                <Stack.Protected
+                  guard={hasCompletedWelcome && !hasAuthorizedSession}
+                >
+                  <Stack.Screen
+                    name="login"
+                    options={{ headerShown: false, animation: "fade" }}
+                  />
+                </Stack.Protected>
+
+                <Stack.Protected
+                  guard={hasCompletedWelcome && hasAuthorizedSession}
+                >
+                  <Stack.Screen
+                    name="(app)"
+                    options={{ headerShown: false, animation: "none" }}
+                  />
+                </Stack.Protected>
+              </Stack>
+            </View>
+          )}
+        </AppToastProvider>
       </VariableContextProvider>
 
       <StatusBar style="auto" />

@@ -1,0 +1,349 @@
+import {
+    AnimatedPressable,
+    cn,
+    Skeleton,
+    triggerImpactHaptic,
+    triggerSelectionHaptic,
+} from "@/design-system";
+import { AppText } from "@/design-system/components/AppText";
+import { useTheme } from "@/design-system/utils/theme";
+import {
+    formatTicketTypeLabel,
+    getTicketTypeTone,
+} from "@/design-system/utils/ticket-type";
+import type { TicketListItemResponse } from "@/types/member-ticket";
+import {
+    getEffectiveTicketStatus,
+    getTicketStatusLabel,
+    getTicketStatusTone,
+} from "@/utils/status-tone";
+import { formatDateForDisplay } from "@/utils/time-helper";
+import { ChevronRight } from "lucide-react-native";
+import { memo } from "react";
+import { useTranslation } from "react-i18next";
+import { Pressable, View } from "react-native";
+import Animated, { cubicBezier, useReducedMotion } from "react-native-reanimated";
+import Svg, { Line } from "react-native-svg";
+import { TicketTypeIcon } from "./TicketTypeIcon";
+
+const PROGRESS_EASING = cubicBezier(0.23, 1, 0.32, 1);
+
+type Props = {
+    item: TicketListItemResponse;
+    disabled?: boolean;
+    showBookAction?: boolean;
+    onPress?: (item: TicketListItemResponse) => void;
+    onBookPress?: (item: TicketListItemResponse) => void;
+};
+
+function TicketHistoryCard({
+    item,
+    disabled = false,
+    showBookAction = false,
+    onPress,
+    onBookPress,
+}: Props) {
+    const { colors } = useTheme();
+    const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
+    const ticketTone = getTicketTypeTone(item.type);
+    const typeLabel = formatTicketTypeLabel(item.type, t) || "-";
+    const effectiveStatus = getEffectiveTicketStatus(
+        item.status,
+        item.fullyUsed,
+    );
+    const isInactive =
+        effectiveStatus !== "ACTIVE" && effectiveStatus !== "IN_USE";
+    const statusTone = getTicketStatusTone(item.status, item.fullyUsed);
+    const statusLabel = getTicketStatusLabel(item.status, item.fullyUsed, t);
+    const dateRange = `${formatDateForDisplay(item.startDate) || "-"} ~ ${formatDateForDisplay(item.endDate) || "-"}`;
+    const totalReservations =
+        (item.reservationCount ?? 0) + (item.bayReservationCount ?? 0);
+    const hasCountLimit =
+        !item.isUnlimited && item.totalCount != null && item.totalCount > 0;
+    const remainingCount = Math.max(0, item.remainingCount ?? 0);
+    const remainingRatio = hasCountLimit
+        ? Math.min(1, Math.max(0, remainingCount / item.totalCount!))
+        : 0;
+
+    return (
+        <AnimatedPressable
+            disabled={disabled}
+            onPress={() => {
+                if (disabled) return;
+                triggerSelectionHaptic();
+                onPress?.(item);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("tickets.openDetailAccessibility", {
+                name: item.name,
+            })}
+            accessibilityState={{ disabled }}
+            className={disabled ? "opacity-75" : undefined}
+        >
+            <View className="flex-row overflow-hidden rounded-2xl border border-border bg-card">
+                <View
+                    className={cn(
+                        "w-1.5 shrink-0",
+                        isInactive ? "bg-border" : ticketTone.dotClassName,
+                    )}
+                />
+
+                <View className="min-w-0 flex-1">
+                    <View className="gap-3 p-4">
+                        <View className="flex-row items-center justify-between gap-2">
+                            <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                                <View
+                                    className={cn(
+                                        "h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+                                        isInactive
+                                            ? "bg-muted"
+                                            : ticketTone.badgeClassName,
+                                    )}
+                                >
+                                    <TicketTypeIcon
+                                        type={item.type}
+                                        size={15}
+                                        color={
+                                            isInactive
+                                                ? colors.mutedForeground
+                                                : colors[ticketTone.color]
+                                        }
+                                        strokeWidth={2.2}
+                                    />
+                                </View>
+                                <AppText
+                                    variant="caption"
+                                    color="mutedForeground"
+                                    numberOfLines={1}
+                                    style={{ flex: 1, minWidth: 0 }}
+                                    textStyle={{ fontWeight: "600" }}
+                                >
+                                    {typeLabel}
+                                </AppText>
+                            </View>
+
+                            {statusLabel && statusLabel !== "-" ? (
+                                <View
+                                    className={cn(
+                                        "shrink-0 rounded-md px-2 py-0.5",
+                                        statusTone.className,
+                                    )}
+                                >
+                                    <AppText
+                                        variant="badge"
+                                        wrap={false}
+                                        color={statusTone.color}
+                                        textStyle={{ fontWeight: "600" }}
+                                    >
+                                        {statusLabel}
+                                    </AppText>
+                                </View>
+                            ) : null}
+                        </View>
+
+                        <AppText
+                            variant="body"
+                            numberOfLines={2}
+                            color={isInactive ? "mutedForeground" : "foreground"}
+                            textStyle={{ fontWeight: "700" }}
+                        >
+                            {item.name}
+                        </AppText>
+
+                        {hasCountLimit ? (
+                            <View className="flex-row items-center justify-between gap-3">
+                                <View className="flex-row items-baseline gap-1">
+                                    <AppText
+                                        variant="h3"
+                                        color={
+                                            isInactive
+                                                ? "mutedForeground"
+                                                : "foreground"
+                                        }
+                                        wrap={false}
+                                        textStyle={{
+                                            fontSize: 22,
+                                            lineHeight: 26,
+                                            fontWeight: "800",
+                                            fontVariant: ["tabular-nums"],
+                                        }}
+                                    >
+                                        {String(remainingCount)}
+                                    </AppText>
+                                    <AppText
+                                        variant="caption"
+                                        color="mutedForeground"
+                                        wrap={false}
+                                    >
+                                        {t("tickets.ofTotalLeft", {
+                                            total: item.totalCount,
+                                        })}
+                                    </AppText>
+                                </View>
+
+                                <View className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                                    <Animated.View
+                                        className={cn(
+                                            "h-full rounded-full",
+                                            isInactive
+                                                ? "bg-muted-foreground"
+                                                : ticketTone.dotClassName,
+                                        )}
+                                        style={{
+                                            width: `${Math.round(remainingRatio * 100)}%`,
+                                            transitionProperty: "width",
+                                            transitionDuration: reducedMotion
+                                                ? 0
+                                                : 280,
+                                            transitionTimingFunction:
+                                                PROGRESS_EASING,
+                                        }}
+                                    />
+                                </View>
+                            </View>
+                        ) : (
+                            <AppText
+                                variant="meta"
+                                color={isInactive ? "mutedForeground" : "foreground"}
+                                textStyle={{ fontWeight: "700" }}
+                            >
+                                {item.isUnlimited
+                                    ? t("tickets.unlimitedUsage")
+                                    : t("tickets.flexibleUsage")}
+                            </AppText>
+                        )}
+                    </View>
+
+                    <TicketPerforation color={colors.border} />
+
+                    <View className="flex-row items-center justify-between gap-2 bg-surface px-4 py-2.5">
+                        <AppText
+                            variant="caption"
+                            color="mutedForeground"
+                            numberOfLines={1}
+                            style={{ flex: 1, minWidth: 0 }}
+                            textStyle={{ fontVariant: ["tabular-nums"] }}
+                        >
+                            {dateRange}
+                        </AppText>
+
+                        {showBookAction &&
+                        !isInactive &&
+                        !item.fullyUsed &&
+                        item.type !== "LESSON_PROGRAM" &&
+                        onBookPress ? (
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={`${t("tickets.bookWithTicket")} — ${item.name}`}
+                                accessibilityState={{ disabled }}
+                                disabled={disabled}
+                                hitSlop={8}
+                                onPress={(event) => {
+                                    event.stopPropagation();
+                                    if (disabled) return;
+                                    triggerImpactHaptic();
+                                    onBookPress(item);
+                                }}
+                                className="shrink-0 rounded-lg bg-primary px-3 py-1.5 active:opacity-80"
+                            >
+                                <AppText
+                                    variant="badge"
+                                    color="primaryForeground"
+                                    wrap={false}
+                                    textStyle={{ fontWeight: "700" }}
+                                >
+                                    {t("tickets.bookWithTicket")}
+                                </AppText>
+                            </Pressable>
+                        ) : showBookAction &&
+                          !isInactive &&
+                          item.type === "LESSON_PROGRAM" ? (
+                            <View className="shrink-0 flex-row items-center gap-1">
+                                <AppText
+                                    variant="caption"
+                                    color="mutedForeground"
+                                    wrap={false}
+                                >
+                                    {t("tickets.adminEnrollmentLabel")}
+                                </AppText>
+                                <ChevronRight
+                                    size={15}
+                                    color={colors.mutedForeground}
+                                    strokeWidth={2.2}
+                                />
+                            </View>
+                        ) : (
+                            <View className="shrink-0 flex-row items-center gap-1">
+                                <AppText
+                                    variant="caption"
+                                    color="mutedForeground"
+                                    wrap={false}
+                                >
+                                    {t("tickets.reservationCount", {
+                                        count: totalReservations,
+                                    })}
+                                </AppText>
+                                <ChevronRight
+                                    size={15}
+                                    color={colors.mutedForeground}
+                                    strokeWidth={2.2}
+                                />
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </View>
+        </AnimatedPressable>
+    );
+}
+
+function TicketPerforation({ color }: { color: string }) {
+    return (
+        <View className="bg-surface">
+            <Svg height={1} width="100%">
+                <Line
+                    x1="0"
+                    y1="0.5"
+                    x2="100%"
+                    y2="0.5"
+                    stroke={color}
+                    strokeWidth={1}
+                    strokeDasharray="5 4"
+                />
+            </Svg>
+        </View>
+    );
+}
+
+export function TicketHistoryCardSkeleton() {
+    const { colors } = useTheme();
+    return (
+        <View className="flex-row overflow-hidden rounded-2xl border border-border bg-card">
+            <View className="w-1.5 shrink-0 bg-muted" />
+            <View className="min-w-0 flex-1">
+                <View className="gap-3 p-4">
+                    <View className="flex-row items-center justify-between gap-2">
+                        <View className="flex-row items-center gap-2">
+                            <Skeleton className="h-7 w-7 rounded-lg" />
+                            <Skeleton className="h-3.5 w-20 rounded-full" />
+                        </View>
+                        <Skeleton className="h-5 w-14 rounded-md" />
+                    </View>
+                    <Skeleton className="h-4 w-3/4 rounded-full" />
+                    <View className="flex-row items-center justify-between gap-3">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                        <Skeleton className="h-1.5 w-20 rounded-full" />
+                    </View>
+                </View>
+                <TicketPerforation color={colors.border} />
+                <View className="flex-row items-center justify-between gap-2 bg-surface px-4 py-2.5">
+                    <Skeleton className="h-3.5 w-32 rounded-full" />
+                    <Skeleton className="h-3.5 w-20 rounded-full" />
+                </View>
+            </View>
+        </View>
+    );
+}
+
+export default memo(TicketHistoryCard);

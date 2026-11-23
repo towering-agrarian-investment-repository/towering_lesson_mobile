@@ -1,11 +1,10 @@
 import { ApiResponse, CursorPageResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import { TicketListItemResponse } from "@/types/member-ticket";
+import type { TicketDetailResponse, TicketListItemResponse } from "@/types/member-ticket";
 
 export const MEMBER_TICKET_PAGE_SIZE = 20;
 
 export const getMemberTickets = async (
-    memberId: number,
     params: { statuses?: readonly string[]; cursor?: string; limit?: number } = {},
     signal?: AbortSignal,
 ): Promise<ApiResponse<CursorPageResponse<TicketListItemResponse>>> => {
@@ -20,7 +19,17 @@ export const getMemberTickets = async (
     if (params.cursor) searchParams.set("cursor", params.cursor);
 
     return apiClient(
-        `/member/${memberId}/tickets?${searchParams.toString()}`,
+        `/member/tickets?${searchParams.toString()}`,
+        { method: "GET", signal }
+    );
+};
+
+export const getMemberTicketById = async (
+    ticketId: number,
+    signal?: AbortSignal,
+): Promise<ApiResponse<TicketDetailResponse>> => {
+    return apiClient(
+        `/member/tickets/${ticketId}`,
         { method: "GET", signal }
     );
 };

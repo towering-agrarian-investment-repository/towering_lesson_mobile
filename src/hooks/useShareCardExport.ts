@@ -1,5 +1,7 @@
 import { SHARE_CARD_EXPORT_HEIGHT, SHARE_CARD_EXPORT_WIDTH } from "@/components/golf/monthly-share-card-layout";
+import { triggerNotificationHaptic } from "@/design-system";
 import { File } from "expo-file-system";
+import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 import type { TFunction } from "i18next";
@@ -127,6 +129,7 @@ export function useShareCardExport({ cardRef, captureReadyRef, canExport, t }: P
             savedAssetRef.current = await MediaLibrary.Asset.create(uri);
             savedPreviewRef.current = uri;
             setSavedPreviewUri(uri);
+            triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
             uri = undefined;
         } catch (error) {
             if (__DEV__) console.error("Failed to export activity card", error);

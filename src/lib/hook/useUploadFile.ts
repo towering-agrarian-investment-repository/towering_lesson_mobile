@@ -21,7 +21,6 @@ export function useRemoveMemberProfileImage() {
                     : previous,
             );
             void queryClient.invalidateQueries({ queryKey: ["member", "profile"] });
-            void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         },
         onError: (err: unknown) => {
             responseError(err);
@@ -45,7 +44,6 @@ export function useUpdateMemberProfileImage() {
         }) => updateMemberProfileImage(memberId, imageUri, contentType),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["member", "profile"] });
-            void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         },
         onError: (err: unknown) => {
             responseError(err);

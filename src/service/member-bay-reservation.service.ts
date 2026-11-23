@@ -27,12 +27,17 @@ export async function createMemberBayReservation(
 }
 
 export async function getMemberBaySlotGroups(
+    ticketId: number,
     startDate: string,
     endDate: string,
     signal?: AbortSignal,
 ): Promise<ApiResponse<BaySlotGroupScheduleResponse[]>> {
+    if (!Number.isSafeInteger(ticketId) || ticketId <= 0) {
+        throw new Error("A positive ticketId is required for bay availability.");
+    }
+
     return apiClient(
-        `/member/bay-slot-groups?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+        `/member/bay-slot-groups?ticketId=${ticketId}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
         {
             method: "GET",
             signal,

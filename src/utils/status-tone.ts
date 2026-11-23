@@ -46,7 +46,7 @@ export function getReservationStatusLabel(status: string | null | undefined, t: 
         case "NO_SHOW":
             return t("reservations.statuses.noShow");
         default:
-            return formatType(status?.replaceAll("-", "_"));
+            return formatType(status, t);
     }
 }
 
@@ -102,4 +102,66 @@ export function getHomeworkReviewTone(status?: string | null): Tone {
             status ?? ""
         ] ?? neutral
     );
+}
+
+export function getEffectiveTicketStatus(
+    status?: string | null,
+    fullyUsed?: boolean,
+): string {
+    const normalized = status?.toUpperCase().replaceAll("-", "_") ?? "";
+    if (
+        fullyUsed &&
+        normalized !== "EXPIRED" &&
+        normalized !== "CANCELLED" &&
+        normalized !== "CANCELED" &&
+        normalized !== "TRANSFERRED"
+    ) {
+        return "FULLY_USED";
+    }
+    return normalized;
+}
+
+export function getTicketStatusTone(
+    status?: string | null,
+    fullyUsed?: boolean,
+): Tone {
+    switch (getEffectiveTicketStatus(status, fullyUsed)) {
+        case "ACTIVE":
+            return success;
+        case "IN_USE":
+            return primary;
+        case "FULLY_USED":
+            return warning;
+        case "CANCELLED":
+        case "CANCELED":
+            return danger;
+        case "EXPIRED":
+        case "TRANSFERRED":
+        default:
+            return neutral;
+    }
+}
+
+export function getTicketStatusLabel(
+    status: string | null | undefined,
+    fullyUsed: boolean | undefined,
+    t: TFunction,
+): string {
+    switch (getEffectiveTicketStatus(status, fullyUsed)) {
+        case "ACTIVE":
+            return t("tickets.statuses.active");
+        case "IN_USE":
+            return t("tickets.statuses.inUse");
+        case "FULLY_USED":
+            return t("tickets.statuses.fullyUsed");
+        case "EXPIRED":
+            return t("tickets.statuses.expired");
+        case "CANCELLED":
+        case "CANCELED":
+            return t("tickets.statuses.cancelled");
+        case "TRANSFERRED":
+            return t("tickets.statuses.transferred");
+        default:
+            return formatType(status, t);
+    }
 }

@@ -36,30 +36,30 @@ function detectLanguage() {
     return resolveLanguage(locale?.languageCode);
 }
 
-function resolveLanguage(languageCode?: string | null): AppLanguage {
+export function resolveLanguage(languageCode?: string | null): AppLanguage {
     const normalizedLanguageCode = languageCode?.toLowerCase();
 
-    if (normalizedLanguageCode === "ko") {
+    if (normalizedLanguageCode?.startsWith("ko")) {
         return "ko";
     }
 
-    if (normalizedLanguageCode === "ja") {
+    if (normalizedLanguageCode?.startsWith("ja")) {
         return "ja";
     }
 
-    if (normalizedLanguageCode === "zh") {
+    if (normalizedLanguageCode?.startsWith("zh")) {
         return "zh";
     }
 
-    if (normalizedLanguageCode === "km") {
+    if (normalizedLanguageCode?.startsWith("km")) {
         return "km";
     }
 
     return "en";
 }
 
-if (!i18n.isInitialized) {
-    void i18n.use(initReactI18next).init({
+const initPromise = !i18n.isInitialized
+    ? i18n.use(initReactI18next).init({
         compatibilityJSON: "v4",
         resources,
         defaultNS: "translation",
@@ -70,14 +70,18 @@ if (!i18n.isInitialized) {
             escapeValue: false,
         },
         returnNull: false,
-    });
-}
+    })
+    : Promise.resolve();
 
-void (async () => {
+let isLanguageHydrated = false;
+let hasExplicitLanguageSelection = false;
+
+export const i18nReady: Promise<void> = (async () => {
     try {
+        await initPromise;
         const storedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
 
-        if (!storedLanguage) {
+        if (!storedLanguage || hasExplicitLanguageSelection) {
             return;
         }
 
@@ -88,10 +92,17 @@ void (async () => {
         }
     } catch {
         // Keep the detected language if persisted preference cannot be restored.
+    } finally {
+        isLanguageHydrated = true;
     }
 })();
 
+export function isI18nReady() {
+    return isLanguageHydrated;
+}
+
 export async function setAppLanguage(language: AppLanguage) {
+    hasExplicitLanguageSelection = true;
     const nextLanguage = resolveLanguage(language);
 
     await i18n.changeLanguage(nextLanguage);

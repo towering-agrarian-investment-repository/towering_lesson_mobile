@@ -15,6 +15,7 @@ export default function LessonsScreen() {
     return (
         <Screen
             scroll={false}
+            bottomPadding={16}
             contentClassName="flex-1"
         >
             <MemberGroups

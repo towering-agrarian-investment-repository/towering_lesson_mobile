@@ -28,6 +28,7 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 
 1. Loading, empty data, and API failure/retry states.
 2. Repeated taps and pending submissions.
+   For custom native buttons on iOS, tap both edges and the center of the visible button, including form submissions, confirmation/cancel sheets, and Profile Edit. Each area must trigger the same action once; disabled/pending buttons must stay blocked. Check Android for regressions.
 3. Back navigation, including Android's back button.
 4. Slow/offline connections.
 5. Logged-out behavior and auth bootstrap.
@@ -38,7 +39,11 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 ## Before release (intended devices and backend environment)
 
 - Onboarding, phone/password login, role rejection, logout, session restoration, password change.
+- Login on iPhone: with the keyboard open and closed, tap the left edge, label, and right edge of the gradient button. Every area must submit once or show required-field errors. Check incorrect credentials, valid credentials, and repeated taps while submitting; repeat on Android. Include the client's affected iPhone when verifying a reported tap failure.
 - Bay/private/group booking, availability conflicts, completion navigation, eligible cancellation, bay rescheduling.
+- Member bay booking: date -> time -> confirmation, with no bay picker. Check remaining free-slot counts against the backend schedule. Book with no request, whitespace only, and a 2000-character Bay Request; prevent longer input. Confirm the create request sends only `baySlotGroupId`, `ticketId`, and `memberNotes`, and the success screen shows the server-assigned bay even when the request names another bay. Check the disclaimer and Bay Request label in member details and verify the saved request in existing admin details.
+- Sold-out bay time: trigger `409 RESERVATION_SLOT_UNAVAILABLE` between selecting and confirming, return to refreshed time choices, and preserve the request when choosing another time. A network failure must retain the draft for retry; repeated confirmation taps must create only one booking. Rescheduling must skip bay selection, send only `baySlotGroupId`, preserve the existing request, and show the new server-assigned bay. Check blank requests and lesson notes remain correct in reservation details.
+- Bay ticket availability: verify month/day prefetch, date/time selection, confirmation refresh, and sold-out recovery all send the selected owned `ticketId` with `startDate` and `endDate`. Switch packages with different eligible bays and confirm availability refetches, counts match the backend, and the previous package's schedule never appears under the newly selected package. Check switching back to a cached package refetches; a missing, zero, or invalid ticket ID must offer ticket selection without requesting an unfiltered schedule.
 - Ticket filters, today's reservations, pagination, refresh, loading/error/empty states. Compare a one-hour reservation on Android and iOS: both must show an hour label, never `3,600s`.
 - Reservation list: All dates includes every date; Today and future includes today but no earlier dates; Past dates excludes today. Switch all five type tabs in each view, load another page, refresh, and check empty/error states. Reopen the app after the business date changes and confirm both date bounds update.
 - Open a reservation from a list while its full detail is still loading; the remaining-detail row uses the three-dot loader and then resolves to the full detail.
