@@ -60,17 +60,17 @@ export function resolveLanguage(languageCode?: string | null): AppLanguage {
 
 const initPromise = !i18n.isInitialized
     ? i18n.use(initReactI18next).init({
-        compatibilityJSON: "v4",
-        resources,
-        defaultNS: "translation",
-        lng: detectLanguage(),
-        fallbackLng: "en",
-        supportedLngs: Object.keys(resources),
-        interpolation: {
-            escapeValue: false,
-        },
-        returnNull: false,
-    })
+          compatibilityJSON: "v4",
+          resources,
+          defaultNS: "translation",
+          lng: detectLanguage(),
+          fallbackLng: "en",
+          supportedLngs: Object.keys(resources),
+          interpolation: {
+              escapeValue: false,
+          },
+          returnNull: false,
+      })
     : Promise.resolve();
 
 let isLanguageHydrated = false;

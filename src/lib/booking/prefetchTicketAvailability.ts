@@ -1,7 +1,4 @@
-import {
-    getMemberBaySlotGroupsQueryOptions,
-    getMemberTicketLessonSlotsQueryOptions,
-} from "@/lib/hook/useReservation";
+import { getMemberBaySlotGroupsQueryOptions, getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { formatDateForAPI } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
@@ -16,11 +13,7 @@ export function prefetchTicketAvailability(
 
     if (ticket.type === "PRIVATE_LESSON" || ticket.type === "GROUP_LESSON") {
         void queryClient.prefetchQuery(
-            getMemberTicketLessonSlotsQueryOptions(
-                ticket.id,
-                today.getFullYear(),
-                today.getMonth() + 1,
-            ),
+            getMemberTicketLessonSlotsQueryOptions(ticket.id, today.getFullYear(), today.getMonth() + 1),
         );
         return;
     }

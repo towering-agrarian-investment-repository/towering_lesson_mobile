@@ -16,7 +16,6 @@ export async function getLessonReservationById(
     });
 }
 
-
 export async function getTicketLessonSlots(
     ticketId: number,
     year: number,
@@ -41,10 +40,7 @@ export async function createMemberLessonReservation(
     });
 }
 
-
-export async function cancelLessonReservationById(
-    id: number,
-): Promise<ApiResponse<null>> {
+export async function cancelLessonReservationById(id: number): Promise<ApiResponse<null>> {
     return apiClient(`/member/lesson-reservations/${id}/cancel`, {
         method: "PUT",
     });

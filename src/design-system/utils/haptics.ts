@@ -12,15 +12,11 @@ export function triggerSelectionHaptic() {
     void runHaptic(() => Haptics.selectionAsync());
 }
 
-export function triggerImpactHaptic(
-    style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light,
-) {
+export function triggerImpactHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
     void runHaptic(() => Haptics.impactAsync(style));
 }
 
-export function triggerNotificationHaptic(
-    type: Haptics.NotificationFeedbackType,
-) {
+export function triggerNotificationHaptic(type: Haptics.NotificationFeedbackType) {
     void runHaptic(() => Haptics.notificationAsync(type));
 }
 

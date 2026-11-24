@@ -1,62 +1,100 @@
-# Welcome to your Expo app 👋
+# HappyGolf GO — member mobile app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo React Native app (Android + iOS) for golf members: reservations, tickets,
+lesson logs, homework, activity sharing, and notifications.
 
-## Get started
+## Requirements
 
-1. Install dependencies
+- Node `>=22.13.0` (Expo's requirement, recorded in `AGENTS.md`; manage with nvm)
+- pnpm `10.26.0` (pinned in `package.json` and `eas.json`)
+- Xcode for iOS builds, Android Studio for Android builds
 
-   ```bash
-   npm install
-   ```
+Use pnpm only. Do not add npm or Yarn lockfiles.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Setup
 
 ```bash
-npm run reset-project
+pnpm install
+cp .env.example .env
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+`.env` must define:
 
-### Other setup steps
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `EXPO_PUBLIC_API_BASE_URL` | yes | Member API root, e.g. `http://localhost:8082/api/v1` |
+| `EXPO_PUBLIC_AUTH_BASE_URL` | yes | Better Auth base URL, e.g. `http://localhost:3002/api/member/auth` |
+| `EXPO_PUBLIC_APP_VERSION_URL` | no | Defaults to `${EXPO_PUBLIC_API_BASE_URL}/app/version` |
+| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | no | Defaults to `local` |
+| `EXPO_PUBLIC_SENTRY_DSN` | no | No fallback: unset disables crash reporting. Set it in the EAS preview/production environments |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The app uses native modules (`@expo/ui`, notifications, video, secure store), so
+**it needs a development build. Expo Go cannot run it.**
 
-## Learn more
+```bash
+# First build on a device or simulator (creates the dev client)
+pnpm android
+pnpm ios
 
-For localhost, Android, and physical-phone setup, see
-[Local development](docs/local-development.md).
+# Day-to-day development
+pnpm start --dev-client
+```
 
-For staging and production environment configuration, see
-[Production environment](docs/production-environment.md).
+EAS profiles live in `eas.json` (`development`, `development-simulator`,
+`preview`, `production`). See `docs/build-and-run.md` for the full build and
+credential workflow.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Checks
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Run these before opening a pull request; CI runs the same four:
 
-## Join the community
+```bash
+pnpm exec prettier --check .
+pnpm exec tsc --noEmit
+pnpm exec eslint src
+pnpm test
+```
 
-Join our community of developers creating universal apps.
+Format the codebase with `pnpm format` (Prettier, 4-space, 120 columns).
+Prettier and ESLint are wired together through `eslint-config-prettier`, so
+ESLint never fights the formatter.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+`pnpm test` runs `scripts/startup-compat.test.cjs` plus every
+`scripts/tests/*.test.cjs`. These are fast Node tests for pure logic, query
+invariants, and screen wiring. They are not a substitute for device testing:
+runtime and visual behavior is verified manually with `docs/qa-checklist.md`.
+
+Optional: `pnpm dlx expo-doctor` for config/dependency drift, and
+`pnpm exec expo export --platform android --platform ios --output-dir dist` to
+verify both bundles compile.
+
+## Project layout
+
+```text
+src/app/            Expo Router routes (tabs, stacks, modals)
+src/components/     Feature components (golf domain)
+src/design-system/  Theme, tokens, Screen, buttons, lists, charts
+src/lib/hook/       TanStack Query hooks and app hooks
+src/lib/client/     API client, JWT cache, request headers
+src/service/        Typed API service functions
+src/types/          API and domain types
+src/i18n/           en, ko, ja, zh, km resources
+scripts/            Node checks and QA helpers
+docs/               Architecture, build, theming, audit, and QA docs
+```
+
+Screens render state; hooks own query keys and caching; services call the API.
+Server data is read straight from React Query, never copied into local state.
+
+## Documentation
+
+- `AGENTS.md` — architecture, UI, and data rules enforced in review
+- `docs/mobile-app-reference-guide.md` — how each feature is built, plus playbook
+- `docs/build-and-run.md`, `docs/local-development.md` — local setup and builds
+- `docs/app-theme.md`, `docs/native-ui-gotchas.md` — theme tokens and native layout pitfalls
+- `docs/qa-checklist.md` — manual device checklist
+- `docs/mobile-app-versioning.md`, `docs/production-environment.md` — release operations
+
+## License
+
+See `LICENSE`.

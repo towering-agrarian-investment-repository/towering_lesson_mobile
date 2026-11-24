@@ -1,5 +1,5 @@
+import { AppText } from "@/design-system/components/AppText";
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
-import { NativeText } from "@/design-system/components/NativeText";
 import { ActionButton, ListRow, useTheme } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { RNHostView } from "@expo/ui";
@@ -45,7 +45,9 @@ export function ProfilePreferenceRow<T extends string>({
     const [saveError, setSaveError] = useState<string | null>(null);
     const selectionLocked = useRef(false);
     const pending = pendingValue !== null;
-    const close = () => { if (!selectionLocked.current) setIsPresented(false); };
+    const close = () => {
+        if (!selectionLocked.current) setIsPresented(false);
+    };
 
     const select = async (nextValue: T) => {
         if (disabled || selectionLocked.current) return;
@@ -68,9 +70,11 @@ export function ProfilePreferenceRow<T extends string>({
             <ListRow
                 title={title}
                 leading={leading}
-                meta={<NativeText variant="meta" color="foreground" wrap={false} textStyle={{ fontWeight: "600" }}>
-                    {options.find((option) => option.value === value)?.label ?? ""}
-                </NativeText>}
+                meta={
+                    <AppText variant="subtext" color="foreground" wrap={false} textStyle={{ fontWeight: "600" }}>
+                        {options.find((option) => option.value === value)?.label ?? ""}
+                    </AppText>
+                }
                 accessibilityLabel={accessibilityLabel}
                 disabled={disabled || pending}
                 className="border-0 bg-transparent px-0 py-3"
@@ -92,34 +96,56 @@ export function ProfilePreferenceRow<T extends string>({
                 <RNHostView matchContents={{ vertical: true }}>
                     <View className="gap-4">
                         <View className="gap-1">
-                            <NativeText variant="h3">
-                                {sheetTitle}
-                            </NativeText>
-                            <NativeText variant="muted" color="mutedForeground">
+                            <AppText variant="h3">{sheetTitle}</AppText>
+                            <AppText variant="body" color="mutedForeground">
                                 {description}
-                            </NativeText>
+                            </AppText>
                         </View>
-                        <ScrollView style={{ maxHeight: Math.max(96, height - 240) }} contentContainerStyle={{ gap: 12 }}>
+                        <ScrollView
+                            style={{ maxHeight: Math.max(96, height - 240) }}
+                            contentContainerStyle={{ gap: 12 }}
+                        >
                             {options.map((option) => (
                                 <ListRow
                                     key={option.value}
                                     title={option.label}
                                     subtitle={option.description}
-                                    titleStyle={{ fontWeight: "500" }}
-                                    leading={<View className="h-11 w-11 items-center justify-center rounded-full bg-muted">{option.icon}</View>}
-                                    trailing={option.value === pendingValue ? <ActivityIndicator color={colors.primary} /> : option.value === value ? <Check size={20} color={colors.primary} strokeWidth={2.5} /> : undefined}
+                                    titleStyle={{ fontWeight: "600" }}
+                                    leading={
+                                        <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                                            {option.icon}
+                                        </View>
+                                    }
+                                    trailing={
+                                        option.value === pendingValue ? (
+                                            <ActivityIndicator color={colors.primary} />
+                                        ) : option.value === value ? (
+                                            <Check size={20} color={colors.primary} strokeWidth={2.5} />
+                                        ) : undefined
+                                    }
                                     showChevron={false}
-                                    className={cn("gap-3", option.value === value ? "border-primary bg-primary/10" : "border-border bg-surface")}
-                                    accessibilityState={{ selected: option.value === value, disabled: disabled || pending, busy: option.value === pendingValue }}
+                                    className={cn(
+                                        "gap-3",
+                                        option.value === value
+                                            ? "border-primary bg-primary/10"
+                                            : "border-border bg-surface",
+                                    )}
+                                    accessibilityState={{
+                                        selected: option.value === value,
+                                        disabled: disabled || pending,
+                                        busy: option.value === pendingValue,
+                                    }}
                                     disabled={disabled || pending}
-                                    onPress={() => { void select(option.value); }}
+                                    onPress={() => {
+                                        void select(option.value);
+                                    }}
                                 />
                             ))}
                         </ScrollView>
                         {saveError ? (
-                            <NativeText variant="meta" color="danger" align="center">
+                            <AppText variant="subtext" color="danger" align="center">
                                 {saveError}
-                            </NativeText>
+                            </AppText>
                         ) : null}
                         <ActionButton
                             label={t("common.cancel")}

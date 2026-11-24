@@ -1,17 +1,13 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { AppText } from "@/design-system/components/AppText";
-import { NativeText } from "@/design-system/components/NativeText";
 import { ActivitySharePreview } from "@/components/golf/ActivitySharePreview";
 import { mapActivityDays } from "@/components/golf/activity-display-data";
-import ReservationCard, {
-    ReservationCardSkeleton,
-} from "@/components/golf/ReservationCard";
+import ReservationCard, { ReservationCardSkeleton } from "@/components/golf/ReservationCard";
 import {
     ActivityHeatmap,
     AnimatedPressable,
     cn,
     CompactEmptyState,
-    EmptyState,
     ErrorState,
     Screen,
     SCREEN_HORIZONTAL_PADDING,
@@ -21,21 +17,22 @@ import {
     useTheme,
 } from "@/design-system";
 import { useMemberActivity, useMemberActivitySummary } from "@/lib/hook/useMemberActivity";
-import { useMinuteClock } from "@/lib/hook/useMinuteClock";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import {
-    getMemberReservationDetailQueryOptions,
-    useMemberReservationsForDay,
-} from "@/lib/hook/useReservation";
+import { getMemberReservationDetailQueryOptions, useMemberReservationsForDay } from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { formatActivityDate, toDateKey } from "@/design-system/components/charts/activity-chart-data";
-import { HEATMAP_CELL_GAP, HEATMAP_CELL_RADIUS, getActivityHeatmapLayout } from "@/design-system/components/charts/activity-heatmap-layout";
+import {
+    HEATMAP_CELL_GAP,
+    HEATMAP_CELL_RADIUS,
+    getActivityHeatmapLayout,
+} from "@/design-system/components/charts/activity-heatmap-layout";
 import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatDateForAPI } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
-import { useIsFocused, useRouter } from "expo-router";
+import { useIsFocused, useRouter, useScrollToTop } from "expo-router";
 import { ChevronRight, Sparkles } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     RefreshControl,
@@ -43,6 +40,7 @@ import {
     View,
     useWindowDimensions,
     type LayoutChangeEvent,
+    type ScrollViewInstance,
 } from "react-native";
 
 type ActivityFilter = number | "all";
@@ -50,12 +48,13 @@ export function ActivityOverview() {
     const { colors } = useTheme();
     const { t, i18n } = useTranslation();
     const isFocused = useIsFocused();
+    const scrollRef = useRef<ScrollViewInstance>(null);
+    useScrollToTop(scrollRef);
     const [showShareCard, setShowShareCard] = useState(false);
-    const referenceTime = useMinuteClock();
+    const referenceTime = useDayClock();
     const todayKey = formatDateForAPI(new Date(referenceTime));
     const currentYear = Number(todayKey.slice(0, 4));
-    const [selectedYear, setSelectedYear] =
-        useState<ActivityFilter>(currentYear);
+    const [selectedYear, setSelectedYear] = useState<ActivityFilter>(currentYear);
     const [focusTodayToken, setFocusTodayToken] = useState(0);
     const [daySelection, setDaySelection] = useState<{
         filter: ActivityFilter;
@@ -65,8 +64,7 @@ export function ActivityOverview() {
     const summaryQuery = useMemberActivitySummary(isFocused);
     const {
         data: activity,
-        isLoading,
-        isError,
+        isPending,
         isPlaceholderData,
         refetch,
         isRefetching,
@@ -74,68 +72,50 @@ export function ActivityOverview() {
 
     const years = new Set([currentYear]);
     if (typeof selectedYear === "number") years.add(selectedYear);
-    summaryQuery.data?.availableYears.forEach(year => {
+    summaryQuery.data?.availableYears.forEach((year) => {
         if (year <= currentYear) years.add(year);
     });
     const availableYears = Array.from(years).sort((a, b) => b - a);
 
-    const activityValues = useMemo(
-        () => mapActivityDays(activity?.daily ?? []),
-        [activity?.daily],
-    );
+    const activityValues = useMemo(() => mapActivityDays(activity?.daily ?? []), [activity?.daily]);
     const firstDate =
-        getActivityDate(activity?.daily[0]?.date) ??
-        getActivityDate(activity?.weekly[0]?.weekStart) ??
-        new Date();
+        getActivityDate(activity?.daily[0]?.date) ?? getActivityDate(activity?.weekly[0]?.weekStart) ?? new Date();
     const lastDate =
-        getActivityDate(activity?.daily.at(-1)?.date) ??
-        getActivityDate(activity?.weekly.at(-1)?.weekEnd) ??
-        firstDate;
+        getActivityDate(activity?.daily.at(-1)?.date) ?? getActivityDate(activity?.weekly.at(-1)?.weekEnd) ?? firstDate;
     const activityYear = activity?.year ?? firstDate.getFullYear();
     const isAllActivity = selectedYear === "all";
     const totalReservations = activity?.totalReservations ?? 0;
     const totalHours = activity?.totalReservationHours ?? 0;
     const activeDays = activity?.totalReservationDays ?? 0;
-    const daysInYear = isAllActivity
-        ? daysBetween(firstDate, lastDate)
-        : isLeapYear(activityYear)
-            ? 366
-            : 365;
-    const heatmapStartDate = isAllActivity
-        ? firstDate
-        : new Date(activityYear, 0, 1);
-    const heatmapEndDate = isAllActivity
-        ? lastDate
-        : new Date(activityYear, 11, 31);
+    const daysInYear = isAllActivity ? daysBetween(firstDate, lastDate) : isLeapYear(activityYear) ? 366 : 365;
+    const heatmapStartDate = isAllActivity ? firstDate : new Date(activityYear, 0, 1);
+    const heatmapEndDate = isAllActivity ? lastDate : new Date(activityYear, 11, 31);
     const heatmapStartKey = toDateKey(heatmapStartDate);
     const heatmapEndKey = toDateKey(heatmapEndDate);
-    const activityLabel = isAllActivity
-        ? t("activity.allTime")
-        : String(activityYear);
-    const candidateDateKey = daySelection?.filter === selectedYear
-        ? daySelection.dateKey
-        : selectedYear === currentYear ||
-            (selectedYear === "all" &&
-                todayKey >= toDateKey(firstDate) &&
-                todayKey <= toDateKey(lastDate))
-            ? todayKey
-            : null;
+    const activityLabel = isAllActivity ? t("activity.allTime") : String(activityYear);
+    const candidateDateKey =
+        daySelection?.filter === selectedYear
+            ? daySelection.dateKey
+            : selectedYear === currentYear ||
+                (selectedYear === "all" && todayKey >= toDateKey(firstDate) && todayKey <= toDateKey(lastDate))
+              ? todayKey
+              : null;
     const selectedDateKey =
-        candidateDateKey &&
-        candidateDateKey >= heatmapStartKey &&
-        candidateDateKey <= heatmapEndKey
+        candidateDateKey && candidateDateKey >= heatmapStartKey && candidateDateKey <= heatmapEndKey
             ? candidateDateKey
             : null;
-    const dayReservationsQuery = useMemberReservationsForDay(
-        activity && !isPlaceholderData ? selectedDateKey : null,
-        isFocused,
-    );
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => Promise.all([
+    const selectedDayHeatmapCount = selectedDateKey
+        ? (activityValues.find((value) => toDateKey(value.date) === selectedDateKey)?.count ?? 0)
+        : 0;
+    const reservationDateKey = activity && !isPlaceholderData && selectedDayHeatmapCount > 0 ? selectedDateKey : null;
+    const dayReservationsQuery = useMemberReservationsForDay(reservationDateKey, isFocused);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        Promise.all([
             refetch({ cancelRefetch: false }),
             summaryQuery.refetch({ cancelRefetch: false }),
-            ...(selectedDateKey ? [dayReservationsQuery.refetch({ cancelRefetch: false })] : []),
-        ]));
+            ...(reservationDateKey && isFocused ? [dayReservationsQuery.refetch({ cancelRefetch: false })] : []),
+        ]),
+    );
 
     const preview = (
         <ActivitySharePreview
@@ -152,44 +132,11 @@ export function ActivityOverview() {
         />
     );
 
-    if (isLoading) {
+    if (isPending) {
         return (
             <>
                 {preview}
                 <ActivityLoadingState yearCount={availableYears.length} showSelectedDay={Boolean(selectedDateKey)} />
-            </>
-        );
-    }
-
-    if (isError && !activity) {
-        return (
-            <>
-                {preview}
-                <Screen
-                    contentClassName="grow"
-                    bottomPadding={16}
-                    bottomSafeArea={process.env.EXPO_OS === "ios"}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        />
-                    }
-                >
-                    <ErrorState
-                        title={t("activity.couldNotLoad")}
-                        message={t("home.checkConnection")}
-                        actionLabel={
-                            isRefetching
-                                ? t("common.refreshing")
-                                : t("common.refreshTryAgain")
-                        }
-                        actionPending={isRefetching || isPullRefreshing}
-                        onAction={() => {
-                            void refetch();
-                        }}
-                    />
-                </Screen>
             </>
         );
     }
@@ -199,24 +146,16 @@ export function ActivityOverview() {
             <>
                 {preview}
                 <Screen
+                    scrollRef={scrollRef}
                     contentClassName="grow"
                     bottomPadding={16}
                     bottomSafeArea={process.env.EXPO_OS === "ios"}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        />
-                    }
+                    refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
                 >
-                    <EmptyState
-                        title={t("activity.emptyTitle")}
-                        message={t("activity.emptyMessage")}
-                        actionLabel={
-                            isRefetching
-                                ? t("common.refreshing")
-                                : t("common.refreshTryAgain")
-                        }
+                    <ErrorState
+                        title={t("activity.couldNotLoad")}
+                        message={t("home.checkConnection")}
+                        actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                         actionPending={isRefetching || isPullRefreshing}
                         onAction={() => {
                             void refetch();
@@ -234,26 +173,17 @@ export function ActivityOverview() {
         setFocusTodayToken((token) => token + 1);
     };
 
-    const showTodayShortcut =
-        selectedYear !== currentYear || selectedDateKey !== todayKey;
+    const showTodayShortcut = selectedYear !== currentYear || selectedDateKey !== todayKey;
 
-    const selectedDayHeatmapCount = selectedDateKey
-        ? activityValues.find((value) => toDateKey(value.date) === selectedDateKey)?.count ?? 0
-        : 0;
-    const selectedDayCount =
-        dayReservationsQuery.data?.length ?? selectedDayHeatmapCount;
+    const selectedDayCount = dayReservationsQuery.data?.length ?? selectedDayHeatmapCount;
 
     return (
         <>
             {preview}
             <Screen
+                scrollRef={scrollRef}
                 bottomSafeArea={process.env.EXPO_OS === "ios"}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isPullRefreshing}
-                        onRefresh={handlePullRefresh}
-                    />
-                }
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             >
                 <View className="gap-5">
                     <ScrollView
@@ -288,23 +218,15 @@ export function ActivityOverview() {
                                     <View
                                         className={cn(
                                             "items-center justify-center rounded-full px-3.5 py-1.5",
-                                            isSelected
-                                                ? "bg-primary"
-                                                : "bg-muted",
+                                            isSelected ? "bg-primary" : "bg-muted",
                                         )}
                                     >
                                         <AppText
-                                            variant="meta"
+                                            variant="subtext"
                                             wrap={false}
-                                            color={
-                                                isSelected
-                                                    ? "primaryForeground"
-                                                    : "mutedForeground"
-                                            }
-                                            textStyle={{
-                                                fontWeight: "600",
-                                                fontVariant: ["tabular-nums"],
-                                            }}
+                                            color={isSelected ? "primaryForeground" : "mutedForeground"}
+                                            tabular
+                                            textStyle={{ fontWeight: "600" }}
                                         >
                                             {String(year ?? "")}
                                         </AppText>
@@ -328,19 +250,13 @@ export function ActivityOverview() {
                             <View
                                 className={cn(
                                     "items-center justify-center rounded-full px-3.5 py-1.5",
-                                    selectedYear === "all"
-                                        ? "bg-primary"
-                                        : "bg-muted",
+                                    selectedYear === "all" ? "bg-primary" : "bg-muted",
                                 )}
                             >
                                 <AppText
-                                    variant="meta"
+                                    variant="subtext"
                                     wrap={false}
-                                    color={
-                                        selectedYear === "all"
-                                            ? "primaryForeground"
-                                            : "mutedForeground"
-                                    }
+                                    color={selectedYear === "all" ? "primaryForeground" : "mutedForeground"}
                                     textStyle={{ fontWeight: "600" }}
                                 >
                                     {t("activity.all")}
@@ -348,27 +264,16 @@ export function ActivityOverview() {
                             </View>
                         </AnimatedPressable>
                     </ScrollView>
-                    <View
-                        className={cn(
-                            "gap-5",
-                            isPlaceholderData && "opacity-60",
-                        )}
-                    >
+                    <View className={cn("gap-5", isPlaceholderData && "opacity-60")}>
                         <View className="flex-row gap-3">
-                            <ActivityStat
-                                value={String(activeDays)}
-                                label={t("activity.reservationDays")}
-                            />
+                            <ActivityStat value={String(activeDays)} label={t("activity.reservationDays")} />
                             <ActivityStat
                                 value={t("activity.hoursValue", {
                                     value: totalHours.toFixed(1),
                                 })}
                                 label={t("activity.reservationHours")}
                             />
-                            <ActivityStat
-                                value={String(totalReservations)}
-                                label={t("activity.totalReservations")}
-                            />
+                            <ActivityStat value={String(totalReservations)} label={t("activity.totalReservations")} />
                         </View>
                         {totalReservations > 0 ? (
                             <AnimatedPressable
@@ -381,44 +286,24 @@ export function ActivityOverview() {
                                 className="flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
                             >
                                 <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                                    <Sparkles
-                                        size={18}
-                                        color={colors.primary}
-                                        strokeWidth={2.2}
-                                    />
+                                    <Sparkles size={18} color={colors.primary} strokeWidth={2.2} />
                                 </View>
                                 <View className="min-w-0 flex-1 gap-0.5">
-                                    <AppText
-                                        variant="meta"
-                                        numberOfLines={1}
-                                        textStyle={{ fontWeight: "700" }}
-                                    >
+                                    <AppText variant="subtext" numberOfLines={1} textStyle={{ fontWeight: "700" }}>
                                         {t("shareCard.bannerTitle")}
                                     </AppText>
-                                    <AppText
-                                        variant="caption"
-                                        color="mutedForeground"
-                                        numberOfLines={1}
-                                    >
+                                    <AppText variant="caption" color="mutedForeground" numberOfLines={1}>
                                         {t("shareCard.bannerSubtitle")}
                                     </AppText>
                                 </View>
-                                <ChevronRight
-                                    size={16}
-                                    color={colors.mutedForeground}
-                                    strokeWidth={2.2}
-                                />
+                                <ChevronRight size={16} color={colors.mutedForeground} strokeWidth={2.2} />
                             </AnimatedPressable>
                         ) : null}
                         <View className="gap-4">
                             <ActivityChartHeader
                                 title={t("activity.golfActivity")}
                                 period={activityLabel}
-                                onTodayPress={
-                                    !isPlaceholderData && showTodayShortcut
-                                        ? handleTodayJump
-                                        : undefined
-                                }
+                                onTodayPress={!isPlaceholderData && showTodayShortcut ? handleTodayJump : undefined}
                             />
                             <ActivityHeatmap
                                 values={activityValues}
@@ -436,33 +321,21 @@ export function ActivityOverview() {
                                                   dateKey: toDateKey(date),
                                               })
                                 }
-                                onTodayPress={
-                                    isPlaceholderData
-                                        ? undefined
-                                        : handleTodayJump
-                                }
+                                onTodayPress={isPlaceholderData ? undefined : handleTodayJump}
                             />
                             {selectedDateKey ? (
                                 <View className="gap-3 pt-1">
                                     <View className="flex-row items-center justify-between gap-3">
-                                        <AppText
-                                            variant="h3"
-                                            style={{ flex: 1, minWidth: 0 }}
-                                        >
-                                            {formatActivityDate(
-                                                selectedDateKey,
-                                                i18n.language,
-                                            )}
+                                        <AppText variant="h3" style={{ flex: 1, minWidth: 0 }}>
+                                            {formatActivityDate(selectedDateKey, i18n.language)}
                                         </AppText>
                                         <AppText
                                             variant="subtext"
                                             color="mutedForeground"
                                             align="right"
                                             wrap={false}
-                                            textStyle={{
-                                                fontWeight: "600",
-                                                fontVariant: ["tabular-nums"],
-                                            }}
+                                            tabular
+                                            textStyle={{ fontWeight: "600" }}
                                         >
                                             {t("activity.sessionCount", {
                                                 count: selectedDayCount,
@@ -471,7 +344,7 @@ export function ActivityOverview() {
                                     </View>
                                     <ActivityDayReservations
                                         query={dayReservationsQuery}
-                                        referenceTime={referenceTime}
+                                        expectedCount={selectedDayHeatmapCount}
                                     />
                                 </View>
                             ) : null}
@@ -479,17 +352,16 @@ export function ActivityOverview() {
                     </View>
                 </View>
             </Screen>
-
         </>
     );
 }
 
 function ActivityDayReservations({
     query,
-    referenceTime,
+    expectedCount,
 }: {
     query: ReturnType<typeof useMemberReservationsForDay>;
-    referenceTime: number;
+    expectedCount: number;
 }) {
     const { t } = useTranslation();
     const router = useRouter();
@@ -500,10 +372,7 @@ function ActivityDayReservations({
     const handleReservationPress = useCallback(
         (reservation: MemberReservationSummaryResponse) => {
             void queryClient.prefetchQuery(
-                getMemberReservationDetailQueryOptions(
-                    reservation.id,
-                    reservation.reservationType,
-                ),
+                getMemberReservationDetailQueryOptions(reservation.id, reservation.reservationType),
             );
             runWithNavigationLock(() => {
                 router.push({
@@ -517,6 +386,10 @@ function ActivityDayReservations({
         },
         [queryClient, router, runWithNavigationLock],
     );
+
+    if (expectedCount === 0) {
+        return <CompactEmptyState title={t("reservations.noReservationsTitle")} />;
+    }
 
     if (!data && !isError) {
         return (
@@ -535,7 +408,9 @@ function ActivityDayReservations({
                 message={t("common.pullToRefreshAndTryAgain")}
                 actionLabel={t("common.refreshTryAgain")}
                 actionPending={isRefetching}
-                onAction={() => { void refetch(); }}
+                onAction={() => {
+                    void refetch();
+                }}
             />
         );
     }
@@ -549,11 +424,13 @@ function ActivityDayReservations({
                     haptic="selection"
                     accessibilityState={{ disabled: isRefetching, busy: isRefetching }}
                     className="min-h-12 justify-center rounded-xl bg-muted px-4"
-                    onPress={() => { void refetch(); }}
+                    onPress={() => {
+                        void refetch();
+                    }}
                 >
-                    <NativeText variant="subtext" color="mutedForeground">
+                    <AppText variant="subtext" color="mutedForeground">
                         {`${t("reservations.failedListTitle")} · ${t(isRefetching ? "common.refreshing" : "common.refreshTryAgain")}`}
-                    </NativeText>
+                    </AppText>
                 </AnimatedPressable>
             ) : null}
             {data.length === 0 ? (
@@ -563,7 +440,6 @@ function ActivityDayReservations({
                     <ReservationCard
                         key={`${reservation.reservationType}:${reservation.id}`}
                         reservation={reservation}
-                        referenceTime={referenceTime}
                         disabled={isLocked}
                         onPress={handleReservationPress}
                     />
@@ -584,10 +460,7 @@ function getActivityDate(value?: string) {
 }
 
 function daysBetween(start: Date, end: Date) {
-    return Math.max(
-        1,
-        Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1,
-    );
+    return Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1);
 }
 
 function ActivityChartHeader({
@@ -603,9 +476,9 @@ function ActivityChartHeader({
 
     return (
         <View className="flex-row items-center justify-between gap-3">
-            <NativeText variant="h3" style={{ flex: 1, minWidth: 0 }}>
+            <AppText variant="h3" style={{ flex: 1, minWidth: 0 }}>
                 {title}
-            </NativeText>
+            </AppText>
             <View className="flex-row items-center gap-2">
                 {onTodayPress ? (
                     <AnimatedPressable
@@ -616,18 +489,13 @@ function ActivityChartHeader({
                         onPress={onTodayPress}
                     >
                         <View className="rounded-full bg-muted px-3 py-1">
-                            <AppText
-                                variant="caption"
-                                color="primary"
-                                wrap={false}
-                                textStyle={{ fontWeight: "700" }}
-                            >
+                            <AppText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "700" }}>
                                 {t("activity.today")}
                             </AppText>
                         </View>
                     </AnimatedPressable>
                 ) : null}
-                <NativeText
+                <AppText
                     variant="subtext"
                     color="mutedForeground"
                     align="right"
@@ -636,19 +504,13 @@ function ActivityChartHeader({
                     textStyle={{ fontWeight: "600" }}
                 >
                     {period}
-                </NativeText>
+                </AppText>
             </View>
         </View>
     );
 }
 
-function ActivityLoadingState({
-    yearCount,
-    showSelectedDay,
-}: {
-    yearCount: number;
-    showSelectedDay: boolean;
-}) {
+function ActivityLoadingState({ yearCount, showSelectedDay }: { yearCount: number; showSelectedDay: boolean }) {
     const { t } = useTranslation();
 
     return (
@@ -711,8 +573,11 @@ function HeatmapSkeleton() {
     const { i18n } = useTranslation();
     const [measuredWidth, setMeasuredWidth] = useState(0);
     const containerWidth = measuredWidth || Math.min(SCREEN_MAX_WIDTH, windowWidth) - SCREEN_HORIZONTAL_PADDING * 2;
-    const { labelColumnWidth, monthLabelHeight, availableWidth, cellSize } =
-        getActivityHeatmapLayout(containerWidth, fontScale, i18n.language);
+    const { labelColumnWidth, monthLabelHeight, availableWidth, cellSize } = getActivityHeatmapLayout(
+        containerWidth,
+        fontScale,
+        i18n.language,
+    );
     const gridHeight = cellSize * 7 + HEATMAP_CELL_GAP * 6;
 
     return (
@@ -723,7 +588,10 @@ function HeatmapSkeleton() {
             <Skeleton className="gap-1 rounded-none bg-transparent">
                 <View className="flex-row" style={{ gap: HEATMAP_CELL_GAP }}>
                     <View style={{ width: labelColumnWidth }} />
-                    <View className="flex-row items-start justify-between" style={{ width: availableWidth, height: monthLabelHeight }}>
+                    <View
+                        className="flex-row items-start justify-between"
+                        style={{ width: availableWidth, height: monthLabelHeight }}
+                    >
                         {[40, 32, 40].map((width, index) => (
                             <View key={index} className="h-4 rounded-xl bg-muted" style={{ width }} />
                         ))}
@@ -757,24 +625,10 @@ function HeatmapSkeleton() {
     );
 }
 
-function ActivityStat({
-    value,
-    label,
-}: {
-    value: string;
-    label: string;
-}) {
+function ActivityStat({ value, label }: { value: string; label: string }) {
     return (
         <View className="min-w-0 flex-1 gap-1 py-1">
-            <AppText
-                variant="h1"
-                color="primary"
-                numberOfLines={1}
-                textStyle={{
-                    fontWeight: "800",
-                    fontVariant: ["tabular-nums"],
-                }}
-            >
+            <AppText variant="h1" color="primary" numberOfLines={1} tabular>
                 {value}
             </AppText>
             <AppText variant="caption" color="mutedForeground" numberOfLines={2}>

@@ -1,94 +1,111 @@
 import { formatShareCardMonth } from "@/components/golf/monthly-share-card-layout";
 import type { ShareMonthYearPickerProps } from "@/components/golf/ShareMonthYearPicker";
 import { ActionButton, triggerSelectionHaptic } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
+import { useThemeColors } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import { RNHostView } from "@expo/ui";
-import { useRef } from "react";
+import { Column, FilterChip, Row, Text } from "@expo/ui/jetpack-compose";
+import {
+    clip,
+    defaultMinSize,
+    fillMaxWidth,
+    horizontalScroll,
+    Shapes,
+    verticalScroll,
+    weight,
+} from "@expo/ui/jetpack-compose/modifiers";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
 
-const ROW_HEIGHT = 52;
+const MONTH_ROWS = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [9, 10, 11],
+] as const;
+const CHIP_TOUCH_TARGET = defaultMinSize({ minWidth: 48, minHeight: 48 });
+const YEAR_CHIP_MODIFIERS = [CHIP_TOUCH_TARGET];
+const MONTH_CHIP_MODIFIERS = [weight(1), CHIP_TOUCH_TARGET];
+const SELECTED_YEAR_CHIP_MODIFIERS = [...YEAR_CHIP_MODIFIERS, clip(Shapes.Circle)];
+const SELECTED_MONTH_CHIP_MODIFIERS = [...MONTH_CHIP_MODIFIERS, clip(Shapes.Circle)];
 
-function Wheel({ values, selected, onSelect }: {
-    values: { value: number; label: string }[];
-    selected: number;
-    onSelect: (value: number) => void;
-}) {
-    const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
-    const reducedMotion = useReducedMotion();
-    const initialized = useRef(false);
-    const selectedIndex = Math.max(0, values.findIndex(item => item.value === selected));
-    const settle = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const index = Math.max(0, Math.min(values.length - 1, Math.round(event.nativeEvent.contentOffset.y / ROW_HEIGHT)));
-        if (values[index].value !== selected) {
-            triggerSelectionHaptic();
-            onSelect(values[index].value);
-        }
+export function ShareMonthYearPicker({
+    year,
+    month,
+    yearOnly = false,
+    years,
+    onChange,
+    onConfirm,
+}: ShareMonthYearPickerProps) {
+    const { t, i18n } = useTranslation();
+    const colors = useThemeColors();
+    const monthFormatter = new Intl.DateTimeFormat(i18n.language, {
+        month: "short",
+        calendar: "gregory",
+        timeZone: "UTC",
+    });
+    const chipColors = {
+        containerColor: colors.surface,
+        labelColor: colors.foreground,
+        selectedContainerColor: colors.primary,
+        selectedLabelColor: colors.primaryForeground,
+    };
+
+    const select = (nextYear: number, nextMonth: number) => {
+        if (nextYear === year && nextMonth === month) return;
+        triggerSelectionHaptic();
+        onChange(nextYear, nextMonth);
     };
 
     return (
-        <View className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-border bg-surface" style={{ height: ROW_HEIGHT * 3 }}>
-            <View pointerEvents="none" className="absolute inset-x-1 top-[52px] rounded-xl bg-primary/10"
-                style={{ height: ROW_HEIGHT }} />
-            <ScrollView ref={scrollRef} nestedScrollEnabled showsVerticalScrollIndicator={false}
-                snapToInterval={ROW_HEIGHT} decelerationRate="fast" overScrollMode="never"
-                onContentSizeChange={() => {
-                    if (!initialized.current) {
-                        scrollRef.current?.scrollTo({ y: selectedIndex * ROW_HEIGHT, animated: false });
-                        initialized.current = true;
-                    }
-                }}
-                onMomentumScrollEnd={settle} onScrollEndDrag={settle}
-                contentContainerStyle={{ paddingVertical: ROW_HEIGHT }}>
-                {values.map((item, index) => {
-                    const active = item.value === selected;
-                    return (
-                        <Pressable key={item.value} accessibilityRole="button"
-                            accessibilityLabel={item.label} accessibilityState={{ selected: active }}
-                            className="items-center justify-center active:opacity-70" style={{ height: ROW_HEIGHT }}
-                            onPress={() => {
-                                triggerSelectionHaptic();
-                                onSelect(item.value);
-                                scrollRef.current?.scrollTo({ y: index * ROW_HEIGHT, animated: !reducedMotion });
-                            }}>
-                            <NativeText variant="label" wrap={false} color={active ? "foreground" : "mutedForeground"}
-                                textStyle={{ fontWeight: active ? "700" : "500", fontSize: active ? 17 : 15 }}>
-                                {item.label}
-                            </NativeText>
-                        </Pressable>
-                    );
-                })}
-            </ScrollView>
-        </View>
-    );
-}
-
-export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
-    const { t, i18n } = useTranslation();
-    const monthFormatter = new Intl.DateTimeFormat(i18n.language, { month: "long", calendar: "gregory", timeZone: "UTC" });
-    const months = Array.from({ length: 12 }, (_, value) => ({
-        value, label: monthFormatter.format(new Date(Date.UTC(2024, value, 1))),
-    }));
-    const yearOptions = years.map(value => ({ value, label: String(value) }));
-
-    return (
-        <RNHostView matchContents={{ vertical: true }}>
-            <View className="gap-5 pb-2">
-                <View className="items-center gap-1">
-                    <NativeText variant="h3" wrap={false}>
-                        {yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}
-                    </NativeText>
-                </View>
-                <View className="flex-row gap-3">
-                    {!yearOnly && <Wheel values={months} selected={month} onSelect={value => onChange(year, value)} />}
-                    <Wheel values={yearOptions} selected={year} onSelect={value => onChange(value, month)} />
-                </View>
-                <ActionButton
-                    label={t("activity.ok")}
-                    onPress={() => onConfirm(year, month)}
-                />
-            </View>
-        </RNHostView>
+        <Column modifiers={[fillMaxWidth(), verticalScroll()]} verticalArrangement={{ spacedBy: 12 }}>
+            <Text
+                modifiers={[fillMaxWidth()]}
+                color={colors.foreground}
+                style={{ ...typography.h3, textAlign: "center" }}
+            >
+                {yearOnly ? String(year) : formatShareCardMonth(year, month, i18n.language)}
+            </Text>
+            <Row modifiers={[fillMaxWidth(), horizontalScroll()]} horizontalArrangement={{ spacedBy: 8 }}>
+                {years.map((value) => (
+                    <FilterChip
+                        key={value}
+                        selected={value === year}
+                        colors={chipColors}
+                        modifiers={value === year ? SELECTED_YEAR_CHIP_MODIFIERS : YEAR_CHIP_MODIFIERS}
+                        onClick={() => select(value, month)}
+                    >
+                        <FilterChip.Label>
+                            <Text>{String(value)}</Text>
+                        </FilterChip.Label>
+                    </FilterChip>
+                ))}
+            </Row>
+            {yearOnly ? null : (
+                <Column verticalArrangement={{ spacedBy: 4 }} modifiers={[fillMaxWidth()]}>
+                    {MONTH_ROWS.map((row) => (
+                        <Row key={row[0]} modifiers={[fillMaxWidth()]} horizontalArrangement={{ spacedBy: 8 }}>
+                            {row.map((value) => (
+                                <FilterChip
+                                    key={value}
+                                    selected={value === month}
+                                    colors={chipColors}
+                                    modifiers={value === month ? SELECTED_MONTH_CHIP_MODIFIERS : MONTH_CHIP_MODIFIERS}
+                                    onClick={() => select(year, value)}
+                                >
+                                    <FilterChip.Label>
+                                        <Text modifiers={[fillMaxWidth()]} style={{ textAlign: "center" }}>
+                                            {monthFormatter.format(new Date(Date.UTC(year, value, 1)))}
+                                        </Text>
+                                    </FilterChip.Label>
+                                </FilterChip>
+                            ))}
+                        </Row>
+                    ))}
+                </Column>
+            )}
+            <RNHostView matchContents={{ vertical: true }} modifiers={[fillMaxWidth()]}>
+                <ActionButton label={t("activity.ok")} onPress={() => onConfirm(year, month)} />
+            </RNHostView>
+        </Column>
     );
 }

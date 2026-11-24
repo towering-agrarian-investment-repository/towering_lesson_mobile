@@ -4,7 +4,7 @@ Layout and alignment pitfalls found while working with `@expo/ui`. Read before t
 
 ## Text
 
-- Default to `AppText` (`src/design-system/components/AppText.tsx`) for standalone labels, chrome, tab bars, list rows, badges, and chart labels (`NativeText` delegates to `AppText` without mounting an `@expo/ui` `Host`).
+- Default to `AppText` (`src/design-system/components/AppText.tsx`) for standalone labels, chrome, tab bars, list rows, badges, and chart labels.
 - Inside an existing native `@expo/ui` `Host` (`Button`, `Column`, `Row`, `Picker`, `List`, `BottomSheet`), use Expo UI `Text` directly so hosts are not nested.
 - Native text inside a `Host` that should wrap needs a constrained Host width: `matchContents={{ vertical: true }}` plus an explicit width or flex. Do not measure both axes at intrinsic size.
 - Use native frame/fill modifiers for alignment inside the host.

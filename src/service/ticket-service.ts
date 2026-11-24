@@ -29,18 +29,12 @@ export const getMemberTickets = async (
 
     if (params.cursor) searchParams.set("cursor", params.cursor);
 
-    return apiClient(
-        `/member/tickets?${searchParams.toString()}`,
-        { method: "GET", signal }
-    );
+    return apiClient(`/member/tickets?${searchParams.toString()}`, { method: "GET", signal });
 };
 
 export const getMemberTicketById = async (
     ticketId: number,
     signal?: AbortSignal,
 ): Promise<ApiResponse<TicketDetailResponse>> => {
-    return apiClient(
-        `/member/tickets/${ticketId}`,
-        { method: "GET", signal }
-    );
+    return apiClient(`/member/tickets/${ticketId}`, { method: "GET", signal });
 };

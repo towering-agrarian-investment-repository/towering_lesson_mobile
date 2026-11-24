@@ -10,23 +10,13 @@ export const PROFILE_IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 export const PROFILE_IMAGE_EXTENSIONS = new Set(IMAGE_EXTENSIONS);
 const PROFILE_IMAGE_MIME_TYPES = new Set<ProfileImageContentType>(IMAGE_MIME_TYPES);
 
-export const HOMEWORK_SUBMISSION_EXTENSIONS = new Set([
-    ...IMAGE_EXTENSIONS,
-    ...VIDEO_EXTENSIONS,
-]);
-export const HOMEWORK_SUBMISSION_MIME_TYPES = [
-    ...IMAGE_MIME_TYPES,
-    ...VIDEO_MIME_TYPES,
-];
+export const HOMEWORK_SUBMISSION_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]);
+export const HOMEWORK_SUBMISSION_MIME_TYPES = [...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES];
 export const HOMEWORK_SUBMISSION_MAX_SIZE_BYTES = 100 * 1024 * 1024;
 
 export const RESOURCE_IMAGE_EXTENSIONS = new Set(IMAGE_EXTENSIONS);
 export const RESOURCE_VIDEO_EXTENSIONS = new Set(VIDEO_EXTENSIONS);
-export const RESOURCE_FILE_EXTENSIONS = new Set([
-    ...IMAGE_EXTENSIONS,
-    ...VIDEO_EXTENSIONS,
-    ...DOCUMENT_EXTENSIONS,
-]);
+export const RESOURCE_FILE_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...DOCUMENT_EXTENSIONS]);
 
 export function getFileExtension(value?: string | null) {
     if (!value) {
@@ -44,28 +34,18 @@ export function getFileExtension(value?: string | null) {
     return basename.slice(dotIndex + 1).toLowerCase();
 }
 
-export function isAllowedExtension(
-    value: string | null | undefined,
-    allowedExtensions: Set<string>,
-) {
+export function isAllowedExtension(value: string | null | undefined, allowedExtensions: Set<string>) {
     const extension = getFileExtension(value);
 
     return extension ? allowedExtensions.has(extension) : false;
 }
 
-export function isAllowedMimeType(
-    value: string | null | undefined,
-    allowedMimeTypes: readonly string[],
-) {
+export function isAllowedMimeType(value: string | null | undefined, allowedMimeTypes: readonly string[]) {
     return value ? allowedMimeTypes.includes(value.toLowerCase()) : false;
 }
 
-export function isProfileImageContentType(
-    value: string | null | undefined,
-): value is ProfileImageContentType {
-    return value
-        ? PROFILE_IMAGE_MIME_TYPES.has(value.toLowerCase() as ProfileImageContentType)
-        : false;
+export function isProfileImageContentType(value: string | null | undefined): value is ProfileImageContentType {
+    return value ? PROFILE_IMAGE_MIME_TYPES.has(value.toLowerCase() as ProfileImageContentType) : false;
 }
 
 export function getProfileImageMimeType(extension: string) {

@@ -1,4 +1,4 @@
-import { reservationStatusColors, type ThemeColors } from "@/design-system/utils/theme";
+import type { ThemeColors } from "@/design-system/utils/theme";
 import type { TFunction } from "i18next";
 import { formatType } from "./format-enum";
 
@@ -17,16 +17,16 @@ const danger: Tone = { className: "bg-danger/10", color: "danger" };
 export function getReservationStatusColor(colors: ThemeColors, status?: string | null) {
     switch (status?.toUpperCase().replaceAll("-", "_")) {
         case "RESERVED":
-            return reservationStatusColors.reservationReserved;
+            return colors.reservationReserved;
         case "CHECKED_IN":
-            return reservationStatusColors.reservationCheckedIn;
+            return colors.reservationCheckedIn;
         case "COMPLETED":
-            return reservationStatusColors.reservationCompleted;
+            return colors.reservationCompleted;
         case "CANCELLED":
         case "CANCELED":
-            return reservationStatusColors.reservationCancelled;
+            return colors.reservationCancelled;
         case "NO_SHOW":
-            return reservationStatusColors.reservationNoShow;
+            return colors.reservationNoShow;
         default:
             return colors.mutedForeground;
     }
@@ -77,11 +77,7 @@ export function getSessionStatusTone(status?: string | null): Tone {
 }
 
 export function getSessionTypeTone(type?: string | null): Tone {
-    return (
-        ({ DRILL: primary, NON_DRILL: warning } as Record<string, Tone>)[
-            type ?? ""
-        ] ?? neutral
-    );
+    return ({ DRILL: primary, NON_DRILL: warning } as Record<string, Tone>)[type ?? ""] ?? neutral;
 }
 
 export function getHomeworkSubmissionTone(status?: string | null): Tone {
@@ -97,17 +93,10 @@ export function getHomeworkSubmissionTone(status?: string | null): Tone {
 }
 
 export function getHomeworkReviewTone(status?: string | null): Tone {
-    return (
-        ({ PENDING: warning, CONFIRMED: success } as Record<string, Tone>)[
-            status ?? ""
-        ] ?? neutral
-    );
+    return ({ PENDING: warning, CONFIRMED: success } as Record<string, Tone>)[status ?? ""] ?? neutral;
 }
 
-export function getEffectiveTicketStatus(
-    status?: string | null,
-    fullyUsed?: boolean,
-): string {
+export function getEffectiveTicketStatus(status?: string | null, fullyUsed?: boolean): string {
     const normalized = status?.toUpperCase().replaceAll("-", "_") ?? "";
     if (
         fullyUsed &&
@@ -121,10 +110,7 @@ export function getEffectiveTicketStatus(
     return normalized;
 }
 
-export function getTicketStatusTone(
-    status?: string | null,
-    fullyUsed?: boolean,
-): Tone {
+export function getTicketStatusTone(status?: string | null, fullyUsed?: boolean): Tone {
     switch (getEffectiveTicketStatus(status, fullyUsed)) {
         case "ACTIVE":
             return success;

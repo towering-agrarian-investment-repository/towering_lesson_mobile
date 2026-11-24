@@ -1,643 +1,648 @@
+import { AppText } from "@/design-system/components/AppText";
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { FormTextInput } from "@/components/ui/form";
 import {
-  ActionButton,
-  cn,
-  ErrorState,
-  AnimatedPressable,
-  ListRow,
-  Screen,
-  Skeleton,
-  triggerNotificationHaptic,
+    ActionButton,
+    cn,
+    ErrorState,
+    AnimatedPressable,
+    ListRow,
+    Screen,
+    Skeleton,
+    triggerSuccessHaptic,
 } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { useRemoveMemberProfileImage, useUpdateMemberProfileImage } from "@/lib/hook/useUploadFile";
+import { useGetMemberProfile, useUpdateMemberProfile } from "@/lib/hook/useUser";
+import { showAppToast } from "@/design-system/components/AppToast";
 import {
-  useRemoveMemberProfileImage,
-  useUpdateMemberProfileImage,
-} from "@/lib/hook/useUploadFile";
-import {
-  useGetMemberProfile,
-  useUpdateMemberProfile,
-} from "@/lib/hook/useUser";
-import { showAppToast } from "@/lib/toast/toast";
-import {
-  getProfileImageMimeType,
-  isAllowedExtension,
-  isProfileImageContentType,
-  PROFILE_IMAGE_EXTENSIONS,
-  PROFILE_IMAGE_MAX_SIZE_BYTES,
-  type ProfileImageContentType,
+    getProfileImageMimeType,
+    isAllowedExtension,
+    isProfileImageContentType,
+    PROFILE_IMAGE_EXTENSIONS,
+    PROFILE_IMAGE_MAX_SIZE_BYTES,
+    type ProfileImageContentType,
 } from "@/utils/media";
 import { RNHostView } from "@expo/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { usePreventRemove, useRouter } from "expo-router";
 import { Camera, ImageIcon, Trash2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, RefreshControl, View } from "react-native";
+import { ActivityIndicator, Alert, Keyboard, Linking, RefreshControl, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
 const createEditProfileSchema = (t: (key: string) => string) =>
-  z.object({
-    name: z.string().trim().min(1, t("profile.nameRequired")),
-    nickname: z.string().trim().max(50, t("profile.nicknameMaxLength")).optional(),
-  });
+    z.object({
+        name: z.string().trim().min(1, t("profile.nameRequired")),
+        nickname: z.string().trim().max(50, t("profile.nicknameMaxLength")).optional(),
+    });
 
-type EditProfileFormValues = z.infer<
-  ReturnType<typeof createEditProfileSchema>
->;
+type EditProfileFormValues = z.infer<ReturnType<typeof createEditProfileSchema>>;
+
+function showPermissionSettingsAlert(t: (key: string) => string, message: string) {
+    Alert.alert(t("common.permissionTitle"), message, [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+            text: t("common.openSettings"),
+            onPress: () => {
+                void Linking.openSettings();
+            },
+        },
+    ]);
+}
 
 export default function EditProfileScreen() {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
-  const router = useRouter();
-  const {
-    data: memberResponse,
-    isLoading,
-    refetch,
-    isRefetching,
-  } = useGetMemberProfile();
-  const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-    usePullToRefresh(() => refetch({ cancelRefetch: false }));
-  const { mutate: updateProfile, isPending: isSubmitting } =
-    useUpdateMemberProfile();
-  const { mutate: uploadProfileImage, isPending: isUploadingImage } =
-    useUpdateMemberProfileImage();
-  const { mutate: removeProfileImage, isPending: isRemovingImage } =
-    useRemoveMemberProfileImage();
-  const removalLock = useRef(false);
-  const pickingImage = useRef(false);
-  const submitting = useRef(false);
-  const initializedMemberId = useRef<number | null>(null);
-  const [isPickingImage, setIsPickingImage] = useState(false);
-  const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
-  const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] =
-    useState(false);
-  const [isConfirmingRemovePhoto, setIsConfirmingRemovePhoto] = useState(false);
+    const { colors } = useTheme();
+    const { t } = useTranslation();
+    const router = useRouter();
+    const { data: memberResponse, isLoading, refetch, isRefetching } = useGetMemberProfile();
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        refetch({ cancelRefetch: false }),
+    );
+    const { mutate: updateProfile, isPending: isSubmitting } = useUpdateMemberProfile();
+    const { mutate: uploadProfileImage, isPending: isUploadingImage } = useUpdateMemberProfileImage();
+    const { mutate: removeProfileImage, isPending: isRemovingImage } = useRemoveMemberProfileImage();
+    const removalLock = useRef(false);
+    const pickingImage = useRef(false);
+    const submitting = useRef(false);
+    const initializedMemberId = useRef<number | null>(null);
+    const [isPickingImage, setIsPickingImage] = useState(false);
+    const isUpdatingImage = isPickingImage || isUploadingImage || isRemovingImage;
+    const [isPhotoSourceSheetVisible, setIsPhotoSourceSheetVisible] = useState(false);
+    const [isConfirmingRemovePhoto, setIsConfirmingRemovePhoto] = useState(false);
 
-  const member = memberResponse?.data;
-  const memberId = member?.id;
-  const memberName = member?.name;
-  const memberNickname = member?.nickname;
-  const editProfileSchema = createEditProfileSchema(t);
+    const member = memberResponse?.data;
+    const memberId = member?.id;
+    const memberName = member?.name;
+    const memberNickname = member?.nickname;
+    const editProfileSchema = createEditProfileSchema(t);
 
-  const form = useForm<EditProfileFormValues>({
-    defaultValues: {
-      name: "",
-      nickname: "",
-    },
-    resolver: zodResolver(editProfileSchema),
-    mode: "onTouched",
-  });
-  const isSaveDisabled =
-    isSubmitting || isUpdatingImage || !form.formState.isDirty;
-
-  useEffect(() => {
-    if (!memberId || initializedMemberId.current === memberId) {
-      return;
-    }
-
-    initializedMemberId.current = memberId;
-    form.reset({
-      name: memberName ?? "",
-      nickname: memberNickname ?? "",
+    const form = useForm<EditProfileFormValues>({
+        defaultValues: {
+            name: "",
+            nickname: "",
+        },
+        resolver: zodResolver(editProfileSchema),
+        mode: "onTouched",
     });
-  }, [form, memberId, memberName, memberNickname]);
+    const isSaveDisabled = isSubmitting || isUpdatingImage || !form.formState.isDirty;
 
-  const onSubmit = (values: EditProfileFormValues) => {
-    if (!member || submitting.current || isSubmitting || isUpdatingImage) {
-      return;
-    }
+    const [isSaved, setIsSaved] = useState(false);
+    const [isDiscardSheetVisible, setIsDiscardSheetVisible] = useState(false);
+    const discardNavigation = useRef<(() => void) | null>(null);
+    usePreventRemove(form.formState.isDirty && !isSubmitting && !isUpdatingImage && !isSaved, ({ repeat }) => {
+        if (discardNavigation.current) return;
+        discardNavigation.current = repeat;
+        Keyboard.dismiss();
+        setIsDiscardSheetVisible(true);
+    });
 
-    submitting.current = true;
-    updateProfile(
-      {
-        name: values.name.trim(),
-        nickname: values.nickname?.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
-          router.dismissTo("/(app)/(tabs)/profile");
-        },
-        onSettled: () => {
-          submitting.current = false;
-        },
-      },
-    );
-  };
+    const closeDiscardSheet = () => {
+        discardNavigation.current = null;
+        setIsDiscardSheetVisible(false);
+    };
 
-  const handleInvalidSubmit = (errors: FieldErrors<EditProfileFormValues>) => {
-    form.setFocus(errors.name ? "name" : "nickname");
-  };
+    const confirmDiscard = () => {
+        const repeat = discardNavigation.current;
+        if (!repeat) return;
 
-  const submitEditProfile = () => {
-    if (isSaveDisabled || submitting.current) {
-      return;
-    }
+        closeDiscardSheet();
+        form.reset();
+        repeat();
+    };
 
-    void form.handleSubmit(onSubmit, handleInvalidSubmit)();
-  };
+    useEffect(() => {
+        if (isSaved) {
+            router.dismissTo("/(app)/(tabs)/profile");
+        }
+    }, [isSaved, router]);
 
-  const uploadSelectedProfileImage = (
-    memberId: number,
-    asset: ImagePicker.ImagePickerAsset,
-  ) => {
-    const image = createProfileImageFromAsset(asset, t);
+    useEffect(() => {
+        if (!memberId || initializedMemberId.current === memberId) {
+            return;
+        }
 
-    uploadProfileImage(
-      {
-        memberId,
-        imageUri: image.uri,
-        contentType: image.contentType,
-      },
-      {
-        onSuccess: () => {
-          triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
-          showAppToast({
-            message: t("profile.profileImageUpdated"),
-            type: "success",
-          });
-        },
-      },
-    );
-  };
-
-  const handlePickProfileImageFromLibrary = async () => {
-    if (
-      !member?.id ||
-      pickingImage.current ||
-      isUpdatingImage ||
-      isSubmitting
-    ) {
-      return;
-    }
-
-    pickingImage.current = true;
-    setIsPickingImage(true);
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.9,
-      });
-      setIsPhotoSourceSheetVisible(false);
-
-      if (result.canceled || !result.assets[0]) {
-        return;
-      }
-
-      uploadSelectedProfileImage(member.id, result.assets[0]);
-    } catch (uploadError) {
-      showAppToast({
-        message:
-          uploadError instanceof ProfileImageValidationError
-            ? uploadError.message
-            : t("profile.prepareSelectedImageFailed"),
-        type: "error",
-      });
-    } finally {
-      pickingImage.current = false;
-      setIsPickingImage(false);
-    }
-  };
-
-  const handleTakeProfileImage = async () => {
-    if (
-      !member?.id ||
-      pickingImage.current ||
-      isUpdatingImage ||
-      isSubmitting
-    ) {
-      return;
-    }
-
-    pickingImage.current = true;
-    setIsPickingImage(true);
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-
-      if (!permission.granted) {
-        showAppToast({
-          message: t("profile.cameraPermission"),
-          type: "error",
+        initializedMemberId.current = memberId;
+        form.reset({
+            name: memberName ?? "",
+            nickname: memberNickname ?? "",
         });
-        return;
-      }
+    }, [form, memberId, memberName, memberNickname]);
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.9,
-      });
-      setIsPhotoSourceSheetVisible(false);
+    const onSubmit = (values: EditProfileFormValues) => {
+        if (!member || submitting.current || isSubmitting || isUpdatingImage) {
+            return;
+        }
 
-      if (result.canceled || !result.assets[0]) {
-        return;
-      }
+        submitting.current = true;
+        updateProfile(
+            {
+                name: values.name.trim(),
+                nickname: values.nickname?.trim() || null,
+            },
+            {
+                onSuccess: () => {
+                    triggerSuccessHaptic();
+                    setIsSaved(true);
+                },
+                onSettled: () => {
+                    submitting.current = false;
+                },
+            },
+        );
+    };
 
-      uploadSelectedProfileImage(member.id, result.assets[0]);
-    } catch (uploadError) {
-      showAppToast({
-        message:
-          uploadError instanceof ProfileImageValidationError
-            ? uploadError.message
-            : t("profile.prepareCapturedImageFailed"),
-        type: "error",
-      });
-    } finally {
-      pickingImage.current = false;
-      setIsPickingImage(false);
-    }
-  };
+    const handleInvalidSubmit = (errors: FieldErrors<EditProfileFormValues>) => {
+        form.setFocus(errors.name ? "name" : "nickname");
+    };
 
-  const handleChangeProfileImage = () => {
-    if (!member?.id || isUpdatingImage || isSubmitting) {
-      return;
-    }
+    const submitEditProfile = () => {
+        if (isSaveDisabled || submitting.current) {
+            return;
+        }
 
-    setIsConfirmingRemovePhoto(false);
-    setIsPhotoSourceSheetVisible(true);
-  };
+        void form.handleSubmit(onSubmit, handleInvalidSubmit)();
+    };
 
-  const closePhotoSourceSheet = () => {
-    if (pickingImage.current || removalLock.current || isUpdatingImage) return;
-    setIsPhotoSourceSheetVisible(false);
-    setIsConfirmingRemovePhoto(false);
-  };
+    const uploadSelectedProfileImage = (memberId: number, asset: ImagePicker.ImagePickerAsset) => {
+        const image = createProfileImageFromAsset(asset, t);
 
-  const handleRemoveProfileImage = () => {
-    if (
-      !member?.profileImage ||
-      isUpdatingImage ||
-      isSubmitting ||
-      removalLock.current
-    ) {
-      return;
-    }
+        uploadProfileImage(
+            {
+                memberId,
+                imageUri: image.uri,
+                contentType: image.contentType,
+            },
+            {
+                onSuccess: () => {
+                    triggerSuccessHaptic();
+                    showAppToast({
+                        message: t("profile.profileImageUpdated"),
+                        type: "success",
+                    });
+                },
+            },
+        );
+    };
 
-    removalLock.current = true;
-    removeProfileImage(member.id, {
-      onSuccess: () => {
+    const handlePickProfileImageFromLibrary = async () => {
+        if (!member?.id || pickingImage.current || isUpdatingImage || isSubmitting) {
+            return;
+        }
+
+        pickingImage.current = true;
+        setIsPickingImage(true);
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (!permission.granted) {
+                showPermissionSettingsAlert(t, t("profile.photosPermission"));
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.9,
+            });
+            setIsPhotoSourceSheetVisible(false);
+
+            if (result.canceled || !result.assets[0]) {
+                return;
+            }
+
+            uploadSelectedProfileImage(member.id, result.assets[0]);
+        } catch (uploadError) {
+            showAppToast({
+                message:
+                    uploadError instanceof ProfileImageValidationError
+                        ? uploadError.message
+                        : t("profile.prepareSelectedImageFailed"),
+                type: "error",
+            });
+        } finally {
+            pickingImage.current = false;
+            setIsPickingImage(false);
+        }
+    };
+
+    const handleTakeProfileImage = async () => {
+        if (!member?.id || pickingImage.current || isUpdatingImage || isSubmitting) {
+            return;
+        }
+
+        pickingImage.current = true;
+        setIsPickingImage(true);
+        try {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+            if (!permission.granted) {
+                showPermissionSettingsAlert(t, t("profile.cameraPermission"));
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.9,
+            });
+            setIsPhotoSourceSheetVisible(false);
+
+            if (result.canceled || !result.assets[0]) {
+                return;
+            }
+
+            uploadSelectedProfileImage(member.id, result.assets[0]);
+        } catch (uploadError) {
+            showAppToast({
+                message:
+                    uploadError instanceof ProfileImageValidationError
+                        ? uploadError.message
+                        : t("profile.prepareCapturedImageFailed"),
+                type: "error",
+            });
+        } finally {
+            pickingImage.current = false;
+            setIsPickingImage(false);
+        }
+    };
+
+    const handleChangeProfileImage = () => {
+        if (!member?.id || isUpdatingImage || isSubmitting) {
+            return;
+        }
+
         setIsConfirmingRemovePhoto(false);
+        setIsPhotoSourceSheetVisible(true);
+    };
+
+    const closePhotoSourceSheet = () => {
+        if (pickingImage.current || removalLock.current || isUpdatingImage) return;
         setIsPhotoSourceSheetVisible(false);
-        triggerNotificationHaptic(Haptics.NotificationFeedbackType.Success);
-        showAppToast({
-          message: t("profile.profileImageRemoved"),
-          type: "success",
+        setIsConfirmingRemovePhoto(false);
+    };
+
+    const handleRemoveProfileImage = () => {
+        if (!member?.profileImage || isUpdatingImage || isSubmitting || removalLock.current) {
+            return;
+        }
+
+        removalLock.current = true;
+        removeProfileImage(member.id, {
+            onSuccess: () => {
+                setIsConfirmingRemovePhoto(false);
+                setIsPhotoSourceSheetVisible(false);
+                triggerSuccessHaptic();
+                showAppToast({
+                    message: t("profile.profileImageRemoved"),
+                    type: "success",
+                });
+            },
+            onSettled: () => {
+                removalLock.current = false;
+            },
         });
-      },
-      onSettled: () => {
-        removalLock.current = false;
-      },
-    });
-  };
+    };
 
-  if (isLoading) {
-    return (
-      <Screen contentClassName="gap-6">
-        <View className="items-center gap-3 py-2">
-          <Skeleton className="h-28 w-28 rounded-full" />
-          <Skeleton className="h-4 w-32 rounded-md" />
-        </View>
-        <View className="gap-4">
-          <Skeleton className="h-14 w-full rounded-xl" />
-          <Skeleton className="h-14 w-full rounded-xl" />
-        </View>
-      </Screen>
-    );
-  }
+    if (isLoading) {
+        return (
+            <Screen contentClassName="gap-6">
+                <View className="items-center gap-3 py-2">
+                    <Skeleton className="h-28 w-28 rounded-full" />
+                    <Skeleton className="h-4 w-32 rounded-md" />
+                </View>
+                <View className="gap-4">
+                    <Skeleton className="h-14 w-full rounded-xl" />
+                    <Skeleton className="h-14 w-full rounded-xl" />
+                </View>
+            </Screen>
+        );
+    }
 
-  if (!member) {
-    return (
-      <Screen
-        contentClassName="grow"
-        bottomPadding={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={isPullRefreshing}
-            onRefresh={handlePullRefresh}
-          />
-        }
-      >
-        <ErrorState
-          title={t("home.couldNotLoadProfile")}
-          message={t("home.checkConnection")}
-          actionLabel={
-            isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
-          }
-          actionPending={isRefetching || isPullRefreshing}
-          onAction={handlePullRefresh}
-        />
-      </Screen>
-    );
-  }
-
-  const photoActionLabel = isRemovingImage
-    ? t("profile.removingPhoto")
-    : isUploadingImage
-      ? t("profile.uploading")
-      : t("profile.changePhoto");
-  const isPhotoActionDisabled = isUpdatingImage || isSubmitting;
-
-  return (
-    <>
-      <PendingBottomSheet
-        isPresented={isPhotoSourceSheetVisible}
-        onDismiss={closePhotoSourceSheet}
-        dismissDisabled={isUpdatingImage}
-        containerColor={colors.card}
-        contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
-      >
-        <RNHostView matchContents={{ vertical: true }}>
-          {isConfirmingRemovePhoto ? (
-            <View className="gap-5">
-              <View className="gap-2">
-                <NativeText variant="h3" color="danger">
-                  {t("profile.removePhoto")}
-                </NativeText>
-                <NativeText variant="muted" color="mutedForeground">
-                  {t("profile.removePhotoConfirmMessage")}
-                </NativeText>
-              </View>
-              <View className="gap-3">
-                <ActionButton
-                  label={
-                    isRemovingImage
-                      ? t("profile.removingPhoto")
-                      : t("profile.removePhoto")
-                  }
-                  tone="danger"
-                  disabled={isRemovingImage}
-                  loading={isRemovingImage}
-                  onPress={handleRemoveProfileImage}
-                />
-                <ActionButton
-                  label={t("common.cancel")}
-                  appearance="text"
-                  disabled={isRemovingImage}
-                  onPress={closePhotoSourceSheet}
-                />
-              </View>
-            </View>
-          ) : (
-            <View className="gap-4">
-              <View className="gap-1">
-                <NativeText variant="h3">
-                  {t("profile.changeProfilePhoto")}
-                </NativeText>
-                <NativeText variant="muted" color="mutedForeground">
-                  {t("profile.changeProfilePhotoDescription")}
-                </NativeText>
-              </View>
-              <View className="gap-3">
-                <ListRow
-                  title={t("profile.takePhoto")}
-                  subtitle={t("profile.useCamera")}
-                  titleStyle={{ fontWeight: "500" }}
-                  leading={
-                    <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
-                      <Camera size={22} color={colors.foreground} />
-                    </View>
-                  }
-                  showChevron={false}
-                  className="bg-surface"
-                  disabled={isUpdatingImage || isSubmitting}
-                  onPress={() => {
-                    void handleTakeProfileImage();
-                  }}
-                />
-                <ListRow
-                  title={t("profile.chooseFromLibrary")}
-                  subtitle={t("profile.selectExistingPhoto")}
-                  titleStyle={{ fontWeight: "500" }}
-                  leading={
-                    <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
-                      <ImageIcon size={22} color={colors.foreground} />
-                    </View>
-                  }
-                  showChevron={false}
-                  className="bg-surface"
-                  disabled={isUpdatingImage || isSubmitting}
-                  onPress={() => {
-                    void handlePickProfileImageFromLibrary();
-                  }}
-                />
-                {member.profileImage ? (
-                  <ListRow
-                    title={
-                      isRemovingImage
-                        ? t("profile.removingPhoto")
-                        : t("profile.removePhoto")
-                    }
-                    titleStyle={{ fontWeight: "500" }}
-                    leading={
-                      <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
-                        <Trash2 size={22} color={colors.danger} />
-                      </View>
-                    }
-                    trailing={
-                      isRemovingImage ? (
-                        <ActivityIndicator size="small" color={colors.danger} />
-                      ) : undefined
-                    }
-                    showChevron={false}
-                    className="bg-surface"
-                    disabled={isUpdatingImage || isSubmitting}
-                    onPress={() => {
-                      setIsConfirmingRemovePhoto(true);
-                    }}
-                  />
-                ) : null}
-              </View>
-              <ActionButton
-                label={t("common.cancel")}
-                appearance="text"
-                disabled={isUpdatingImage}
-                onPress={closePhotoSourceSheet}
-              />
-            </View>
-          )}
-        </RNHostView>
-      </PendingBottomSheet>
-
-      <Screen
-        keyboardAware
-        keyboardScrollMode="layout"
-        footer={
-          <ActionButton
-            label={isSubmitting ? t("profile.saving") : t("profile.saveChanges")}
-            disabled={isSaveDisabled}
-            loading={isSubmitting}
-            onPress={submitEditProfile}
-          />
-        }
-      >
-        <View className="gap-6">
-          <AnimatedPressable
-            accessibilityRole="button"
-            accessibilityLabel={photoActionLabel}
-            accessibilityState={{
-              disabled: isPhotoActionDisabled,
-              busy: isUpdatingImage,
-            }}
-            disabled={isPhotoActionDisabled}
-            hitSlop={8}
-            className={cn(
-              "items-center gap-2.5 self-center",
-              isSubmitting && "opacity-60",
-            )}
-            onPress={handleChangeProfileImage}
-          >
-            <View className="h-24 w-24">
-              <View className="h-24 w-24 overflow-hidden rounded-full bg-muted">
-                <ProfileImagePreview
-                  name={member.name}
-                  imageUrl={member.profileImage}
-                />
-
-                {isUpdatingImage ? (
-                  <View className="absolute inset-0 items-center justify-center bg-black/40">
-                    <ActivityIndicator color={colors.primaryForeground} />
-                  </View>
-                ) : null}
-              </View>
-
-              <View className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary">
-                <Camera size={15} color={colors.primaryForeground} />
-              </View>
-            </View>
-
-            <NativeText variant="meta" color="primary" wrap={false}>
-              {photoActionLabel}
-            </NativeText>
-          </AnimatedPressable>
-
-          <View className="gap-5">
-            <NativeText
-              variant="body"
-              textStyle={{
-                lineHeight: typography.h3.lineHeight,
-                fontSize: typography.subtitle.fontSize,
-                fontWeight: "600" as const,
-              }}
+    if (!member) {
+        return (
+            <Screen
+                contentClassName="grow"
+                bottomPadding={16}
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             >
-              {t("profile.basicInformation")}
-            </NativeText>
+                <ErrorState
+                    title={t("home.couldNotLoadProfile")}
+                    message={t("home.checkConnection")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionPending={isRefetching || isPullRefreshing}
+                    onAction={handlePullRefresh}
+                />
+            </Screen>
+        );
+    }
 
-            <FormTextInput
-              control={form.control}
-              name="name"
-              label={t("profile.fullName")}
-              placeholder={t("profile.fullNamePlaceholder")}
-              autoCapitalize="words"
-              autoComplete="name"
-              returnKeyType="next"
-              onSubmitEditing={() => form.setFocus("nickname")}
-              editable={!isSubmitting && !isUpdatingImage}
-            />
+    const photoActionLabel = isRemovingImage
+        ? t("profile.removingPhoto")
+        : isUploadingImage
+          ? t("profile.uploading")
+          : t("profile.changePhoto");
+    const isPhotoActionDisabled = isUpdatingImage || isSubmitting;
 
-            <FormTextInput
-              control={form.control}
-              name="nickname"
-              label={t("profile.nickname")}
-              placeholder={t("profile.nicknamePlaceholder")}
-              autoCapitalize="words"
-              autoComplete="nickname"
-              returnKeyType="done"
-              onSubmitEditing={submitEditProfile}
-              editable={!isSubmitting && !isUpdatingImage}
-            />
-          </View>
-        </View>
-      </Screen>
-    </>
-  );
+    return (
+        <>
+            <PendingBottomSheet
+                isPresented={isDiscardSheetVisible}
+                onDismiss={closeDiscardSheet}
+                dismissDisabled={false}
+                containerColor={colors.card}
+                contentColor={colors.foreground}
+                contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
+            >
+                <RNHostView matchContents={{ vertical: true }}>
+                    <View className="gap-5">
+                        <View className="gap-2">
+                            <AppText variant="h3" color="danger">
+                                {t("common.unsavedChangesTitle")}
+                            </AppText>
+                            <AppText variant="body" color="mutedForeground">
+                                {t("common.unsavedChangesMessage")}
+                            </AppText>
+                        </View>
+                        <View className="gap-3">
+                            <ActionButton
+                                label={t("common.discardChanges")}
+                                tone="danger"
+                                haptic="impact"
+                                onPress={confirmDiscard}
+                            />
+                            <ActionButton label={t("common.cancel")} appearance="text" onPress={closeDiscardSheet} />
+                        </View>
+                    </View>
+                </RNHostView>
+            </PendingBottomSheet>
+
+            <PendingBottomSheet
+                isPresented={isPhotoSourceSheetVisible}
+                onDismiss={closePhotoSourceSheet}
+                dismissDisabled={isUpdatingImage}
+                containerColor={colors.card}
+                contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
+            >
+                <RNHostView matchContents={{ vertical: true }}>
+                    {isConfirmingRemovePhoto ? (
+                        <View className="gap-5">
+                            <View className="gap-2">
+                                <AppText variant="h3" color="danger">
+                                    {t("profile.removePhoto")}
+                                </AppText>
+                                <AppText variant="body" color="mutedForeground">
+                                    {t("profile.removePhotoConfirmMessage")}
+                                </AppText>
+                            </View>
+                            <View className="gap-3">
+                                <ActionButton
+                                    label={isRemovingImage ? t("profile.removingPhoto") : t("profile.removePhoto")}
+                                    tone="danger"
+                                    disabled={isRemovingImage}
+                                    loading={isRemovingImage}
+                                    haptic="impact"
+                                    onPress={handleRemoveProfileImage}
+                                />
+                                <ActionButton
+                                    label={t("common.cancel")}
+                                    appearance="text"
+                                    disabled={isRemovingImage}
+                                    onPress={closePhotoSourceSheet}
+                                />
+                            </View>
+                        </View>
+                    ) : (
+                        <View className="gap-4">
+                            <View className="gap-1">
+                                <AppText variant="h3">{t("profile.changeProfilePhoto")}</AppText>
+                                <AppText variant="body" color="mutedForeground">
+                                    {t("profile.changeProfilePhotoDescription")}
+                                </AppText>
+                            </View>
+                            <View className="gap-3">
+                                <ListRow
+                                    title={t("profile.takePhoto")}
+                                    subtitle={t("profile.useCamera")}
+                                    titleStyle={{ fontWeight: "600" }}
+                                    leading={
+                                        <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                                            <Camera size={22} color={colors.foreground} />
+                                        </View>
+                                    }
+                                    showChevron={false}
+                                    className="bg-surface"
+                                    disabled={isUpdatingImage || isSubmitting}
+                                    onPress={() => {
+                                        void handleTakeProfileImage();
+                                    }}
+                                />
+                                <ListRow
+                                    title={t("profile.chooseFromLibrary")}
+                                    subtitle={t("profile.selectExistingPhoto")}
+                                    titleStyle={{ fontWeight: "600" }}
+                                    leading={
+                                        <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                                            <ImageIcon size={22} color={colors.foreground} />
+                                        </View>
+                                    }
+                                    showChevron={false}
+                                    className="bg-surface"
+                                    disabled={isUpdatingImage || isSubmitting}
+                                    onPress={() => {
+                                        void handlePickProfileImageFromLibrary();
+                                    }}
+                                />
+                                {member.profileImage ? (
+                                    <ListRow
+                                        title={isRemovingImage ? t("profile.removingPhoto") : t("profile.removePhoto")}
+                                        titleStyle={{ fontWeight: "600" }}
+                                        leading={
+                                            <View className="h-11 w-11 items-center justify-center rounded-full bg-muted">
+                                                <Trash2 size={22} color={colors.danger} />
+                                            </View>
+                                        }
+                                        trailing={
+                                            isRemovingImage ? (
+                                                <ActivityIndicator size="small" color={colors.danger} />
+                                            ) : undefined
+                                        }
+                                        showChevron={false}
+                                        className="bg-surface"
+                                        disabled={isUpdatingImage || isSubmitting}
+                                        onPress={() => {
+                                            setIsConfirmingRemovePhoto(true);
+                                        }}
+                                    />
+                                ) : null}
+                            </View>
+                            <ActionButton
+                                label={t("common.cancel")}
+                                appearance="text"
+                                disabled={isUpdatingImage}
+                                onPress={closePhotoSourceSheet}
+                            />
+                        </View>
+                    )}
+                </RNHostView>
+            </PendingBottomSheet>
+
+            <Screen
+                keyboardAware
+                keyboardScrollMode="layout"
+                footer={
+                    <ActionButton
+                        label={isSubmitting ? t("profile.saving") : t("profile.saveChanges")}
+                        disabled={isSaveDisabled}
+                        keepBackgroundWhenDisabled
+                        loading={isSubmitting}
+                        haptic="selection"
+                        onPress={submitEditProfile}
+                    />
+                }
+            >
+                <View className="gap-6">
+                    <AnimatedPressable
+                        accessibilityRole="button"
+                        accessibilityLabel={photoActionLabel}
+                        accessibilityState={{
+                            disabled: isPhotoActionDisabled,
+                            busy: isUpdatingImage,
+                        }}
+                        disabled={isPhotoActionDisabled}
+                        hitSlop={8}
+                        className={cn("items-center gap-2.5 self-center", isSubmitting && "opacity-60")}
+                        onPress={handleChangeProfileImage}
+                    >
+                        <View className="h-24 w-24">
+                            <View className="h-24 w-24 overflow-hidden rounded-full bg-muted">
+                                <ProfileImagePreview name={member.name} imageUrl={member.profileImage} />
+
+                                {isUpdatingImage ? (
+                                    <View className="absolute inset-0 items-center justify-center bg-scrim">
+                                        <ActivityIndicator color={colors.primaryForeground} />
+                                    </View>
+                                ) : null}
+                            </View>
+
+                            <View className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary">
+                                <Camera size={15} color={colors.primaryForeground} />
+                            </View>
+                        </View>
+
+                        <AppText variant="subtext" color="primary" wrap={false}>
+                            {photoActionLabel}
+                        </AppText>
+                    </AnimatedPressable>
+
+                    <View className="gap-5">
+                        <AppText
+                            variant="body"
+                            textStyle={{
+                                lineHeight: typography.h3.lineHeight,
+                                fontSize: typography.subtitle.fontSize,
+                                fontWeight: "600" as const,
+                            }}
+                        >
+                            {t("profile.basicInformation")}
+                        </AppText>
+
+                        <FormTextInput
+                            control={form.control}
+                            name="name"
+                            label={t("profile.fullName")}
+                            placeholder={t("profile.fullNamePlaceholder")}
+                            autoCapitalize="words"
+                            autoComplete="name"
+                            returnKeyType="next"
+                            onSubmitEditing={() => form.setFocus("nickname")}
+                            editable={!isSubmitting && !isUpdatingImage}
+                        />
+
+                        <FormTextInput
+                            control={form.control}
+                            name="nickname"
+                            label={t("profile.nickname")}
+                            placeholder={t("profile.nicknamePlaceholder")}
+                            autoCapitalize="words"
+                            autoComplete="nickname"
+                            returnKeyType="done"
+                            maxLength={50}
+                            showCharacterCount
+                            onSubmitEditing={submitEditProfile}
+                            editable={!isSubmitting && !isUpdatingImage}
+                        />
+                    </View>
+                </View>
+            </Screen>
+        </>
+    );
 }
 
 class ProfileImageValidationError extends Error {}
 
 function createProfileImageFromAsset(
-  asset: ImagePicker.ImagePickerAsset,
-  t: (key: string) => string,
+    asset: ImagePicker.ImagePickerAsset,
+    t: (key: string) => string,
 ): { uri: string; contentType: ProfileImageContentType } {
-  if (
-    typeof asset.fileSize === "number" &&
-    asset.fileSize > PROFILE_IMAGE_MAX_SIZE_BYTES
-  ) {
-    throw new ProfileImageValidationError(t("profile.profileImageTooLarge"));
-  }
+    if (typeof asset.fileSize === "number" && asset.fileSize > PROFILE_IMAGE_MAX_SIZE_BYTES) {
+        throw new ProfileImageValidationError(t("profile.profileImageTooLarge"));
+    }
 
-  const rawName =
-    asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
-  const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
-  const hasSupportedExtension = isAllowedExtension(
-    rawName,
-    PROFILE_IMAGE_EXTENSIONS,
-  );
-  const normalizedMimeType = asset.mimeType?.toLowerCase();
-  const hasSupportedMimeType = isProfileImageContentType(normalizedMimeType);
+    const rawName = asset.fileName ?? asset.uri.split("/").pop() ?? "profile-image.jpg";
+    const extension = rawName.split(".").pop()?.toLowerCase() ?? "jpg";
+    const hasSupportedExtension = isAllowedExtension(rawName, PROFILE_IMAGE_EXTENSIONS);
+    const normalizedMimeType = asset.mimeType?.toLowerCase();
+    const hasSupportedMimeType = isProfileImageContentType(normalizedMimeType);
 
-  if (
-    (normalizedMimeType && !hasSupportedMimeType) ||
-    (!normalizedMimeType && !hasSupportedExtension)
-  ) {
-    throw new ProfileImageValidationError(t("profile.onlyImageTypesSupported"));
-  }
+    if ((normalizedMimeType && !hasSupportedMimeType) || (!normalizedMimeType && !hasSupportedExtension)) {
+        throw new ProfileImageValidationError(t("profile.onlyImageTypesSupported"));
+    }
 
-  const contentType = hasSupportedMimeType
-    ? normalizedMimeType
-    : getProfileImageMimeType(extension);
+    const contentType = hasSupportedMimeType ? normalizedMimeType : getProfileImageMimeType(extension);
 
-  if (!contentType) {
-    throw new ProfileImageValidationError(t("profile.onlyImageTypesSupported"));
-  }
+    if (!contentType) {
+        throw new ProfileImageValidationError(t("profile.onlyImageTypesSupported"));
+    }
 
-  return {
-    uri: asset.uri,
-    contentType,
-  };
+    return {
+        uri: asset.uri,
+        contentType,
+    };
 }
 
-function ProfileImagePreview({
-  name,
-  imageUrl,
-}: {
-  name?: string | null;
-  imageUrl?: string | null;
-}) {
-  const reducedMotion = useReducedMotion();
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+function ProfileImagePreview({ name, imageUrl }: { name?: string | null; imageUrl?: string | null }) {
+    const reducedMotion = useReducedMotion();
+    const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
-  if (imageUrl && failedUrl !== imageUrl) {
+    if (imageUrl && failedUrl !== imageUrl) {
+        return (
+            <Image
+                source={{ uri: imageUrl }}
+                cachePolicy="memory-disk"
+                recyclingKey={imageUrl}
+                transition={reducedMotion ? 0 : 150}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+                onError={() => setFailedUrl(imageUrl)}
+            />
+        );
+    }
+
     return (
-      <Image
-        source={{ uri: imageUrl }}
-        cachePolicy="memory-disk"
-        recyclingKey={imageUrl}
-        transition={reducedMotion ? 0 : 150}
-        style={{ width: "100%", height: "100%" }}
-        contentFit="cover"
-        onError={() => setFailedUrl(imageUrl)}
-      />
+        <View className="h-full w-full items-center justify-center bg-primary">
+            <AppText variant="h1" color="primaryForeground" wrap={false}>
+                {name?.charAt(0).toUpperCase() || "?"}
+            </AppText>
+        </View>
     );
-  }
-
-  return (
-    <View className="h-full w-full items-center justify-center bg-primary">
-      <NativeText variant="h1" color="primaryForeground" wrap={false}>
-        {name?.charAt(0).toUpperCase() || "?"}
-      </NativeText>
-    </View>
-  );
 }

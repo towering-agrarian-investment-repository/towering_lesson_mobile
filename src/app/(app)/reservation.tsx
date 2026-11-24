@@ -1,15 +1,7 @@
-import {
-    RESERVATION_TABS,
-    ReservationTabScene,
-} from "@/components/golf/reservation/ReservationTabScene";
-import {
-    Screen,
-    SwipeableTabBar,
-    type SwipeableTabRoute,
-    triggerSelectionHaptic,
-} from "@/design-system";
+import { RESERVATION_TABS, ReservationTabScene } from "@/components/golf/reservation/ReservationTabScene";
+import { Screen, SwipeableTabBar, type SwipeableTabRoute, triggerSelectionHaptic } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { useMinuteClock } from "@/lib/hook/useMinuteClock";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { MemberReservationType } from "@/service/reservation.service";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { MenuView, type MenuAction } from "@expo/ui/community/menu";
@@ -30,7 +22,7 @@ export default function ReservationScreen() {
     const reducedMotion = useReducedMotion();
     const [activeIndex, setActiveIndex] = useState(0);
     const [period, setPeriod] = useState<ReservationPeriod>("all");
-    const referenceTime = useMinuteClock();
+    const referenceTime = useDayClock();
     const businessDate = toAppTimeZoneDate(referenceTime)!;
     const today = format(businessDate, "yyyy-MM-dd");
     const yesterday = format(subDays(businessDate, 1), "yyyy-MM-dd");
@@ -42,16 +34,19 @@ export default function ReservationScreen() {
             {
                 id: "all",
                 title: t("reservations.period.all"),
+                image: "calendar",
                 state: period === "all" ? "on" : "off",
             },
             {
                 id: "upcoming",
                 title: t("reservations.period.upcoming"),
+                image: "clock",
                 state: period === "upcoming" ? "on" : "off",
             },
             {
                 id: "past",
                 title: t("reservations.period.past"),
+                image: "clock.arrow.circlepath",
                 state: period === "past" ? "on" : "off",
             },
         ],
@@ -88,20 +83,17 @@ export default function ReservationScreen() {
         ({ route }: { route: { key: string } }) => (
             <ReservationTabScene
                 type={route.key as MemberReservationType}
-                referenceTime={referenceTime}
                 from={from}
                 to={to}
                 period={period}
                 onPeriodChange={setPeriod}
             />
         ),
-        [from, period, referenceTime, to],
+        [from, period, to],
     );
 
     const renderTabBar = useCallback(
-        (props: TabBarProps<SwipeableTabRoute>) => (
-            <SwipeableTabBar {...props} onTabPress={handleTabChange} />
-        ),
+        (props: TabBarProps<SwipeableTabRoute>) => <SwipeableTabBar {...props} onTabPress={handleTabChange} />,
         [handleTabChange],
     );
 
@@ -113,11 +105,7 @@ export default function ReservationScreen() {
                     colorScheme={resolvedScheme}
                     onPressAction={({ nativeEvent }) => {
                         const nextPeriod = nativeEvent.event;
-                        if (
-                            nextPeriod === "all" ||
-                            nextPeriod === "upcoming" ||
-                            nextPeriod === "past"
-                        ) {
+                        if (nextPeriod === "all" || nextPeriod === "upcoming" || nextPeriod === "past") {
                             triggerSelectionHaptic();
                             setPeriod(nextPeriod);
                         }
@@ -125,22 +113,15 @@ export default function ReservationScreen() {
                 >
                     <View
                         accessibilityRole="button"
-                        accessibilityLabel={t(
-                            "reservations.filterAccessibility",
-                            {
-                                period: t(`reservations.period.${period}`),
-                            },
-                        )}
+                        accessibilityLabel={t("reservations.filterAccessibility", {
+                            period: t(`reservations.period.${period}`),
+                        })}
                         accessibilityState={{ selected: period !== "all" }}
                         className="min-h-12 min-w-12 items-center justify-center"
                     >
                         <Filter
                             size={22}
-                            color={
-                                period === "all"
-                                    ? colors.foreground
-                                    : colors.primary
-                            }
+                            color={period === "all" ? colors.foreground : colors.primary}
                             fill={period === "all" ? "none" : colors.primary}
                         />
                     </View>

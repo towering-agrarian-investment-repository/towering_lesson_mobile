@@ -6,8 +6,14 @@ import type { PendingBottomSheetProps } from "./PendingBottomSheet";
 
 /** The SDK's universal BottomSheet does not yet expose sheetGesturesEnabled. */
 export function PendingBottomSheet({
-    children, isPresented, onDismiss, dismissDisabled, modifiers,
-    containerColor, contentColor, contentPadding,
+    children,
+    isPresented,
+    onDismiss,
+    dismissDisabled,
+    modifiers,
+    containerColor,
+    contentColor,
+    contentPadding,
 }: PendingBottomSheetProps) {
     const sheetRef = useRef<ModalBottomSheetRef>(null);
     const [mounted, setMounted] = useState(isPresented);
@@ -26,20 +32,25 @@ export function PendingBottomSheet({
         } else {
             setMounted(false);
         }
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [isPresented]);
 
     if (!mounted) return null;
 
-    const insets = typeof contentPadding === "number"
-        ? { top: contentPadding, bottom: contentPadding, left: contentPadding, right: contentPadding }
-        : contentPadding ?? { top: 0, bottom: 0, left: 16, right: 16 };
+    const insets =
+        typeof contentPadding === "number"
+            ? { top: contentPadding, bottom: contentPadding, left: contentPadding, right: contentPadding }
+            : (contentPadding ?? { top: 0, bottom: 0, left: 16, right: 16 });
 
     return (
         <Host style={{ position: "absolute" }} pointerEvents="none">
             <ModalBottomSheet
                 ref={sheetRef}
-                onDismissRequest={() => { if (!dismissDisabled) onDismiss(); }}
+                onDismissRequest={() => {
+                    if (!dismissDisabled) onDismiss();
+                }}
                 sheetGesturesEnabled={!dismissDisabled}
                 properties={{
                     shouldDismissOnBackPress: !dismissDisabled,

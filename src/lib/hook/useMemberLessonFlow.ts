@@ -1,7 +1,4 @@
-import {
-    getMemberGroupById,
-    getMemberGroups,
-} from "@/service/member-group.service";
+import { getMemberGroupById, getMemberGroups } from "@/service/member-group.service";
 import {
     generateHomeworkSubmissionUpload,
     getMemberHomeworkById,
@@ -9,10 +6,7 @@ import {
     submitHomework,
     uploadHomeworkSubmissionFile,
 } from "@/service/member-homework.service";
-import {
-    getMemberLessonById,
-    getMemberLessonByIdAndGroupId,
-} from "@/service/member-lesson.service";
+import { getMemberLessonById, getMemberLessonByIdAndGroupId } from "@/service/member-lesson.service";
 import { MemberHomeworkDetailResponse } from "@/types/member-homework";
 import { MemberLessonDetailResponse } from "@/types/member-lesson";
 import {
@@ -24,12 +18,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import i18n from "@/i18n";
-import {
-    ApiResponse,
-    responseError,
-    responseStatus,
-    UserFacingError,
-} from "../api-response/api-response";
+import { ApiResponse, responseError, responseStatus, UserFacingError } from "../api-response/api-response";
 
 function getMemberGroupsQueryOptions() {
     return {
@@ -42,20 +31,15 @@ function getMemberGroupsQueryOptions() {
 export function getMemberGroupByIdQueryOptions(groupId: number) {
     return {
         queryKey: ["member", "groups", groupId] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberGroupById(groupId, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getMemberGroupById(groupId, signal),
         staleTime: 60_000,
     };
 }
 
-export function getMemberLessonByGroupQueryOptions(
-    groupId: number,
-    lessonId: number,
-) {
+export function getMemberLessonByGroupQueryOptions(groupId: number, lessonId: number) {
     return {
         queryKey: ["member", "groups", groupId, "lessons", lessonId] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberLessonByIdAndGroupId(lessonId, groupId, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getMemberLessonByIdAndGroupId(lessonId, groupId, signal),
         staleTime: 60_000,
     };
 }
@@ -63,8 +47,7 @@ export function getMemberLessonByGroupQueryOptions(
 function getMemberLessonByIdQueryOptions(lessonId: number) {
     return {
         queryKey: ["member", "lessons", lessonId] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberLessonById(lessonId, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getMemberLessonById(lessonId, signal),
         staleTime: 60_000,
     };
 }
@@ -72,8 +55,7 @@ function getMemberLessonByIdQueryOptions(lessonId: number) {
 export function getMemberHomeworkByIdQueryOptions(homeworkId: number) {
     return {
         queryKey: ["member", "homeworks", homeworkId] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberHomeworkById(homeworkId, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getMemberHomeworkById(homeworkId, signal),
         staleTime: 60_000,
     };
 }
@@ -93,17 +75,10 @@ export function useMemberGroupById(groupId: number) {
     });
 }
 
-export function useMemberLessonByGroup(
-    groupId: number,
-    lessonId: number,
-) {
+export function useMemberLessonByGroup(groupId: number, lessonId: number) {
     return useQuery<ApiResponse<MemberLessonDetailResponse>>({
         ...getMemberLessonByGroupQueryOptions(groupId, lessonId),
-        enabled:
-            Number.isFinite(groupId) &&
-            groupId > 0 &&
-            Number.isFinite(lessonId) &&
-            lessonId > 0,
+        enabled: Number.isFinite(groupId) && groupId > 0 && Number.isFinite(lessonId) && lessonId > 0,
         staleTime: 60_000,
     });
 }
@@ -128,7 +103,7 @@ export function useSubmitMemberHomework() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
+        mutationFn: ({
             homeworkId,
             file,
             memberMemo,
@@ -136,105 +111,115 @@ export function useSubmitMemberHomework() {
             homeworkId: number;
             file: HomeworkSubmissionFile;
             memberMemo?: string;
-        }) => {
-            const nativeFile = new File(file.uri);
-            const mediaType = file.type;
-
-            if (!isAllowedMimeType(mediaType, HOMEWORK_SUBMISSION_MIME_TYPES)) {
-                throw new UserFacingError(i18n.t("homework.supportedFilesOnly"));
-            }
-
-            if (!nativeFile.exists || nativeFile.size <= 0) {
-                throw new UserFacingError(i18n.t("homework.emptyFile"));
-            }
-
-            if (nativeFile.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
-                throw new UserFacingError(i18n.t("homework.fileTooLarge"));
-            }
-
-            const originalFileName = file.name || nativeFile.name;
-            const sizeBytes = nativeFile.size;
-
-            const requestUploadTarget = async () => {
-                const uploadResponse = await generateHomeworkSubmissionUpload(homeworkId, {
-                    homeworkInstanceId: homeworkId,
-                    files: [
-                        {
-                            originalFileName,
-                            mediaType,
-                            sizeBytes,
-                        },
-                    ],
-                });
-                const uploadTarget = uploadResponse.data.uploads[0];
-
-                if (
-                    uploadResponse.data.homeworkId !== homeworkId
-                    || !uploadTarget?.key
-                    || !uploadTarget.uploadUrl
-                    || !uploadTarget.expiresAt
-                ) {
-                    throw new UserFacingError(i18n.t("homework.prepareUploadError"));
-                }
-
-                return uploadTarget;
-            };
-
-            const requestFreshUploadTarget = async () => {
-                let uploadTarget = await requestUploadTarget();
-
-                if (hasExpired(uploadTarget.expiresAt)) {
-                    uploadTarget = await requestUploadTarget();
-                }
-
-                if (hasExpired(uploadTarget.expiresAt)) {
-                    throw new UserFacingError(i18n.t("homework.prepareUploadError"));
-                }
-
-                return uploadTarget;
-            };
-
-            let uploadTarget = await requestFreshUploadTarget();
-
-            try {
-                await uploadHomeworkSubmissionFile(
-                    uploadTarget.uploadUrl,
-                    nativeFile,
-                    mediaType,
-                );
-            } catch (error) {
-                const isForbidden =
-                    error instanceof Error &&
-                    "status" in error &&
-                    error.status === 403;
-
-                if (!hasExpired(uploadTarget.expiresAt) && !isForbidden) {
-                    throw error;
-                }
-
-                uploadTarget = await requestFreshUploadTarget();
-                await uploadHomeworkSubmissionFile(
-                    uploadTarget.uploadUrl,
-                    nativeFile,
-                    mediaType,
-                );
-            }
-
-            return submitHomework({
+        }) =>
+            uploadHomeworkSubmission({
                 homeworkId,
-                uploadKey: uploadTarget.key,
-                originalFileName,
-                memberMemo: memberMemo?.trim() || undefined,
-            });
-        },
+                file,
+                memberMemo,
+            }),
         onSuccess: (res) => {
             responseStatus(res);
             queryClient.invalidateQueries({ queryKey: ["member", "homeworks"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "groups"] });
-            queryClient.invalidateQueries({ queryKey: ["member", "lessons"] });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "groups"],
+                refetchType: "none",
+            });
+            queryClient.invalidateQueries({
+                queryKey: ["member", "lessons"],
+                refetchType: "none",
+            });
         },
         onError: (error: unknown) => {
             responseError(error);
         },
+    });
+}
+
+async function uploadHomeworkSubmission({
+    homeworkId,
+    file,
+    memberMemo,
+}: {
+    homeworkId: number;
+    file: HomeworkSubmissionFile;
+    memberMemo?: string;
+}) {
+    const nativeFile = new File(file.uri);
+    const mediaType = file.type;
+
+    if (!isAllowedMimeType(mediaType, HOMEWORK_SUBMISSION_MIME_TYPES)) {
+        throw new UserFacingError(i18n.t("homework.supportedFilesOnly"));
+    }
+
+    if (!nativeFile.exists || nativeFile.size <= 0) {
+        throw new UserFacingError(i18n.t("homework.emptyFile"));
+    }
+
+    if (nativeFile.size > HOMEWORK_SUBMISSION_MAX_SIZE_BYTES) {
+        throw new UserFacingError(i18n.t("homework.fileTooLarge"));
+    }
+
+    const originalFileName = file.name || nativeFile.name;
+    const sizeBytes = nativeFile.size;
+
+    const requestUploadTarget = async () => {
+        const uploadResponse = await generateHomeworkSubmissionUpload(homeworkId, {
+            homeworkInstanceId: homeworkId,
+            files: [
+                {
+                    originalFileName,
+                    mediaType,
+                    sizeBytes,
+                },
+            ],
+        });
+        const uploadTarget = uploadResponse.data.uploads[0];
+
+        if (
+            uploadResponse.data.homeworkId !== homeworkId ||
+            !uploadTarget?.key ||
+            !uploadTarget.uploadUrl ||
+            !uploadTarget.expiresAt
+        ) {
+            throw new UserFacingError(i18n.t("homework.prepareUploadError"));
+        }
+
+        return uploadTarget;
+    };
+
+    const requestFreshUploadTarget = async () => {
+        let uploadTarget = await requestUploadTarget();
+
+        if (hasExpired(uploadTarget.expiresAt)) {
+            uploadTarget = await requestUploadTarget();
+        }
+
+        if (hasExpired(uploadTarget.expiresAt)) {
+            throw new UserFacingError(i18n.t("homework.prepareUploadError"));
+        }
+
+        return uploadTarget;
+    };
+
+    let uploadTarget = await requestFreshUploadTarget();
+
+    try {
+        await uploadHomeworkSubmissionFile(uploadTarget.uploadUrl, nativeFile, mediaType);
+    } catch (error) {
+        const isForbidden = error instanceof Error && "status" in error && error.status === 403;
+
+        if (!hasExpired(uploadTarget.expiresAt) && !isForbidden) {
+            throw error;
+        }
+
+        uploadTarget = await requestFreshUploadTarget();
+        await uploadHomeworkSubmissionFile(uploadTarget.uploadUrl, nativeFile, mediaType);
+    }
+
+    return submitHomework({
+        homeworkId,
+        uploadKey: uploadTarget.key,
+        originalFileName,
+        memberMemo: memberMemo?.trim() || undefined,
     });
 }

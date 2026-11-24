@@ -1,23 +1,25 @@
+import { onlineManager } from "@tanstack/react-query";
 import { verifyMemberSession } from "../auth-session";
 import { env } from "../config/env";
 import i18n from "../../i18n";
-import {
-    API_ERROR_CODE,
-    isApiError,
-    isApiErrorResponse,
-} from "../api-response/api-response";
+import { API_ERROR_CODE, isApiError, isApiErrorResponse, UserFacingError } from "../api-response/api-response";
 import { notifyUpdateRequired } from "../update/app-update";
 import { getAppRequestHeaders } from "./app-request-headers";
-import { clearCachedJwtToken, getJwtToken } from "./jwt-token";
+import { getJwtToken, invalidateRejectedJwtToken, recoverRejectedJwtToken, type JwtToken } from "./jwt-token";
 
 const API_BASE_URL = env.apiBaseUrl;
 const API_REQUEST_TIMEOUT_MS = 15_000;
 
 export async function apiClient<T = unknown>(
     endpoint: string,
-    options: RequestInit & { signal?: AbortSignal } = {}
+    options: RequestInit & { signal?: AbortSignal } = {},
 ): Promise<T> {
     options.signal?.throwIfAborted();
+    const isGetRequest = (options.method ?? "GET").toUpperCase() === "GET";
+    if (!isGetRequest && !onlineManager.isOnline()) {
+        throw new UserFacingError(i18n.t("common.offlineMessage"));
+    }
+
     const controller = new AbortController();
     let didTimeOut = false;
     const timeout = setTimeout(() => {
@@ -28,7 +30,7 @@ export async function apiClient<T = unknown>(
     options.signal?.addEventListener("abort", abortFromCaller, { once: true });
 
     try {
-        let jwtToken: string | null;
+        let jwtToken: JwtToken | null;
         try {
             jwtToken = await withAbort(getJwtToken(controller.signal), controller.signal);
         } catch (error) {
@@ -45,7 +47,7 @@ export async function apiClient<T = unknown>(
 
         const headers = new Headers(options.headers);
         headers.set("Accept", "application/json");
-        headers.set("Authorization", `Bearer ${jwtToken}`);
+        headers.set("Authorization", `Bearer ${jwtToken.value}`);
         Object.entries(getAppRequestHeaders()).forEach(([key, value]) => headers.set(key, value));
 
         if (!headers.has("Accept-Language")) {
@@ -56,37 +58,24 @@ export async function apiClient<T = unknown>(
             headers.set("Content-Type", "application/json");
         }
 
-        const request = () => fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            headers,
-            signal: controller.signal,
-        });
+        const request = () =>
+            fetch(`${API_BASE_URL}${endpoint}`, {
+                ...options,
+                headers,
+                signal: controller.signal,
+            });
 
         let response = await withAbort(request(), controller.signal);
-        let retriedWithFreshToken = false;
-        const isGetRequest = (options.method ?? "GET").toUpperCase() === "GET";
 
         if (response.status === 401 && (isGetRequest || isBearerTokenRejection(response))) {
-            clearCachedJwtToken();
-            const sessionRecovered = await withAbort(
-                verifyMemberSession(),
-                controller.signal,
-            );
-            if (sessionRecovered) {
-                const freshToken = await withAbort(
-                    getJwtToken(controller.signal),
-                    controller.signal,
-                );
-                if (freshToken) {
-                    headers.set("Authorization", `Bearer ${freshToken}`);
-                    retriedWithFreshToken = true;
-                    response = await withAbort(request(), controller.signal);
+            const freshToken = await withAbort(recoverRejectedJwtToken(jwtToken), controller.signal);
+            if (freshToken) {
+                headers.set("Authorization", `Bearer ${freshToken.value}`);
+                response = await withAbort(request(), controller.signal);
+                if (isBearerTokenRejection(response)) {
+                    invalidateRejectedJwtToken(freshToken);
                 }
             }
-        }
-
-        if (retriedWithFreshToken && isBearerTokenRejection(response)) {
-            clearCachedJwtToken();
         }
 
         if (response.status === 204) {
@@ -122,7 +111,7 @@ export async function apiClient<T = unknown>(
         return payload as T;
     } catch (error) {
         if (didTimeOut && !options.signal?.aborted) {
-            throw new Error("Request timed out.", { cause: error });
+            throw new UserFacingError(i18n.t("common.requestTimeout"));
         }
         throw error;
     } finally {
@@ -161,6 +150,5 @@ function isUpdateRequiredResponse(status: number, data: unknown) {
 }
 
 function isBearerTokenRejection(response: Response) {
-    return response.status === 401 &&
-        /^Bearer(?:\s|$)/i.test(response.headers.get("WWW-Authenticate")?.trim() ?? "");
+    return response.status === 401 && /^Bearer(?:\s|$)/i.test(response.headers.get("WWW-Authenticate")?.trim() ?? "");
 }

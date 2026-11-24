@@ -6,9 +6,7 @@ type AvailabilityConflictNoticeProps = {
     message: string;
 };
 
-export function AvailabilityConflictNotice({
-    message,
-}: AvailabilityConflictNoticeProps) {
+export function AvailabilityConflictNotice({ message }: AvailabilityConflictNoticeProps) {
     const { t } = useTranslation();
     const reducedMotion = useReducedMotion();
 
@@ -22,9 +20,7 @@ export function AvailabilityConflictNotice({
             <AppText variant="label" color="warning">
                 {t("booking.timeNoLongerAvailableTitle")}
             </AppText>
-            <AppText variant="body">
-                {message}
-            </AppText>
+            <AppText variant="body">{message}</AppText>
             <AppText variant="caption" color="mutedForeground">
                 {t("booking.availabilityRefreshedMessage")}
             </AppText>

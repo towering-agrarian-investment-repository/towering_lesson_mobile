@@ -53,13 +53,7 @@ type TicketResponse = {
 };
 export type TicketStatus = "ACTIVE" | "EXPIRED" | "IN_USE" | "FULLY_USED" | "CANCELLED";
 export type TicketType =
-    | "BAY_USAGE"
-    | "PRIVATE_LESSON"
-    | "GROUP_LESSON"
-    | "LESSON_PROGRAM"
-    | "LOCKER_SERVICE"
-    | "LOCATION"
-    | "OTHER";
+    "BAY_USAGE" | "PRIVATE_LESSON" | "GROUP_LESSON" | "LESSON_PROGRAM" | "LOCKER_SERVICE" | "LOCATION" | "OTHER";
 
 export interface UpdateMyProfileRequest {
     name?: string | null;

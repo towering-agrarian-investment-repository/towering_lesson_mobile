@@ -1,20 +1,11 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import {
-    UpdateMyProfileRequest,
-    MemberSelfResponse,
-} from "@/types/member.type";
-import {
-    hasExpired,
-    PROFILE_IMAGE_MAX_SIZE_BYTES,
-    type ProfileImageContentType,
-} from "@/utils/media";
+import { UpdateMyProfileRequest, MemberSelfResponse } from "@/types/member.type";
+import { hasExpired, PROFILE_IMAGE_MAX_SIZE_BYTES, type ProfileImageContentType } from "@/utils/media";
 import { fetch as expoFetch } from "expo/fetch";
 import { File } from "expo-file-system";
 
-export const getMemberProfile = async (
-    signal?: AbortSignal,
-): Promise<ApiResponse<MemberSelfResponse>> => {
+export const getMemberProfile = async (signal?: AbortSignal): Promise<ApiResponse<MemberSelfResponse>> => {
     return apiClient("/member/me", {
         method: "GET",
         signal,
@@ -58,23 +49,16 @@ export const updateMemberProfileImage = async (
     }
 
     const stageUpload = async () => {
-        const response = await apiClient<ApiResponse<StagedUpload>>(
-            "/uploads/images/presigned",
-            {
-                method: "POST",
-                body: JSON.stringify({
-                    purpose: "PROFILE_IMAGE",
-                    contentType,
-                    sizeBytes: imageFile.size,
-                }),
-            },
-        );
+        const response = await apiClient<ApiResponse<StagedUpload>>("/uploads/images/presigned", {
+            method: "POST",
+            body: JSON.stringify({
+                purpose: "PROFILE_IMAGE",
+                contentType,
+                sizeBytes: imageFile.size,
+            }),
+        });
 
-        if (
-            !response.data.uploadUrl
-            || !response.data.key
-            || !response.data.expiresAt
-        ) {
+        if (!response.data.uploadUrl || !response.data.key || !response.data.expiresAt) {
             throw new Error("The API returned an invalid staged upload.");
         }
 
@@ -102,20 +86,13 @@ export const updateMemberProfileImage = async (
         throw new Error(`Profile image upload failed: ${uploadResponse.status}`);
     }
 
-    await apiClient(
-        `/member/${memberId}/profile-image`,
-        {
-            method: "PUT",
-            body: JSON.stringify({ uploadKey: staged.key }),
-        },
-    );
+    await apiClient(`/member/${memberId}/profile-image`, {
+        method: "PUT",
+        body: JSON.stringify({ uploadKey: staged.key }),
+    });
 };
 
-async function putProfileImage(
-    staged: StagedUpload,
-    imageFile: File,
-    contentType: ProfileImageContentType,
-) {
+async function putProfileImage(staged: StagedUpload, imageFile: File, contentType: ProfileImageContentType) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 300_000);
     try {

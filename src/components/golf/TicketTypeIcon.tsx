@@ -1,13 +1,5 @@
 import type { TicketType } from "@/types/member.type";
-import {
-    BookOpen,
-    LandPlot,
-    Lock,
-    MapPin,
-    Ticket,
-    UserRound,
-    UsersRound,
-} from "lucide-react-native";
+import { BookOpen, LandPlot, Lock, MapPin, Ticket, UserRound, UsersRound } from "lucide-react-native";
 
 type Props = {
     type?: TicketType | string | null;
@@ -16,12 +8,7 @@ type Props = {
     strokeWidth?: number;
 };
 
-export function TicketTypeIcon({
-    type,
-    size = 19,
-    color,
-    strokeWidth = 2.2,
-}: Props) {
+export function TicketTypeIcon({ type, size = 19, color, strokeWidth = 2.2 }: Props) {
     switch (String(type ?? "").toUpperCase()) {
         case "BAY_USAGE":
             return <LandPlot size={size} color={color} strokeWidth={strokeWidth} />;

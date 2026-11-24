@@ -6,18 +6,17 @@ import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 export default function LessonsScreen() {
     const queryClient = useQueryClient();
     const { refreshing, onRefresh: handleRefresh } = usePullToRefresh(() =>
-        queryClient.refetchQueries({
-            queryKey: ["member", "groups"],
-            type: "active",
-        }, { cancelRefetch: false }),
+        queryClient.refetchQueries(
+            {
+                queryKey: ["member", "groups"],
+                type: "active",
+            },
+            { cancelRefetch: false },
+        ),
     );
 
     return (
-        <Screen
-            scroll={false}
-            bottomPadding={16}
-            contentClassName="flex-1"
-        >
+        <Screen scroll={false} bottomPadding={16} contentClassName="flex-1">
             <MemberGroups
                 refreshing={refreshing}
                 onRefresh={() => {

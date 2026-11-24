@@ -2,14 +2,8 @@ import { AppText } from "./AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { ChevronRight } from "lucide-react-native";
 import { type ReactNode } from "react";
-import {
-    View,
-    type GestureResponderEvent,
-    type PressableProps,
-    type TextStyle,
-} from "react-native";
+import { View, type GestureResponderEvent, type PressableProps, type TextStyle } from "react-native";
 import { cn } from "../utils/cn";
-import { triggerSelectionHaptic } from "../utils/haptics";
 import { AnimatedPressable } from "./AnimatedPressable";
 
 type ListRowProps = PressableProps & {
@@ -42,37 +36,20 @@ export function ListRow({
     ...props
 }: ListRowProps) {
     const { colors: uiColors } = useTheme();
+    const isInteractive = Boolean(onPress);
 
     const handlePress = (event: GestureResponderEvent) => {
         if (disabled) {
             return;
         }
 
-        triggerSelectionHaptic();
         onPress?.(event);
     };
 
-    const accessibilityLabel = [
-        title,
-        subtitle,
-        typeof meta === "string" ? meta : null,
-    ]
-        .filter(Boolean)
-        .join(", ");
+    const accessibilityLabel = [title, subtitle, typeof meta === "string" ? meta : null].filter(Boolean).join(", ");
 
-    return (
-        <AnimatedPressable
-            accessibilityRole={onPress ? "button" : undefined}
-            accessibilityLabel={accessibilityLabel}
-            accessibilityState={{ disabled: Boolean(disabled) }}
-            disabled={disabled}
-            className={cn(
-                "min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60",
-                className,
-            )}
-            {...props}
-            onPress={handlePress}
-        >
+    const content = (
+        <>
             {leading ? <View className="shrink-0">{leading}</View> : null}
 
             {titleContent ? (
@@ -92,12 +69,7 @@ export function ListRow({
 
             {meta ? (
                 typeof meta === "string" ? (
-                    <AppText
-                        variant="meta"
-                        wrap={false}
-                        className="text-foreground/75"
-                        style={{ flexShrink: 0 }}
-                    >
+                    <AppText variant="subtext" color="mutedForeground" wrap={false} style={{ flexShrink: 0 }}>
                         {meta}
                     </AppText>
                 ) : (
@@ -107,13 +79,38 @@ export function ListRow({
 
             {trailing}
 
-            {showChevron ? (
-                <ChevronRight
-                    size={16}
-                    color={uiColors.mutedForeground}
-                    strokeWidth={2.2}
-                />
-            ) : null}
+            {showChevron ? <ChevronRight size={16} color={uiColors.mutedForeground} strokeWidth={2.2} /> : null}
+        </>
+    );
+
+    if (!isInteractive) {
+        return (
+            <View
+                accessibilityLabel={accessibilityLabel}
+                className={cn(
+                    "min-h-16 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4",
+                    className,
+                )}
+            >
+                {content}
+            </View>
+        );
+    }
+
+    return (
+        <AnimatedPressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ disabled: Boolean(disabled) }}
+            disabled={disabled}
+            className={cn(
+                "min-h-16 flex-row items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card px-4 py-4 disabled:opacity-60",
+                className,
+            )}
+            {...props}
+            onPress={handlePress}
+        >
+            {content}
         </AnimatedPressable>
     );
 }

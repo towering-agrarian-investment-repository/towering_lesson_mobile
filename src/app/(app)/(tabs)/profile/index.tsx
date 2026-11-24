@@ -1,997 +1,453 @@
-import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
-import { ProfileImageViewer } from "@/components/golf/profile/ProfileImageViewer";
-import { ProfilePreferenceRow } from "@/components/golf/profile/ProfilePreferenceRow";
 import {
-  AnimatedPressable,
-  Divider,
-  ErrorState,
-  ListRow,
-  Screen,
-  Skeleton,
-  triggerImpactHaptic,
-  type PrimaryColorPreference,
-  type ThemePreference,
-} from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
+    InfoRow,
+    LanguagePreferenceRow,
+    LinkRow,
+    ParentRow,
+    PrimaryColorPreferenceRow,
+    ProfileHeader,
+    SectionTitle,
+    ThemePreferenceRow,
+} from "@/components/golf/profile/ProfileRows";
+import { ProfileSignOutSheet } from "@/components/golf/profile/ProfileSignOutSheet";
+import { Divider, ErrorState, ImageViewerModal, ListRow, Screen, Skeleton, triggerImpactHaptic } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
-import {
-  getNativeButtonStyle,
-  getNativeButtonTextStyle,
-} from "@/design-system/utils/native-button-styles";
-import { getThemeColors, useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
+import { getNativeButtonStyle, getNativeButtonTextStyle } from "@/design-system/utils/native-button-styles";
+import { useTheme } from "@/design-system/utils/theme";
 import { resolveLanguage, setAppLanguage, type AppLanguage } from "@/i18n";
 import { useMemberLessonLogCount } from "@/lib/hook/useLessonLog";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { showAppToast } from "@/lib/toast/toast";
+import { showAppToast } from "@/design-system/components/AppToast";
 import { openStore } from "@/lib/update/app-update";
 import { useAppUpdateContext } from "@/lib/update/update-context";
 import { signOut } from "@/service/auth";
 import type { GenderEnum } from "@/types/member.type";
-import { formatType } from "@/utils/format-enum";
-import { formatDateValue } from "@/utils/time-helper";
-import {
-  Button,
-  Column,
-  Host,
-  RNHostView,
-  Row,
-  Spacer,
-  Text,
-} from "@expo/ui";
-import {
-  defaultMinSize,
-  fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import {
-  contentShape,
-  shapes,
-  frame,
-  presentationCornerRadius,
-} from "@expo/ui/swift-ui/modifiers";
+import { formatDateMedium } from "@/utils/time-helper";
+import { Button, Host, RNHostView, Row, Spacer, Text } from "@expo/ui";
+import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
-import { Image } from "expo-image";
-import { Href, Link } from "expo-router";
+import { useFocusEffect, useIsFocused, useScrollToTop } from "expo-router";
 import * as Updates from "expo-updates";
-import { BookOpenText, Building2, ChartNoAxesColumn, ChevronRight, Download, Globe2, GraduationCap, LockKeyhole, LogOut, Moon, Palette, Phone, Smartphone, Sun, Ticket, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
-import { useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Modal,
-  RefreshControl,
-  View,
-} from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useReducedMotion } from "react-native-reanimated";
+    BookOpenText,
+    Building2,
+    ChartNoAxesColumn,
+    Download,
+    GraduationCap,
+    LockKeyhole,
+    LogOut,
+    Phone,
+    Ticket,
+    UserRound,
+    UsersRound,
+} from "lucide-react-native";
+import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, RefreshControl, View, type ScrollViewInstance } from "react-native";
 
 const APP_VERSION = Constants.expoConfig?.version;
 const APP_CONTENT_DATE = Updates.createdAt;
 
 const isIOS = process.env.EXPO_OS === "ios";
-const fullWidth = isIOS ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()];
-const buttonSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-  : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })];
-const buttonInnerSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-  : [fillMaxWidth()];
 const signOutButtonSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 56 })]
-  : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })];
+    ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+    : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })];
 const signOutTextSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "center" }), contentShape(shapes.rectangle())]
-  : [fillMaxWidth()];
-
-const LANGUAGES: {
-  value: AppLanguage;
-  label: string;
-  description: string;
-  flag: string;
-}[] = [
-  {
-    value: "en",
-    label: "english",
-    description: "useEnglishLanguage",
-    flag: "\u{1F1EC}\u{1F1E7}",
-  },
-  {
-    value: "ko",
-    label: "korean",
-    description: "useKoreanLanguage",
-    flag: "\u{1F1F0}\u{1F1F7}",
-  },
-  {
-    value: "ja",
-    label: "japanese",
-    description: "useJapaneseLanguage",
-    flag: "\u{1F1EF}\u{1F1F5}",
-  },
-  {
-    value: "zh",
-    label: "chinese",
-    description: "useChineseLanguage",
-    flag: "\u{1F1E8}\u{1F1F3}",
-  },
-  {
-    value: "km",
-    label: "khmer",
-    description: "useKhmerLanguage",
-    flag: "\u{1F1F0}\u{1F1ED}",
-  },
-];
+    ? [frame({ maxWidth: Infinity, minHeight: 56, alignment: "center" }), contentShape(shapes.rectangle())]
+    : [fillMaxWidth()];
 
 export default function ProfileScreen() {
-  const reducedMotion = useReducedMotion();
-  const {
-    colors,
-    fontScale: uiFontScale,
-    isReady: isThemeReady,
-    preference: themePreference,
-    primaryColorPreference,
-    setPreference: setThemePreference,
-    setPrimaryColorPreference,
-  } = useTheme();
-  const { i18n, t } = useTranslation();
-  const update = useAppUpdateContext();
-  const queryClient = useQueryClient();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
-  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
-  const signOutLocked = useRef(false);
-  const openingStore = useRef(false);
-  const [isOpeningStore, setIsOpeningStore] = useState(false);
-  const [isChangingLanguage, setIsChangingLanguage] = useState(false);
+    const {
+        colors,
+        fontScale: uiFontScale,
+        isReady: isThemeReady,
+        preference: themePreference,
+        primaryColorPreference,
+        setPreference: setThemePreference,
+        setPrimaryColorPreference,
+    } = useTheme();
+    const { i18n, t } = useTranslation();
+    const update = useAppUpdateContext();
+    const queryClient = useQueryClient();
+    const [isSigningOut, setIsSigningOut] = useState(false);
+    const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
+    const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+    const signOutLocked = useRef(false);
+    const openingStore = useRef(false);
+    const scrollRef = useRef<ScrollViewInstance>(null);
+    useScrollToTop(scrollRef);
+    const [isOpeningStore, setIsOpeningStore] = useState(false);
+    const [isChangingLanguage, setIsChangingLanguage] = useState(false);
 
-  const {
-    data: memberResponse,
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-  } = useGetMemberProfile();
-  const { data: lessonLogCountResponse, refetch: refetchLessonLogCount } =
-    useMemberLessonLogCount();
-  const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-    usePullToRefresh(() =>
-      Promise.all([
-        refetch({ cancelRefetch: false }),
-        refetchLessonLogCount({ cancelRefetch: false }),
-      ]),
+    const isFocused = useIsFocused();
+    const [hasVisited, setHasVisited] = useState(false);
+    useFocusEffect(
+        useCallback(() => {
+            setHasVisited(true);
+        }, []),
     );
 
-  const member = memberResponse?.data;
-  const genderLabels: Record<GenderEnum, string> = {
-    MALE: t("profile.genderMale"),
-    FEMALE: t("profile.genderFemale"),
-    OTHER: t("profile.genderOther"),
-  };
-
-  // Rows without a value are dropped up front so dividers never end up orphaned.
-  const generalInfoRows = [
-    { label: t("profile.phone"), value: member?.phoneNumber, icon: Phone },
-    {
-      label: t("profile.gender"),
-      value: member?.gender ? (genderLabels[member.gender] ?? "-") : "-",
-      icon: UserRound,
-    },
-  ].filter((row) => row.value);
-  const schoolInfoRows = member?.grade
-    ? [
-        { label: t("profile.school"), value: member.grade.schoolName, icon: GraduationCap },
-        { label: t("profile.schoolCode"), value: member.grade.schoolCode, icon: Building2 },
-        { label: t("profile.grade"), value: member.grade.name, icon: ChartNoAxesColumn },
-      ].filter((row) => row.value)
-    : [];
-
-  const handleOpenStore = async () => {
-    if (openingStore.current || !update.state) return;
-    openingStore.current = true;
-    setIsOpeningStore(true);
-    try {
-      await openStore(update.state);
-    } finally {
-      openingStore.current = false;
-      setIsOpeningStore(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    if (signOutLocked.current) return;
-    triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    signOutLocked.current = true;
-    setIsSigningOut(true);
-
-    try {
-      await signOut();
-      queryClient.clear();
-      setIsSignOutSheetVisible(false);
-    } catch {
-      showAppToast({
-        message: t("profile.signOutError"),
-        type: "error",
-      });
-    } finally {
-      setIsSigningOut(false);
-      signOutLocked.current = false;
-    }
-  };
-
-  const confirmSignOut = () => {
-    if (isSigningOut) {
-      return;
-    }
-
-    setIsSignOutSheetVisible(true);
-  };
-
-  const closeSignOutSheet = () => {
-    if (!signOutLocked.current) setIsSignOutSheetVisible(false);
-  };
-
-  const handleLanguageChange = async (nextLanguage: AppLanguage) => {
-    if (isChangingLanguage) {
-      return;
-    }
-
-    setIsChangingLanguage(true);
-
-    try {
-      await setAppLanguage(nextLanguage);
-    } catch {
-      showAppToast({
-        message: t("common.requestError"),
-        type: "error",
-      });
-    } finally {
-      setIsChangingLanguage(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Screen
-        bottomSafeArea={process.env.EXPO_OS === "ios"}
-        contentClassName="gap-6"
-      >
-        <View className="flex-row items-center gap-5">
-          <Skeleton className="h-24 w-24 rounded-full" />
-          <View className="min-w-0 flex-1 gap-2.5">
-            <Skeleton className="h-6 w-40 rounded-md" />
-            <Skeleton className="h-4 w-28 rounded-md" />
-          </View>
-        </View>
-        <View className="gap-3">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton key={index} className="h-16 w-full rounded-2xl" />
-          ))}
-        </View>
-      </Screen>
+    const { data: memberResponse, isLoading, isError, refetch, isRefetching } = useGetMemberProfile();
+    const { data: lessonLogCountResponse, refetch: refetchLessonLogCount } = useMemberLessonLogCount(
+        isFocused || hasVisited,
     );
-  }
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        Promise.all([refetch({ cancelRefetch: false }), refetchLessonLogCount({ cancelRefetch: false })]),
+    );
 
-  if (isError && !memberResponse) {
-    return (
-      <Screen
-        contentClassName="grow"
-        bottomPadding={16}
-        bottomSafeArea={process.env.EXPO_OS === "ios"}
-        refreshControl={
-          <RefreshControl
-            refreshing={isPullRefreshing}
-            onRefresh={handlePullRefresh}
-          />
+    const member = memberResponse?.data;
+    const genderLabels: Record<GenderEnum, string> = {
+        MALE: t("profile.genderMale"),
+        FEMALE: t("profile.genderFemale"),
+        OTHER: t("profile.genderOther"),
+    };
+
+    // Rows without a value are dropped up front so dividers never end up orphaned.
+    const generalInfoRows = [
+        { label: t("profile.phone"), value: member?.phoneNumber, icon: Phone },
+        {
+            label: t("profile.gender"),
+            value: member?.gender ? (genderLabels[member.gender] ?? "-") : "-",
+            icon: UserRound,
+        },
+    ].filter((row) => row.value);
+    const schoolInfoRows = member?.grade
+        ? [
+              { label: t("profile.school"), value: member.grade.schoolName, icon: GraduationCap },
+              { label: t("profile.schoolCode"), value: member.grade.schoolCode, icon: Building2 },
+              { label: t("profile.grade"), value: member.grade.name, icon: ChartNoAxesColumn },
+          ].filter((row) => row.value)
+        : [];
+
+    const handleOpenStore = async () => {
+        if (openingStore.current || !update.state) return;
+        openingStore.current = true;
+        setIsOpeningStore(true);
+        try {
+            await openStore(update.state);
+        } finally {
+            openingStore.current = false;
+            setIsOpeningStore(false);
         }
-      >
-        <ErrorState
-          title={t("home.couldNotLoadProfile")}
-          message={t("home.checkConnection")}
-          actionLabel={
-            isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
-          }
-          actionPending={isRefetching || isPullRefreshing}
-          onAction={handlePullRefresh}
-        />
-      </Screen>
-    );
-  }
+    };
 
-  return (
-    <Screen
-      bottomSafeArea={process.env.EXPO_OS === "ios"}
-      refreshControl={
-        <RefreshControl
-          refreshing={isPullRefreshing}
-          onRefresh={handlePullRefresh}
-        />
-      }
-    >
-      <Modal
-        visible={isImageViewerVisible && Boolean(member?.profileImage)}
-        presentationStyle="fullScreen"
-        animationType={reducedMotion ? "none" : "fade"}
-        onRequestClose={() => setIsImageViewerVisible(false)}
-      >
-        <SafeAreaProvider>
-          <ProfileImageViewer
-            imageUri={member?.profileImage ?? null}
-            onClose={() => setIsImageViewerVisible(false)}
-          />
-        </SafeAreaProvider>
-      </Modal>
+    const handleSignOut = async () => {
+        if (signOutLocked.current) return;
+        triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
+        signOutLocked.current = true;
+        setIsSigningOut(true);
 
-      <PendingBottomSheet
-        isPresented={isSignOutSheetVisible}
-        onDismiss={closeSignOutSheet}
-        dismissDisabled={isSigningOut}
-        modifiers={
-          isIOS
-            ? [
-                presentationCornerRadius(24),
-              ]
-            : undefined
+        try {
+            await signOut();
+            queryClient.clear();
+            setIsSignOutSheetVisible(false);
+        } catch {
+            showAppToast({
+                message: t("profile.signOutError"),
+                type: "error",
+            });
+        } finally {
+            setIsSigningOut(false);
+            signOutLocked.current = false;
         }
-        containerColor={colors.card}
-        contentColor={colors.foreground}
-        contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
-      >
-        <Column spacing={20} modifiers={fullWidth}>
-          <Column spacing={8} modifiers={fullWidth}>
-            <Text
-              textStyle={{
-                ...typography.h3,
-                lineHeight: typography.h3.lineHeight * uiFontScale,
-                color: colors.danger,
-                fontSize: typography.h3.fontSize * uiFontScale,
-              }}
-            >
-              {t("profile.logOutTitle")}
-            </Text>
-            <Text
-              textStyle={{
-                ...typography.muted,
-                lineHeight: typography.muted.lineHeight * uiFontScale,
-                color: colors.mutedForeground,
-                fontSize: typography.muted.fontSize * uiFontScale,
-              }}
-            >
-              {t("profile.logOutMessage")}
-            </Text>
-          </Column>
+    };
 
-          <Column spacing={12} modifiers={fullWidth}>
-            <Button
-              variant="text"
-              disabled={isSigningOut}
-              onPress={() => {
-                void handleSignOut();
-              }}
-              style={getNativeButtonStyle(
-                colors,
-                "filled",
-                isSigningOut,
-                colors.danger,
-              )}
-              modifiers={buttonSize}
-            >
-              <Row spacing={8} alignment="center" modifiers={buttonInnerSize}>
-                <Spacer flexible />
-                {isSigningOut ? (
-                  <RNHostView matchContents>
-                    <ActivityIndicator color={colors.primaryForeground} />
-                  </RNHostView>
-                ) : null}
-                <Text
-                  textStyle={{
-                    textAlign: "center",
-                    ...typography.label,
-                    lineHeight: typography.label.lineHeight * uiFontScale,
-                    fontWeight: "600",
-                    color: colors.primaryForeground,
-                    fontSize: typography.label.fontSize * uiFontScale,
-                  }}
-                >
-                  {t("profile.logOutTitle")}
-                </Text>
-                <Spacer flexible />
-              </Row>
-            </Button>
+    const confirmSignOut = () => {
+        if (isSigningOut) {
+            return;
+        }
 
-            <Button
-              variant="text"
-              disabled={isSigningOut}
-              onPress={closeSignOutSheet}
-              style={getNativeButtonStyle(colors, "text", isSigningOut)}
-              modifiers={buttonSize}
-            >
-              <Text
-                modifiers={buttonInnerSize}
-                textStyle={{
-                  ...typography.label,
-                  lineHeight: typography.label.lineHeight * uiFontScale,
-                  fontWeight: "600",
-                  color: colors.foreground,
-                  fontSize: typography.label.fontSize * uiFontScale,
-                  textAlign: "center",
-                }}
-              >
-                {t("common.cancel")}
-              </Text>
-            </Button>
-          </Column>
-        </Column>
-      </PendingBottomSheet>
+        setIsSignOutSheetVisible(true);
+    };
 
-      <View className="flex-col">
-        <ProfileHeader
-          name={member?.name}
-          checkinNumber={member?.checkinNumber}
-          imageUrl={member?.profileImage}
-          onImagePress={() => setIsImageViewerVisible(true)}
-        />
-        {update.isOptionalUpdateAvailable && update.state ? (
-          <View className="mt-5 gap-3 rounded-xl border border-warning/30 bg-warning/10 p-4">
-            <ListRow
-              accessibilityLabel={t("appUpdate.updateAvailable")}
-              title={t(isOpeningStore ? "appUpdate.openingStore" : "appUpdate.updateAvailable")}
-              disabled={isOpeningStore}
-              accessibilityState={{ disabled: isOpeningStore, busy: isOpeningStore }}
-              trailing={isOpeningStore ? <ActivityIndicator color={colors.warning} /> : undefined}
-              subtitle={t("appUpdate.newVersion", {
-                version: update.state.latestVersion ?? "",
-              })}
-              leading={
-                <View className="h-10 w-10 items-center justify-center rounded-xl bg-warning/20">
-                  <Download size={20} color={colors.warning} />
-                </View>
-              }
-              className="border-0 bg-transparent px-0"
-              onPress={() => {
-                void handleOpenStore();
-              }}
-            />
-          </View>
-        ) : null}
-        <View className="gap-6 pt-6">
-            <View className="gap-6">
-              <View className="gap-2">
-                <SectionTitle title={t("profile.personalRecord")} />
+    const closeSignOutSheet = () => {
+        if (!signOutLocked.current) setIsSignOutSheetVisible(false);
+    };
 
-                <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
-                  <LinkRow
-                    label={t("profile.lessonLog")}
-                    href="/lesson-log"
-                    count={lessonLogCountResponse?.data}
-                    icon={BookOpenText}
-                  />
-                  <Divider className="bg-border" />
-                  <LinkRow
-                    label={t("navigation.tabs.lessons")}
-                    href="/lessons"
-                    icon={UsersRound}
-                  />
-                  <Divider className="bg-border" />
-                  <LinkRow
-                    label={t("tickets.historyTitle")}
-                    href="/ticket-history"
-                    icon={Ticket}
-                  />
-                </View>
-              </View>
+    const handleLanguageChange = async (nextLanguage: AppLanguage) => {
+        if (isChangingLanguage) {
+            return;
+        }
 
-              <View className="gap-2">
-                <SectionTitle title={t("profile.generalInfo")} />
+        setIsChangingLanguage(true);
 
-                <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
-                  {generalInfoRows.map((row, index) => (
-                    <View key={row.label}>
-                      {index > 0 ? <Divider className="bg-border" /> : null}
-                      <InfoRow label={row.label} value={row.value} icon={row.icon} />
+        try {
+            await setAppLanguage(nextLanguage);
+        } catch {
+            showAppToast({
+                message: t("common.requestError"),
+                type: "error",
+            });
+        } finally {
+            setIsChangingLanguage(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <Screen scrollRef={scrollRef} bottomSafeArea={process.env.EXPO_OS === "ios"} contentClassName="gap-6">
+                <View className="flex-row items-center gap-5">
+                    <Skeleton className="h-24 w-24 rounded-full" />
+                    <View className="min-w-0 flex-1 gap-2.5">
+                        <Skeleton className="h-6 w-40 rounded-md" />
+                        <Skeleton className="h-4 w-28 rounded-md" />
                     </View>
-                  ))}
                 </View>
-              </View>
-
-              {schoolInfoRows.length > 0 ? (
-                <View className="gap-2">
-                  <SectionTitle title={t("profile.schoolInfo")} />
-
-                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
-                    {schoolInfoRows.map((row, index) => (
-                      <View key={row.label}>
-                        {index > 0 ? <Divider className="bg-border" /> : null}
-                        <InfoRow label={row.label} value={row.value} icon={row.icon} />
-                      </View>
+                <View className="gap-3">
+                    {Array.from({ length: 4 }, (_, index) => (
+                        <Skeleton key={index} className="h-16 w-full rounded-2xl" />
                     ))}
-                  </View>
                 </View>
-              ) : null}
+            </Screen>
+        );
+    }
 
-              {member?.parents && member.parents.length > 0 ? (
-                <View className="gap-2">
-                  <SectionTitle title={t("profile.parentsGuardians")} />
+    if (isError && !memberResponse) {
+        return (
+            <Screen
+                scrollRef={scrollRef}
+                contentClassName="grow"
+                bottomPadding={16}
+                bottomSafeArea={process.env.EXPO_OS === "ios"}
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
+            >
+                <ErrorState
+                    title={t("home.couldNotLoadProfile")}
+                    message={t("home.checkConnection")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionPending={isRefetching || isPullRefreshing}
+                    onAction={handlePullRefresh}
+                />
+            </Screen>
+        );
+    }
 
-                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
-                    {member.parents.map((parent, index) => (
-                      <View key={parent.id}>
-                        {index > 0 ? <Divider className="bg-border" /> : null}
-                        <ParentRow
-                          name={parent.name}
-                          role={parent.role}
-                          phoneNumber={parent.phoneNumber}
-                          imageUrl={parent.profileImage}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-            </View>
-            <View>
-              <View className="gap-6">
-                <View className="gap-2">
-                  <SectionTitle title={t("profile.settings")} />
-
-                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
-                    <LinkRow
-                      label={t("profile.changePassword")}
-                      href="/profile/change-password"
-                      icon={LockKeyhole}
-                    />
-                    <Divider className="bg-border" />
-                    <LanguagePreferenceRow
-                      currentLanguage={resolveLanguage(
-                        i18n.resolvedLanguage || i18n.language,
-                      )}
-                      disabled={isChangingLanguage}
-                      onChange={handleLanguageChange}
-                    />
-                  </View>
-                </View>
-
-                <View className="gap-2">
-                  <SectionTitle title={t("profile.appearance")} />
-
-                  <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
-                    <PrimaryColorPreferenceRow
-                      preference={primaryColorPreference}
-                      disabled={!isThemeReady}
-                      onChange={setPrimaryColorPreference}
-                    />
-                    <Divider className="bg-border" />
-                    <ThemePreferenceRow
-                      preference={themePreference}
-                      disabled={!isThemeReady}
-                      onChange={setThemePreference}
-                    />
-                  </View>
-                </View>
-
-                <Host
-                  matchContents={{ vertical: true }}
-                  ignoreSafeArea="all"
-                  seedColor={colors.danger}
-                  style={{ width: "100%" }}
-                  accessibilityState={{
-                    disabled: isSigningOut,
-                    busy: isSigningOut,
-                  }}
-                >
-                  <Button
-                    style={{
-                      ...getNativeButtonStyle(colors, "text", isSigningOut),
-                      backgroundColor: colors.danger,
-                    }}
-                    modifiers={signOutButtonSize}
-                    variant="text"
-                    disabled={isSigningOut}
-                    onPress={confirmSignOut}
-                  >
-                    <Row spacing={8} alignment="center" style={{ paddingHorizontal: 16 }} modifiers={signOutTextSize}>
-                      <Spacer flexible />
-                      <RNHostView matchContents>
-                        <LogOut size={18} color={colors.primaryForeground} />
-                      </RNHostView>
-                      <Text
-                        textStyle={{
-                          ...getNativeButtonTextStyle(colors, "filled", uiFontScale, colors.danger),
-                          color: colors.primaryForeground,
-                        }}
-                      >
-                        {isSigningOut
-                          ? t("profile.loggingOut")
-                          : t("profile.logOut")}
-                      </Text>
-                      <Spacer flexible />
-                    </Row>
-                  </Button>
-                </Host>
-              </View>
-
-              {APP_VERSION ? (
-                <View className="items-center gap-1 pt-4 pb-4">
-                  <NativeText
-                    variant="caption"
-                    color="mutedForeground"
-                    align="center"
-                  >
-                    {"v " + APP_VERSION}
-                  </NativeText>
-                  {APP_CONTENT_DATE ? (
-                    <NativeText
-                      variant="caption"
-                      color="mutedForeground"
-                      align="center"
-                    >
-                      {t("appUpdate.currentContentDate", {
-                        date: formatDateValue(APP_CONTENT_DATE, "MMM d, yyyy"),
-                      })}
-                    </NativeText>
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
-        </View>
-      </View>
-    </Screen>
-  );
-}
-
-function ProfileHeader({
-  name,
-  checkinNumber,
-  imageUrl,
-  onImagePress,
-}: {
-  name?: string | null;
-  checkinNumber?: string | null;
-  imageUrl?: string | null;
-  onImagePress: () => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <View className="flex-row items-center gap-5">
-      {imageUrl ? (
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel={t("profile.viewProfilePhoto")}
-          haptic="selection"
-          onPress={onImagePress}
-        >
-          <ProfileAvatar name={name} imageUrl={imageUrl} size="large" />
-        </AnimatedPressable>
-      ) : (
-        <ProfileAvatar name={name} size="large" />
-      )}
-
-      <View className="min-w-0 flex-1 flex-col gap-3">
-        <View className="flex-col gap-1">
-          <NativeText variant="h2" numberOfLines={2}>
-            {name || "-"}
-          </NativeText>
-
-          <NativeText variant="subtext" numberOfLines={2} textStyle={{ fontWeight: "500" }}>
-            {`${t("profile.checkInNo")}: ${checkinNumber || "-"}`}
-          </NativeText>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function ProfileAvatar({
-  name,
-  imageUrl,
-  size = "small",
-}: {
-  name?: string | null;
-  imageUrl?: string | null;
-  size?: "small" | "large";
-}) {
-  const { colors } = useTheme();
-  const reducedMotion = useReducedMotion();
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const dimensionClassName = size === "large" ? "h-24 w-24" : "h-12 w-12";
-  const textVariant = size === "large" ? "h1" : "h3";
-
-  if (imageUrl && failedUrl !== imageUrl) {
     return (
-      <View
-        className={`${dimensionClassName} shrink-0 overflow-hidden rounded-full bg-muted`}
-      >
-        <Image
-          source={{ uri: imageUrl }}
-          cachePolicy="memory-disk"
-          recyclingKey={imageUrl}
-          transition={reducedMotion ? 0 : 150}
-          style={{ width: "100%", height: "100%" }}
-          contentFit="cover"
-          onError={() => setFailedUrl(imageUrl)}
-        />
-      </View>
-    );
-  }
+        <>
+            <Screen
+                scrollRef={scrollRef}
+                bottomSafeArea={process.env.EXPO_OS === "ios"}
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
+            >
+                <View className="flex-col">
+                    <ProfileHeader
+                        name={member?.name}
+                        checkinNumber={member?.checkinNumber}
+                        imageUrl={member?.profileImage}
+                        onImagePress={() => setIsImageViewerVisible(true)}
+                    />
+                    {update.isOptionalUpdateAvailable && update.state ? (
+                        <View className="mt-5 gap-3 rounded-xl border border-warning/30 bg-warning/10 p-4">
+                            <ListRow
+                                accessibilityLabel={t("appUpdate.updateAvailable")}
+                                title={t(isOpeningStore ? "appUpdate.openingStore" : "appUpdate.updateAvailable")}
+                                disabled={isOpeningStore}
+                                accessibilityState={{ disabled: isOpeningStore, busy: isOpeningStore }}
+                                trailing={isOpeningStore ? <ActivityIndicator color={colors.warning} /> : undefined}
+                                subtitle={t("appUpdate.newVersion", {
+                                    version: update.state.latestVersion ?? "",
+                                })}
+                                leading={
+                                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-warning/20">
+                                        <Download size={20} color={colors.warning} />
+                                    </View>
+                                }
+                                className="border-0 bg-transparent px-0"
+                                onPress={() => {
+                                    void handleOpenStore();
+                                }}
+                            />
+                        </View>
+                    ) : null}
+                    <View className="gap-6 pt-6">
+                        <View className="gap-6">
+                            <View className="gap-2">
+                                <SectionTitle title={t("profile.personalRecord")} />
 
-  return (
-    <View
-      className={`${dimensionClassName} shrink-0 items-center justify-center rounded-full`}
-      style={{ backgroundColor: colors.primary }}
-    >
-      <NativeText
-        variant={textVariant}
-        color="primaryForeground"
-        wrap={false}
-        textStyle={{ fontWeight: "700" as const }}
-      >
-        {name?.charAt(0).toUpperCase() || "?"}
-      </NativeText>
-    </View>
-  );
-}
+                                <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
+                                    <LinkRow
+                                        label={t("profile.lessonLog")}
+                                        href="/lesson-log"
+                                        count={lessonLogCountResponse?.data}
+                                        icon={BookOpenText}
+                                    />
+                                    <Divider className="bg-border" />
+                                    <LinkRow label={t("navigation.tabs.lessons")} href="/lessons" icon={UsersRound} />
+                                    <Divider className="bg-border" />
+                                    <LinkRow label={t("tickets.historyTitle")} href="/ticket-history" icon={Ticket} />
+                                </View>
+                            </View>
 
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <NativeText
-      variant="label"
-      color="mutedForeground"
-      wrap={false}
-      textStyle={{
-        lineHeight: typography.subtext.lineHeight,
-        fontSize: typography.subtext.fontSize,
-        fontWeight: "600" as const,
-        letterSpacing: 0.4,
-      }}
-    >
-      {title}
-    </NativeText>
-  );
-}
+                            <View className="gap-2">
+                                <SectionTitle title={t("profile.generalInfo")} />
 
-function InfoRow({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | null | undefined;
-  icon: LucideIcon;
-}) {
-  const { colors } = useTheme();
-  if (!value) {
-    return null;
-  }
+                                <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
+                                    {generalInfoRows.map((row, index) => (
+                                        <View key={row.label}>
+                                            {index > 0 ? <Divider className="bg-border" /> : null}
+                                            <InfoRow label={row.label} value={row.value} icon={row.icon} />
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
 
-  return (
-    <View className="min-h-14 flex-row items-center gap-3 py-3">
-      <Icon size={20} color={colors.foreground} />
-      <AppText
-        variant="body"
-        style={{ flex: 1, minWidth: 0 }}
-      >
-        {label}
-      </AppText>
+                            {schoolInfoRows.length > 0 ? (
+                                <View className="gap-2">
+                                    <SectionTitle title={t("profile.schoolInfo")} />
 
-      <NativeText
-        variant="body"
-        align="right"
-        style={{ flexShrink: 1, maxWidth: "55%" }}
-        textStyle={{ fontWeight: "600" }}
-      >
-        {value}
-      </NativeText>
-    </View>
-  );
-}
+                                    <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
+                                        {schoolInfoRows.map((row, index) => (
+                                            <View key={row.label}>
+                                                {index > 0 ? <Divider className="bg-border" /> : null}
+                                                <InfoRow label={row.label} value={row.value} icon={row.icon} />
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            ) : null}
 
-function ParentRow({
-  name,
-  role,
-  phoneNumber,
-  imageUrl,
-}: {
-  name: string;
-  role?: string | null;
-  phoneNumber?: string | null;
-  imageUrl?: string | null;
-}) {
-  const { t } = useTranslation();
+                            {member?.parents && member.parents.length > 0 ? (
+                                <View className="gap-2">
+                                    <SectionTitle title={t("profile.parentsGuardians")} />
 
-  return (
-    <View className="min-h-16 flex-row items-center gap-3 py-2">
-      <ProfileAvatar name={name} imageUrl={imageUrl} />
+                                    <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
+                                        {member.parents.map((parent, index) => (
+                                            <View key={parent.id}>
+                                                {index > 0 ? <Divider className="bg-border" /> : null}
+                                                <ParentRow
+                                                    name={parent.name}
+                                                    role={parent.role}
+                                                    phoneNumber={parent.phoneNumber}
+                                                    imageUrl={parent.profileImage}
+                                                />
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            ) : null}
+                        </View>
+                        <View>
+                            <View className="gap-6">
+                                <View className="gap-2">
+                                    <SectionTitle title={t("profile.settings")} />
 
-      <View className="min-w-0 flex-1 flex-col gap-1">
-        <NativeText variant="body" numberOfLines={1}>
-          {name}
-        </NativeText>
+                                    <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
+                                        <LinkRow
+                                            label={t("profile.changePassword")}
+                                            href="/profile/change-password"
+                                            icon={LockKeyhole}
+                                        />
+                                        <Divider className="bg-border" />
+                                        <LanguagePreferenceRow
+                                            currentLanguage={resolveLanguage(i18n.resolvedLanguage || i18n.language)}
+                                            disabled={isChangingLanguage}
+                                            onChange={handleLanguageChange}
+                                        />
+                                    </View>
+                                </View>
 
-        {phoneNumber ? (
-          <NativeText
-            variant="subtext"
-            textStyle={{ fontWeight: "500" }}
-          >
-            {phoneNumber}
-          </NativeText>
-        ) : null}
-      </View>
-      {role ? (
-        <View className="max-w-[38%] rounded-full bg-muted px-2.5 py-1">
-          <NativeText variant="caption" align="center" wrap={false} numberOfLines={1} textStyle={{ fontWeight: "600" }}>
-            {formatType(role, t)}
-          </NativeText>
-        </View>
-      ) : null}
-    </View>
-  );
-}
+                                <View className="gap-2">
+                                    <SectionTitle title={t("profile.appearance")} />
 
-function LinkRow({
-  label,
-  href,
-  count,
-  icon: Icon,
-}: {
-  label: string;
-  href: Href;
-  count?: number;
-  icon: LucideIcon;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Link href={href} asChild>
-      <ListRow
-        title={label}
-        accessibilityLabel={!count ? label : `${label}, ${count}`}
-        leading={<Icon size={20} color={colors.foreground} />}
-        showChevron={false}
-        trailing={
-          <View className="min-h-8 flex-row items-center gap-2">
-            {count ? (
-              <View className="min-h-6 min-w-6 items-center justify-center rounded-full bg-danger px-1.5 py-0.5">
-                <NativeText variant="badge" color="primaryForeground" align="center" wrap={false}>
-                  {String(count)}
-                </NativeText>
-              </View>
-            ) : null}
-            <ChevronRight size={18} color={colors.mutedForeground} />
-          </View>
-        }
-        className="min-h-14 rounded-none border-0 bg-transparent px-0 py-3"
-      />
-    </Link>
-  );
-}
+                                    <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">
+                                        <PrimaryColorPreferenceRow
+                                            preference={primaryColorPreference}
+                                            disabled={!isThemeReady}
+                                            onChange={setPrimaryColorPreference}
+                                        />
+                                        <Divider className="bg-border" />
+                                        <ThemePreferenceRow
+                                            preference={themePreference}
+                                            disabled={!isThemeReady}
+                                            onChange={setThemePreference}
+                                        />
+                                    </View>
+                                </View>
 
-function ThemePreferenceRow({
-  disabled,
-  preference,
-  onChange,
-}: {
-  disabled: boolean;
-  preference: ThemePreference;
-  onChange: (value: ThemePreference) => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  const leadingIcon =
-    preference === "dark" ? (
-      <Moon size={20} color={colors.foreground} />
-    ) : preference === "light" ? (
-      <Sun size={20} color={colors.foreground} />
-    ) : (
-      <Smartphone size={20} color={colors.foreground} />
-    );
+                                <Host
+                                    matchContents={{ vertical: true }}
+                                    ignoreSafeArea="all"
+                                    seedColor={colors.danger}
+                                    style={{ width: "100%" }}
+                                    accessibilityState={{
+                                        disabled: isSigningOut,
+                                        busy: isSigningOut,
+                                    }}
+                                >
+                                    <Button
+                                        style={{
+                                            ...getNativeButtonStyle(colors, "text", isSigningOut),
+                                            backgroundColor: colors.danger,
+                                        }}
+                                        modifiers={signOutButtonSize}
+                                        variant="text"
+                                        disabled={isSigningOut}
+                                        onPress={confirmSignOut}
+                                    >
+                                        <Row
+                                            spacing={8}
+                                            alignment="center"
+                                            style={{ paddingHorizontal: 16 }}
+                                            modifiers={signOutTextSize}
+                                        >
+                                            <Spacer flexible />
+                                            <RNHostView matchContents>
+                                                <LogOut size={18} color={colors.primaryForeground} />
+                                            </RNHostView>
+                                            <Text
+                                                textStyle={{
+                                                    ...getNativeButtonTextStyle(
+                                                        colors,
+                                                        "filled",
+                                                        uiFontScale,
+                                                        colors.danger,
+                                                    ),
+                                                    color: colors.primaryForeground,
+                                                }}
+                                            >
+                                                {isSigningOut ? t("profile.loggingOut") : t("profile.logOut")}
+                                            </Text>
+                                            <Spacer flexible />
+                                        </Row>
+                                    </Button>
+                                </Host>
+                            </View>
 
-  return (
-    <ProfilePreferenceRow
-      title={t("profile.theme")}
-      leading={leadingIcon}
-      accessibilityLabel={t("profile.chooseAppAppearance")}
-      sheetTitle={t("profile.appearance")}
-      description={t("profile.appearanceDescription")}
-      value={preference}
-      disabled={disabled}
-      onChange={onChange}
-      options={[
-        {
-          value: "system",
-          label: t("profile.system"),
-          description: t("profile.followDeviceSetting"),
-          icon: <Smartphone size={22} color={colors.foreground} />,
-        },
-        {
-          value: "light",
-          label: t("profile.light"),
-          description: t("profile.useLightAppearance"),
-          icon: <Sun size={22} color={colors.foreground} />,
-        },
-        {
-          value: "dark",
-          label: t("profile.dark"),
-          description: t("profile.useDarkAppearance"),
-          icon: <Moon size={22} color={colors.foreground} />,
-        },
-      ]}
-    />
-  );
-}
+                            {APP_VERSION ? (
+                                <View className="items-center gap-1 pt-4 pb-4">
+                                    <AppText variant="caption" color="mutedForeground" align="center">
+                                        {"v " + APP_VERSION}
+                                    </AppText>
+                                    {APP_CONTENT_DATE ? (
+                                        <AppText variant="caption" color="mutedForeground" align="center">
+                                            {t("appUpdate.currentContentDate", {
+                                                date: formatDateMedium(APP_CONTENT_DATE),
+                                            })}
+                                        </AppText>
+                                    ) : null}
+                                </View>
+                            ) : null}
+                        </View>
+                    </View>
+                </View>
+            </Screen>
 
-function PrimaryColorPreferenceRow({
-  disabled,
-  preference,
-  onChange,
-}: {
-  disabled: boolean;
-  preference: PrimaryColorPreference;
-  onChange: (value: PrimaryColorPreference) => void;
-}) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  return (
-    <ProfilePreferenceRow
-      title={t("profile.primaryColorLabel")}
-      leading={<Palette size={20} color={colors.foreground} />}
-      accessibilityLabel={t("profile.choosePrimaryColorLabel")}
-      description={t("profile.primaryColorDescriptionLabel")}
-      value={preference}
-      disabled={disabled}
-      onChange={onChange}
-      options={(["blue", "green"] as const).map((value) => {
-        const color = getThemeColors("light", value).primary;
-        return {
-          value,
-          label: t(
-            value === "blue"
-              ? "profile.bluePrimaryColorLabel"
-              : "profile.greenPrimaryColorLabel",
-          ),
-          description: color.toUpperCase(),
-          icon: (
-            <View
-              className="h-6 w-6 rounded-full"
-              style={{ backgroundColor: color }}
+            <ImageViewerModal
+                visible={isImageViewerVisible}
+                imageUri={member?.profileImage ?? null}
+                accessibilityLabel={t("profile.viewProfilePhoto")}
+                onClose={() => setIsImageViewerVisible(false)}
             />
-          ),
-        };
-      })}
-    />
-  );
-}
 
-function LanguagePreferenceRow({
-  currentLanguage,
-  disabled,
-  onChange,
-}: {
-  currentLanguage: AppLanguage;
-  disabled: boolean;
-  onChange: (language: AppLanguage) => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  return (
-    <ProfilePreferenceRow
-      title={t("profile.language")}
-      leading={<Globe2 size={20} color={colors.foreground} />}
-      accessibilityLabel={t("profile.chooseAppLanguage")}
-      description={t("profile.languageDescription")}
-      value={currentLanguage}
-      disabled={disabled}
-      onChange={onChange}
-      options={LANGUAGES.map((language) => ({
-        value: language.value,
-        label: t(`profile.${language.label}`),
-        description: t(`profile.${language.description}`),
-        icon: (
-          <NativeText variant="h2" wrap={false}>
-            {language.flag}
-          </NativeText>
-        ),
-      }))}
-    />
-  );
+            <ProfileSignOutSheet
+                isPresented={isSignOutSheetVisible}
+                isSigningOut={isSigningOut}
+                onDismiss={closeSignOutSheet}
+                onConfirm={handleSignOut}
+            />
+        </>
+    );
 }

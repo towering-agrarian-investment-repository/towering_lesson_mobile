@@ -1,13 +1,6 @@
 import { AvailabilityConflictNotice } from "@/components/golf/booking/AvailabilityConflictNotice";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
-import {
-  cn,
-  EmptyState,
-  ErrorState,
-  AnimatedPressable,
-  Screen,
-  Skeleton,
-} from "@/design-system";
+import { cn, EmptyState, ErrorState, AnimatedPressable, Screen, Skeleton } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
@@ -18,18 +11,14 @@ import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
 import {
-  getLessonSlotDisplayName,
-  getLessonSpotsLeft,
-  isGroupLessonSlot,
-  isLessonSlotBookedByMember,
-  isLessonSlotBookable,
-  isLessonSlotFull,
+    getLessonSlotDisplayName,
+    getLessonSpotsLeft,
+    isGroupLessonSlot,
+    isLessonSlotBookedByMember,
+    isLessonSlotBookable,
+    isLessonSlotFull,
 } from "@/utils/lesson-slot";
-import {
-  formatDateForAPI,
-  formatDateValue,
-  formatTimeRange,
-} from "@/utils/time-helper";
+import { formatDateForAPI, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { UserRound } from "lucide-react-native";
@@ -38,422 +27,364 @@ import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
 function formatSlotTime(slot: MemberLessonSlotResponse) {
-  return formatTimeRange(slot.startTime, slot.endTime);
+    return formatTimeRange(slot.startTime, slot.endTime);
 }
 
 function getMinutesUntilStart(slot: MemberLessonSlotResponse, now: number) {
-  const minutesUntilStart = (new Date(slot.startTime).getTime() - now) / 60000;
+    const minutesUntilStart = (new Date(slot.startTime).getTime() - now) / 60000;
 
-  return minutesUntilStart >= 0 ? Math.ceil(minutesUntilStart) : null;
+    return minutesUntilStart >= 0 ? Math.ceil(minutesUntilStart) : null;
 }
 
 function ItemSeparator() {
-  return <View className="h-3" />;
+    return <View className="h-3" />;
 }
 
-const lessonSlotKeyExtractor = (item: MemberLessonSlotResponse) =>
-  String(item.id);
+const lessonSlotKeyExtractor = (item: MemberLessonSlotResponse) => String(item.id);
 const SLOT_LIST_CONTENT_STYLE = { paddingBottom: 24 } as const;
 
 export default function SelectLessonSlotScreen() {
-  const { t } = useTranslation();
-  const {
-    date,
-    ticketId,
-    ticketName,
-    ticketType,
-    notes,
-    conflictMessage,
-    conflictSlotId,
-    conflictId,
-  } = useLocalSearchParams<{
-    date: string;
-    ticketId?: string;
-    ticketName: string;
-    ticketType?: string;
-    notes?: string;
-    conflictMessage?: string;
-    conflictSlotId?: string;
-    conflictId?: string;
-  }>();
+    const { t } = useTranslation();
+    const { date, ticketId, ticketName, ticketType, notes, conflictMessage, conflictSlotId, conflictId } =
+        useLocalSearchParams<{
+            date: string;
+            ticketId?: string;
+            ticketName: string;
+            ticketType?: string;
+            notes?: string;
+            conflictMessage?: string;
+            conflictSlotId?: string;
+            conflictId?: string;
+        }>();
 
-  const router = useRouter();
-  const { isLocked, runWithNavigationLock } = useNavigationLock();
-  const { data: memberResponse } = useGetMemberProfile();
-  const memberId = memberResponse?.data.id;
-  const now = useMinuteClock();
-  const [dismissedConflictId, setDismissedConflictId] = useState<string>();
-  const isGroupTicket =
-    String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
-  const visibleConflictMessage =
-    dismissedConflictId === conflictId ? undefined : conflictMessage;
+    const router = useRouter();
+    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { data: memberResponse } = useGetMemberProfile();
+    const memberId = memberResponse?.data.id;
+    const now = useMinuteClock();
+    const [dismissedConflictId, setDismissedConflictId] = useState<string>();
+    const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
+    const visibleConflictMessage = dismissedConflictId === conflictId ? undefined : conflictMessage;
 
-  const selectedDate = new Date(`${date}T12:00:00`);
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth() + 1;
-  const ticketIdNumber = ticketId ? Number(ticketId) : null;
+    const selectedDate = new Date(`${date}T12:00:00`);
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth() + 1;
+    const ticketIdNumber = ticketId ? Number(ticketId) : null;
 
-  const { data, isLoading, isError, refetch, isRefetching } =
-    useMemberTicketLessonSlots(
-      ticketIdNumber,
-      year,
-      month,
-      Boolean(ticketIdNumber),
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
+        ticketIdNumber,
+        year,
+        month,
+        Boolean(ticketIdNumber),
     );
-  const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-    usePullToRefresh(() => refetch({ cancelRefetch: false }));
-  const hasLoadError = isError && !data;
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        refetch({ cancelRefetch: false }),
+    );
+    const hasLoadError = isError && !data;
 
-  const slots = useMemo(
-    () =>
-      (data?.data ?? []).filter(
-        (slot) => formatDateForAPI(slot.startTime) === date,
-      ),
-    [data?.data, date],
-  );
+    const slots = useMemo(
+        () => (data?.data ?? []).filter((slot) => formatDateForAPI(slot.startTime) === date),
+        [data?.data, date],
+    );
 
-  const handleSelect = useCallback(
-    (slot: MemberLessonSlotResponse) => {
-      runWithNavigationLock(() => {
-        setDismissedConflictId(conflictId);
-        router.push({
-          pathname: "/lesson-booking-confirm",
-          params: {
-            ticketId,
-            ticketName,
-            ticketType,
-            lessonAvailabilityId: String(slot.id),
-            lessonName: getLessonSlotDisplayName(slot, t),
-            coachName: slot.coachName ?? "",
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            date,
-            notes,
-          },
-        });
-      });
-    },
-    [
-      conflictId,
-      date,
-      notes,
-      router,
-      runWithNavigationLock,
-      t,
-      ticketId,
-      ticketName,
-      ticketType,
-    ],
-  );
+    const handleSelect = useCallback(
+        (slot: MemberLessonSlotResponse) => {
+            runWithNavigationLock(() => {
+                setDismissedConflictId(conflictId);
+                router.push({
+                    pathname: "/lesson-booking-confirm",
+                    params: {
+                        ticketId,
+                        ticketName,
+                        ticketType,
+                        lessonAvailabilityId: String(slot.id),
+                        coachName: slot.coachName ?? "",
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        date,
+                        notes,
+                    },
+                });
+            });
+        },
+        [conflictId, date, notes, router, runWithNavigationLock, ticketId, ticketName, ticketType],
+    );
 
-  const renderSlot = useCallback(
-    ({ item: slot }: { item: MemberLessonSlotResponse }) => (
-      <LessonSlotCard
-        slot={slot}
-        memberId={memberId}
-        now={now}
-        isGroupTicket={isGroupTicket}
-        wasJustBooked={Boolean(
-          visibleConflictMessage && conflictSlotId === String(slot.id),
-        )}
-        isLocked={isLocked}
-        onSelect={handleSelect}
-      />
-    ),
-    [
-      conflictSlotId,
-      handleSelect,
-      isGroupTicket,
-      isLocked,
-      memberId,
-      now,
-      visibleConflictMessage,
-    ],
-  );
+    const renderSlot = useCallback(
+        ({ item: slot }: { item: MemberLessonSlotResponse }) => (
+            <LessonSlotCard
+                slot={slot}
+                memberId={memberId}
+                now={now}
+                isGroupTicket={isGroupTicket}
+                wasJustBooked={Boolean(visibleConflictMessage && conflictSlotId === String(slot.id))}
+                isLocked={isLocked}
+                onSelect={handleSelect}
+            />
+        ),
+        [conflictSlotId, handleSelect, isGroupTicket, isLocked, memberId, now, visibleConflictMessage],
+    );
 
-  const screenOptions = useMemo(
-    () => ({
-      title: isGroupTicket
-        ? t("booking.selectGroupTitle")
-        : t("booking.selectSlotTitle"),
-    }),
-    [isGroupTicket, t],
-  );
+    const screenOptions = useMemo(
+        () => ({
+            title: isGroupTicket ? t("booking.selectGroupTitle") : t("booking.selectSlotTitle"),
+        }),
+        [isGroupTicket, t],
+    );
 
-  if (!ticketIdNumber || !date || Number.isNaN(selectedDate.getTime())) {
+    if (!ticketIdNumber || !date || Number.isNaN(selectedDate.getTime())) {
+        return (
+            <>
+                <Stack.Screen options={screenOptions} />
+                <Screen contentClassName="grow">
+                    <EmptyState
+                        title={t("bookingConfirmation.ticketInfoMissing")}
+                        actionLabel={t("tickets.sectionTitle")}
+                        onAction={() => runWithNavigationLock(() => router.dismissTo("/tickets"))}
+                    />
+                </Screen>
+            </>
+        );
+    }
+
     return (
-      <>
-        <Stack.Screen options={screenOptions} />
-        <Screen contentClassName="grow">
-          <EmptyState
-            title={t("bookingConfirmation.ticketInfoMissing")}
-            actionLabel={t("tickets.sectionTitle")}
-            onAction={() =>
-              runWithNavigationLock(() => router.dismissTo("/tickets"))
-            }
-          />
-        </Screen>
-      </>
+        <>
+            <Stack.Screen options={screenOptions} />
+
+            <Screen scroll={false} contentClassName="min-h-0 gap-6">
+                <BookingStepHeader
+                    step={2}
+                    totalSteps={3}
+                    context={formatTicketTypeLabel(ticketType, t) || ticketName}
+                    selectionTrail={[formatTicketTypeLabel(ticketType, t) || ticketName, formatDateShort(date)]}
+                />
+
+                {visibleConflictMessage ? (
+                    <AvailabilityConflictNotice key={conflictId} message={visibleConflictMessage} />
+                ) : null}
+
+                {isLoading ? (
+                    <View className="items-center justify-center gap-3 py-2">
+                        {Array.from({ length: 4 }, (_, index) => (
+                            <Skeleton key={index} className="h-24 w-full rounded-xl" />
+                        ))}
+                    </View>
+                ) : null}
+
+                {hasLoadError ? (
+                    <ErrorState
+                        title={t("booking.failedLessonSlotsTitle")}
+                        message={t("common.pullToRefreshAndTryAgain")}
+                        actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                        actionPending={isRefetching || isPullRefreshing}
+                        onAction={handlePullRefresh}
+                    />
+                ) : null}
+
+                {!isLoading && !hasLoadError && slots.length === 0 ? (
+                    <EmptyState
+                        title={isGroupTicket ? t("booking.noAvailableGroupsTitle") : t("booking.noLessonSlotsTitle")}
+                        message={
+                            isGroupTicket ? t("booking.noAvailableGroupsMessage") : t("booking.noLessonSlotsMessage")
+                        }
+                        actionLabel={t("booking.chooseAnotherDate")}
+                        onAction={() => {
+                            runWithNavigationLock(() =>
+                                router.dismissTo({
+                                    pathname: "/select-date",
+                                    params: {
+                                        date,
+                                        ticketId,
+                                        ticketName,
+                                        ticketType,
+                                        notes,
+                                    },
+                                }),
+                            );
+                        }}
+                    />
+                ) : null}
+
+                {!isLoading && !hasLoadError && slots.length > 0 ? (
+                    <FlatList
+                        className="min-h-0 flex-1"
+                        data={slots}
+                        keyExtractor={lessonSlotKeyExtractor}
+                        ItemSeparatorComponent={ItemSeparator}
+                        refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
+                        contentContainerStyle={SLOT_LIST_CONTENT_STYLE}
+                        showsVerticalScrollIndicator={false}
+                        renderItem={renderSlot}
+                    />
+                ) : null}
+            </Screen>
+        </>
     );
-  }
-
-  return (
-    <>
-      <Stack.Screen options={screenOptions} />
-
-      <Screen scroll={false} contentClassName="min-h-0 gap-6">
-        <BookingStepHeader
-          step={2}
-          totalSteps={3}
-          context={formatTicketTypeLabel(ticketType, t) || ticketName}
-          selectionTrail={[
-            formatTicketTypeLabel(ticketType, t) || ticketName,
-            formatDateValue(date, "M.d"),
-          ]}
-        />
-
-        {visibleConflictMessage ? (
-          <AvailabilityConflictNotice
-            key={conflictId}
-            message={visibleConflictMessage}
-          />
-        ) : null}
-
-        {isLoading ? (
-          <View className="items-center justify-center gap-3 py-2">
-            {Array.from({ length: 4 }, (_, index) => (
-              <Skeleton key={index} className="h-24 w-full rounded-xl" />
-            ))}
-          </View>
-        ) : null}
-
-        {hasLoadError ? (
-          <ErrorState
-            title={t("booking.failedLessonSlotsTitle")}
-            message={t("common.pullToRefreshAndTryAgain")}
-            actionLabel={
-              isRefetching
-                ? t("common.refreshing")
-                : t("common.refreshTryAgain")
-            }
-            actionPending={isRefetching || isPullRefreshing}
-            onAction={handlePullRefresh}
-          />
-        ) : null}
-
-        {!isLoading && !hasLoadError && slots.length === 0 ? (
-          <EmptyState
-            title={
-              isGroupTicket
-                ? t("booking.noAvailableGroupsTitle")
-                : t("booking.noLessonSlotsTitle")
-            }
-            message={
-              isGroupTicket
-                ? t("booking.noAvailableGroupsMessage")
-                : t("booking.noLessonSlotsMessage")
-            }
-            actionLabel={t("booking.chooseAnotherDate")}
-            onAction={() => {
-              runWithNavigationLock(() =>
-                router.dismissTo({
-                  pathname: "/select-date",
-                  params: {
-                    ticketId,
-                    ticketName,
-                    ticketType,
-                    notes,
-                  },
-                }),
-              );
-            }}
-          />
-        ) : null}
-
-        {!isLoading && !hasLoadError && slots.length > 0 ? (
-          <FlatList
-            className="min-h-0 flex-1"
-            data={slots}
-            keyExtractor={lessonSlotKeyExtractor}
-            ItemSeparatorComponent={ItemSeparator}
-            refreshControl={
-              <RefreshControl
-                refreshing={isPullRefreshing}
-                onRefresh={handlePullRefresh}
-              />
-            }
-            contentContainerStyle={SLOT_LIST_CONTENT_STYLE}
-            showsVerticalScrollIndicator={false}
-            renderItem={renderSlot}
-          />
-        ) : null}
-      </Screen>
-    </>
-  );
 }
 
 type LessonSlotCardProps = {
-  slot: MemberLessonSlotResponse;
-  memberId?: number;
-  now: number;
-  isGroupTicket: boolean;
-  wasJustBooked: boolean;
-  isLocked: boolean;
-  onSelect: (slot: MemberLessonSlotResponse) => void;
+    slot: MemberLessonSlotResponse;
+    memberId?: number;
+    now: number;
+    isGroupTicket: boolean;
+    wasJustBooked: boolean;
+    isLocked: boolean;
+    onSelect: (slot: MemberLessonSlotResponse) => void;
 };
 
 const LessonSlotCard = memo(function LessonSlotCard({
-  slot,
-  memberId,
-  now,
-  isGroupTicket,
-  wasJustBooked,
-  isLocked,
-  onSelect,
+    slot,
+    memberId,
+    now,
+    isGroupTicket,
+    wasJustBooked,
+    isLocked,
+    onSelect,
 }: LessonSlotCardProps) {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
+    const { colors } = useTheme();
+    const { t } = useTranslation();
 
-  const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
-  const isBookable = isLessonSlotBookable(slot);
-  const alreadyBooked = isGroupSlot && isLessonSlotBookedByMember(slot, memberId);
-  const disabled = wasJustBooked || alreadyBooked || isLessonSlotFull(slot);
-  const minutesUntilStart = disabled ? null : getMinutesUntilStart(slot, now);
-  const startingSoon = minutesUntilStart != null && minutesUntilStart <= 60;
-  const lessonTitle = getLessonSlotDisplayName(slot, t);
+    const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
+    const isBookable = isLessonSlotBookable(slot);
+    const alreadyBooked = isGroupSlot && isLessonSlotBookedByMember(slot, memberId);
+    const isPast = !wasJustBooked && !alreadyBooked && new Date(slot.startTime).getTime() <= now;
+    const disabled = wasJustBooked || alreadyBooked || isPast || isLessonSlotFull(slot);
+    const minutesUntilStart = disabled ? null : getMinutesUntilStart(slot, now);
+    const startingSoon = minutesUntilStart != null && minutesUntilStart <= 60;
+    const lessonTitle = getLessonSlotDisplayName(slot, t);
 
-  const statusLabel = wasJustBooked
-    ? t("booking.justBooked")
-    : alreadyBooked
-      ? t("booking.alreadyBooked")
-      : disabled
-        ? isBookable
-          ? t("booking.full")
-          : t("booking.statusUnavailable")
-        : isGroupSlot
-          ? t("booking.spotsLeft", { count: getLessonSpotsLeft(slot) })
-          : t("booking.statusAvailable");
+    const statusLabel = wasJustBooked
+        ? t("booking.justBooked")
+        : alreadyBooked
+          ? t("booking.alreadyBooked")
+          : isPast
+            ? t("booking.statusPassed")
+            : disabled
+              ? isBookable
+                  ? t("booking.full")
+                  : t("booking.statusUnavailable")
+              : isGroupSlot
+                ? t("booking.spotsLeft", { count: getLessonSpotsLeft(slot) })
+                : t("booking.statusAvailable");
 
-  const countdownLabel =
-    minutesUntilStart == null
-      ? null
-      : minutesUntilStart < 60
-        ? t("booking.startsInMinutes", { count: minutesUntilStart })
-        : minutesUntilStart < 1440
-          ? t("booking.startsInHours", {
-              count: Math.ceil(minutesUntilStart / 60),
-            })
-          : t("booking.startsInDays", {
-              count: Math.ceil(minutesUntilStart / 1440),
-            });
+    const countdownLabel =
+        minutesUntilStart == null
+            ? null
+            : minutesUntilStart < 60
+              ? t("booking.startsInMinutes", { count: minutesUntilStart })
+              : minutesUntilStart < 1440
+                ? t("booking.startsInHours", {
+                      count: Math.ceil(minutesUntilStart / 60),
+                  })
+                : t("booking.startsInDays", {
+                      count: Math.ceil(minutesUntilStart / 1440),
+                  });
 
-  const badgeColor = wasJustBooked
-    ? colors.warning
-    : alreadyBooked
-      ? colors.warning
-      : disabled
-        ? isGroupSlot
-          ? colors.danger
-          : colors.mutedForeground
-        : startingSoon
+    const badgeColor = wasJustBooked
+        ? colors.warning
+        : alreadyBooked
           ? colors.warning
-          : isGroupSlot
-            ? colors.ticketGroup
-            : colors.primary;
+          : isPast
+            ? colors.mutedForeground
+            : disabled
+              ? isGroupSlot
+                  ? colors.danger
+                  : colors.mutedForeground
+              : startingSoon
+                ? colors.warning
+                : isGroupSlot
+                  ? colors.ticketGroup
+                  : colors.primary;
 
-  const bodyColor = disabled
-    ? colors.mutedForeground
-    : colors.foreground + "bf";
-  const coachLabel = slot.coachName || (isGroupSlot ? t("booking.tba") : "");
+    const bodyColor = disabled ? colors.mutedForeground : colors.mutedForeground;
+    const coachLabel = slot.coachName || (isGroupSlot ? t("booking.tba") : "");
 
-  return (
-    <AnimatedPressable
-      accessibilityRole="button"
-      accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
-      accessibilityState={{ disabled: disabled || isLocked }}
-      disabled={disabled || isLocked}
-      haptic="selection"
-      className={cn(
-        "gap-2.5 border",
-        isGroupSlot ? "rounded-2xl p-3.5" : "rounded-xl px-4 py-4",
-        wasJustBooked
-          ? "border-warning/40 bg-warning/10 opacity-80"
-          : disabled
-            ? isGroupSlot
-              ? "border-border bg-muted/70 opacity-70"
-              : "border-muted bg-muted opacity-55"
-            : "border-border bg-card",
-      )}
-      onPress={() => onSelect(slot)}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="min-w-0 flex-1 gap-1.5">
-          <AppText
-            variant="h3"
-            textStyle={{
-              color: disabled ? colors.mutedForeground : colors.foreground,
-            }}
-          >
-            {formatSlotTime(slot)}
-          </AppText>
-
-          <AppText
-            variant="meta"
-            numberOfLines={isGroupSlot ? 1 : undefined}
-            textStyle={{ color: bodyColor }}
-          >
-            {lessonTitle}
-          </AppText>
-        </View>
-
-        {isGroupSlot ? (
-          <View className="shrink-0 items-end">
-            <AppText
-              variant="caption"
-              wrap={false}
-              textStyle={{ color: colors.foreground + "99" }}
-            >
-              {t("booking.spots")}
-            </AppText>
-            <AppText
-              variant="meta"
-              wrap={false}
-              textStyle={{
-                color: disabled ? colors.mutedForeground : colors.foreground,
-              }}
-            >
-              {`${slot.bookedCount ?? ""}/${slot.capacity ?? ""}`}
-            </AppText>
-          </View>
-        ) : null}
-      </View>
-
-      <View className="flex-row items-center justify-between gap-3">
-        {coachLabel ? (
-          <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-            <UserRound size={13} color={colors.mutedForeground} />
-            <AppText
-              variant="meta"
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
-              textStyle={{ color: bodyColor }}
-            >
-              {coachLabel}
-            </AppText>
-          </View>
-        ) : (
-          <View className="flex-1" />
-        )}
-
-        <AppText
-          variant="badge"
-          wrap={false}
-          textStyle={{ color: badgeColor }}
+    return (
+        <AnimatedPressable
+            accessibilityRole="button"
+            accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
+            accessibilityState={{ disabled: disabled || isLocked }}
+            disabled={disabled || isLocked}
+            haptic="selection"
+            className={cn(
+                "gap-2.5 border",
+                isGroupSlot ? "rounded-2xl p-3.5" : "rounded-xl px-4 py-4",
+                wasJustBooked
+                    ? "border-warning/40 bg-warning/10 opacity-80"
+                    : disabled
+                      ? isGroupSlot
+                          ? "border-border bg-muted/70 opacity-70"
+                          : "border-muted bg-muted opacity-55"
+                      : "border-border bg-card",
+            )}
+            onPress={() => onSelect(slot)}
         >
-          {countdownLabel ?? statusLabel}
-        </AppText>
-      </View>
+            <View className="flex-row items-start justify-between gap-3">
+                <View className="min-w-0 flex-1 gap-1.5">
+                    <AppText
+                        variant="h3"
+                        textStyle={{
+                            color: disabled ? colors.mutedForeground : colors.foreground,
+                        }}
+                    >
+                        {formatSlotTime(slot)}
+                    </AppText>
 
-    </AnimatedPressable>
-  );
+                    <AppText
+                        variant="subtext"
+                        numberOfLines={isGroupSlot ? 1 : undefined}
+                        textStyle={{ color: bodyColor }}
+                    >
+                        {lessonTitle}
+                    </AppText>
+                </View>
+
+                {isGroupSlot && slot.bookedCount != null && slot.capacity != null ? (
+                    <View className="shrink-0 items-end">
+                        <AppText variant="caption" wrap={false} textStyle={{ color: colors.mutedForeground }}>
+                            {t("booking.spots")}
+                        </AppText>
+                        <AppText
+                            variant="subtext"
+                            wrap={false}
+                            textStyle={{
+                                color: disabled ? colors.mutedForeground : colors.foreground,
+                            }}
+                        >
+                            {`${slot.bookedCount}/${slot.capacity}`}
+                        </AppText>
+                    </View>
+                ) : null}
+            </View>
+
+            <View className="flex-row items-center justify-between gap-3">
+                {coachLabel ? (
+                    <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                        <UserRound size={13} color={colors.mutedForeground} />
+                        <AppText
+                            variant="subtext"
+                            numberOfLines={1}
+                            style={{ flex: 1, minWidth: 0 }}
+                            textStyle={{ color: bodyColor }}
+                        >
+                            {coachLabel}
+                        </AppText>
+                    </View>
+                ) : (
+                    <View className="flex-1" />
+                )}
+
+                <View className="shrink-0 items-end gap-1">
+                    <AppText variant="badge" wrap={false} textStyle={{ color: badgeColor }}>
+                        {statusLabel}
+                    </AppText>
+                    {startingSoon && countdownLabel ? (
+                        <AppText variant="caption" color="warning" wrap={false} tabular>
+                            {countdownLabel}
+                        </AppText>
+                    ) : null}
+                </View>
+            </View>
+        </AnimatedPressable>
+    );
 });

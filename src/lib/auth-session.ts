@@ -3,7 +3,22 @@ import { clearCachedJwtToken } from "./client/jwt-token";
 
 let sessionCheck: Promise<boolean> | null = null;
 let sessionEndedNotice = false;
+let interruptedHref: string | null = null;
 const noticeListeners = new Set<() => void>();
+
+export function setInterruptedHref(href: string | null) {
+    interruptedHref = href;
+}
+
+export function takeInterruptedHref() {
+    const href = interruptedHref;
+    interruptedHref = null;
+    return href;
+}
+
+export function clearInterruptedHref() {
+    interruptedHref = null;
+}
 
 export function getSessionEndedNotice() {
     return sessionEndedNotice;
@@ -11,7 +26,9 @@ export function getSessionEndedNotice() {
 
 export function subscribeToSessionEndedNotice(listener: () => void) {
     noticeListeners.add(listener);
-    return () => { noticeListeners.delete(listener); };
+    return () => {
+        noticeListeners.delete(listener);
+    };
 }
 
 function setSessionEndedNotice(value: boolean) {

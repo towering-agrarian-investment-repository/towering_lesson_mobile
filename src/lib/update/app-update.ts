@@ -4,7 +4,7 @@ import { env } from "../config/env";
 import i18n from "../../i18n";
 import { getAppRequestHeaders } from "../client/app-request-headers";
 import type { ApiResponse } from "../api-response/api-response";
-import { showAppToast } from "../toast/toast";
+import { showAppToast } from "@/design-system/components/AppToast";
 
 export type AppUpdateConfig = {
     minimumSupportedVersion?: string | null;
@@ -138,10 +138,7 @@ function getStoreUrl(state: AppUpdateState) {
             ?.trim()
             .replace(/^["']+|["']+$/g, "")
             .trim();
-        return (
-            androidStoreUrl ||
-            "https://play.google.com/store/apps/details?id=com.toweringinvest.happygolfmobile"
-        );
+        return androidStoreUrl || "https://play.google.com/store/apps/details?id=com.toweringinvest.happygolfmobile";
     }
 
     return state.iosStoreUrl;
@@ -150,7 +147,11 @@ function getStoreUrl(state: AppUpdateState) {
 export async function openStore(state: AppUpdateState) {
     try {
         const storeUrl = getStoreUrl(state)?.trim();
-        if (!storeUrl || storeUrl.includes("YOUR_APP_ID") || !["https:", "http:", "market:", "itms-apps:"].includes(new URL(storeUrl).protocol)) {
+        if (
+            !storeUrl ||
+            storeUrl.includes("YOUR_APP_ID") ||
+            !["https:", "http:", "market:", "itms-apps:"].includes(new URL(storeUrl).protocol)
+        ) {
             throw new Error("Missing or invalid store URL");
         }
         await Linking.openURL(storeUrl);

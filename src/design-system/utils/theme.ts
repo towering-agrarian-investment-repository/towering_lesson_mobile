@@ -10,11 +10,7 @@ import {
     useMemo,
     useState,
 } from "react";
-import {
-    Appearance,
-    useColorScheme as useSystemColorScheme,
-    useWindowDimensions,
-} from "react-native";
+import { Appearance, useColorScheme as useSystemColorScheme, useWindowDimensions } from "react-native";
 
 export type ThemeColors = {
     background: string;
@@ -27,6 +23,7 @@ export type ThemeColors = {
     primary: string;
     primaryForeground: string;
     danger: string;
+    dangerForeground: string;
     success: string;
     warning: string;
     ticketBay: string;
@@ -38,21 +35,23 @@ export type ThemeColors = {
     btnMainEnd: string;
     btnMainPressedStart: string;
     btnMainPressedEnd: string;
+    /** Modal and media overlays. */
+    scrim: string;
+    mediaBackground: string;
+    mediaForeground: string;
+    scrimControl: string;
+    reservationReserved: string;
+    reservationCheckedIn: string;
+    reservationCompleted: string;
+    reservationCancelled: string;
+    reservationNoShow: string;
 };
 
 export type ThemePreference = "system" | "light" | "dark";
 export type PrimaryColorPreference = "blue" | "green";
 
-// Fixed reservation status colors shared by both themes. The OKLCH values
-// supplied for Completed, Cancelled, and No Show are mapped to sRGB for native.
-export const reservationStatusColors = {
-    reservationReserved: "#3B4EC5",
-    reservationCheckedIn: "#52D8AC",
-    reservationCompleted: "#00A071", // oklch(0.62 0.14 165)
-    reservationCancelled: "#D73246", // oklch(0.58 0.20 20)
-    reservationNoShow: "#FF4964", // oklch(0.69 0.24 18)
-} as const;
-
+// Original brand palette. Helper tokens reuse the brand values so the visual
+// identity stays unchanged.
 const lightThemeColors = {
     background: "#ffffff",
     foreground: "#111827",
@@ -64,6 +63,7 @@ const lightThemeColors = {
     primary: "#00AEEF",
     primaryForeground: "#ffffff",
     danger: "#dc2626",
+    dangerForeground: "#ffffff",
     success: "#16a34a",
     warning: "#f59e0b",
     ticketBay: "#26a9e0",
@@ -75,6 +75,15 @@ const lightThemeColors = {
     btnMainEnd: "#49BBC4",
     btnMainPressedStart: "#37A54B",
     btnMainPressedEnd: "#3A9DA5",
+    scrim: "rgba(0, 0, 0, 0.45)",
+    mediaBackground: "#000000",
+    mediaForeground: "#FFFFFF",
+    scrimControl: "rgba(255, 255, 255, 0.20)",
+    reservationReserved: "#3B4EC5",
+    reservationCheckedIn: "#52D8AC",
+    reservationCompleted: "#00A071",
+    reservationCancelled: "#D73246",
+    reservationNoShow: "#FF4964",
 } satisfies ThemeColors;
 
 const darkThemeColors = {
@@ -88,6 +97,7 @@ const darkThemeColors = {
     primary: "#33C6FF",
     primaryForeground: "#ffffff",
     danger: "#f87171",
+    dangerForeground: "#ffffff",
     success: "#4ade80",
     warning: "#fbbf24",
     ticketBay: "#4cc3f0",
@@ -99,6 +109,15 @@ const darkThemeColors = {
     btnMainEnd: "#54CBD4",
     btnMainPressedStart: "#3DAE54",
     btnMainPressedEnd: "#46AEB6",
+    scrim: "rgba(0, 0, 0, 0.45)",
+    mediaBackground: "#000000",
+    mediaForeground: "#FFFFFF",
+    scrimControl: "rgba(255, 255, 255, 0.20)",
+    reservationReserved: "#3B4EC5",
+    reservationCheckedIn: "#52D8AC",
+    reservationCompleted: "#00A071",
+    reservationCancelled: "#D73246",
+    reservationNoShow: "#FF4964",
 } satisfies ThemeColors;
 
 const THEME_PREFERENCE_STORAGE_KEY = "app-theme-preference";
@@ -113,9 +132,7 @@ type ThemeContextValue = {
     resolvedScheme: "light" | "dark";
     setPreference: (preference: ThemePreference) => Promise<void>;
     primaryColorPreference: PrimaryColorPreference;
-    setPrimaryColorPreference: (
-        preference: PrimaryColorPreference,
-    ) => Promise<void>;
+    setPrimaryColorPreference: (preference: PrimaryColorPreference) => Promise<void>;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -144,10 +161,8 @@ export function getThemeColors(
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const systemColorScheme = useSystemColorScheme();
     const { fontScale } = useWindowDimensions();
-    const [preference, setPreferenceState] =
-        useState<ThemePreference>("system");
-    const [primaryColorPreference, setPrimaryColorPreferenceState] =
-        useState<PrimaryColorPreference>("blue");
+    const [preference, setPreferenceState] = useState<ThemePreference>("system");
+    const [primaryColorPreference, setPrimaryColorPreferenceState] = useState<PrimaryColorPreference>("blue");
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
@@ -165,14 +180,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                 }
 
                 const nextPreference =
-                    storedPreference === "light" || storedPreference === "dark"
-                        ? storedPreference
-                        : "system";
+                    storedPreference === "light" || storedPreference === "dark" ? storedPreference : "system";
 
                 setPreferenceState(nextPreference);
-                setPrimaryColorPreferenceState(
-                    storedPrimaryColor === "green" ? "green" : "blue",
-                );
+                setPrimaryColorPreferenceState(storedPrimaryColor === "green" ? "green" : "blue");
                 applyThemePreference(nextPreference);
             } catch {
                 // Use the system theme and default brand if storage is unavailable.
@@ -196,42 +207,45 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, nextPreference);
     }, []);
 
-    const handleSetPrimaryColorPreference = useCallback(async (
-        nextPreference: PrimaryColorPreference,
-    ) => {
+    const handleSetPrimaryColorPreference = useCallback(async (nextPreference: PrimaryColorPreference) => {
         setPrimaryColorPreferenceState(nextPreference);
-        await AsyncStorage.setItem(
-            PRIMARY_COLOR_PREFERENCE_STORAGE_KEY,
-            nextPreference,
-        );
+        await AsyncStorage.setItem(PRIMARY_COLOR_PREFERENCE_STORAGE_KEY, nextPreference);
     }, []);
 
-    const effectiveColorScheme =
-        preference === "system" ? systemColorScheme : preference;
+    const effectiveColorScheme = preference === "system" ? systemColorScheme : preference;
     const resolvedScheme = effectiveColorScheme === "dark" ? "dark" : "light";
     const colors = useMemo(
         () => getThemeColors(resolvedScheme, primaryColorPreference),
         [resolvedScheme, primaryColorPreference],
     );
-    const nativeFontScale = process.env.EXPO_OS === "ios" ? fontScale : 1;
+    const nativeFontScale = process.env.EXPO_OS === "ios" ? Math.min(fontScale, 1.5) : 1;
 
     useEffect(() => {
-        void SystemUI.setBackgroundColorAsync(colors.background).catch(
-            () => { },
-        );
+        void SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
     }, [colors.background]);
 
-    const value = useMemo<ThemeContextValue>(() => ({
-        colors,
-        fontScale: nativeFontScale,
-        isReady,
-        preference,
-        resolvedScheme,
-        setPreference: handleSetPreference,
-        primaryColorPreference,
-        setPrimaryColorPreference: handleSetPrimaryColorPreference,
-    }), [colors, nativeFontScale, isReady, preference, resolvedScheme,
-        handleSetPreference, primaryColorPreference, handleSetPrimaryColorPreference]);
+    const value = useMemo<ThemeContextValue>(
+        () => ({
+            colors,
+            fontScale: nativeFontScale,
+            isReady,
+            preference,
+            resolvedScheme,
+            setPreference: handleSetPreference,
+            primaryColorPreference,
+            setPrimaryColorPreference: handleSetPrimaryColorPreference,
+        }),
+        [
+            colors,
+            nativeFontScale,
+            isReady,
+            preference,
+            resolvedScheme,
+            handleSetPreference,
+            primaryColorPreference,
+            handleSetPrimaryColorPreference,
+        ],
+    );
 
     return createElement(ThemeContext.Provider, { value }, children);
 }
@@ -263,5 +277,24 @@ export function getStackHeaderOptions(colors: ThemeColors) {
             color: colors.foreground,
         },
         contentStyle: { backgroundColor: colors.background },
+    } as const;
+}
+
+export function getTabStackHeaderOptions(colors: ThemeColors, resolvedScheme: "light" | "dark") {
+    const base = getStackHeaderOptions(colors);
+
+    if (process.env.EXPO_OS !== "ios") {
+        return base;
+    }
+
+    return {
+        ...base,
+        headerLargeTitle: true,
+        headerLargeTitleShadowVisible: false,
+        headerTransparent: true,
+        headerBlurEffect:
+            resolvedScheme === "dark" ? ("systemChromeMaterialDark" as const) : ("systemChromeMaterialLight" as const),
+        headerStyle: { backgroundColor: "transparent" },
+        headerLargeStyle: { backgroundColor: colors.background },
     } as const;
 }

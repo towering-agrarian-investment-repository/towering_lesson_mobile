@@ -1,4 +1,3 @@
-
 import { registerForPushNotifications } from "@/lib/config/notification/registerPushNotification";
 import type { NotificationReferenceType } from "@/service/shared/notification-service";
 import * as Notifications from "expo-notifications";
@@ -31,9 +30,10 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             lastHandledNotificationId.current = notificationId;
 
             const data = response.notification.request.content.data as NotificationPayload;
-            const referenceType = typeof data.referenceType === "string"
-                ? data.referenceType.toUpperCase() as NotificationReferenceType
-                : null;
+            const referenceType =
+                typeof data.referenceType === "string"
+                    ? (data.referenceType.toUpperCase() as NotificationReferenceType)
+                    : null;
             const referenceId = data.referenceId != null ? String(data.referenceId) : null;
             const hasValidReferenceId = referenceId !== null && NUMERIC_REFERENCE_ID_PATTERN.test(referenceId);
 
@@ -93,9 +93,7 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             return;
         }
 
-        const registerPushToken = async (
-            devicePushToken?: Notifications.DevicePushToken,
-        ) => {
+        const registerPushToken = async (devicePushToken?: Notifications.DevicePushToken) => {
             try {
                 await registerForPushNotifications(devicePushToken);
             } catch (error) {
@@ -111,11 +109,9 @@ export const usePushNotification = (isLoggedIn: boolean) => {
             void registerPushToken(devicePushToken);
         });
 
-        const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-            (response) => {
-                handleNotificationNavigation(response);
-            },
-        );
+        const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+            handleNotificationNavigation(response);
+        });
 
         handleNotificationNavigation(Notifications.getLastNotificationResponse());
 

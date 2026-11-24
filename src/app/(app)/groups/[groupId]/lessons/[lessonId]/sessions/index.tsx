@@ -18,15 +18,10 @@ export default function GroupLessonSessionsScreen() {
     const numericGroupId = Number(groupId);
     const numericLessonId = Number(lessonId);
     const initialSessionId = sessionId ? Number(sessionId) : null;
-    const {
-        data,
-        isLoading,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberLessonByGroup(numericGroupId, numericLessonId);
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberLessonByGroup(numericGroupId, numericLessonId);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        refetch({ cancelRefetch: false }),
+    );
 
     const sessions = data?.data.sessions ?? [];
 
@@ -43,13 +38,8 @@ export default function GroupLessonSessionsScreen() {
     if (isError && !data) {
         return (
             <Screen
-                contentClassName="grow gap-5"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isPullRefreshing}
-                        onRefresh={handlePullRefresh}
-                    />
-                }
+                contentClassName="grow gap-6"
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             >
                 <ErrorState
                     title={t("lessons.failedSessionsTitle")}
@@ -66,12 +56,7 @@ export default function GroupLessonSessionsScreen() {
         return (
             <Screen
                 contentClassName="grow"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isPullRefreshing}
-                        onRefresh={handlePullRefresh}
-                    />
-                }
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             >
                 <CompactEmptyState
                     title={t("lessonSessions.noSessionsTitle")}
@@ -83,18 +68,10 @@ export default function GroupLessonSessionsScreen() {
 
     return (
         <Screen
-            contentClassName="gap-5"
-            refreshControl={
-                <RefreshControl
-                    refreshing={isPullRefreshing}
-                    onRefresh={handlePullRefresh}
-                />
-            }
+            contentClassName="gap-6"
+            refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
         >
-            <LessonSessionsView
-                sessions={sessions}
-                initialSessionId={initialSessionId}
-            />
+            <LessonSessionsView sessions={sessions} initialSessionId={initialSessionId} />
         </Screen>
     );
 }

@@ -32,7 +32,7 @@
         "foregroundImage": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-foreground.png",
         "monochromeImage": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
+      "predictiveBackGestureEnabled": true,
       "package": "com.toweringinvest.happygolfmobile",
       "googleServicesFile": "./google-services.json",
       "blockedPermissions": [
@@ -68,21 +68,25 @@
           "backgroundColor": "#5FB1FF",
           "image": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-foreground.png",
           "imageWidth": 240,
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#0A0E16",
+            "image": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-foreground.png"
+          }
         }
       ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow Golf Lesson System to use your camera to take a profile photo.",
-          "photosPermission": "Allow Golf Lesson System to access your photos to choose a profile photo.",
-          "microphonePermission": false
+          "cameraPermission": "Allow HappyGolf GO to use your camera to take a profile photo.",
+          "photosPermission": "Allow HappyGolf GO to access your photos to choose a profile photo.",
+          "microphonePermission": "Allow HappyGolf GO to use your microphone when recording a homework video."
         }
       ],
       [
         "expo-media-library",
         {
-          "savePhotosPermission": "Allow Golf Lesson System to save activity cards to your photos.",
+          "savePhotosPermission": "Allow HappyGolf GO to save activity cards to your photos.",
           "granularPermissions": []
         }
       ],

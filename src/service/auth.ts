@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { deactivateCurrentPushInstallation } from "@/lib/config/notification/pushRegistrationStorage";
 import { clearCachedJwtToken } from "@/lib/client/jwt-token";
+import { clearInterruptedHref } from "@/lib/auth-session";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
 const PUSH_CLEANUP_TIMEOUT_MS = 1_500;
@@ -62,7 +63,7 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
     const signedInRole = signedInUser?.role?.toUpperCase?.() ?? null;
 
     if (signedInRole !== ALLOWED_APP_ROLE) {
-        await authClient.signOut().catch(() => { });
+        await authClient.signOut().catch(() => {});
         clearCachedJwtToken();
         throw new InvalidCredentialsError();
     }
@@ -72,10 +73,13 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
 };
 
 export const signOut = async () => {
+    clearInterruptedHref();
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const cleanup = deactivateCurrentPushInstallation(controller.signal).catch((error) => {
-        console.warn("[push] Could not deactivate this installation during sign-out", error);
+        if (__DEV__) {
+            console.warn("[push] Could not deactivate this installation during sign-out", error);
+        }
     });
     const timeout = new Promise<void>((resolve) => {
         timeoutId = setTimeout(() => {

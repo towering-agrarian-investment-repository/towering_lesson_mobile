@@ -1,12 +1,20 @@
+import { AppText } from "@/design-system/components/AppText";
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     BookingConfirmationFooter,
     BookingConfirmationLoadingState,
+    BookingConfirmationTicketField,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
-import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
+import {
+    ReservationContent,
+    ReservationDetailField,
+    ReservationFieldLabel,
+} from "@/components/golf/reservation/ReservationSections";
 import { FormTextInput } from "@/components/ui/form";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
@@ -16,16 +24,20 @@ import {
     useMemberBaySlotGroups,
     useRescheduleMemberBayReservation,
 } from "@/lib/hook/useReservation";
-import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { useMemberTicketById } from "@/lib/hook/useTicket";
+import { formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useRef } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { RefreshControl } from "react-native";
 
 const BAY_REQUEST_MAX_LENGTH = 2000;
+
+// Keep a typed bay note when the native back gesture returns to Select Time.
+const bayNotesDraft = new Map<number, string>();
 
 type BayBookingFormValues = {
     memberNotes: string;
@@ -33,6 +45,7 @@ type BayBookingFormValues = {
 
 export default function BayBookingConfirmScreen() {
     const { t } = useTranslation();
+    const isOnline = useIsOnline();
     const {
         date,
         ticketId,
@@ -68,17 +81,33 @@ export default function BayBookingConfirmScreen() {
     const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
     const hasSlotGroupId = Number.isSafeInteger(slotGroupIdNumber) && slotGroupIdNumber > 0;
     const form = useForm<BayBookingFormValues>({
-        defaultValues: { memberNotes: initialNotes ?? "" },
+        defaultValues: {
+            memberNotes: (hasSlotGroupId ? bayNotesDraft.get(slotGroupIdNumber) : undefined) ?? initialNotes ?? "",
+        },
         mode: "onTouched",
     });
-    const { mutateAsync: createReservation, isPending: isCreating } =
-        useCreateMemberBayReservation();
-    const { mutateAsync: rescheduleReservation, isPending: isRescheduling } =
-        useRescheduleMemberBayReservation();
-    const { data, isLoading, isError, refetch, isRefetching } =
-        useMemberBaySlotGroups(ticketIdNumber, date, date, Boolean(date));
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const { mutateAsync: createReservation, isPending: isCreating } = useCreateMemberBayReservation();
+    const memberNotes = useWatch({ control: form.control, name: "memberNotes" });
+    const { mutateAsync: rescheduleReservation, isPending: isRescheduling } = useRescheduleMemberBayReservation();
+    const balanceTicketId = !isRescheduleMode && hasTicketId ? ticketIdNumber : undefined;
+    const { data: ticket, refetch: refetchTicket } = useMemberTicketById(balanceTicketId);
+
+    useEffect(() => {
+        if (!hasSlotGroupId) return;
+        bayNotesDraft.set(slotGroupIdNumber, memberNotes ?? "");
+    }, [hasSlotGroupId, memberNotes, slotGroupIdNumber]);
+    const { data, isLoading, isError, refetch, isRefetching } = useMemberBaySlotGroups(
+        ticketIdNumber,
+        date,
+        date,
+        Boolean(date),
+    );
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        Promise.all([
+            refetch({ cancelRefetch: false }),
+            balanceTicketId ? refetchTicket({ cancelRefetch: false }) : undefined,
+        ]),
+    );
     const policies = [
         {
             title: t("bookingConfirmation.bayCancellationPolicyTitle"),
@@ -95,16 +124,20 @@ export default function BayBookingConfirmScreen() {
     const slotGroup = data?.data.find((group) => group.id === slotGroupIdNumber);
     const isTimeUnavailable = !hasSlotGroupId || !slotGroup || slotGroup.totalReservableBaySlots <= 0;
     const isDisabled =
-        isSubmitting || isLocked || hasLoadError || isTimeUnavailable ||
+        !isOnline ||
+        isSubmitting ||
+        isLocked ||
+        hasLoadError ||
+        isTimeUnavailable ||
         (isRescheduleMode ? !hasReservationId : !hasTicketId || !form.formState.isValid);
     const disabledReason =
         isRescheduleMode && !hasReservationId
             ? t("bookingConfirmation.reservationInfoMissing")
             : !isRescheduleMode && !hasTicketId
-                ? t("bookingConfirmation.ticketInfoMissing")
-                : isTimeUnavailable
-                    ? t("booking.timeNoLongerAvailableMessage")
-                    : null;
+              ? t("bookingConfirmation.ticketInfoMissing")
+              : isTimeUnavailable
+                ? t("booking.timeNoLongerAvailableMessage")
+                : null;
 
     const chooseAnotherTime = (conflictId?: string) => {
         runWithNavigationLock(() => {
@@ -148,18 +181,20 @@ export default function BayBookingConfirmScreen() {
         try {
             const response = isRescheduleMode
                 ? await rescheduleReservation({
-                    reservationId: reservationIdNumber,
-                    data: { baySlotGroupId: slotGroupIdNumber },
-                })
+                      reservationId: reservationIdNumber,
+                      data: { baySlotGroupId: slotGroupIdNumber },
+                  })
                 : await createReservation({
-                    ticketId: ticketIdNumber,
-                    baySlotGroupId: slotGroupIdNumber,
-                    memberNotes: values.memberNotes.trim() || null,
-                });
+                      ticketId: ticketIdNumber,
+                      baySlotGroupId: slotGroupIdNumber,
+                      memberNotes: values.memberNotes.trim() || null,
+                  });
 
+            bayNotesDraft.delete(slotGroupIdNumber);
             handleBookingConfirmationSuccess(router, {
                 type: "bay",
                 mode: isRescheduleMode ? "reschedule" : "booking",
+                reservationId: response.data.id,
                 ticketName: response.data.ticket?.name ?? ticketName,
                 ticketTotalCount: response.data.ticket?.totalCount,
                 ticketUsedCount: response.data.ticket?.usedCount,
@@ -177,6 +212,15 @@ export default function BayBookingConfirmScreen() {
         }
     };
 
+    const screenOptions = useMemo(
+        () => ({
+            title: isRescheduleMode
+                ? t("bookingConfirmation.rescheduleConfirmation")
+                : t("navigation.screens.bookingConfirmation"),
+        }),
+        [isRescheduleMode, t],
+    );
+
     if (!hasTicketId) {
         return (
             <Screen>
@@ -191,29 +235,37 @@ export default function BayBookingConfirmScreen() {
 
     return (
         <Screen
-            contentClassName="grow"
+            contentClassName="grow gap-6"
             keyboardAware={!isRescheduleMode}
-            refreshControl={
-                <RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />
-            }
+            refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             footer={
                 !isLoading && !hasLoadError && !isTimeUnavailable ? (
                     <BookingConfirmationFooter
-                        title={isRescheduleMode
-                            ? t("bookingConfirmation.confirmReschedule")
-                            : t("bookingConfirmation.agreeBook")}
+                        title={
+                            isRescheduleMode
+                                ? t("bookingConfirmation.confirmReschedule")
+                                : t("bookingConfirmation.agreeBook")
+                        }
                         loading={isSubmitting}
                         disabled={isDisabled}
-                        onPress={() => { void form.handleSubmit(handleConfirm)(); }}
+                        onPress={() => {
+                            void form.handleSubmit(handleConfirm)();
+                        }}
                     />
                 ) : null
             }
         >
-            <Stack.Screen options={{
-                title: isRescheduleMode
-                    ? t("bookingConfirmation.rescheduleConfirmation")
-                    : t("navigation.screens.bookingConfirmation"),
-            }} />
+            <Stack.Screen options={screenOptions} />
+            <BookingStepHeader
+                step={3}
+                totalSteps={3}
+                context={formatTicketTypeLabel(ticketType, t) || ticketName}
+                selectionTrail={[
+                    formatTicketTypeLabel(ticketType, t) || ticketName,
+                    formatDateShort(date),
+                    formatTimeRange(slotGroup?.startDateTime ?? startTime, slotGroup?.endDateTime ?? endTime),
+                ]}
+            />
             {isLoading ? (
                 <BookingConfirmationLoadingState fieldCount={4} />
             ) : hasLoadError ? (
@@ -233,24 +285,21 @@ export default function BayBookingConfirmScreen() {
                 />
             ) : (
                 <ReservationContent disabledReason={disabledReason} policies={policies}>
-                    <ReservationDetailField
-                        label={t("bookingConfirmation.ticketLabel")}
-                        value={ticketName}
-                    />
+                    <BookingConfirmationTicketField ticketName={ticketName} ticket={ticket} />
                     <Divider className="bg-border" />
                     <ReservationDetailField
                         label={t("reservations.bayLabel")}
                         value={t("bookingConfirmation.bayAssignedAutomatically")}
                     />
                     <Divider className="bg-border" />
-                    <ReservationDetailField
-                        label={t("bookingConfirmation.dateLabel")}
-                        value={formatDateValue(date, "yyyy. MM. dd")}
-                    />
+                    <ReservationDetailField label={t("bookingConfirmation.dateLabel")} value={formatDateMedium(date)} />
                     <Divider className="bg-border" />
                     <ReservationDetailField
                         label={t("bookingConfirmation.timeLabel")}
-                        value={formatTimeRange(slotGroup?.startDateTime ?? startTime, slotGroup?.endDateTime ?? endTime)}
+                        value={formatTimeRange(
+                            slotGroup?.startDateTime ?? startTime,
+                            slotGroup?.endDateTime ?? endTime,
+                        )}
                     />
                     <Divider className="bg-border" />
                     {isRescheduleMode ? (
@@ -263,20 +312,26 @@ export default function BayBookingConfirmScreen() {
                             control={form.control}
                             name="memberNotes"
                             label={t("bookingConfirmation.bayRequestOptionalLabel")}
+                            labelComponent={ReservationFieldLabel}
                             placeholder={t("bookingConfirmation.bayRequestPlaceholder")}
                             multiline
                             numberOfLines={3}
+                            multilineMinHeight={72}
                             maxLength={BAY_REQUEST_MAX_LENGTH}
                             editable={!isSubmitting}
-                            rules={{ maxLength: {
-                                value: BAY_REQUEST_MAX_LENGTH,
-                                message: t("bookingConfirmation.bayRequestTooLong", { count: BAY_REQUEST_MAX_LENGTH }),
-                            } }}
+                            rules={{
+                                maxLength: {
+                                    value: BAY_REQUEST_MAX_LENGTH,
+                                    message: t("bookingConfirmation.bayRequestTooLong", {
+                                        count: BAY_REQUEST_MAX_LENGTH,
+                                    }),
+                                },
+                            }}
                         />
                     )}
-                    <NativeText variant="caption" color="mutedForeground">
+                    <AppText variant="caption" color="mutedForeground">
                         {t("bookingConfirmation.bayRequestDisclaimer")}
-                    </NativeText>
+                    </AppText>
                 </ReservationContent>
             )}
         </Screen>

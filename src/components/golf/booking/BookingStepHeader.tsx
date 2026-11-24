@@ -1,12 +1,6 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import {
-    CalendarDays,
-    ChevronRight,
-    Clock3,
-    MapPin,
-    Ticket,
-} from "lucide-react-native";
+import { CalendarDays, ChevronRight, Clock3, MapPin, Ticket } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
@@ -17,12 +11,7 @@ type BookingStepHeaderProps = {
     selectionTrail?: string[];
 };
 
-export function BookingStepHeader({
-    step,
-    totalSteps,
-    context,
-    selectionTrail,
-}: BookingStepHeaderProps) {
+export function BookingStepHeader({ step, totalSteps, context, selectionTrail }: BookingStepHeaderProps) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const trail = selectionTrail?.filter(Boolean) ?? [context];
@@ -32,12 +21,12 @@ export function BookingStepHeader({
     return (
         <View>
             <View className="flex-col gap-3">
-                <NativeText variant="eyebrow" color="primary">
+                <AppText variant="badge" color="primary">
                     {t("booking.stepProgress", {
                         step,
                         total: totalSteps,
                     }).toUpperCase()}
-                </NativeText>
+                </AppText>
 
                 <View className="flex-row flex-wrap items-center gap-x-1 gap-y-1">
                     {trail.map((label, index) => {
@@ -45,53 +34,43 @@ export function BookingStepHeader({
                         const isActive = index === activeTrailIndex;
 
                         return (
-                            <View
-                                key={label}
-                                className="flex-row items-center gap-1"
-                            >
+                            <View key={label} className="max-w-full flex-row items-center gap-1">
                                 <StepIcon
                                     size={13}
                                     color={
                                         isActive
                                             ? colors.primary
                                             : index < activeTrailIndex
-                                                ? colors.foreground
-                                                : colors.mutedForeground
+                                              ? colors.foreground
+                                              : colors.mutedForeground
                                     }
                                     strokeWidth={2.2}
                                 />
-                                <NativeText
+                                <AppText
                                     variant="caption"
-                                    wrap={false}
+                                    numberOfLines={1}
+                                    style={{ flexShrink: 1 }}
                                     textStyle={{
                                         ...(index === activeTrailIndex
                                             ? {
-                                                fontWeight:
-                                                    "700" as const,
-                                                color: colors.primary,
-                                            }
+                                                  fontWeight: "700" as const,
+                                                  color: colors.primary,
+                                              }
                                             : index < activeTrailIndex
-                                                ? {
-                                                    fontWeight:
-                                                        "600" as const,
-                                                    color:
-                                                        colors.foreground +
-                                                        "cc",
+                                              ? {
+                                                    fontWeight: "600" as const,
+                                                    color: colors.foreground,
                                                 }
-                                                : {
+                                              : {
                                                     color: colors.mutedForeground,
-                                                })
+                                                }),
                                     }}
                                 >
                                     {label}
-                                </NativeText>
+                                </AppText>
 
                                 {index < trail.length - 1 ? (
-                                    <ChevronRight
-                                        size={13}
-                                        color={colors.mutedForeground}
-                                        strokeWidth={2}
-                                    />
+                                    <ChevronRight size={13} color={colors.mutedForeground} strokeWidth={2} />
                                 ) : null}
                             </View>
                         );

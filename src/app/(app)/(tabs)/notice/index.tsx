@@ -1,859 +1,523 @@
-import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
+import { DeleteAllNotificationsSheet } from "@/components/golf/notice/DeleteAllNotificationsSheet";
 import {
-  ActionButton,
-  cn,
-  EmptyState,
-  ErrorState,
-  AnimatedPressable,
-  Screen,
-  Skeleton,
-  StateList,
-  triggerImpactHaptic,
-  triggerSelectionHaptic,
+    MemoNotificationRow,
+    NoticeListFooter,
+    NoticeListHeader,
+    NotificationListSkeleton,
+    NotificationSectionHeader,
+    NotificationSeparator,
+} from "@/components/golf/notice/NotificationRow";
+import {
+    cn,
+    EmptyState,
+    ErrorState,
+    Screen,
+    StateList,
+    triggerImpactHaptic,
+    triggerSelectionHaptic,
 } from "@/design-system";
-import { NativeText } from "@/design-system/components/NativeText";
-import { AppText } from "@/design-system/components/AppText";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import {
-  useDeleteAllNotifications,
-  useDeleteNotification,
-  useGetNotifications,
-  useMarkAllAsRead,
-  useMarkAsRead,
+    useDeleteAllNotifications,
+    useDeleteNotification,
+    useGetNotifications,
+    useMarkAllAsRead,
+    useMarkAsRead,
 } from "@/lib/hook/shared/useNotification";
 import { getMemberLessonLogByIdQueryOptions } from "@/lib/hook/useLessonLog";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
-import {
-  NotificationResponse,
-  type NotificationReferenceType,
-} from "@/service/shared/notification-service";
-import { formatRelativeTime } from "@/utils/relative-time";
-import {
-  Button,
-  Column,
-  RNHostView,
-  Row,
-  Spacer,
-  Text,
-} from "@expo/ui";
-import {
-  defaultMinSize,
-  fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
-import {
-  contentShape,
-  shapes,
-  frame,
-  presentationCornerRadius,
-} from "@expo/ui/swift-ui/modifiers";
+import { NotificationResponse, type NotificationReferenceType } from "@/service/shared/notification-service";
+import { toAppTimeZoneDate } from "@/utils/timezone";
+import * as Notifications from "expo-notifications";
+import { differenceInCalendarDays } from "date-fns";
 import { MenuView, type MenuAction } from "@expo/ui/community/menu";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigation, useRouter } from "expo-router";
-import { Bell, MoreVertical } from "lucide-react-native";
-import {
-  memo,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useFocusEffect, useIsFocused, useNavigation, useRouter, useScrollToTop } from "expo-router";
+import { MoreVertical } from "lucide-react-native";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
-import { ActivityIndicator, RefreshControl, View } from "react-native";
+import { Linking, RefreshControl, View } from "react-native";
 import { ScrollView as GestureHandlerScrollView } from "react-native-gesture-handler";
-import Swipeable, {
-  type SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
+import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 
-const isIOS = process.env.EXPO_OS === "ios";
-const fullWidth = isIOS ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()];
-const buttonSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-  : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })];
-const buttonInnerSize = isIOS
-  ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
-  : [fillMaxWidth()];
+type NotificationSectionKey = "today" | "yesterday" | "thisWeek" | "earlier";
+type NotificationListEntry =
+    { kind: "header"; key: string; label: string } | { kind: "item"; item: NotificationResponse };
 
-const notificationKeyExtractor = (item: NotificationResponse) => String(item.id);
-const getNotificationItemType = (item: NotificationResponse) =>
-  item.isRead ? "read" : "unread";
+const notificationKeyExtractor = (entry: NotificationListEntry) =>
+    entry.kind === "header" ? `section-${entry.key}` : String(entry.item.id);
 
-function NotificationSeparator() {
-  return <View className="h-px bg-border" />;
+const getNotificationItemType = (entry: NotificationListEntry) =>
+    entry.kind === "header" ? "header" : entry.item.isRead ? "read" : "unread";
+
+function getNotificationSectionKey(createdAt: string, referenceTime: number): NotificationSectionKey | null {
+    const created = toAppTimeZoneDate(createdAt);
+    const reference = toAppTimeZoneDate(referenceTime);
+    if (!created || !reference) return null;
+
+    const daysAgo = differenceInCalendarDays(reference, created);
+    if (daysAgo <= 0) return "today";
+    if (daysAgo === 1) return "yesterday";
+    if (daysAgo <= 6) return "thisWeek";
+    return "earlier";
 }
 
 function NoticeScreen() {
-  const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
-  const { t } = useTranslation();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const navigation = useNavigation();
-  const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-    isRefetching,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isFetchNextPageError,
-  } = useGetNotifications();
-  const { mutateAsync: markAsRead, isPending: isMarkingAsRead } =
-    useMarkAsRead();
-  const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } =
-    useMarkAllAsRead();
-  const { mutate: deleteNotification, isPending: isDeletingNotification } =
-    useDeleteNotification();
-  const {
-    mutate: deleteAllNotifications,
-    isPending: isDeletingAllNotifications,
-  } = useDeleteAllNotifications();
-  const [isDeleteAllConfirmationOpen, setIsDeleteAllConfirmationOpen] =
-    useState(false);
-  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
-  const refreshLocked = useRef(false);
-  const notificationActionLocked = useRef(false);
-  const openSwipeableRef = useRef<SwipeableMethods | null>(null);
-  const isNotificationActionPending =
-    isMarkingAsRead ||
-    isMarkingAllAsRead ||
-    isDeletingNotification ||
-    isDeletingAllNotifications;
-
-  const handleSwipeableWillOpen = useCallback((methods: SwipeableMethods) => {
-    if (openSwipeableRef.current && openSwipeableRef.current !== methods) {
-      openSwipeableRef.current.close();
-    }
-    openSwipeableRef.current = methods;
-    triggerSelectionHaptic();
-  }, []);
-  const handleSwipeableReset = useCallback((methods: SwipeableMethods) => {
-    if (openSwipeableRef.current === methods) {
-      openSwipeableRef.current = null;
-    }
-  }, []);
-  const handleCloseOpenSwipeable = useCallback(() => {
-    if (openSwipeableRef.current) {
-      openSwipeableRef.current.close();
-      openSwipeableRef.current = null;
-    }
-  }, []);
-  const handleDeleteNotification = useCallback(
-    (id: number) => {
-      if (
-        notificationActionLocked.current ||
-        isNotificationActionPending ||
-        isLocked
-      ) {
-        return;
-      }
-      triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
-      notificationActionLocked.current = true;
-      deleteNotification(id, {
-        onSettled: () => {
-          notificationActionLocked.current = false;
-        },
-      });
-    },
-    [deleteNotification, isLocked, isNotificationActionPending],
-  );
-  const closeDeleteAllSheet = () => {
-    setIsDeleteAllConfirmationOpen(false);
-  };
-  const confirmDeleteAll = () => {
-    if (notificationActionLocked.current || isNotificationActionPending) return;
-    triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    notificationActionLocked.current = true;
-    setIsDeleteAllConfirmationOpen(false);
-    deleteAllNotifications(undefined, {
-      onSettled: () => {
-        notificationActionLocked.current = false;
-      },
-    });
-  };
-
-  const notifications = data?.items ?? [];
-  const hasUnread = notifications.some((item) => !item.isRead);
-
-  useLayoutEffect(() => {
-    const moreActions: MenuAction[] = [
-      {
-        id: "delete-all",
-        title: isDeletingAllNotifications
-          ? t("notice.deleting")
-          : t("notice.deleteAll"),
-        image: "trash",
-        imageColor: colors.danger,
-        titleColor: colors.danger,
-        attributes: {
-          destructive: true,
-          disabled: isNotificationActionPending,
-        },
-      },
-    ];
-
-    navigation.setOptions({
-      headerRight: () => (
-        <View className="flex-row items-center gap-2">
-          {hasUnread ? (
-            <AnimatedPressable
-              accessibilityRole="button"
-              accessibilityLabel={t("notice.markAllAsRead")}
-              accessibilityState={{
-                disabled: isNotificationActionPending,
-                busy: isMarkingAllAsRead,
-              }}
-              disabled={isNotificationActionPending}
-              className={cn(
-                "items-center justify-center px-2",
-                isNotificationActionPending && "opacity-60",
-              )}
-              style={{ minHeight: 48 }}
-              onPress={() => {
-                if (
-                  notificationActionLocked.current ||
-                  isNotificationActionPending
-                ) {
-                  return;
-                }
-                notificationActionLocked.current = true;
-                markAllAsRead(undefined, {
-                  onSettled: () => {
-                    notificationActionLocked.current = false;
-                  },
+    const { colors, resolvedScheme } = useTheme();
+    const { t } = useTranslation();
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const navigation = useNavigation();
+    const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
+    const isFocused = useIsFocused();
+    const now = useDayClock();
+    const listRef = useRef<FlashListRef<NotificationListEntry>>(null);
+    useScrollToTop(listRef);
+    const [isNotificationPermissionDenied, setIsNotificationPermissionDenied] = useState(false);
+    const [isPermissionBannerDismissed, setIsPermissionBannerDismissed] = useState(false);
+    const [hasVisited, setHasVisited] = useState(false);
+    useFocusEffect(
+        useCallback(() => {
+            setHasVisited(true);
+            let isActive = true;
+            void Notifications.getPermissionsAsync()
+                .then((permission) => {
+                    if (isActive) {
+                        setIsNotificationPermissionDenied(permission.status === "denied");
+                    }
+                })
+                .catch(() => {
+                    // Permission checks must never block the screen.
                 });
-              }}
-            >
-              <NativeText variant="meta" color="primary" wrap={false}>
-                {isMarkingAllAsRead
-                  ? t("notice.marking")
-                  : t("notice.markAllRead")}
-              </NativeText>
-            </AnimatedPressable>
-          ) : null}
-          {notifications.length > 0 ? (
-            <MenuView
-              actions={moreActions}
-              colorScheme={resolvedScheme}
-              onPressAction={({ nativeEvent }) => {
-                if (
-                  nativeEvent.event === "delete-all" &&
-                  !isNotificationActionPending &&
-                  !notificationActionLocked.current
-                ) {
-                  setIsDeleteAllConfirmationOpen(true);
-                }
-              }}
-            >
-              <View
-                accessibilityRole="button"
-                accessibilityLabel={t("notice.moreActions", {
-                  defaultValue: "More actions",
-                })}
-                accessibilityState={{
-                  disabled: isNotificationActionPending,
-                }}
-                className={cn(
-                  "items-center justify-center",
-                  isNotificationActionPending && "opacity-60",
-                )}
-                style={{ minHeight: 48, minWidth: 48 }}
-              >
-                <MoreVertical size={22} color={colors.foreground} />
-              </View>
-            </MenuView>
-          ) : null}
-        </View>
-      ),
+            return () => {
+                isActive = false;
+            };
+        }, []),
+    );
+
+    const {
+        data,
+        isLoading,
+        isError,
+        isFetching,
+        refetch,
+        isRefetching,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isFetchNextPageError,
+    } = useGetNotifications(undefined, {
+        enabled: isFocused || hasVisited,
+        refetchOnWindowFocus: isFocused,
     });
-  }, [
-    colors.danger,
-    colors.foreground,
-    hasUnread,
-    isDeletingAllNotifications,
-    isMarkingAllAsRead,
-    isNotificationActionPending,
-    markAllAsRead,
-    navigation,
-    notifications.length,
-    resolvedScheme,
-    t,
-  ]);
-
-  const navigateFromNotification = useCallback(
-    (referenceType: NotificationReferenceType | null, referenceId: string) => {
-      if (
-        referenceType === "BOOKING_BAY" ||
-        referenceType === "BOOKING_LESSON"
-      ) {
-        const reservationType =
-          referenceType === "BOOKING_BAY" ? "bay" : "lesson";
-        const reservationId = Number(referenceId);
-
-        if (Number.isFinite(reservationId)) {
-          void queryClient.prefetchQuery(
-            getMemberReservationDetailQueryOptions(
-              reservationId,
-              reservationType,
-            ),
-          );
-        }
-
-        router.push({
-          pathname: "/reservation/[id]",
-          params: {
-            id: referenceId,
-            type: reservationType,
-          },
-        });
-        return true;
-      }
-
-      if (referenceType === "LESSON_LOG") {
-        const lessonLogId = Number(referenceId);
-
-        if (Number.isFinite(lessonLogId)) {
-          void queryClient.prefetchQuery(
-            getMemberLessonLogByIdQueryOptions(lessonLogId),
-          );
-        }
-
-        router.push({
-          pathname: "/lesson-log/[id]",
-          params: {
-            id: referenceId,
-          },
-        });
-        return true;
-      }
-
-      return false;
-    },
-    [queryClient, router],
-  );
-
-  const handleNotificationPress = useCallback(
-    (item: NotificationResponse) => {
-      if (notificationActionLocked.current || isNotificationActionPending) {
-        return;
-      }
-      const referenceId =
-        item.referenceId != null ? String(item.referenceId) : null;
-      const didLock = runWithNavigationLock(() => {});
-
-      if (!didLock) {
-        return;
-      }
-
-      if (!item.isRead) {
-        notificationActionLocked.current = true;
-        void markAsRead(item.id)
-          .catch(() => {})
-          .finally(() => {
-            notificationActionLocked.current = false;
-          });
-      }
-
-      if (!referenceId) {
-        unlock();
-        return;
-      }
-
-      const didNavigate = navigateFromNotification(
-        item.referenceType,
-        referenceId,
-      );
-
-      if (!didNavigate) {
-        unlock();
-      }
-    },
-    [
-      isNotificationActionPending,
-      markAsRead,
-      navigateFromNotification,
-      runWithNavigationLock,
-      unlock,
-    ],
-  );
-
-  const handleRefresh = async () => {
-    if (refreshLocked.current || isFetching) return;
-    refreshLocked.current = true;
-    setIsPullRefreshing(true);
-    try {
-      await Promise.all([
-        refetch({ cancelRefetch: false }),
-        queryClient.invalidateQueries({
-          queryKey: ["notifications", "unread-count"],
-          exact: true,
+    const { mutateAsync: markAsRead, isPending: isMarkingAsRead } = useMarkAsRead();
+    const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } = useMarkAllAsRead();
+    const { mutate: deleteNotification, isPending: isDeletingNotification } = useDeleteNotification();
+    const { mutate: deleteAllNotifications, isPending: isDeletingAllNotifications } = useDeleteAllNotifications();
+    const [isDeleteAllConfirmationOpen, setIsDeleteAllConfirmationOpen] = useState(false);
+    const notificationActionLocked = useRef(false);
+    const openSwipeableRef = useRef<SwipeableMethods | null>(null);
+    const isNotificationActionPending =
+        isMarkingAsRead || isMarkingAllAsRead || isDeletingNotification || isDeletingAllNotifications;
+    const flashListExtraData = useMemo(
+        () => ({
+            isLocked,
+            isNotificationActionPending,
+            isDeletingNotification,
         }),
-      ]);
-    } finally {
-      refreshLocked.current = false;
-      setIsPullRefreshing(false);
-    }
-  };
+        [isDeletingNotification, isLocked, isNotificationActionPending],
+    );
 
-  const handleFetchNextPage = useCallback(() => {
-    if (hasNextPage && !isFetching && !refreshLocked.current) {
-      void fetchNextPage({ cancelRefetch: false });
-    }
-  }, [fetchNextPage, hasNextPage, isFetching]);
-
-  const handleEndReached = useCallback(() => {
-    if (!isFetchNextPageError) handleFetchNextPage();
-  }, [handleFetchNextPage, isFetchNextPageError]);
-
-  const renderNotificationItem = useCallback(
-    ({ item }: { item: NotificationResponse }) => (
-      <MemoNotificationRow
-        item={item}
-        disabled={isLocked || isNotificationActionPending}
-        isDeleting={isDeletingNotification}
-        onDelete={handleDeleteNotification}
-        onPress={handleNotificationPress}
-        onSwipeableReset={handleSwipeableReset}
-        onSwipeableWillOpen={handleSwipeableWillOpen}
-      />
-    ),
-    [
-      handleDeleteNotification,
-      handleNotificationPress,
-      handleSwipeableReset,
-      handleSwipeableWillOpen,
-      isDeletingNotification,
-      isLocked,
-      isNotificationActionPending,
-    ],
-  );
-
-  return (
-    <>
-      <PendingBottomSheet
-        isPresented={isDeleteAllConfirmationOpen}
-        onDismiss={closeDeleteAllSheet}
-        dismissDisabled={false}
-        modifiers={
-          isIOS
-            ? [
-                presentationCornerRadius(24),
-              ]
-            : undefined
+    const handleSwipeableWillOpen = useCallback((methods: SwipeableMethods) => {
+        if (openSwipeableRef.current && openSwipeableRef.current !== methods) {
+            openSwipeableRef.current.close();
         }
-        containerColor={colors.card}
-        contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
-      >
-        <Column spacing={20} modifiers={fullWidth}>
-          <Column spacing={8} modifiers={fullWidth}>
-            <Text
-              textStyle={{
-                ...typography.h3,
-                lineHeight: typography.h3.lineHeight * uiFontScale,
-                color: colors.danger,
-                fontSize: typography.h3.fontSize * uiFontScale,
-              }}
-            >
-              {t("notice.deleteAllTitle")}
-            </Text>
-            <Text
-              textStyle={{
-                ...typography.muted,
-                lineHeight: typography.muted.lineHeight * uiFontScale,
-                color: colors.mutedForeground,
-                fontSize: typography.muted.fontSize * uiFontScale,
-              }}
-            >
-              {t("notice.deleteAllMessage")}
-            </Text>
-          </Column>
-
-          <Column spacing={12} modifiers={fullWidth}>
-            <Button
-              variant="text"
-              disabled={isDeletingAllNotifications}
-              onPress={confirmDeleteAll}
-              style={getNativeButtonStyle(
-                colors,
-                "filled",
-                isDeletingAllNotifications,
-                colors.danger,
-              )}
-              modifiers={buttonSize}
-            >
-              <Row spacing={8} alignment="center" modifiers={buttonInnerSize}>
-                <Spacer flexible />
-                {isDeletingAllNotifications ? (
-                  <RNHostView matchContents>
-                    <ActivityIndicator color={colors.primaryForeground} />
-                  </RNHostView>
-                ) : null}
-                <Text
-                  textStyle={{
-                    textAlign: "center",
-                    ...typography.label,
-                    lineHeight: typography.label.lineHeight * uiFontScale,
-                    fontWeight: "600",
-                    color: colors.primaryForeground,
-                    fontSize: typography.label.fontSize * uiFontScale,
-                  }}
-                >
-                  {t("notice.deleteAll")}
-                </Text>
-                <Spacer flexible />
-              </Row>
-            </Button>
-
-            <Button
-              variant="text"
-              disabled={isDeletingAllNotifications}
-              onPress={closeDeleteAllSheet}
-              style={getNativeButtonStyle(
-                colors,
-                "text",
-                isDeletingAllNotifications,
-              )}
-              modifiers={buttonSize}
-            >
-              <Text
-                modifiers={buttonInnerSize}
-                textStyle={{
-                  ...typography.label,
-                  lineHeight: typography.label.lineHeight * uiFontScale,
-                  fontWeight: "600",
-                  color: colors.foreground,
-                  fontSize: typography.label.fontSize * uiFontScale,
-                  textAlign: "center",
-                }}
-              >
-                {t("common.cancel")}
-              </Text>
-            </Button>
-          </Column>
-        </Column>
-      </PendingBottomSheet>
-
-      <Screen
-        scroll={false}
-        bottomSafeArea={process.env.EXPO_OS === "ios"}
-        bottomPadding={
-          isLoading || (isError && !data) || notifications.length === 0 ? 16 : 0
+        openSwipeableRef.current = methods;
+        triggerSelectionHaptic();
+    }, []);
+    const handleSwipeableReset = useCallback((methods: SwipeableMethods) => {
+        if (openSwipeableRef.current === methods) {
+            openSwipeableRef.current = null;
         }
-      >
-        {isLoading ? (
-          <NotificationListSkeleton />
-        ) : isError && !data ? (
-          <StateList
-            refreshing={isPullRefreshing}
-            onRefresh={() => {
-              void handleRefresh();
-            }}
-          >
-            <ErrorState
-              title={t("notice.failedNotificationsTitle")}
-              message={t("common.pullToRefreshAndTryAgain")}
-              actionLabel={
-                isRefetching
-                  ? t("common.refreshing")
-                  : t("common.refreshTryAgain")
-              }
-              actionPending={isRefetching || isPullRefreshing}
-              onAction={() => {
-                void refetch();
-              }}
+    }, []);
+    const handleCloseOpenSwipeable = useCallback(() => {
+        if (openSwipeableRef.current) {
+            openSwipeableRef.current.close();
+            openSwipeableRef.current = null;
+        }
+    }, []);
+    const handleDeleteNotification = useCallback(
+        (id: number) => {
+            if (notificationActionLocked.current || isNotificationActionPending || isLocked) {
+                return;
+            }
+            triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
+            notificationActionLocked.current = true;
+            deleteNotification(id, {
+                onSettled: () => {
+                    notificationActionLocked.current = false;
+                },
+            });
+        },
+        [deleteNotification, isLocked, isNotificationActionPending],
+    );
+    const closeDeleteAllSheet = () => {
+        setIsDeleteAllConfirmationOpen(false);
+    };
+    const confirmDeleteAll = () => {
+        if (notificationActionLocked.current || isNotificationActionPending) return;
+        triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
+        notificationActionLocked.current = true;
+        setIsDeleteAllConfirmationOpen(false);
+        deleteAllNotifications(undefined, {
+            onSettled: () => {
+                notificationActionLocked.current = false;
+            },
+        });
+    };
+
+    const notifications = useMemo(() => data?.items ?? [], [data]);
+    const groupedNotifications = useMemo(() => {
+        const entries: NotificationListEntry[] = [];
+        const stickyHeaderIndices: number[] = [];
+        let currentKey: NotificationSectionKey | null = null;
+
+        for (const notification of notifications) {
+            const key = getNotificationSectionKey(notification.createdAt, now);
+            if (key && key !== currentKey) {
+                stickyHeaderIndices.push(entries.length);
+                entries.push({
+                    kind: "header",
+                    key,
+                    label:
+                        key === "today"
+                            ? t("notice.groupToday")
+                            : key === "yesterday"
+                              ? t("notice.groupYesterday")
+                              : key === "thisWeek"
+                                ? t("notice.groupThisWeek")
+                                : t("notice.groupEarlier"),
+                });
+                currentKey = key;
+            }
+            entries.push({ kind: "item", item: notification });
+        }
+
+        return { data: entries, stickyHeaderIndices };
+    }, [notifications, now, t]);
+    const hasUnread = notifications.some((item) => !item.isRead);
+
+    useLayoutEffect(() => {
+        const moreActions: MenuAction[] = [
+            ...(hasUnread
+                ? [
+                      {
+                          id: "mark-all-read",
+                          title: isMarkingAllAsRead ? t("notice.marking") : t("notice.markAllRead"),
+                          image: "checkmark.circle" as const,
+                          attributes: {
+                              disabled: isNotificationActionPending,
+                          },
+                      },
+                  ]
+                : []),
+            {
+                id: "delete-all",
+                title: isDeletingAllNotifications ? t("notice.deleting") : t("notice.deleteAll"),
+                image: "trash",
+                imageColor: colors.danger,
+                titleColor: colors.danger,
+                attributes: {
+                    destructive: true,
+                    disabled: isNotificationActionPending,
+                },
+            },
+        ];
+
+        navigation.setOptions({
+            headerRight: () =>
+                notifications.length > 0 ? (
+                    <MenuView
+                        actions={moreActions}
+                        colorScheme={resolvedScheme}
+                        onPressAction={({ nativeEvent }) => {
+                            if (isNotificationActionPending || notificationActionLocked.current) {
+                                return;
+                            }
+                            if (nativeEvent.event === "mark-all-read") {
+                                notificationActionLocked.current = true;
+                                markAllAsRead(undefined, {
+                                    onSettled: () => {
+                                        notificationActionLocked.current = false;
+                                    },
+                                });
+                                return;
+                            }
+                            if (nativeEvent.event === "delete-all") {
+                                setIsDeleteAllConfirmationOpen(true);
+                            }
+                        }}
+                    >
+                        <View
+                            accessibilityRole="button"
+                            accessibilityLabel={t("notice.moreActions", {
+                                defaultValue: "More actions",
+                            })}
+                            accessibilityState={{
+                                disabled: isNotificationActionPending,
+                                busy: isMarkingAllAsRead || isDeletingAllNotifications,
+                            }}
+                            className={cn("items-center justify-center", isNotificationActionPending && "opacity-60")}
+                            style={{ minHeight: 48, minWidth: 48 }}
+                        >
+                            <MoreVertical size={22} color={colors.foreground} />
+                        </View>
+                    </MenuView>
+                ) : null,
+        });
+    }, [
+        colors.danger,
+        colors.foreground,
+        hasUnread,
+        isDeletingAllNotifications,
+        isMarkingAllAsRead,
+        isNotificationActionPending,
+        markAllAsRead,
+        navigation,
+        notifications.length,
+        resolvedScheme,
+        t,
+    ]);
+
+    const navigateFromNotification = useCallback(
+        (referenceType: NotificationReferenceType | null, referenceId: string) => {
+            if (referenceType === "BOOKING_BAY" || referenceType === "BOOKING_LESSON") {
+                const reservationType = referenceType === "BOOKING_BAY" ? "bay" : "lesson";
+                const reservationId = Number(referenceId);
+
+                if (Number.isFinite(reservationId)) {
+                    void queryClient.prefetchQuery(
+                        getMemberReservationDetailQueryOptions(reservationId, reservationType),
+                    );
+                }
+
+                router.push({
+                    pathname: "/reservation/[id]",
+                    params: {
+                        id: referenceId,
+                        type: reservationType,
+                    },
+                });
+                return true;
+            }
+
+            if (referenceType === "LESSON_LOG") {
+                const lessonLogId = Number(referenceId);
+
+                if (Number.isFinite(lessonLogId)) {
+                    void queryClient.prefetchQuery(getMemberLessonLogByIdQueryOptions(lessonLogId));
+                }
+
+                router.push({
+                    pathname: "/lesson-log/[id]",
+                    params: {
+                        id: referenceId,
+                    },
+                });
+                return true;
+            }
+
+            return false;
+        },
+        [queryClient, router],
+    );
+
+    const handleNotificationPress = useCallback(
+        (item: NotificationResponse) => {
+            if (notificationActionLocked.current || isNotificationActionPending) {
+                return;
+            }
+            const referenceId = item.referenceId != null ? String(item.referenceId) : null;
+            const didLock = runWithNavigationLock(() => {});
+
+            if (!didLock) {
+                return;
+            }
+
+            if (!item.isRead) {
+                notificationActionLocked.current = true;
+                void markAsRead(item.id)
+                    .catch(() => {})
+                    .finally(() => {
+                        notificationActionLocked.current = false;
+                    });
+            }
+
+            if (!referenceId) {
+                unlock();
+                return;
+            }
+
+            const didNavigate = navigateFromNotification(item.referenceType, referenceId);
+
+            if (!didNavigate) {
+                unlock();
+            }
+        },
+        [isNotificationActionPending, markAsRead, navigateFromNotification, runWithNavigationLock, unlock],
+    );
+
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        Promise.all([
+            refetch({ cancelRefetch: false }),
+            queryClient.invalidateQueries({
+                queryKey: ["notifications", "unread-count"],
+                exact: true,
+            }),
+        ]),
+    );
+
+    const handleFetchNextPage = useCallback(() => {
+        if (hasNextPage && !isFetching && !isPullRefreshing) {
+            void fetchNextPage({ cancelRefetch: false });
+        }
+    }, [fetchNextPage, hasNextPage, isFetching, isPullRefreshing]);
+
+    const handleEndReached = useCallback(() => {
+        if (!isFetchNextPageError) handleFetchNextPage();
+    }, [handleFetchNextPage, isFetchNextPageError]);
+
+    const renderNotificationItem = useCallback(
+        ({ item }: { item: NotificationListEntry }) =>
+            item.kind === "header" ? (
+                <NotificationSectionHeader label={item.label} />
+            ) : (
+                <MemoNotificationRow
+                    item={item.item}
+                    disabled={isLocked || isNotificationActionPending}
+                    isDeleting={isDeletingNotification}
+                    onDelete={handleDeleteNotification}
+                    onPress={handleNotificationPress}
+                    onSwipeableReset={handleSwipeableReset}
+                    onSwipeableWillOpen={handleSwipeableWillOpen}
+                />
+            ),
+        [
+            handleDeleteNotification,
+            handleNotificationPress,
+            handleSwipeableReset,
+            handleSwipeableWillOpen,
+            isDeletingNotification,
+            isLocked,
+            isNotificationActionPending,
+        ],
+    );
+
+    return (
+        <>
+            <DeleteAllNotificationsSheet
+                isPresented={isDeleteAllConfirmationOpen}
+                isDeleting={isDeletingAllNotifications}
+                onDismiss={closeDeleteAllSheet}
+                onConfirm={confirmDeleteAll}
             />
-          </StateList>
-        ) : notifications.length === 0 ? (
-          <StateList
-            refreshing={isPullRefreshing}
-            onRefresh={() => {
-              void handleRefresh();
-            }}
-          >
-            <EmptyState
-              title={t("notice.noNotificationsTitle")}
-              message={t("notice.noNotificationsMessage")}
-              actionLabel={t("common.refresh", {
-                defaultValue: "Refresh",
-              })}
-              actionPending={isRefetching || isPullRefreshing}
-              onAction={() => {
-                void refetch();
-              }}
-            />
-          </StateList>
-        ) : (
-          <FlashList
-            data={notifications}
-            keyExtractor={notificationKeyExtractor}
-            getItemType={getNotificationItemType}
-            renderItem={renderNotificationItem}
-            renderScrollComponent={GestureHandlerScrollView}
-            ItemSeparatorComponent={NotificationSeparator}
-            onScrollBeginDrag={handleCloseOpenSwipeable}
-            refreshControl={
-              <RefreshControl
-                refreshing={isPullRefreshing}
-                onRefresh={() => {
-                  void handleRefresh();
-                }}
-              />
-            }
-            contentInsetAdjustmentBehavior="automatic"
-            showsVerticalScrollIndicator={false}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.4}
-            ListHeaderComponent={
-              <NoticeListHeader
-                count={notifications.length}
-                isUpdating={isFetching && !isFetchingNextPage}
-              />
-            }
-            ListFooterComponent={
-              isFetchingNextPage ? (
-                <NoticeListFooter />
-              ) : isFetchNextPageError ? (
-                <NoticeListFooter onRetry={handleFetchNextPage} />
-              ) : undefined
-            }
-          />
-        )}
-      </Screen>
-    </>
-  );
+
+            <Screen
+                scroll={false}
+                bottomSafeArea={process.env.EXPO_OS === "ios"}
+                bottomPadding={isLoading || (isError && !data) || notifications.length === 0 ? 16 : 0}
+            >
+                {isLoading ? (
+                    <NotificationListSkeleton />
+                ) : isError && !data ? (
+                    <StateList
+                        refreshing={isPullRefreshing}
+                        onRefresh={() => {
+                            void handlePullRefresh();
+                        }}
+                    >
+                        <ErrorState
+                            title={t("notice.failedNotificationsTitle")}
+                            message={t("common.pullToRefreshAndTryAgain")}
+                            actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                            actionPending={isRefetching || isPullRefreshing}
+                            onAction={() => {
+                                void refetch();
+                            }}
+                        />
+                    </StateList>
+                ) : notifications.length === 0 ? (
+                    <StateList
+                        refreshing={isPullRefreshing}
+                        onRefresh={() => {
+                            void handlePullRefresh();
+                        }}
+                    >
+                        <EmptyState
+                            title={t("notice.noNotificationsTitle")}
+                            message={t("notice.noNotificationsMessage")}
+                            actionLabel={t("common.refresh", {
+                                defaultValue: "Refresh",
+                            })}
+                            actionPending={isRefetching || isPullRefreshing}
+                            onAction={() => {
+                                void refetch();
+                            }}
+                        />
+                    </StateList>
+                ) : (
+                    <FlashList
+                        ref={listRef}
+                        data={groupedNotifications.data}
+                        extraData={flashListExtraData}
+                        keyExtractor={notificationKeyExtractor}
+                        getItemType={getNotificationItemType}
+                        stickyHeaderIndices={groupedNotifications.stickyHeaderIndices}
+                        stickyHeaderConfig={{ hideRelatedCell: true }}
+                        renderItem={renderNotificationItem}
+                        renderScrollComponent={GestureHandlerScrollView}
+                        ItemSeparatorComponent={NotificationSeparator}
+                        onScrollBeginDrag={handleCloseOpenSwipeable}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isPullRefreshing}
+                                onRefresh={() => {
+                                    void handlePullRefresh();
+                                }}
+                            />
+                        }
+                        contentInsetAdjustmentBehavior="automatic"
+                        showsVerticalScrollIndicator={false}
+                        onEndReached={handleEndReached}
+                        onEndReachedThreshold={0.4}
+                        ListHeaderComponent={
+                            <NoticeListHeader
+                                count={hasNextPage ? `${notifications.length}+` : notifications.length}
+                                isUpdating={isFetching && !isFetchingNextPage}
+                                showPermissionBanner={isNotificationPermissionDenied && !isPermissionBannerDismissed}
+                                onOpenSettings={() => {
+                                    void Linking.openSettings();
+                                }}
+                                onDismissPermissionBanner={() => setIsPermissionBannerDismissed(true)}
+                            />
+                        }
+                        ListFooterComponent={
+                            isFetchingNextPage ? (
+                                <NoticeListFooter />
+                            ) : isFetchNextPageError ? (
+                                <NoticeListFooter onRetry={handleFetchNextPage} />
+                            ) : undefined
+                        }
+                    />
+                )}
+            </Screen>
+        </>
+    );
 }
 
 export default NoticeScreen;
-
-function NoticeListHeader({
-  count,
-  isUpdating,
-}: {
-  count: number;
-  isUpdating: boolean;
-}) {
-  const { colors: uiColors } = useTheme();
-  const { t } = useTranslation();
-
-  return (
-    <View className="flex-row items-center justify-between pb-3">
-      <NativeText
-        variant="meta"
-        wrap={false}
-        textStyle={{ color: uiColors.foreground + "bf" }}
-      >
-        {t("notice.notificationsCount", { count })}
-      </NativeText>
-
-      {isUpdating ? (
-        <NativeText
-          variant="meta"
-          wrap={false}
-          textStyle={{ color: uiColors.foreground + "bf" }}
-        >
-          {t("notice.updating")}
-        </NativeText>
-      ) : null}
-    </View>
-  );
-}
-
-function NotificationRow({
-  item,
-  disabled,
-  isDeleting,
-  onDelete,
-  onPress,
-  onSwipeableReset,
-  onSwipeableWillOpen,
-}: {
-  item: NotificationResponse;
-  disabled: boolean;
-  isDeleting: boolean;
-  onDelete: (id: number) => void;
-  onPress: (item: NotificationResponse) => void;
-  onSwipeableReset: (methods: SwipeableMethods) => void;
-  onSwipeableWillOpen: (methods: SwipeableMethods) => void;
-}) {
-  const { colors } = useTheme();
-  const { t, i18n } = useTranslation();
-  const swipeableRef = useRef<SwipeableMethods | null>(null);
-  const lastItemIdRef = useRef(item.id);
-  const iconClassName = item.isRead ? "bg-muted" : "bg-primary/10";
-  const iconColor = item.isRead ? colors.mutedForeground : colors.primary;
-
-  useLayoutEffect(() => {
-    if (lastItemIdRef.current !== item.id) {
-      lastItemIdRef.current = item.id;
-      if (swipeableRef.current) {
-        onSwipeableReset(swipeableRef.current);
-        swipeableRef.current.reset();
-      }
-    }
-  }, [item.id, onSwipeableReset]);
-
-  const handleWillOpen = useCallback(() => {
-    if (swipeableRef.current) {
-      onSwipeableWillOpen(swipeableRef.current);
-    }
-  }, [onSwipeableWillOpen]);
-
-  const renderRightActions = useCallback(
-    () => (
-      <AnimatedPressable
-        accessibilityRole="button"
-        accessibilityLabel={t("notice.delete")}
-        disabled={disabled}
-        className={cn(
-          "w-24 items-center justify-center bg-danger",
-          disabled && "opacity-60",
-        )}
-        onPress={() => onDelete(item.id)}
-      >
-        <AppText variant="label" wrap={false} color="primaryForeground">
-          {isDeleting ? t("notice.deleting") : t("notice.delete")}
-        </AppText>
-      </AnimatedPressable>
-    ),
-    [disabled, isDeleting, item.id, onDelete, t],
-  );
-
-  return (
-    <Swipeable
-      ref={swipeableRef}
-      enabled={!disabled}
-      friction={1}
-      overshootLeft={false}
-      overshootFriction={8}
-      dragOffsetFromLeft={10}
-      dragOffsetFromRight={-10}
-      rightThreshold={32}
-      onSwipeableWillOpen={handleWillOpen}
-      renderRightActions={renderRightActions}
-    >
-      <View className="bg-background">
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel={item.title}
-          haptic="selection"
-          className={cn("py-3 pr-4", disabled && "opacity-60")}
-          disabled={disabled}
-          onPress={() => onPress(item)}
-        >
-          <View className="flex-row items-start gap-3">
-            <View
-              className={cn(
-                "h-10 w-10 items-center justify-center rounded-xl",
-                iconClassName,
-              )}
-            >
-              <Bell size={18} color={iconColor} />
-            </View>
-
-            <View className="min-w-0 flex-1 gap-1.5">
-              <AppText
-                variant="label"
-                className={item.isRead ? "text-foreground/75" : "text-foreground"}
-                textStyle={{
-                  fontWeight: "600" as const,
-                  lineHeight: typography.subtext.lineHeight,
-                }}
-              >
-                {item.title}
-              </AppText>
-
-              <AppText
-                variant="meta"
-                className={item.isRead ? "text-foreground/70" : "text-foreground/85"}
-                textStyle={{
-                  lineHeight: typography.body.lineHeight,
-                }}
-              >
-                {item.message}
-              </AppText>
-
-              {!item.isRead ? (
-                <AppText variant="caption" color="primary">
-                  {t("notice.unread")}
-                </AppText>
-              ) : null}
-
-              <AppText
-                variant="caption"
-                color="mutedForeground"
-                wrap={false}
-                style={{ alignSelf: "flex-end" }}
-              >
-                {formatRelativeTime(item.createdAt, i18n.resolvedLanguage ?? i18n.language)}
-              </AppText>
-            </View>
-          </View>
-        </AnimatedPressable>
-      </View>
-    </Swipeable>
-  );
-}
-
-const MemoNotificationRow = memo(NotificationRow);
-
-function NotificationRowSkeleton() {
-  return (
-    <View className="flex-row items-start gap-3 py-3 pr-4">
-      <Skeleton className="h-10 w-10 rounded-xl" />
-      <View className="min-w-0 flex-1 gap-2">
-        <Skeleton className="h-4 w-3/4 rounded-md" />
-        <Skeleton className="h-3.5 w-full rounded-md" />
-        <Skeleton className="h-3 w-24 rounded-md" />
-      </View>
-    </View>
-  );
-}
-
-function NotificationListSkeleton() {
-  return (
-    <View className="flex-1 pt-2">
-      {Array.from({ length: 6 }, (_, index) => (
-        <View
-          key={index}
-          className={index < 5 ? "border-b border-border" : undefined}
-        >
-          <NotificationRowSkeleton />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function NoticeListFooter({ onRetry }: { onRetry?: () => void }) {
-  const { t } = useTranslation();
-
-  if (!onRetry) {
-    return (
-      <View className="py-2">
-        <NotificationRowSkeleton />
-      </View>
-    );
-  }
-
-  return (
-    <View className="items-center gap-3 py-5">
-      <NativeText variant="meta" color="mutedForeground" align="center">
-        {t("notice.failedMoreTitle", {
-          defaultValue: "Couldn't load more notifications",
-        })}
-      </NativeText>
-      <ActionButton
-        label={t("common.refreshTryAgain")}
-        appearance="outlined"
-        onPress={onRetry}
-      />
-    </View>
-  );
-}

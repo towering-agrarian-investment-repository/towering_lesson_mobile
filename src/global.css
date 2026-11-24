@@ -5,86 +5,103 @@
 @import "nativewind/theme";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-danger: var(--danger);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-ticket-bay: var(--ticket-bay);
-  --color-ticket-private: var(--ticket-private);
-  --color-ticket-group: var(--ticket-group);
-  --color-ticket-program: var(--ticket-program);
-  --color-ticket-default: var(--ticket-default);
-  --color-bg-btn-main-start: var(--bg-btn-main-start);
-  --color-bg-btn-main-end: var(--bg-btn-main-end);
-  --color-bg-btn-main-pressed-start: var(--bg-btn-main-pressed-start);
-  --color-bg-btn-main-pressed-end: var(--bg-btn-main-pressed-end);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-surface: var(--surface);
+    --color-card: var(--card);
+    --color-border: var(--border);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-danger: var(--danger);
+    --color-danger-foreground: var(--danger-foreground);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-ticket-bay: var(--ticket-bay);
+    --color-ticket-private: var(--ticket-private);
+    --color-ticket-group: var(--ticket-group);
+    --color-ticket-program: var(--ticket-program);
+    --color-ticket-default: var(--ticket-default);
+    --color-bg-btn-main-start: var(--bg-btn-main-start);
+    --color-bg-btn-main-end: var(--bg-btn-main-end);
+    --color-bg-btn-main-pressed-start: var(--bg-btn-main-pressed-start);
+    --color-bg-btn-main-pressed-end: var(--bg-btn-main-pressed-end);
+    --color-scrim: var(--scrim);
+    --color-media-background: var(--media-background);
+    --color-media-foreground: var(--media-foreground);
+    --color-scrim-control: var(--scrim-control);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
-  --surface: #f9fafb;
-  --card: #ffffff;
-  --border: #e5e7eb;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
+    --background: #ffffff;
+    --foreground: #111827;
+    --surface: #f9fafb;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --muted: #f3f4f6;
+    --muted-foreground: #6b7280;
 
-  --primary: #00aeef;
-  --primary-foreground: #ffffff;
+    --primary: #00aeef;
+    --primary-foreground: #ffffff;
 
-  --danger: #dc2626;
-  --success: #16a34a;
-  --warning: #f59e0b;
+    --danger: #dc2626;
+    --danger-foreground: #ffffff;
+    --success: #16a34a;
+    --warning: #f59e0b;
 
-  --ticket-bay: #26a9e0;
-  --ticket-private: #4071c0;
-  --ticket-group: #faad3d;
-  --ticket-program: #845ef7;
-  --ticket-default: #7a8186;
+    --ticket-bay: #26a9e0;
+    --ticket-private: #4071c0;
+    --ticket-group: #faad3d;
+    --ticket-program: #845ef7;
+    --ticket-default: #7a8186;
 
-  --bg-btn-main-start: #40c057;
-  --bg-btn-main-end: #49bbc4;
-  --bg-btn-main-pressed-start: #37a54b;
-  --bg-btn-main-pressed-end: #3a9da5;
+    --bg-btn-main-start: #40c057;
+    --bg-btn-main-end: #49bbc4;
+    --bg-btn-main-pressed-start: #37a54b;
+    --bg-btn-main-pressed-end: #3a9da5;
 
-  --logo-blue: #00aeef;
-  --logo-orange: #f7941d;
+    --scrim: rgba(0, 0, 0, 0.45);
+    --media-background: #000000;
+    --media-foreground: #ffffff;
+    --scrim-control: rgba(255, 255, 255, 0.2);
+
+    --logo-blue: #00aeef;
+    --logo-orange: #f7941d;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0e16;
-    --foreground: #e5e7eb;
-    --surface: #11161f;
-    --card: #161b26;
-    --border: #262d3a;
-    --muted: #1c2330;
-    --muted-foreground: #8b95a7;
+    :root {
+        --background: #0a0e16;
+        --foreground: #e5e7eb;
+        --surface: #11161f;
+        --card: #161b26;
+        --border: #262d3a;
+        --muted: #1c2330;
+        --muted-foreground: #8b95a7;
 
-    --primary: #33c6ff;
-    --primary-foreground: #ffffff;
+        --primary: #33c6ff;
+        --primary-foreground: #ffffff;
 
-    --danger: #f87171;
-    --success: #4ade80;
-    --warning: #fbbf24;
+        --danger: #f87171;
+        --danger-foreground: #ffffff;
+        --success: #4ade80;
+        --warning: #fbbf24;
 
-    --ticket-bay: #4cc3f0;
-    --ticket-private: #5b8def;
-    --ticket-group: #ffc24b;
-    --ticket-program: #9775fa;
-    --ticket-default: #8b95a7;
+        --ticket-bay: #4cc3f0;
+        --ticket-private: #5b8def;
+        --ticket-group: #ffc24b;
+        --ticket-program: #9775fa;
+        --ticket-default: #8b95a7;
 
-    --bg-btn-main-start: #48d469;
-    --bg-btn-main-end: #54cbd4;
-    --bg-btn-main-pressed-start: #3dae54;
-    --bg-btn-main-pressed-end: #46aeb6;
-  }
+        --bg-btn-main-start: #48d469;
+        --bg-btn-main-end: #54cbd4;
+        --bg-btn-main-pressed-start: #3dae54;
+        --bg-btn-main-pressed-end: #46aeb6;
+
+        --scrim: rgba(0, 0, 0, 0.45);
+        --media-background: #000000;
+        --media-foreground: #ffffff;
+        --scrim-control: rgba(255, 255, 255, 0.2);
+    }
 }

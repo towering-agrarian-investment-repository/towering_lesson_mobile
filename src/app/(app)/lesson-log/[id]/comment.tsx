@@ -1,5 +1,5 @@
+import { AppText } from "@/design-system/components/AppText";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import { NativeText } from "@/design-system/components/NativeText";
 import { FormTextInput } from "@/components/ui/form";
 import {
     ActionButton,
@@ -8,26 +8,19 @@ import {
     AnimatedPressable,
     Screen,
     Skeleton,
-    triggerNotificationHaptic,
+    triggerSuccessHaptic,
     triggerSelectionHaptic,
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import {
-    useMemberLessonLogById,
-    useUpdateMemberLessonLog,
-} from "@/lib/hook/useLessonLog";
+import { useMemberLessonLogById, useUpdateMemberLessonLog } from "@/lib/hook/useLessonLog";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, usePreventRemove, useRouter } from "expo-router";
 import { Star } from "lucide-react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import {
-    RefreshControl,
-    View,
-} from "react-native";
+import { Alert, RefreshControl, View } from "react-native";
 import { z } from "zod";
 
 type LessonLogParams = {
@@ -44,15 +37,10 @@ function LessonLogCommentScreen() {
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
-    const {
-        data: lessonLogResponse,
-        isLoading,
-        isError,
-        refetch,
-        isRefetching,
-    } = useMemberLessonLogById(Number(id));
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const { data: lessonLogResponse, isLoading, isError, refetch, isRefetching } = useMemberLessonLogById(Number(id));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        refetch({ cancelRefetch: false }),
+    );
     const { mutate: updateLessonLog, isPending } = useUpdateMemberLessonLog();
     const submitting = useRef(false);
     const initializedLessonLogId = useRef<number | null>(null);
@@ -71,6 +59,28 @@ function LessonLogCommentScreen() {
             comment: "",
         },
     });
+    const [savedLessonLogId, setSavedLessonLogId] = useState<number | null>(null);
+    usePreventRemove(form.formState.isDirty && !isPending && savedLessonLogId === null, ({ repeat }) => {
+        Alert.alert(t("common.unsavedChangesTitle"), t("common.unsavedChangesMessage"), [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+                text: t("common.discardChanges"),
+                style: "destructive",
+                onPress: () => {
+                    form.reset();
+                    repeat();
+                },
+            },
+        ]);
+    });
+
+    useEffect(() => {
+        if (savedLessonLogId === null) return;
+        router.dismissTo({
+            pathname: "/lesson-log/[id]",
+            params: { id: String(savedLessonLogId) },
+        });
+    }, [router, savedLessonLogId]);
 
     useEffect(() => {
         if (!lessonLog || initializedLessonLogId.current === lessonLog.id) return;
@@ -94,10 +104,7 @@ function LessonLogCommentScreen() {
                     <Skeleton className="h-7 w-48 rounded-full" />
                     <View className="flex-row gap-3 py-2">
                         {Array.from({ length: 5 }, (_, index) => (
-                            <Skeleton
-                                key={index}
-                                className="h-12 w-12 rounded-full"
-                            />
+                            <Skeleton key={index} className="h-12 w-12 rounded-full" />
                         ))}
                     </View>
                 </View>
@@ -114,21 +121,12 @@ function LessonLogCommentScreen() {
         return (
             <Screen
                 contentClassName="grow"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isPullRefreshing}
-                        onRefresh={handlePullRefresh}
-                    />
-                }
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             >
                 <ErrorState
                     title={t("lessonLog.failedCommentFormTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={
-                        isRefetching
-                            ? t("common.refreshing")
-                            : t("common.refreshTryAgain")
-                    }
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     actionPending={isRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
@@ -140,17 +138,9 @@ function LessonLogCommentScreen() {
         return (
             <Screen
                 contentClassName="grow"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isPullRefreshing}
-                        onRefresh={handlePullRefresh}
-                    />
-                }
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             >
-                <EmptyState
-                    title={t("lessonLog.postNotAvailableTitle")}
-                    message={t("lessonLog.postNotFoundMessage")}
-                />
+                <EmptyState title={t("lessonLog.postNotAvailableTitle")} message={t("lessonLog.postNotFoundMessage")} />
             </Screen>
         );
     }
@@ -169,15 +159,14 @@ function LessonLogCommentScreen() {
     return (
         <Screen
             keyboardAware
-            contentClassName="grow gap-5"
+            contentClassName="grow gap-6"
             footer={
                 <ActionButton
                     label={t("lessonLog.submit")}
-                    accessibilityLabel={t(
-                        "lessonLog.submitCommentAccessibility",
-                    )}
+                    accessibilityLabel={t("lessonLog.submitCommentAccessibility")}
                     disabled={isPending}
                     loading={isPending}
+                    haptic="selection"
                     onPress={() => {
                         void form.handleSubmit(
                             (values) => {
@@ -193,16 +182,8 @@ function LessonLogCommentScreen() {
                                     },
                                     {
                                         onSuccess: () => {
-                                            triggerNotificationHaptic(
-                                                Haptics.NotificationFeedbackType
-                                                    .Success,
-                                            );
-                                            router.dismissTo({
-                                                pathname: "/lesson-log/[id]",
-                                                params: {
-                                                    id: String(lessonLog.id),
-                                                },
-                                            });
+                                            triggerSuccessHaptic();
+                                            setSavedLessonLogId(Number(lessonLog.id));
                                         },
                                         onSettled: () => {
                                             submitting.current = false;
@@ -221,24 +202,20 @@ function LessonLogCommentScreen() {
             }
         >
             <View className="gap-2">
-                <NativeText variant="h2">
-                    {formatDateForDisplay(lessonLog.lessonDate)}
-                </NativeText>
-                <NativeText variant="muted" color="mutedForeground">
+                <AppText variant="h2">{formatDateForDisplay(lessonLog.lessonDate)}</AppText>
+                <AppText variant="body" color="mutedForeground">
                     {t("lessonLog.shareRatingPrompt")}
-                </NativeText>
+                </AppText>
             </View>
 
             <View className="h-px bg-border" />
 
             <View className="gap-4">
                 <View className="gap-2">
-                    <NativeText variant="label">
-                        {t("lessonLog.howWasLesson")}
-                    </NativeText>
-                    <NativeText variant="meta" color="danger">
+                    <AppText variant="label">{t("lessonLog.howWasLesson")}</AppText>
+                    <AppText variant="subtext" color="danger">
                         {t("lessonLog.ratingPrivateNotice")}
-                    </NativeText>
+                    </AppText>
                 </View>
 
                 <Controller
@@ -255,12 +232,9 @@ function LessonLogCommentScreen() {
                                         <AnimatedPressable
                                             key={starValue}
                                             accessibilityRole="button"
-                                            accessibilityLabel={t(
-                                                "lessonLog.rateStarsAccessibility",
-                                                {
-                                                    count: starValue,
-                                                },
-                                            )}
+                                            accessibilityLabel={t("lessonLog.rateStarsAccessibility", {
+                                                count: starValue,
+                                            })}
                                             accessibilityState={{
                                                 selected: isActive,
                                                 disabled: isPending,
@@ -275,16 +249,8 @@ function LessonLogCommentScreen() {
                                         >
                                             <Star
                                                 size={34}
-                                                fill={
-                                                    isActive
-                                                        ? colors.warning
-                                                        : "transparent"
-                                                }
-                                                color={
-                                                    isActive
-                                                        ? colors.warning
-                                                        : colors.border
-                                                }
+                                                fill={isActive ? colors.warning : "transparent"}
+                                                color={isActive ? colors.warning : colors.border}
                                                 strokeWidth={1.8}
                                             />
                                         </AnimatedPressable>
@@ -293,9 +259,9 @@ function LessonLogCommentScreen() {
                             </View>
 
                             {fieldState.error?.message ? (
-                                <NativeText variant="meta" color="danger">
+                                <AppText variant="subtext" color="danger">
                                     {fieldState.error.message}
-                                </NativeText>
+                                </AppText>
                             ) : null}
                         </View>
                     )}
@@ -313,6 +279,7 @@ function LessonLogCommentScreen() {
                     multiline
                     numberOfLines={4}
                     maxLength={500}
+                    showCharacterCount
                     editable={!isPending}
                 />
             </View>

@@ -23,10 +23,7 @@ function TodayReservation() {
 
     return (
         <View className="gap-3">
-            <TitleSectionWithBadge
-                label={t("reservations.todayTitle")}
-                length={todayReservations.length}
-            />
+            <TitleSectionWithBadge label={t("reservations.todayTitle")} length={todayReservations.length} />
 
             {showInitialLoading ? (
                 <View className="gap-3">
@@ -38,11 +35,7 @@ function TodayReservation() {
                     <CompactEmptyState
                         title={t("reservations.loadError")}
                         tone="danger"
-                        actionLabel={
-                            isFetching
-                                ? t("common.refreshing")
-                                : t("common.refreshTryAgain")
-                        }
+                        actionLabel={isFetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                         actionPending={isFetching}
                         onAction={() => {
                             void refetch();

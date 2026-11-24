@@ -1,21 +1,13 @@
-// NativeWind uses a 14-point rem on native; browsers use 16px. Keep explicit
-// Expo UI text at the same sizes as the original Tailwind text utilities.
-const rem = process.env.EXPO_OS === "web" ? 16 : 14;
-
+// Integer native point sizes with a 12pt floor. Korean line-heights stay
+// comfortable at 1.4x–1.5x, and weights stay within 400/600/700.
 export const typography = {
-    display: { fontSize: 3.75 * rem, lineHeight: 3.75 * rem, fontWeight: "700", letterSpacing: 0 },
-    h1: { fontSize: 1.875 * rem, lineHeight: 2.25 * rem, fontWeight: "700", letterSpacing: 0 },
-    h2: { fontSize: 1.5 * rem, lineHeight: 2 * rem, fontWeight: "700", letterSpacing: 0 },
-    h3: { fontSize: 1.25 * rem, lineHeight: 1.75 * rem, fontWeight: "600", letterSpacing: 0 },
-    subtitle: { fontSize: 1.125 * rem, lineHeight: 1.75 * rem, fontWeight: "600", letterSpacing: 0 },
-    body: { fontSize: rem, lineHeight: 1.5 * rem, fontWeight: "400", letterSpacing: 0 },
-    value: { fontSize: 1.5 * rem, lineHeight: 2 * rem, fontWeight: "700", letterSpacing: 0 },
-    subtext: { fontSize: 0.875 * rem, lineHeight: 1.25 * rem, fontWeight: "400", letterSpacing: 0 },
-    muted: { fontSize: rem, lineHeight: 1.5 * rem, fontWeight: "400", letterSpacing: 0 },
-    caption: { fontSize: 0.75 * rem, lineHeight: rem, fontWeight: "400", letterSpacing: 0 },
-    meta: { fontSize: 0.875 * rem, lineHeight: 1.25 * rem, fontWeight: "400", letterSpacing: 0 },
-    eyebrow: { fontSize: 0.875 * rem, lineHeight: 1.25 * rem, fontWeight: "600", letterSpacing: 0.07 * rem },
-    label: { fontSize: rem, lineHeight: 1.5 * rem, fontWeight: "500", letterSpacing: 0 },
-    badge: { fontSize: 0.75 * rem, lineHeight: rem, fontWeight: "600", letterSpacing: 0.01875 * rem },
-    count: { fontSize: 0.875 * rem, lineHeight: 1.25 * rem, fontWeight: "500", letterSpacing: 0 },
+    h1: { fontSize: 26, lineHeight: 34, fontWeight: "700", letterSpacing: -0.4 },
+    h2: { fontSize: 21, lineHeight: 28, fontWeight: "700", letterSpacing: -0.2 },
+    h3: { fontSize: 17, lineHeight: 24, fontWeight: "600", letterSpacing: 0 },
+    subtitle: { fontSize: 16, lineHeight: 23, fontWeight: "600", letterSpacing: 0 },
+    body: { fontSize: 15, lineHeight: 22, fontWeight: "400", letterSpacing: 0 },
+    label: { fontSize: 15, lineHeight: 22, fontWeight: "600", letterSpacing: 0 },
+    subtext: { fontSize: 13, lineHeight: 19, fontWeight: "400", letterSpacing: 0 },
+    caption: { fontSize: 12, lineHeight: 17, fontWeight: "400", letterSpacing: 0 },
+    badge: { fontSize: 12, lineHeight: 16, fontWeight: "600", letterSpacing: 0.2 },
 } as const;

@@ -34,23 +34,12 @@ export function CompactEmptyState({
     return (
         <View
             accessibilityRole={isDanger ? "alert" : undefined}
-            className={cn(
-                "w-full items-center justify-center gap-2 px-4 py-6",
-                className,
-            )}
+            className={cn("w-full items-center justify-center gap-2 px-4 py-6", className)}
         >
             {isDanger ? (
-                <CircleAlert
-                    size={20}
-                    color={colors.danger}
-                    strokeWidth={1.8}
-                />
+                <CircleAlert size={20} color={colors.danger} strokeWidth={1.8} />
             ) : (
-                <Inbox
-                    size={20}
-                    color={colors.mutedForeground}
-                    strokeWidth={1.8}
-                />
+                <Inbox size={20} color={colors.mutedForeground} strokeWidth={1.8} />
             )}
 
             <View className="w-full items-center gap-1">
@@ -58,7 +47,7 @@ export function CompactEmptyState({
                     variant="subtext"
                     color={isDanger ? "danger" : "mutedForeground"}
                     align="center"
-                    textStyle={{ fontWeight: "500" }}
+                    textStyle={{ fontWeight: "600" }}
                 >
                     {title.trim()}
                 </AppText>
@@ -88,10 +77,7 @@ export function CompactEmptyState({
                     haptic="selection"
                     onPress={onAction}
                     style={{ minHeight: 48 }}
-                    className={cn(
-                        "items-center justify-center rounded-lg px-3",
-                        actionPending && "opacity-60",
-                    )}
+                    className={cn("items-center justify-center rounded-lg px-3", actionPending && "opacity-60")}
                 >
                     <AppText
                         variant="label"

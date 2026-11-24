@@ -1,17 +1,20 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, Ref } from "react";
 import {
     ScrollView,
     View,
     type RefreshControlProps,
+    type ScrollViewInstance,
     type ScrollViewProps,
 } from "react-native";
 import {
     KeyboardAvoidingView,
     KeyboardAwareScrollView,
     type KeyboardAwareScrollViewProps,
+    type KeyboardAwareScrollViewRef,
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../utils/cn";
+import { OfflineBanner } from "./OfflineBanner";
 
 export const SCREEN_MAX_WIDTH = 430;
 export const SCREEN_HORIZONTAL_PADDING = 16;
@@ -33,6 +36,8 @@ type ScreenProps = {
     keyboardDismissMode?: ScrollViewProps["keyboardDismissMode"];
     keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
     scroll?: boolean;
+    /** Attach a ScrollView ref for tab re-tap scroll-to-top via `useScrollToTop`. */
+    scrollRef?: Ref<ScrollViewInstance>;
     refreshControl?: ReactElement<RefreshControlProps>;
     contentInsetAdjustmentBehavior?: ScrollViewProps["contentInsetAdjustmentBehavior"];
 };
@@ -52,6 +57,7 @@ export function Screen({
     keyboardDismissMode = "on-drag",
     keyboardShouldPersistTaps = "handled",
     scroll = true,
+    scrollRef,
     refreshControl,
     contentInsetAdjustmentBehavior = "automatic",
 }: ScreenProps) {
@@ -70,9 +76,8 @@ export function Screen({
     } as const;
     const content = (
         <View className={scroll ? "grow" : "flex-1"} style={bodyStyle}>
-            <View className={cn(scroll ? "grow" : "flex-1", contentClassName)}>
-                {children}
-            </View>
+            <OfflineBanner />
+            <View className={cn(scroll ? "grow" : "flex-1", contentClassName)}>{children}</View>
         </View>
     );
     const scrollProps = {
@@ -87,11 +92,18 @@ export function Screen({
     } as const;
     const screenContent = scroll ? (
         keyboardAware ? (
-            <KeyboardAwareScrollView {...scrollProps} bottomOffset={20} mode={keyboardScrollMode}>
+            <KeyboardAwareScrollView
+                ref={scrollRef as Ref<KeyboardAwareScrollViewRef>}
+                {...scrollProps}
+                bottomOffset={20}
+                mode={keyboardScrollMode}
+            >
                 {content}
             </KeyboardAwareScrollView>
         ) : (
-            <ScrollView {...scrollProps}>{content}</ScrollView>
+            <ScrollView ref={scrollRef} {...scrollProps}>
+                {content}
+            </ScrollView>
         )
     ) : (
         content
@@ -127,9 +139,7 @@ export function Screen({
     return (
         <RootContainer
             className={cn("flex-1 bg-background", className)}
-            {...(needsKeyboardAvoidance
-                ? { automaticOffset: true, behavior: "padding" as const }
-                : {})}
+            {...(needsKeyboardAvoidance ? { automaticOffset: true, behavior: "padding" as const } : {})}
         >
             {screenContent}
             {footerNode}

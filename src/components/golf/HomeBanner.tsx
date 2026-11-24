@@ -1,11 +1,13 @@
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { showAppToast } from "@/lib/toast/toast";
+import { showAppToast } from "@/design-system/components/AppToast";
+import { useThemeColors } from "@/design-system/utils/theme";
 import type { PublishedBanner } from "@/types/banner";
+import { openExternalUrl } from "@/utils/open-external-url";
 import { Image } from "expo-image";
 import { Href, useFocusEffect, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, FlatList, Linking, Pressable, View } from "react-native";
+import { AppState, FlatList, Pressable, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
 const BANNER_ASPECT_RATIO = 993 / 250;
@@ -72,6 +74,7 @@ const BannerSlide = memo(function BannerSlide({
 
 export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBanner[] }) {
     const { t } = useTranslation();
+    const colors = useThemeColors();
     const reducedMotion = useReducedMotion();
     const router = useRouter();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
@@ -136,7 +139,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
 
             runWithNavigationLock(() => {
                 if (/^https?:\/\//i.test(targetUrl)) {
-                    void Linking.openURL(targetUrl)
+                    void openExternalUrl(targetUrl, colors)
                         .catch(() => {
                             showAppToast({
                                 message: t("common.unableToOpenLink", {
@@ -152,13 +155,11 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
                 router.push(targetUrl as Href);
             });
         },
-        [router, runWithNavigationLock, t, unlock],
+        [colors, router, runWithNavigationLock, t, unlock],
     );
 
     const handleImageError = useCallback((imageUrl: string) => {
-        setFailedImageUrls((previous) =>
-            previous.includes(imageUrl) ? previous : [...previous, imageUrl],
-        );
+        setFailedImageUrls((previous) => (previous.includes(imageUrl) ? previous : [...previous, imageUrl]));
     }, []);
 
     const getItemLayout = useCallback(
@@ -184,10 +185,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
         [handleImageError, isLocked, openBanner, reducedMotion, width],
     );
 
-    const extraData = useMemo(
-        () => ({ width, isLocked }),
-        [isLocked, width],
-    );
+    const extraData = useMemo(() => ({ width, isLocked }), [isLocked, width]);
 
     if (items.length === 0) return null;
 
@@ -217,9 +215,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
                 }}
                 onMomentumScrollEnd={(event) => {
                     if (width > 0) {
-                        indexRef.current = Math.round(
-                            event.nativeEvent.contentOffset.x / width,
-                        );
+                        indexRef.current = Math.round(event.nativeEvent.contentOffset.x / width);
                     }
                     resumeTimerRef.current?.();
                 }}

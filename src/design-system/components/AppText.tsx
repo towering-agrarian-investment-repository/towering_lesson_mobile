@@ -1,9 +1,8 @@
 import { Text, type TextProps, type TextStyle } from "react-native";
 import { cn } from "../utils/cn";
-import type { ThemeColors } from "../utils/theme";
 import { typography } from "../utils/typography";
 
-const colorClasses = {
+const textColorClasses = {
     background: "text-background",
     foreground: "text-foreground",
     surface: "text-surface",
@@ -14,6 +13,7 @@ const colorClasses = {
     primary: "text-primary",
     primaryForeground: "text-primary-foreground",
     danger: "text-danger",
+    dangerForeground: "text-danger-foreground",
     success: "text-success",
     warning: "text-warning",
     ticketBay: "text-ticket-bay",
@@ -25,13 +25,18 @@ const colorClasses = {
     btnMainEnd: "text-bg-btn-main-end",
     btnMainPressedStart: "text-bg-btn-main-pressed-start",
     btnMainPressedEnd: "text-bg-btn-main-pressed-end",
-} satisfies Record<keyof ThemeColors, string>;
+    mediaForeground: "text-media-foreground",
+} as const;
 
-type AppTextProps = TextProps & {
+export type AppTextColor = keyof typeof textColorClasses;
+
+export type AppTextProps = TextProps & {
     variant?: keyof typeof typography;
-    color?: keyof ThemeColors;
+    color?: AppTextColor;
     align?: "left" | "center" | "right";
     wrap?: boolean;
+    /** Align numerals in timers, scores, and ticket counts. */
+    tabular?: boolean;
     textStyle?: TextStyle;
 };
 
@@ -40,18 +45,23 @@ export function AppText({
     color = "foreground",
     align = "left",
     wrap = true,
+    tabular = false,
     className,
     style,
     textStyle,
+    maxFontSizeMultiplier = 1.5,
     ...props
 }: AppTextProps) {
     return (
         <Text
             {...props}
-            className={cn(colorClasses[color], className)}
+            maxFontSizeMultiplier={maxFontSizeMultiplier}
+            lineBreakStrategyIOS="hangul-word"
+            className={cn(textColorClasses[color], className)}
             style={[
                 typography[variant],
                 { textAlign: align, flexShrink: wrap ? 1 : 0 },
+                tabular ? { fontVariant: ["tabular-nums"] } : null,
                 textStyle,
                 style,
             ]}

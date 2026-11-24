@@ -1,9 +1,6 @@
 import { ApiResponse, responseError, responseStatus } from "@/lib/api-response/api-response";
 import { getMemberProfile, updateMemberProfile } from "@/service/user";
-import {
-    UpdateMyProfileRequest,
-    MemberSelfResponse,
-} from "@/types/member.type";
+import { UpdateMyProfileRequest, MemberSelfResponse } from "@/types/member.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useGetMemberProfile() {
@@ -17,11 +14,7 @@ export function useGetMemberProfile() {
 export function useUpdateMemberProfile() {
     const queryClient = useQueryClient();
 
-    return useMutation<
-        ApiResponse<MemberSelfResponse>,
-        unknown,
-        UpdateMyProfileRequest
-    >({
+    return useMutation<ApiResponse<MemberSelfResponse>, unknown, UpdateMyProfileRequest>({
         mutationFn: updateMemberProfile,
         onSuccess: (res) => {
             responseStatus(res);

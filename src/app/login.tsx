@@ -1,4 +1,4 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import goLogoImage from "@/assets/images/img_go.png";
 import golfFieldImage from "@/assets/images/img_golf_filed.png";
 import { FormPasswordInput, FormTextInput } from "@/components/ui/form";
@@ -7,25 +7,18 @@ import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { BannedUserError, InvalidCredentialsError, signIn } from "@/service/auth";
-import {
-    clearSessionEndedNotice,
-    getSessionEndedNotice,
-    subscribeToSessionEndedNotice,
-} from "@/lib/auth-session";
-import { Button, Host, Text } from "@expo/ui";
-import {
-    defaultMinSize,
-    fillMaxWidth,
-} from "@expo/ui/jetpack-compose/modifiers";
+import { clearSessionEndedNotice, getSessionEndedNotice, subscribeToSessionEndedNotice } from "@/lib/auth-session";
+import { Button, Host, RNHostView, Row, Spacer, Text } from "@expo/ui";
+import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import Animated, { FadeIn, FadeOut, useReducedMotion } from "react-native-reanimated";
 import { z } from "zod";
 
@@ -40,7 +33,6 @@ type LoginFormValues = z.infer<ReturnType<typeof createLoginSchema>>;
 export default function LoginScreen() {
     const { colors, resolvedScheme, fontScale: uiFontScale } = useTheme();
     const reducedMotion = useReducedMotion();
-    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const loginPending = useRef(false);
     const { t } = useTranslation();
     const showSessionEndedNotice = useSyncExternalStore(
@@ -48,7 +40,7 @@ export default function LoginScreen() {
         getSessionEndedNotice,
         getSessionEndedNotice,
     );
-    const loginSchema = createLoginSchema(t);
+    const loginSchema = useMemo(() => createLoginSchema(t), [t]);
 
     const form = useForm<LoginFormValues>({
         defaultValues: {
@@ -58,6 +50,8 @@ export default function LoginScreen() {
         resolver: zodResolver(loginSchema),
         mode: "onTouched",
     });
+    const isLoggingIn = form.formState.isSubmitting;
+    const rootError = form.formState.errors.root?.message ?? null;
 
     const handleInvalidLogin = (errors: FieldErrors<LoginFormValues>) => {
         form.setFocus(errors.phoneNumber ? "phoneNumber" : "password");
@@ -75,48 +69,36 @@ export default function LoginScreen() {
         form.clearErrors();
 
         try {
-            setIsLoggingIn(true);
-
             await signIn({
                 phoneNumber: values.phoneNumber.trim(),
                 password: values.password,
             });
         } catch (error) {
             triggerNotificationHaptic(Haptics.NotificationFeedbackType.Error);
-            form.setError("password", {
-                type: "server",
-                message:
-                    error instanceof BannedUserError
-                        ? t("login.deactivatedAccount")
-                        : error instanceof InvalidCredentialsError
-                        ? t("login.invalidCredentials")
-                        : t("login.genericError"),
-            });
+            if (error instanceof InvalidCredentialsError) {
+                form.setError("password", {
+                    type: "server",
+                    message: t("login.invalidCredentials"),
+                });
+            } else {
+                form.setError("root", {
+                    type: "server",
+                    message: error instanceof BannedUserError ? t("login.deactivatedAccount") : t("login.genericError"),
+                });
+            }
         } finally {
             loginPending.current = false;
-            setIsLoggingIn(false);
         }
     }
 
     return (
-        <Screen
-            headerShown={false}
-            keyboardAware
-            horizontalPadding={false}
-            contentClassName="justify-start"
-        >
+        <Screen headerShown={false} keyboardAware horizontalPadding={false} contentClassName="justify-start">
             <View className="relative grow">
-                <View className="gap-10 px-6 pb-40 pt-6">
+                <View className="gap-10 px-4 pb-40 pt-6">
                     <View className="w-full items-start gap-5">
-                        <Image
-                            source={goLogoImage}
-                            style={{ width: 64, height: 40 }}
-                            contentFit="contain"
-                        />
+                        <Image source={goLogoImage} style={{ width: 64, height: 40 }} contentFit="contain" />
                         <View className="w-full gap-3">
-                            <NativeText variant="h1">
-                                {t("login.title")}
-                            </NativeText>
+                            <AppText variant="h1">{t("login.title")}</AppText>
                         </View>
                     </View>
 
@@ -127,12 +109,28 @@ export default function LoginScreen() {
                                 exiting={reducedMotion ? undefined : FadeOut.duration(120)}
                                 className="gap-2 rounded-xl border border-warning/30 bg-warning/10 p-4"
                             >
-                                <NativeText variant="label" accessibilityRole="header">
+                                <AppText variant="label" accessibilityRole="header">
                                     {t("login.sessionEndedTitle")}
-                                </NativeText>
-                                <NativeText variant="body" accessibilityLiveRegion="polite">
+                                </AppText>
+                                <AppText variant="body" accessibilityLiveRegion="polite">
                                     {t("login.sessionEndedMessage")}
-                                </NativeText>
+                                </AppText>
+                            </Animated.View>
+                        ) : null}
+                        {rootError ? (
+                            <Animated.View
+                                entering={reducedMotion ? undefined : FadeIn.duration(150)}
+                                exiting={reducedMotion ? undefined : FadeOut.duration(120)}
+                                className="rounded-xl border border-danger/30 bg-danger/10 p-4"
+                            >
+                                <AppText
+                                    variant="body"
+                                    color="danger"
+                                    accessibilityRole="alert"
+                                    accessibilityLiveRegion="polite"
+                                >
+                                    {rootError}
+                                </AppText>
                             </Animated.View>
                         ) : null}
                         <View className="gap-5">
@@ -172,28 +170,54 @@ export default function LoginScreen() {
                                 ignoreSafeArea="all"
                                 colorScheme={resolvedScheme}
                                 style={{ width: "100%" }}
-                                accessibilityLabel={isLoggingIn ? t("login.accessibilitySubmitting") : t("login.accessibilitySubmit")}
+                                accessibilityLabel={
+                                    isLoggingIn ? t("login.accessibilitySubmitting") : t("login.accessibilitySubmit")
+                                }
                                 accessibilityState={{ disabled: isLoggingIn, busy: isLoggingIn }}
                             >
                                 <Button
                                     variant="text"
                                     style={getNativeButtonStyle(colors, "text")}
-                                    modifiers={process.env.EXPO_OS === "ios"
-                                        ? [frame({ maxWidth: Infinity, minHeight: 56 })]
-                                        : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })]}
+                                    modifiers={
+                                        process.env.EXPO_OS === "ios"
+                                            ? [frame({ maxWidth: Infinity, minHeight: 56 })]
+                                            : [fillMaxWidth(), defaultMinSize({ minHeight: 56 })]
+                                    }
                                     disabled={isLoggingIn}
                                     onPress={submitLogin}
                                 >
-                                    <Text
-                                        // Plain SwiftUI buttons need a hit shape on the expanded label
-                                        // so taps beside the text activate the gradient button too.
-                                        modifiers={process.env.EXPO_OS === "ios"
-                                            ? [frame({ maxWidth: Infinity, minHeight: 56 }), contentShape(shapes.rectangle())]
-                                            : [fillMaxWidth()]}
-                                        textStyle={{ ...typography.label, lineHeight: typography.body.lineHeight * uiFontScale, fontSize: typography.body.fontSize * uiFontScale, fontWeight: "600", color: colors.primaryForeground, textAlign: "center" }}
+                                    <Row
+                                        spacing={8}
+                                        alignment="center"
+                                        modifiers={
+                                            process.env.EXPO_OS === "ios"
+                                                ? [
+                                                      frame({ maxWidth: Infinity, minHeight: 56 }),
+                                                      contentShape(shapes.rectangle()),
+                                                  ]
+                                                : [fillMaxWidth()]
+                                        }
                                     >
-                                        {isLoggingIn ? t("login.submitting") : t("login.submit")}
-                                    </Text>
+                                        <Spacer flexible />
+                                        {isLoggingIn ? (
+                                            <RNHostView matchContents>
+                                                <ActivityIndicator size="small" color={colors.primaryForeground} />
+                                            </RNHostView>
+                                        ) : null}
+                                        <Text
+                                            textStyle={{
+                                                ...typography.label,
+                                                lineHeight: typography.body.lineHeight * uiFontScale,
+                                                fontSize: typography.body.fontSize * uiFontScale,
+                                                fontWeight: "600",
+                                                color: colors.primaryForeground,
+                                                textAlign: "center",
+                                            }}
+                                        >
+                                            {isLoggingIn ? t("login.submitting") : t("login.submit")}
+                                        </Text>
+                                        <Spacer flexible />
+                                    </Row>
                                 </Button>
                             </Host>
                         </LinearGradient>

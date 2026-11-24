@@ -11,7 +11,13 @@ import {
     getLessonReservationById,
     getTicketLessonSlots,
 } from "@/service/member-lesson-reservation.service";
-import { getMemberReservations, getMemberReservationsByDate, getTodayMemberReservations, MEMBER_RESERVATION_CURSOR_PAGE_SIZE, MemberReservationType } from "@/service/reservation.service";
+import {
+    getMemberReservations,
+    getMemberReservationsByDate,
+    getTodayMemberReservations,
+    MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
+    MemberReservationType,
+} from "@/service/reservation.service";
 import {
     BaySlotGroupScheduleResponse,
     MemberBayReservationResponse,
@@ -23,23 +29,38 @@ import {
     MemberLessonReservationResponse,
     MemberLessonSlotResponse,
 } from "@/types/member-lesson";
-import { MemberReservationDomain, MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
-import { type InfiniteData, QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { API_ERROR_CODE, ApiResponse, ApiErrorResponse, CursorPageResponse, isApiError, responseError, responseStatus } from "../api-response/api-response";
+import {
+    MemberReservationDomain,
+    MemberReservationResponse,
+    MemberReservationSummaryResponse,
+} from "@/types/member-reservation";
+import {
+    type InfiniteData,
+    QueryClient,
+    skipToken,
+    useInfiniteQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
+import {
+    API_ERROR_CODE,
+    ApiResponse,
+    ApiErrorResponse,
+    CursorPageResponse,
+    isApiError,
+    responseError,
+    responseStatus,
+} from "../api-response/api-response";
 
-
-export type MemberReservationDetailResponse =
-    | MemberLessonReservationResponse
-    | MemberBayReservationResponse;
+export type MemberReservationDetailResponse = MemberLessonReservationResponse | MemberBayReservationResponse;
 
 export type MemberReservationDetailPreview = {
     isListPreview: true;
     reservation: MemberReservationSummaryResponse;
 };
 
-export function isReservationSlotUnavailable(
-    error: unknown,
-): error is ApiErrorResponse {
+export function isReservationSlotUnavailable(error: unknown): error is ApiErrorResponse {
     return isApiError(error, {
         httpStatus: 409,
         errorCode: API_ERROR_CODE.RESERVATION_SLOT_UNAVAILABLE,
@@ -54,33 +75,29 @@ type RescheduleMemberBayReservationVariables = {
 export function getMemberBaySlotGroupsQueryOptions(ticketId: number, startDate: string, endDate: string) {
     return {
         queryKey: ["member", "bay-slot-groups", ticketId, startDate, endDate] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberBaySlotGroups(ticketId, startDate, endDate, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getMemberBaySlotGroups(ticketId, startDate, endDate, signal),
         staleTime: 10_000,
     };
 }
 
 export function getMemberReservationsQueryOptions(type: MemberReservationType, from?: string, to?: string) {
-    const queryKey = [
-        "member",
-        "reservations",
-        type,
-        from ?? null,
-        to ?? null,
-    ] as const;
+    const queryKey = ["member", "reservations", type, from ?? null, to ?? null] as const;
 
     return {
         queryKey,
         initialPageParam: null as string | null,
         staleTime: 30_000,
         queryFn: ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) =>
-            getMemberReservations({
-                type,
-                cursor: pageParam ?? undefined,
-                limit: MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
-                from,
-                to,
-            }, signal),
+            getMemberReservations(
+                {
+                    type,
+                    cursor: pageParam ?? undefined,
+                    limit: MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
+                    from,
+                    to,
+                },
+                signal,
+            ),
         getNextPageParam: (lastPage: ApiResponse<CursorPageResponse<MemberReservationResponse>>) => {
             const page = lastPage.data;
             return page.hasMore ? page.nextCursor : undefined;
@@ -107,13 +124,8 @@ export function useMemberReservations(type: MemberReservationType, from?: string
     });
 }
 
-
 export function useTodayMemberReservations() {
-    return useQuery<
-        ApiResponse<MemberReservationSummaryResponse[]>,
-        Error,
-        MemberReservationSummaryResponse[]
-    >({
+    return useQuery<ApiResponse<MemberReservationSummaryResponse[]>, Error, MemberReservationSummaryResponse[]>({
         queryKey: ["member", "reservations", "today"],
         queryFn: ({ signal }) => getTodayMemberReservations(signal),
         select: (response) => response.data,
@@ -121,17 +133,10 @@ export function useTodayMemberReservations() {
     });
 }
 
-export function useMemberReservationsForDay(
-    dateKey: string | null,
-    enabled = true,
-) {
-    return useQuery<
-        ApiResponse<MemberReservationSummaryResponse[]>,
-        Error,
-        MemberReservationSummaryResponse[]
-    >({
+export function useMemberReservationsForDay(dateKey: string | null, enabled = true) {
+    return useQuery<ApiResponse<MemberReservationSummaryResponse[]>, Error, MemberReservationSummaryResponse[]>({
         queryKey: ["member", "reservations", "by-date", dateKey],
-        queryFn: ({ signal }) => getMemberReservationsByDate(dateKey!, signal),
+        queryFn: dateKey ? ({ signal }) => getMemberReservationsByDate(dateKey, signal) : skipToken,
         enabled: enabled && Boolean(dateKey),
         select: (response) => response.data,
         staleTime: 30_000,
@@ -159,13 +164,14 @@ export function getMemberReservationDetailQueryOptions(
     domain: MemberReservationDomain,
 ): {
     queryKey: readonly ["member", "reservations", "detail", MemberReservationDomain, number];
-    queryFn: ({ signal }: { signal: AbortSignal }) => Promise<ApiResponse<MemberBayReservationResponse> | ApiResponse<MemberLessonReservationResponse>>;
+    queryFn: ({
+        signal,
+    }: {
+        signal: AbortSignal;
+    }) => Promise<ApiResponse<MemberBayReservationResponse> | ApiResponse<MemberLessonReservationResponse>>;
     staleTime: number;
 };
-export function getMemberReservationDetailQueryOptions(
-    id: number,
-    domain: MemberReservationDomain,
-) {
+export function getMemberReservationDetailQueryOptions(id: number, domain: MemberReservationDomain) {
     return {
         queryKey: ["member", "reservations", "detail", domain, id] as const,
         queryFn: ({ signal }: { signal: AbortSignal }) => {
@@ -214,21 +220,22 @@ function patchCancelledReservationInLists(
         (old) => (old ? { ...old, data: old.data.map(patchSummary) } : old),
     );
     for (const type of ["all", "bay", "private", "group", "program"] as const) {
-        queryClient.setQueriesData<
-            InfiniteData<ApiResponse<CursorPageResponse<MemberReservationResponse>>>
-        >({ queryKey: ["member", "reservations", type] }, (old) => {
-            if (!old) return old;
-            return {
-                ...old,
-                pages: old.pages.map((page) => ({
-                    ...page,
-                    data: {
-                        ...page.data,
-                        items: page.data.items.map(patchSummary),
-                    },
-                })),
-            };
-        });
+        queryClient.setQueriesData<InfiniteData<ApiResponse<CursorPageResponse<MemberReservationResponse>>>>(
+            { queryKey: ["member", "reservations", type] },
+            (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                        ...page,
+                        data: {
+                            ...page.data,
+                            items: page.data.items.map(patchSummary),
+                        },
+                    })),
+                };
+            },
+        );
     }
 }
 
@@ -255,7 +262,9 @@ function getMemberReservationDetailPreview(
     domain: MemberReservationDomain,
 ): ApiResponse<MemberReservationDetailPreview> | undefined {
     const today = queryClient.getQueryData<ApiResponse<MemberReservationSummaryResponse[]>>([
-        "member", "reservations", "today",
+        "member",
+        "reservations",
+        "today",
     ]);
     const todayReservation = today?.data.find(
         (reservation) => reservation.id === id && reservation.reservationType === domain,
@@ -270,9 +279,7 @@ function getMemberReservationDetailPreview(
         >({ queryKey: ["member", "reservations", type] });
         for (const [, list] of lists) {
             for (const page of list?.pages ?? []) {
-                const reservation = page.data.items.find(
-                    (item) => item.id === id && item.reservationType === domain,
-                );
+                const reservation = page.data.items.find((item) => item.id === id && item.reservationType === domain);
                 if (reservation) {
                     return { status: page.status, data: { isListPreview: true, reservation } };
                 }
@@ -286,19 +293,12 @@ function getMemberReservationDetailPreview(
 export function useMemberReservationById(id: number, domain?: MemberReservationDomain) {
     const queryClient = useQueryClient();
     return useQuery<ApiResponse<MemberReservationDetailResponse | MemberReservationDetailPreview>>({
-        ...getMemberReservationDetailQueryOptions(
-            id,
-            (domain ?? "lesson") as MemberReservationDomain,
-        ),
+        ...getMemberReservationDetailQueryOptions(id, (domain ?? "lesson") as MemberReservationDomain),
         enabled: Number.isFinite(id) && id > 0 && Boolean(domain),
-        placeholderData: () => domain
-            ? getMemberReservationDetailPreview(queryClient, id, domain)
-            : undefined,
+        placeholderData: () => (domain ? getMemberReservationDetailPreview(queryClient, id, domain) : undefined),
         staleTime: 30_000,
     });
 }
-
-
 
 export function useMemberBaySlotGroups(ticketId: number, startDate: string, endDate: string, enabled = true) {
     return useQuery<ApiResponse<BaySlotGroupScheduleResponse[]>>({
@@ -314,11 +314,7 @@ export function useMemberBaySlotGroups(ticketId: number, startDate: string, endD
 export function useCreateMemberBayReservation() {
     const queryClient = useQueryClient();
 
-    return useMutation<
-        ApiResponse<MemberBayReservationResponse>,
-        unknown,
-        CreateBayReservationRequest
-    >({
+    return useMutation<ApiResponse<MemberBayReservationResponse>, unknown, CreateBayReservationRequest>({
         mutationFn: createMemberBayReservation,
         retry: false,
         onSuccess: (res) => {
@@ -338,15 +334,10 @@ export function useCreateMemberBayReservation() {
     });
 }
 
-
 export function useCreateMemberLessonReservation() {
     const queryClient = useQueryClient();
 
-    return useMutation<
-        ApiResponse<MemberLessonReservationResponse>,
-        unknown,
-        CreateLessonReservationRequest
-    >({
+    return useMutation<ApiResponse<MemberLessonReservationResponse>, unknown, CreateLessonReservationRequest>({
         mutationFn: createMemberLessonReservation,
         retry: false,
         onSuccess: (res) => {
@@ -355,7 +346,7 @@ export function useCreateMemberLessonReservation() {
             refreshMemberTickets(queryClient);
             void queryClient.invalidateQueries({
                 queryKey: ["member", "ticket-lesson-slots"],
-                refetchType: "active",
+                refetchType: "none",
             });
         },
         onError: (error) => {
@@ -366,19 +357,13 @@ export function useCreateMemberLessonReservation() {
     });
 }
 
-export function getMemberTicketLessonSlotsQueryOptions(
-    ticketId: number,
-    year: number,
-    month: number,
-) {
+export function getMemberTicketLessonSlotsQueryOptions(ticketId: number, year: number, month: number) {
     return {
         queryKey: ["member", "ticket-lesson-slots", ticketId, year, month] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getTicketLessonSlots(ticketId, year, month, signal),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getTicketLessonSlots(ticketId, year, month, signal),
         staleTime: 30_000,
     };
 }
-
 
 export function useMemberTicketLessonSlots(
     ticketId: number | null | undefined,
@@ -448,13 +433,8 @@ export function useCancelMemberBayReservation() {
 export function useRescheduleMemberBayReservation() {
     const queryClient = useQueryClient();
 
-    return useMutation<
-        ApiResponse<MemberBayReservationResponse>,
-        unknown,
-        RescheduleMemberBayReservationVariables
-    >({
-        mutationFn: ({ reservationId, data }) =>
-            rescheduleBayReservationById(reservationId, data),
+    return useMutation<ApiResponse<MemberBayReservationResponse>, unknown, RescheduleMemberBayReservationVariables>({
+        mutationFn: ({ reservationId, data }) => rescheduleBayReservationById(reservationId, data),
         retry: false,
         onSuccess: (_res, { reservationId }) => {
             refreshMemberReservationDetail(queryClient, reservationId, "bay");

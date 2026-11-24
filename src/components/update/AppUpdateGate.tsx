@@ -1,4 +1,4 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { ActionButton, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
@@ -16,13 +16,7 @@ type AppUpdateGateProps = {
     onCheckAgain: () => Promise<boolean>;
 };
 
-export function AppUpdateGate({
-    state,
-    force,
-    onContinue,
-    isCheckingAgain,
-    onCheckAgain,
-}: AppUpdateGateProps) {
+export function AppUpdateGate({ state, force, onContinue, isCheckingAgain, onCheckAgain }: AppUpdateGateProps) {
     const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const [isOpeningStore, setIsOpeningStore] = useState(false);
@@ -35,7 +29,7 @@ export function AppUpdateGate({
         setIsOpeningStore(true);
         setStoreOpenFailed(false);
         try {
-            setStoreOpenFailed(!await openStore(state));
+            setStoreOpenFailed(!(await openStore(state)));
         } finally {
             openingStore.current = false;
             setIsOpeningStore(false);
@@ -43,42 +37,37 @@ export function AppUpdateGate({
     };
     const handleCheckAgain = async () => {
         setCheckFailed(false);
-        setCheckFailed(!await onCheckAgain());
+        setCheckFailed(!(await onCheckAgain()));
     };
     const updateLabel = isOpeningStore
         ? t("appUpdate.openingStore")
-        : storeOpenFailed ? t("common.refreshTryAgain") : t("appUpdate.updateApp");
-    const title = force
-        ? t("appUpdate.updateRequired")
-        : t("appUpdate.updateAvailable");
+        : storeOpenFailed
+          ? t("common.refreshTryAgain")
+          : t("appUpdate.updateApp");
+    const title = force ? t("appUpdate.updateRequired") : t("appUpdate.updateAvailable");
     const description =
-        state.message ??
-        (force
-            ? t("appUpdate.updateRequiredMessage")
-            : t("appUpdate.updateAvailableMessage"));
+        state.message ?? (force ? t("appUpdate.updateRequiredMessage") : t("appUpdate.updateAvailableMessage"));
 
     return (
         <Screen headerShown={false} contentClassName="grow">
             <View className="items-center pt-4">
-                <HappyGolfLogo
-                    width={148}
-                    height={35}
-                    primaryColor={uiColors.primary}
-                    accentColor={uiColors.warning}
-                />
+                <HappyGolfLogo width={148} height={35} primaryColor={uiColors.primary} accentColor={uiColors.warning} />
             </View>
 
             <View className="flex-1 justify-center gap-6">
                 <View className="w-full items-center gap-3">
-                    <View className="h-14 w-14 items-center justify-center rounded-2xl bg-primary/10" accessible={false}>
+                    <View
+                        className="h-14 w-14 items-center justify-center rounded-2xl bg-primary/10"
+                        accessible={false}
+                    >
                         <Download size={28} color={uiColors.primary} strokeWidth={2} />
                     </View>
-                    <NativeText variant="h2" align="center">
+                    <AppText variant="h2" align="center">
                         {title}
-                    </NativeText>
-                    <NativeText variant="muted" color="mutedForeground" align="center">
+                    </AppText>
+                    <AppText variant="body" color="mutedForeground" align="center">
                         {description}
-                    </NativeText>
+                    </AppText>
                 </View>
 
                 <View className="gap-2">
@@ -92,9 +81,9 @@ export function AppUpdateGate({
                     />
 
                     {storeOpenFailed ? (
-                        <NativeText variant="subtext" color="danger" align="center">
+                        <AppText variant="subtext" color="danger" align="center">
                             {t("appUpdate.openStoreError")}
-                        </NativeText>
+                        </AppText>
                     ) : null}
 
                     <ActionButton
@@ -110,34 +99,30 @@ export function AppUpdateGate({
                     />
 
                     {checkFailed ? (
-                        <NativeText variant="subtext" color="danger" align="center">
+                        <AppText variant="subtext" color="danger" align="center">
                             {t("appUpdate.checkFailed")}
-                        </NativeText>
+                        </AppText>
                     ) : null}
                 </View>
 
                 {!force && onContinue ? (
-                    <ActionButton
-                        label={t("appUpdate.continue")}
-                        appearance="outlined"
-                        onPress={onContinue}
-                    />
+                    <ActionButton label={t("appUpdate.continue")} appearance="outlined" onPress={onContinue} />
                 ) : null}
 
                 <View className="gap-1">
-                    <NativeText variant="caption" color="mutedForeground" align="center">
+                    <AppText variant="caption" color="mutedForeground" align="center">
                         {t("appUpdate.installedVersion", {
                             version: state.installedVersion,
                         })}
-                    </NativeText>
+                    </AppText>
                     {state.latestVersion ? (
                         <View className="flex-row flex-wrap items-center justify-center gap-1">
-                            <NativeText variant="caption" color="mutedForeground" wrap={false}>
+                            <AppText variant="caption" color="mutedForeground" wrap={false}>
                                 {t("appUpdate.newVersion", { version: "" }).trimEnd()}
-                            </NativeText>
-                            <NativeText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "700" }}>
+                            </AppText>
+                            <AppText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "700" }}>
                                 {state.latestVersion}
-                            </NativeText>
+                            </AppText>
                         </View>
                     ) : null}
                 </View>

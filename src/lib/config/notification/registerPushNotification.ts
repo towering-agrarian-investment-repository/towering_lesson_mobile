@@ -19,7 +19,9 @@ export const registerForPushNotifications = async (
     devicePushToken?: Notifications.DevicePushToken,
 ): Promise<string | null> => {
     if (!Device.isDevice) {
-        console.warn("[push] Push notifications require a physical device");
+        if (__DEV__) {
+            console.warn("[push] Push notifications require a physical device");
+        }
         return null;
     }
 
@@ -32,8 +34,7 @@ export const registerForPushNotifications = async (
         });
     }
 
-    const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
 
     let finalStatus = existingStatus;
 
@@ -43,13 +44,13 @@ export const registerForPushNotifications = async (
     }
 
     if (finalStatus !== "granted") {
-        console.warn(`[push] Notification permission is ${finalStatus}`);
+        if (__DEV__) {
+            console.warn(`[push] Notification permission is ${finalStatus}`);
+        }
         return null;
     }
 
-    const projectId =
-        Constants.expoConfig?.extra?.eas?.projectId ??
-        Constants.easConfig?.projectId;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
     if (!projectId) {
         throw new Error("Expo project ID not found");

@@ -38,7 +38,10 @@ export function parseCalendarDate(date: string | number | Date) {
 
 export function formatActivityDate(dateKey: string, language: string) {
     return parseCalendarDate(dateKey).toLocaleDateString(language, {
-        weekday: "long", year: "numeric", month: "short", day: "numeric",
+        weekday: "long",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
     });
 }
 
@@ -79,15 +82,16 @@ export function buildHeatmapWeeks(
     return weeks;
 }
 
-export function getFocusMonthWeekIndex(
-    weeks: ActivityHeatmapWeek[], endDateKey: string, todayKey: string,
-) {
+export function getFocusMonthWeekIndex(weeks: ActivityHeatmapWeek[], endDateKey: string, todayKey: string) {
     const today = parseCalendarDate(todayKey);
     const year = parseCalendarDate(endDateKey).getFullYear();
     const month = year === today.getFullYear() ? today.getMonth() : 0;
-    return Math.max(0, weeks.findIndex((week) => week.days.some(
-        ({ date }) => date.getFullYear() === year && date.getMonth() === month,
-    )));
+    return Math.max(
+        0,
+        weeks.findIndex((week) =>
+            week.days.some(({ date }) => date.getFullYear() === year && date.getMonth() === month),
+        ),
+    );
 }
 
 export function getHeatmapCellColor(count: number, colors: ThemeColors, status?: ActivityHeatmapStatus) {

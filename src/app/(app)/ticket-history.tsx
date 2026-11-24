@@ -1,45 +1,44 @@
-import TicketHistoryCard, {
-    TicketHistoryCardSkeleton,
-} from "@/components/golf/TicketHistoryCard";
+import TicketHistoryCard, { TicketHistoryCardSkeleton } from "@/components/golf/TicketHistoryCard";
 import {
     AppText,
     EmptyState,
     ErrorState,
     ListRetryFooter,
     Screen,
-    SegmentedControl,
     Skeleton,
     StateList,
+    SwipeableTabBar,
+    type SwipeableTabRoute,
+    triggerSelectionHaptic,
 } from "@/design-system";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import {
-    getMemberTicketByIdQueryOptions,
-    useMemberTickets,
-} from "@/lib/hook/useTicket";
+import { getMemberTicketByIdQueryOptions, useMemberTickets } from "@/lib/hook/useTicket";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
+import { TabView, type TabBarProps } from "react-native-tab-view";
 
-type TicketHistoryFilter = "all" | "active" | "past";
+const TICKET_HISTORY_TABS = ["all", "active", "past"] as const;
+type TicketHistoryFilter = (typeof TICKET_HISTORY_TABS)[number];
 
 const ALL_TICKET_STATUSES: readonly string[] = [];
-const ticketHistoryKeyExtractor = (item: TicketListItemResponse) =>
-    String(item.id);
+const ACTIVE_TICKET_STATUSES: readonly string[] = ["ACTIVE", "IN_USE"];
+const ticketHistoryKeyExtractor = (item: TicketListItemResponse) => String(item.id);
 const TICKET_HISTORY_LIST_CONTENT_STYLE = {
-    paddingTop: 4,
+    paddingTop: 12,
     paddingBottom: 40,
 } as const;
 
 function TicketHistorySeparator() {
     return <View className="h-3" />;
 }
-const ACTIVE_TICKET_STATUSES: readonly string[] = ["ACTIVE", "IN_USE"];
 
 function isPastTicket(ticket: TicketListItemResponse) {
     const status = getEffectiveTicketStatus(ticket.status, ticket.fullyUsed);
@@ -54,13 +53,85 @@ function isPastTicket(ticket: TicketListItemResponse) {
 
 export default function TicketHistoryScreen() {
     const { t } = useTranslation();
+    const reducedMotion = useReducedMotion();
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const routes = useMemo<SwipeableTabRoute[]>(
+        () =>
+            TICKET_HISTORY_TABS.map((key) => {
+                const title = t(`tickets.historyFilters.${key}`);
+                return {
+                    key,
+                    title,
+                    accessibilityLabel: t("tickets.showTabAccessibility", {
+                        label: title,
+                    }),
+                };
+            }),
+        [t],
+    );
+
+    const handleTabChange = useCallback(
+        (nextIndex: number) => {
+            if (nextIndex === activeIndex) {
+                return;
+            }
+            triggerSelectionHaptic();
+            setActiveIndex(nextIndex);
+        },
+        [activeIndex],
+    );
+
+    const handleShowAll = useCallback(() => {
+        handleTabChange(0);
+    }, [handleTabChange]);
+
+    const renderScene = useCallback(
+        ({ route }: { route: { key: string } }) => (
+            <TicketHistoryTabScene
+                filter={route.key as TicketHistoryFilter}
+                isActive={route.key === TICKET_HISTORY_TABS[activeIndex]}
+                onShowAll={handleShowAll}
+            />
+        ),
+        [activeIndex, handleShowAll],
+    );
+
+    const renderTabBar = useCallback(
+        (props: TabBarProps<SwipeableTabRoute>) => <SwipeableTabBar {...props} onTabPress={handleTabChange} />,
+        [handleTabChange],
+    );
+
+    return (
+        <Screen scroll={false} bottomPadding={16}>
+            <TabView
+                animationEnabled={!reducedMotion}
+                navigationState={{ index: activeIndex, routes }}
+                onIndexChange={handleTabChange}
+                renderScene={renderScene}
+                renderTabBar={renderTabBar}
+                lazy
+                style={{ flex: 1 }}
+            />
+        </Screen>
+    );
+}
+
+const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
+    filter,
+    isActive,
+    onShowAll,
+}: {
+    filter: TicketHistoryFilter;
+    isActive: boolean;
+    onShowAll: () => void;
+}) {
+    const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const [filter, setFilter] = useState<TicketHistoryFilter>("all");
 
-    const queryStatuses =
-        filter === "active" ? ACTIVE_TICKET_STATUSES : ALL_TICKET_STATUSES;
+    const queryStatuses = filter === "active" ? ACTIVE_TICKET_STATUSES : ALL_TICKET_STATUSES;
 
     const {
         data,
@@ -75,8 +146,9 @@ export default function TicketHistoryScreen() {
         isFetchNextPageError,
     } = useMemberTickets({ statuses: queryStatuses });
 
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        refetch({ cancelRefetch: false }),
+    );
 
     const { displayedTickets, activeCount, pastCount } = useMemo(() => {
         const tickets = data?.items ?? [];
@@ -120,33 +192,20 @@ export default function TicketHistoryScreen() {
     }, [fetchNextPage, hasNextPage, isFetching]);
 
     const handleEndReached = useCallback(() => {
-        if (!isFetchNextPageError) {
+        if (!isFetchNextPageError && isActive) {
             handleFetchNextPage();
         }
-    }, [handleFetchNextPage, isFetchNextPageError]);
+    }, [handleFetchNextPage, isActive, isFetchNextPageError]);
 
     useEffect(() => {
-        if (
-            filter !== "all" &&
-            displayedTickets.length === 0 &&
-            hasNextPage &&
-            !isFetchNextPageError
-        ) {
+        if (isActive && filter !== "all" && displayedTickets.length === 0 && hasNextPage && !isFetchNextPageError) {
             handleFetchNextPage();
         }
-    }, [
-        filter,
-        displayedTickets.length,
-        handleFetchNextPage,
-        hasNextPage,
-        isFetchNextPageError,
-    ]);
+    }, [isActive, filter, displayedTickets.length, handleFetchNextPage, hasNextPage, isFetchNextPageError]);
 
     const handleTicketPress = useCallback(
         (item: TicketListItemResponse) => {
-            void queryClient.prefetchQuery(
-                getMemberTicketByIdQueryOptions(item.id),
-            );
+            void queryClient.prefetchQuery(getMemberTicketByIdQueryOptions(item.id));
             runWithNavigationLock(() => {
                 router.push({
                     pathname: "/tickets/[id]",
@@ -159,17 +218,9 @@ export default function TicketHistoryScreen() {
 
     const renderTicket: ListRenderItem<TicketListItemResponse> = useCallback(
         ({ item, index }) => {
-            const showActiveHeader =
-                filter === "all" && activeCount > 0 && index === 0;
-            const showPastHeader =
-                filter === "all" && pastCount > 0 && index === activeCount;
-            const card = (
-                <TicketHistoryCard
-                    item={item}
-                    disabled={isLocked}
-                    onPress={handleTicketPress}
-                />
-            );
+            const showActiveHeader = filter === "all" && activeCount > 0 && index === 0;
+            const showPastHeader = filter === "all" && pastCount > 0 && index === activeCount;
+            const card = <TicketHistoryCard item={item} disabled={isLocked} onPress={handleTicketPress} />;
 
             if (!showActiveHeader && !showPastHeader) {
                 return card;
@@ -178,11 +229,7 @@ export default function TicketHistoryScreen() {
             return (
                 <View className="gap-2.5">
                     <TicketSectionHeader
-                        title={t(
-                            showActiveHeader
-                                ? "tickets.historyFilters.active"
-                                : "tickets.historyFilters.past",
-                        )}
+                        title={t(showActiveHeader ? "tickets.historyFilters.active" : "tickets.historyFilters.past")}
                         count={showActiveHeader ? activeCount : pastCount}
                         isFirst={index === 0}
                     />
@@ -196,19 +243,11 @@ export default function TicketHistoryScreen() {
     const getTicketHistoryItemType = useCallback(
         (_item: TicketListItemResponse, index: number) => {
             const hasHeader =
-                filter === "all" &&
-                ((activeCount > 0 && index === 0) ||
-                    (pastCount > 0 && index === activeCount));
+                filter === "all" && ((activeCount > 0 && index === 0) || (pastCount > 0 && index === activeCount));
             return hasHeader ? "header-card" : "card";
         },
         [activeCount, filter, pastCount],
     );
-
-    const filterOptions = [
-        { value: "all" as const, label: t("tickets.historyFilters.all") },
-        { value: "active" as const, label: t("tickets.historyFilters.active") },
-        { value: "past" as const, label: t("tickets.historyFilters.past") },
-    ];
 
     const emptyCopy =
         filter === "active"
@@ -226,121 +265,87 @@ export default function TicketHistoryScreen() {
                     message: t("tickets.emptyHistoryMessage"),
                 };
 
+    if (isLoading) {
+        return <TicketHistorySkeletonList grouped={filter === "all"} />;
+    }
+
+    if (isError && !data) {
+        return (
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
+                <ErrorState
+                    title={t("tickets.loadError")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionPending={isRefetching || isPullRefreshing}
+                    onAction={handlePullRefresh}
+                />
+            </StateList>
+        );
+    }
+
+    if (displayedTickets.length === 0 && isFetchNextPageError) {
+        return (
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
+                <ErrorState
+                    title={t("tickets.loadError")}
+                    message={t("common.pullToRefreshAndTryAgain")}
+                    actionLabel={t("common.refreshTryAgain")}
+                    actionPending={isFetchingNextPage}
+                    onAction={handleFetchNextPage}
+                />
+            </StateList>
+        );
+    }
+
+    if (displayedTickets.length === 0 && hasNextPage) {
+        return <TicketHistorySkeletonList grouped={filter === "all"} />;
+    }
+
+    if (displayedTickets.length === 0) {
+        return (
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
+                <EmptyState
+                    title={emptyCopy.title}
+                    message={emptyCopy.message}
+                    actionLabel={filter === "all" ? t("common.refresh") : t("tickets.showAllTickets")}
+                    actionPending={filter === "all" && (isRefetching || isPullRefreshing)}
+                    onAction={filter === "all" ? handlePullRefresh : onShowAll}
+                />
+            </StateList>
+        );
+    }
+
     return (
-        <Screen scroll={false} bottomPadding={16}>
-                <View className="flex-1 gap-3 pt-2">
-                    <SegmentedControl
-                        options={filterOptions}
-                        value={filter}
-                        onChange={setFilter}
+        <FlashList
+            data={displayedTickets}
+            extraData={isLocked}
+            keyExtractor={ticketHistoryKeyExtractor}
+            getItemType={getTicketHistoryItemType}
+            renderItem={renderTicket}
+            ItemSeparatorComponent={TicketHistorySeparator}
+            contentContainerStyle={TICKET_HISTORY_LIST_CONTENT_STYLE}
+            refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
+            showsVerticalScrollIndicator={false}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+                isFetchingNextPage ? (
+                    <View className="py-3">
+                        <TicketHistoryCardSkeleton />
+                    </View>
+                ) : isFetchNextPageError ? (
+                    <ListRetryFooter
+                        disabled={isFetching || isFetchingNextPage}
+                        busy={isFetchingNextPage}
+                        onRetry={handleFetchNextPage}
                     />
-
-                    {isLoading ? (
-                        <TicketHistorySkeletonList grouped={filter === "all"} />
-                    ) : isError && !data ? (
-                        <StateList
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        >
-                            <ErrorState
-                                title={t("tickets.loadError")}
-                                message={t("common.pullToRefreshAndTryAgain")}
-                                actionLabel={
-                                    isRefetching
-                                        ? t("common.refreshing")
-                                        : t("common.refreshTryAgain")
-                                }
-                                actionPending={isRefetching || isPullRefreshing}
-                                onAction={handlePullRefresh}
-                            />
-                        </StateList>
-                    ) : displayedTickets.length === 0 && isFetchNextPageError ? (
-                        <StateList
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        >
-                            <ErrorState
-                                title={t("tickets.loadError")}
-                                message={t("common.pullToRefreshAndTryAgain")}
-                                actionLabel={t("common.refreshTryAgain")}
-                                actionPending={isFetchingNextPage}
-                                onAction={handleFetchNextPage}
-                            />
-                        </StateList>
-                    ) : displayedTickets.length === 0 && hasNextPage ? (
-                        <TicketHistorySkeletonList grouped={filter === "all"} />
-                    ) : displayedTickets.length === 0 ? (
-                        <StateList
-                            refreshing={isPullRefreshing}
-                            onRefresh={handlePullRefresh}
-                        >
-                            <EmptyState
-                                title={emptyCopy.title}
-                                message={emptyCopy.message}
-                                actionLabel={
-                                    filter === "all"
-                                        ? t("common.refresh")
-                                        : t("tickets.showAllTickets")
-                                }
-                                actionPending={
-                                    filter === "all" &&
-                                    (isRefetching || isPullRefreshing)
-                                }
-                                onAction={
-                                    filter === "all"
-                                        ? handlePullRefresh
-                                        : () => setFilter("all")
-                                }
-                            />
-                        </StateList>
-                    ) : (
-                        <FlashList
-                            data={displayedTickets}
-                            keyExtractor={ticketHistoryKeyExtractor}
-                            getItemType={getTicketHistoryItemType}
-                            renderItem={renderTicket}
-                            ItemSeparatorComponent={TicketHistorySeparator}
-                            contentContainerStyle={TICKET_HISTORY_LIST_CONTENT_STYLE}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={isPullRefreshing}
-                                    onRefresh={handlePullRefresh}
-                                />
-                            }
-                            showsVerticalScrollIndicator={false}
-                            onEndReached={handleEndReached}
-                            onEndReachedThreshold={0.4}
-                            ListFooterComponent={
-                                isFetchingNextPage ? (
-                                    <View className="py-3">
-                                        <TicketHistoryCardSkeleton />
-                                    </View>
-                                ) : isFetchNextPageError ? (
-                                    <ListRetryFooter
-                                        disabled={
-                                            isFetching || isFetchingNextPage
-                                        }
-                                        busy={isFetchingNextPage}
-                                        onRetry={handleFetchNextPage}
-                                    />
-                                ) : undefined
-                            }
-                        />
-                    )}
-                </View>
-            </Screen>
+                ) : undefined
+            }
+        />
     );
-}
+});
 
-function TicketSectionHeader({
-    title,
-    count,
-    isFirst = false,
-}: {
-    title: string;
-    count: number;
-    isFirst?: boolean;
-}) {
+function TicketSectionHeader({ title, count, isFirst = false }: { title: string; count: number; isFirst?: boolean }) {
     const { t } = useTranslation();
 
     return (
@@ -359,13 +364,7 @@ function TicketSectionHeader({
             >
                 {title}
             </AppText>
-            <AppText
-                variant="caption"
-                color="mutedForeground"
-                wrap={false}
-                numberOfLines={1}
-                textStyle={{ fontVariant: ["tabular-nums"] }}
-            >
+            <AppText variant="caption" color="mutedForeground" wrap={false} numberOfLines={1} tabular>
                 {t("tickets.count", { count })}
             </AppText>
         </View>
@@ -375,7 +374,7 @@ function TicketSectionHeader({
 function TicketHistorySkeletonList({ grouped }: { grouped: boolean }) {
     if (!grouped) {
         return (
-            <View className="flex-1 gap-3 overflow-hidden pt-1">
+            <View className="flex-1 gap-3 overflow-hidden pt-3">
                 {Array.from({ length: 6 }, (_, index) => (
                     <TicketHistoryCardSkeleton key={index} />
                 ))}
@@ -384,7 +383,7 @@ function TicketHistorySkeletonList({ grouped }: { grouped: boolean }) {
     }
 
     return (
-        <View className="flex-1 gap-3 overflow-hidden pt-1">
+        <View className="flex-1 gap-3 overflow-hidden pt-3">
             <View className="gap-2.5">
                 <View className="flex-row items-center justify-between px-0.5 pt-1">
                     <Skeleton className="h-4 w-16 rounded-full" />

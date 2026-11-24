@@ -22,20 +22,17 @@ type MemberReservationResponseBase = {
     adminNotes: string | null;
 };
 
-type MemberLessonReservationListResponse =
-    MemberReservationResponseBase & {
-        reservationType: "lesson";
-        reservationStatus: LessonReservationStatus;
-    };
+type MemberLessonReservationListResponse = MemberReservationResponseBase & {
+    reservationType: "lesson";
+    reservationStatus: LessonReservationStatus;
+};
 
 type MemberBayReservationListResponse = MemberReservationResponseBase & {
     reservationType: "bay";
     reservationStatus: string;
 };
 
-export type MemberReservationResponse =
-    | MemberLessonReservationListResponse
-    | MemberBayReservationListResponse;
+export type MemberReservationResponse = MemberLessonReservationListResponse | MemberBayReservationListResponse;
 
 export type MemberReservationDomain = "lesson" | "bay";
 
@@ -55,18 +52,15 @@ type MemberReservationSummaryBase = Pick<
     | "adminNotes"
 >;
 
-type MemberLessonReservationSummaryResponse =
-    MemberReservationSummaryBase & {
-        reservationType: "lesson";
-        reservationStatus: LessonReservationStatus;
-    };
+type MemberLessonReservationSummaryResponse = MemberReservationSummaryBase & {
+    reservationType: "lesson";
+    reservationStatus: LessonReservationStatus;
+};
 
-type MemberBayReservationSummaryResponse =
-    MemberReservationSummaryBase & {
-        reservationType: "bay";
-        reservationStatus: string;
-    };
+type MemberBayReservationSummaryResponse = MemberReservationSummaryBase & {
+    reservationType: "bay";
+    reservationStatus: string;
+};
 
 export type MemberReservationSummaryResponse =
-    | MemberLessonReservationSummaryResponse
-    | MemberBayReservationSummaryResponse;
+    MemberLessonReservationSummaryResponse | MemberBayReservationSummaryResponse;

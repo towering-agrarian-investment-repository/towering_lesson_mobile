@@ -1,7 +1,20 @@
-import { getMemberTicketById, getMemberTickets, MEMBER_TICKET_PAGE_SIZE, type MemberTicketFilters } from "@/service/ticket-service";
+import {
+    getMemberTicketById,
+    getMemberTickets,
+    MEMBER_TICKET_PAGE_SIZE,
+    type MemberTicketFilters,
+} from "@/service/ticket-service";
 import type { TicketDetailResponse, TicketListItemResponse } from "@/types/member-ticket";
 import type { TicketType } from "@/types/member.type";
-import { type InfiniteData, type QueryClient, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    type InfiniteData,
+    type QueryClient,
+    queryOptions,
+    skipToken,
+    useInfiniteQuery,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 import { ApiResponse, CursorPageResponse } from "../api-response/api-response";
 
 const DEFAULT_TICKET_STATUSES = ["ACTIVE", "IN_USE"];
@@ -25,14 +38,17 @@ export function getMemberTicketsQueryOptions({
         queryKey: ["member", "tickets", statuses, limit, ticketTypes] as const,
         initialPageParam: null as string | null,
         queryFn: ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) =>
-            getMemberTickets({
-                statuses,
-                types: ticketTypes,
-                cursor: pageParam ?? undefined,
-                limit,
-            }, signal),
+            getMemberTickets(
+                {
+                    statuses,
+                    types: ticketTypes,
+                    cursor: pageParam ?? undefined,
+                    limit,
+                },
+                signal,
+            ),
         getNextPageParam: (lastPage: ApiResponse<CursorPageResponse<TicketListItemResponse>>) =>
-            lastPage.data.hasMore ? lastPage.data.nextCursor ?? undefined : undefined,
+            lastPage.data.hasMore ? (lastPage.data.nextCursor ?? undefined) : undefined,
         staleTime: 60_000,
     };
 }
@@ -50,30 +66,28 @@ export function useMemberTickets(filters?: MemberTicketFilters) {
     >({
         ...options,
         placeholderData: (previousData, previousQuery) =>
-            previousQuery?.queryKey[3] === limit &&
-            previousQuery.queryKey[4]?.join(",") === types?.join(",")
+            previousQuery?.queryKey[3] === limit && previousQuery.queryKey[4]?.join(",") === types?.join(",")
                 ? previousData
                 : undefined,
         select: (data) => ({ items: data.pages.flatMap((page) => page.data.items) }),
     });
 }
 
-export function getMemberTicketByIdQueryOptions(ticketId: number) {
-    return {
+export function getMemberTicketByIdQueryOptions(ticketId?: number) {
+    const enabled = ticketId !== undefined && Number.isSafeInteger(ticketId) && ticketId > 0;
+    return queryOptions({
         queryKey: ["member", "tickets", "by-id", ticketId] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            getMemberTicketById(ticketId, signal),
+        queryFn: enabled ? ({ signal }) => getMemberTicketById(ticketId, signal) : skipToken,
+        enabled,
         staleTime: 60_000,
-    };
+    });
 }
 
 function findCachedMemberTicket(
     queryClient: QueryClient,
     ticketId: number,
 ): ApiResponse<TicketDetailResponse> | undefined {
-    const lists = queryClient.getQueriesData<
-        InfiniteData<ApiResponse<CursorPageResponse<TicketListItemResponse>>>
-    >({
+    const lists = queryClient.getQueriesData<InfiniteData<ApiResponse<CursorPageResponse<TicketListItemResponse>>>>({
         queryKey: ["member", "tickets"],
         predicate: (query) => query.queryKey[2] !== "by-id",
     });
@@ -92,19 +106,12 @@ function findCachedMemberTicket(
 
 export function useMemberTicketById(ticketId?: number) {
     const queryClient = useQueryClient();
-    const isEnabled = Number.isSafeInteger(ticketId) && (ticketId as number) > 0;
+    const options = getMemberTicketByIdQueryOptions(ticketId);
 
-    return useQuery<
-        ApiResponse<TicketDetailResponse>,
-        Error,
-        TicketDetailResponse
-    >({
-        queryKey: ["member", "tickets", "by-id", ticketId] as const,
-        queryFn: ({ signal }) => getMemberTicketById(ticketId!, signal),
-        enabled: isEnabled,
-        staleTime: 60_000,
+    return useQuery({
+        ...options,
         placeholderData: () =>
-            isEnabled ? findCachedMemberTicket(queryClient, ticketId!) : undefined,
+            options.enabled && ticketId !== undefined ? findCachedMemberTicket(queryClient, ticketId) : undefined,
         select: (response) => response.data,
     });
 }

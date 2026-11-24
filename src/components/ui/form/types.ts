@@ -1,9 +1,4 @@
-import type {
-    Control,
-    FieldValues,
-    Path,
-    RegisterOptions,
-} from "react-hook-form";
+import type { Control, FieldValues, Path, RegisterOptions } from "react-hook-form";
 import type { TextInputProps } from "react-native";
 
 export type FormInputBaseProps<TFieldValues extends FieldValues> = {
@@ -11,6 +6,7 @@ export type FormInputBaseProps<TFieldValues extends FieldValues> = {
     name: Path<TFieldValues>;
     label: string;
     placeholder?: string;
+    helperText?: string;
     rules?: RegisterOptions<TFieldValues, Path<TFieldValues>>;
     autoCapitalize?: TextInputProps["autoCapitalize"];
     autoComplete?: TextInputProps["autoComplete"];
@@ -20,6 +16,10 @@ export type FormInputBaseProps<TFieldValues extends FieldValues> = {
     onSubmitEditing?: TextInputProps["onSubmitEditing"];
     multiline?: boolean;
     numberOfLines?: number;
+    /** Visual height for multiline inputs; defaults to 128. */
+    multilineMinHeight?: number;
+    /** Show a live `current/max` counter under the field when maxLength is set. */
+    showCharacterCount?: boolean;
     maxLength?: TextInputProps["maxLength"];
     editable?: boolean;
     autoFocus?: boolean;

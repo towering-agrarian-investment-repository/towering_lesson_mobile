@@ -9,19 +9,14 @@ interface SavePushTokenRequest {
     platform: PushTokenPlatform;
 }
 
-export const savePushToken = async (
-    data: SavePushTokenRequest,
-): Promise<ApiResponse<null>> => {
+export const savePushToken = async (data: SavePushTokenRequest): Promise<ApiResponse<null>> => {
     return apiClient("/push-tokens", {
         method: "POST",
         body: JSON.stringify(data),
     });
 };
 
-export const deactivatePushInstallation = async (
-    deviceId: string,
-    signal: AbortSignal,
-): Promise<ApiResponse<null>> => {
+export const deactivatePushInstallation = async (deviceId: string, signal: AbortSignal): Promise<ApiResponse<null>> => {
     return apiClient(`/push-tokens/installations/${encodeURIComponent(deviceId)}`, {
         method: "DELETE",
         signal,

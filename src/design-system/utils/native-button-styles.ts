@@ -12,8 +12,7 @@ export function getNativeButtonStyle(
     accent = colors.primary,
 ): NonNullable<ButtonProps["style"]> {
     return {
-        backgroundColor:
-            appearance === "filled" ? accent : appearance === "outlined" ? colors.surface : "transparent",
+        backgroundColor: appearance === "filled" ? accent : appearance === "outlined" ? colors.surface : "transparent",
         borderRadius: 12,
         ...(appearance === "outlined" ? { borderWidth: 1, borderColor: colors.border } : {}),
         opacity: disabled ? 0.5 : 1,
@@ -32,6 +31,13 @@ export function getNativeButtonTextStyle(
         fontSize: typography.label.fontSize * fontScale,
         fontWeight: "600",
         textAlign: "center",
-        color: appearance === "filled" ? colors.primaryForeground : accent === colors.danger ? colors.danger : colors.foreground,
+        color:
+            appearance === "filled"
+                ? accent === colors.danger
+                    ? colors.dangerForeground
+                    : colors.primaryForeground
+                : accent === colors.danger
+                  ? colors.danger
+                  : colors.foreground,
     };
 }

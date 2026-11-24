@@ -60,9 +60,7 @@ export default function TicketsScreen() {
     );
 
     const renderTabBar = useCallback(
-        (props: TabBarProps<SwipeableTabRoute>) => (
-            <SwipeableTabBar {...props} onTabPress={handleTabChange} />
-        ),
+        (props: TabBarProps<SwipeableTabRoute>) => <SwipeableTabBar {...props} onTabPress={handleTabChange} />,
         [handleTabChange],
     );
 

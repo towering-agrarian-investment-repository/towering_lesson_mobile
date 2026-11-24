@@ -1,15 +1,11 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { AnimatedPressable, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useWelcome } from "@/lib/welcome/welcome-context";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-    CalendarDays,
-    ClipboardCheck,
-    MessageCircle,
-} from "lucide-react-native";
+import { CalendarDays, ClipboardCheck, MessageCircle } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
@@ -62,7 +58,7 @@ export default function WelcomeScreen() {
             footer={
                 <View className="gap-3 px-2">
                     {startFailed ? (
-                        <NativeText
+                        <AppText
                             variant="subtext"
                             accessibilityRole="alert"
                             accessibilityLiveRegion="polite"
@@ -70,7 +66,7 @@ export default function WelcomeScreen() {
                             align="center"
                         >
                             {t("login.genericError")}
-                        </NativeText>
+                        </AppText>
                     ) : null}
                     <AnimatedPressable
                         accessibilityRole="button"
@@ -101,47 +97,39 @@ export default function WelcomeScreen() {
                             }}
                         >
                             {isStarting ? (
-                                <ActivityIndicator
-                                    color={colors.primaryForeground}
-                                />
+                                <ActivityIndicator color={colors.primaryForeground} />
                             ) : (
-                                    <NativeText
-                                        variant="label"
-                                        color="primaryForeground"
-                                        align="center"
-                                        textStyle={{ fontWeight: "600" as const }}
-                                    >
-                                        {t("welcome.getStarted", {
-                                            defaultValue: "Get Started",
-                                        })}
-                                    </NativeText>
+                                <AppText
+                                    variant="label"
+                                    color="primaryForeground"
+                                    align="center"
+                                    textStyle={{ fontWeight: "600" as const }}
+                                >
+                                    {t("welcome.getStarted", {
+                                        defaultValue: "Get Started",
+                                    })}
+                                </AppText>
                             )}
                         </LinearGradient>
                     </AnimatedPressable>
                 </View>
             }
         >
-            <View className="grow justify-center gap-8 px-6 py-6">
-                <HappyGolfLogo
-                    width={148}
-                    height={35}
-                    primaryColor={colors.primary}
-                    accentColor={colors.warning}
-                />
+            <View className="grow justify-center gap-8 px-4 py-6">
+                <HappyGolfLogo width={148} height={35} primaryColor={colors.primary} accentColor={colors.warning} />
 
                 <View className="w-full gap-8">
                     <View className="w-full items-center gap-3">
-                        <NativeText variant="h1" align="center">
+                        <AppText variant="h1" align="center">
                             {t("welcome.title", {
                                 defaultValue: "Welcome to HappyGolf Go",
                             })}
-                        </NativeText>
-                        <NativeText variant="subtext" color="mutedForeground" align="center">
+                        </AppText>
+                        <AppText variant="subtext" color="mutedForeground" align="center">
                             {t("welcome.description", {
-                                defaultValue:
-                                    "Your golf lessons, all in one place.",
+                                defaultValue: "Your golf lessons, all in one place.",
                             })}
-                        </NativeText>
+                        </AppText>
                     </View>
 
                     <View className="w-full gap-3">
@@ -154,15 +142,11 @@ export default function WelcomeScreen() {
                                     className="flex-row items-center gap-4 rounded-2xl border border-border bg-card px-4 py-4"
                                 >
                                     <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                                        <Icon
-                                            size={20}
-                                            color={colors.primary}
-                                            strokeWidth={2.2}
-                                        />
+                                        <Icon size={20} color={colors.primary} strokeWidth={2.2} />
                                     </View>
-                                    <NativeText variant="label" style={{ flex: 1, minWidth: 0 }}>
+                                    <AppText variant="label" style={{ flex: 1, minWidth: 0 }}>
                                         {feature}
-                                    </NativeText>
+                                    </AppText>
                                 </View>
                             );
                         })}

@@ -12,11 +12,10 @@ export type SwipeableTabRoute = {
     accessibilityLabel?: string;
 };
 
-type SwipeableTabBarProps<TRoute extends SwipeableTabRoute> =
-    SceneRendererProps & {
-        navigationState: NavigationState<TRoute>;
-        onTabPress: (index: number) => void;
-    };
+type SwipeableTabBarProps<TRoute extends SwipeableTabRoute> = SceneRendererProps & {
+    navigationState: NavigationState<TRoute>;
+    onTabPress: (index: number) => void;
+};
 
 const TAB_GAP = 4;
 
@@ -29,9 +28,7 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
     const { routes, index: activeIndex } = navigationState;
     const count = routes.length;
     const hasMeasured = trackWidth > 0 && count > 0;
-    const pillWidth = hasMeasured
-        ? (trackWidth - (count - 1) * TAB_GAP) / count
-        : 0;
+    const pillWidth = hasMeasured ? (trackWidth - (count - 1) * TAB_GAP) / count : 0;
     const step = pillWidth + TAB_GAP;
 
     return (
@@ -39,9 +36,7 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
             <View
                 accessibilityRole="tablist"
                 className="relative flex-row gap-1"
-                onLayout={({ nativeEvent }) =>
-                    setTrackWidth(nativeEvent.layout.width)
-                }
+                onLayout={({ nativeEvent }) => setTrackWidth(nativeEvent.layout.width)}
             >
                 {hasMeasured ? (
                     <Animated.View
@@ -55,10 +50,7 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
                                         count > 1
                                             ? position.interpolate({
                                                   inputRange: [0, count - 1],
-                                                  outputRange: [
-                                                      0,
-                                                      step * (count - 1),
-                                                  ],
+                                                  outputRange: [0, step * (count - 1)],
                                                   extrapolate: "clamp",
                                               })
                                             : 0,
@@ -72,11 +64,7 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
                     const activeOpacity =
                         count > 1
                             ? position.interpolate({
-                                  inputRange: [
-                                      tabIndex - 1,
-                                      tabIndex,
-                                      tabIndex + 1,
-                                  ],
+                                  inputRange: [tabIndex - 1, tabIndex, tabIndex + 1],
                                   outputRange: [0, 1, 0],
                                   extrapolate: "clamp",
                               })
@@ -88,9 +76,7 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
                         <AnimatedPressable
                             key={route.key}
                             accessibilityRole="tab"
-                            accessibilityLabel={
-                                route.accessibilityLabel ?? route.title
-                            }
+                            accessibilityLabel={route.accessibilityLabel ?? route.title}
                             accessibilityState={{
                                 selected: isSelected,
                             }}
@@ -102,14 +88,11 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
                         >
                             <AppText
                                 variant="caption"
-                                color={
-                                    isSelected && !hasMeasured
-                                        ? "primaryForeground"
-                                        : "mutedForeground"
-                                }
+                                color={isSelected && !hasMeasured ? "primaryForeground" : "mutedForeground"}
                                 align="center"
                                 wrap={false}
                                 numberOfLines={1}
+                                maxFontSizeMultiplier={1.35}
                                 textStyle={{
                                     lineHeight: typography.caption.lineHeight,
                                     fontSize: typography.caption.fontSize,
@@ -130,11 +113,10 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
                                         align="center"
                                         wrap={false}
                                         numberOfLines={1}
+                                        maxFontSizeMultiplier={1.35}
                                         textStyle={{
-                                            lineHeight:
-                                                typography.caption.lineHeight,
-                                            fontSize:
-                                                typography.caption.fontSize,
+                                            lineHeight: typography.caption.lineHeight,
+                                            fontSize: typography.caption.fontSize,
                                             fontWeight: "600",
                                         }}
                                     >

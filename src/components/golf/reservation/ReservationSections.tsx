@@ -1,4 +1,4 @@
-import { NativeText } from "@/design-system/components/NativeText";
+import { AppText } from "@/design-system/components/AppText";
 import { Divider } from "@/design-system";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { frame, textSelection } from "@expo/ui/swift-ui/modifiers";
@@ -41,9 +41,9 @@ export function ReservationDetailField({
                     <ReservationFieldValue selectable={selectable}>{value}</ReservationFieldValue>
 
                     {description ? (
-                        <NativeText variant="subtext" textStyle={{ color: uiColors.foreground + "bf" }}>
+                        <AppText variant="subtext" textStyle={{ color: uiColors.mutedForeground }}>
                             {description}
-                        </NativeText>
+                        </AppText>
                     ) : null}
                 </View>
                 {trailingElement}
@@ -52,33 +52,23 @@ export function ReservationDetailField({
     );
 }
 
-function ReservationPoliciesSection({
-    title,
-    policies,
-}: {
-    title?: string;
-    policies: readonly ReservationPolicy[];
-}) {
+function ReservationPoliciesSection({ title, policies }: { title?: string; policies: readonly ReservationPolicy[] }) {
     const { colors: uiColors } = useTheme();
     const { t } = useTranslation();
     const resolvedTitle = title ?? t("reservations.policiesTitle");
 
     return (
         <View className="flex-col gap-3">
-            <NativeText variant="h3">
-                {resolvedTitle}
-            </NativeText>
+            <AppText variant="h3">{resolvedTitle}</AppText>
 
             <View className="gap-3">
                 {policies.map((policy) => (
                     <View key={policy.title} className="flex-col gap-1">
-                        <NativeText variant="label">
-                            {"- " + policy.title}
-                        </NativeText>
+                        <AppText variant="label">{"- " + policy.title}</AppText>
 
-                        <NativeText variant="subtext" textStyle={{ color: uiColors.foreground + "cc" }}>
+                        <AppText variant="subtext" textStyle={{ color: uiColors.mutedForeground }}>
                             {policy.description}
-                        </NativeText>
+                        </AppText>
                     </View>
                 ))}
             </View>
@@ -86,19 +76,12 @@ function ReservationPoliciesSection({
     );
 }
 
-function ReservationFieldLabel({
-    children,
-    className,
-}: {
-    children: string;
-    className?: string;
-}) {
-
+export function ReservationFieldLabel({ children, className }: { children: string; className?: string }) {
     return (
         <View className={className}>
-            <NativeText variant="meta" textStyle={{ fontWeight: "500" }}>
+            <AppText variant="subtext" color="mutedForeground">
                 {children}
-            </NativeText>
+            </AppText>
         </View>
     );
 }
@@ -115,18 +98,20 @@ function ReservationFieldValue({
     const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     return (
         <View className={className}>
-            <Host
-                matchContents={{ vertical: true }}
-                ignoreSafeArea="all"
-                style={{ width: "100%" }}
-            >
+            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
                 <Text
-                    modifiers={process.env.EXPO_OS === "ios"
-                        ? [frame({ maxWidth: Infinity, alignment: "leading" }), ...(selectable ? [textSelection(true)] : [])]
-                        : [fillMaxWidth()]}
+                    modifiers={
+                        process.env.EXPO_OS === "ios"
+                            ? [
+                                  frame({ maxWidth: Infinity, alignment: "leading" }),
+                                  ...(selectable ? [textSelection(true)] : []),
+                              ]
+                            : [fillMaxWidth()]
+                    }
                     textStyle={{
-                        ...typography.body, lineHeight: typography.body.lineHeight * uiFontScale,
-                        fontWeight: "500",
+                        ...typography.body,
+                        lineHeight: typography.body.lineHeight * uiFontScale,
+                        fontWeight: "600",
                         color: uiColors.foreground,
                         fontSize: typography.body.fontSize * uiFontScale,
                     }}
@@ -144,12 +129,7 @@ type ReservationContentProps = {
     policies: readonly ReservationPolicy[];
 };
 
-export function ReservationContent({
-    children,
-    disabledReason,
-    policies,
-}: ReservationContentProps) {
-
+export function ReservationContent({ children, disabledReason, policies }: ReservationContentProps) {
     return (
         <View className="grow gap-6">
             <View className="gap-4">{children}</View>
@@ -158,9 +138,9 @@ export function ReservationContent({
 
                 {disabledReason ? (
                     <View className="rounded-xl bg-warning/10 px-4 py-3">
-                        <NativeText variant="meta" color="warning">
+                        <AppText variant="subtext" color="warning">
                             {disabledReason}
-                        </NativeText>
+                        </AppText>
                     </View>
                 ) : null}
 

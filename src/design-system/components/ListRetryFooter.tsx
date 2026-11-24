@@ -10,13 +10,7 @@ type ListRetryFooterProps = {
     className?: string;
 };
 
-export function ListRetryFooter({
-    onRetry,
-    disabled = false,
-    busy = false,
-    label,
-    className,
-}: ListRetryFooterProps) {
+export function ListRetryFooter({ onRetry, disabled = false, busy = false, label, className }: ListRetryFooterProps) {
     const { t } = useTranslation();
 
     return (

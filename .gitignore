@@ -49,4 +49,8 @@ example
 # local design asset dump
 assets/golf/
 
+# editor + tooling state
+.idea/
+.sync-staging/
+
 .env.local

@@ -14,10 +14,12 @@ export function isLessonSlotFull(slot: MemberLessonSlotResponse) {
 }
 
 export function isLessonSlotBookedByMember(slot: MemberLessonSlotResponse, memberId?: number) {
-    return memberId != null && slot.reservations?.some(
-        (reservation) => reservation.memberId === memberId
-            && reservation.reservationStatus !== "CANCELLED",
-    ) === true;
+    return (
+        memberId != null &&
+        slot.reservations?.some(
+            (reservation) => reservation.memberId === memberId && reservation.reservationStatus !== "CANCELLED",
+        ) === true
+    );
 }
 
 export function isGroupLessonSlot(slot: MemberLessonSlotResponse) {

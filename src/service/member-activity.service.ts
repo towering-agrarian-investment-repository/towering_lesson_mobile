@@ -3,19 +3,11 @@ import { apiClient } from "@/lib/client/api-client";
 import type { MemberActivityResponse, MemberActivitySummary } from "@/types/member-activity";
 
 export async function getMemberActivitySummary(signal?: AbortSignal) {
-    return apiClient<ApiResponse<MemberActivitySummary>>(
-        "/member/activity/summary",
-        { method: "GET", signal },
-    );
+    return apiClient<ApiResponse<MemberActivitySummary>>("/member/activity/summary", { method: "GET", signal });
 }
 
 export async function getMemberActivity(year: number | "all", signal?: AbortSignal) {
-    const query = year === "all"
-        ? "range=all"
-        : `year=${encodeURIComponent(String(year))}`;
+    const query = year === "all" ? "range=all" : `year=${encodeURIComponent(String(year))}`;
 
-    return apiClient<ApiResponse<MemberActivityResponse>>(
-        `/member/activity?${query}`,
-        { method: "GET", signal },
-    );
+    return apiClient<ApiResponse<MemberActivityResponse>>(`/member/activity?${query}`, { method: "GET", signal });
 }

@@ -1,5 +1,6 @@
 import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
 import { useTheme } from "@/design-system/utils/theme";
+import { typography } from "@/design-system/utils/typography";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { Button, Host, Text } from "@expo/ui";
 import { defaultMinSize, semantics } from "@expo/ui/jetpack-compose/modifiers";
@@ -16,12 +17,7 @@ export function ProfileHeaderActions() {
     const editLabel = t("profile.editPersonalInformation");
 
     return (
-        <Host
-            matchContents
-            ignoreSafeArea="all"
-            colorScheme={resolvedScheme}
-            style={{ minWidth: 68, minHeight: 48 }}
-        >
+        <Host matchContents ignoreSafeArea="all" colorScheme={resolvedScheme} style={{ minWidth: 68, minHeight: 48 }}>
             <Button
                 variant="text"
                 disabled={isLocked}
@@ -29,15 +25,28 @@ export function ProfileHeaderActions() {
                     runWithNavigationLock(() => router.push("/profile/edit"));
                 }}
                 style={getNativeButtonStyle(colors, "text", isLocked)}
-                modifiers={process.env.EXPO_OS === "ios"
-                    ? [accessibilityLabel(editLabel), frame({ minWidth: 68, minHeight: 48 })]
-                    : [semantics({ contentDescription: editLabel }), defaultMinSize({ minWidth: 68, minHeight: 48 })]}
+                modifiers={
+                    process.env.EXPO_OS === "ios"
+                        ? [accessibilityLabel(editLabel), frame({ minWidth: 68, minHeight: 48 })]
+                        : [
+                              semantics({ contentDescription: editLabel }),
+                              defaultMinSize({ minWidth: 68, minHeight: 48 }),
+                          ]
+                }
             >
                 <Text
-                    modifiers={process.env.EXPO_OS === "ios"
-                        ? [frame({ minWidth: 68, minHeight: 48 }), contentShape(shapes.rectangle())]
-                        : undefined}
-                    textStyle={{ color: colors.foreground, fontSize: 16 * fontScale, fontWeight: "600", textAlign: "center" }}>
+                    modifiers={
+                        process.env.EXPO_OS === "ios"
+                            ? [frame({ minWidth: 68, minHeight: 48 }), contentShape(shapes.rectangle())]
+                            : undefined
+                    }
+                    textStyle={{
+                        color: colors.foreground,
+                        fontSize: typography.subtitle.fontSize * fontScale,
+                        fontWeight: "600",
+                        textAlign: "center",
+                    }}
+                >
                     {t("profile.editAction")}
                 </Text>
             </Button>

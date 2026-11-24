@@ -1,7 +1,7 @@
 import type { MemberActivityDay, MemberActivityStatusCounts } from "@/types/member-activity";
 
 export function mapActivityDays(days: MemberActivityDay[]) {
-    return days.map(day => ({
+    return days.map((day) => ({
         date: day.date,
         count: day.count,
         status: getDisplayStatus(day.statusCounts),
@@ -17,7 +17,7 @@ export function mapActivityDays(days: MemberActivityDay[]) {
 }
 
 function getDisplayStatus(statusCounts: MemberActivityStatusCounts) {
-    const activeStatuses = Object.values(statusCounts).filter(count => count > 0);
+    const activeStatuses = Object.values(statusCounts).filter((count) => count > 0);
 
     if (activeStatuses.length === 0) return undefined;
     if (activeStatuses.length > 1) return "mixed" as const;

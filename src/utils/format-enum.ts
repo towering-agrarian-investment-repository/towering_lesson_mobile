@@ -51,7 +51,10 @@ const ENUM_TRANSLATION_KEYS: Record<string, string> = {
 export function formatType(value: string | null | undefined, t: TFunction) {
     if (!value) return "-";
 
-    const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
+    const normalized = value
+        .trim()
+        .toUpperCase()
+        .replace(/[\s-]+/g, "_");
     const key = ENUM_TRANSLATION_KEYS[normalized];
     return key ? t(key) : value;
 }

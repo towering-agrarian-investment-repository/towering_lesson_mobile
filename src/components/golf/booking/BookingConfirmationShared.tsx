@@ -1,5 +1,8 @@
+import { ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { ActionButton, Divider, Skeleton, triggerSuccessHaptic } from "@/design-system";
+import type { TicketDetailResponse } from "@/types/member-ticket";
 import type { ImperativeRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 type BookingConfirmationFooterProps = {
@@ -12,6 +15,7 @@ type BookingConfirmationFooterProps = {
 type BookingSuccessDetails = {
     type: "bay" | "lesson";
     mode?: "booking" | "reschedule";
+    reservationId?: number | null;
     ticketName?: string | null;
     ticketTotalCount?: number | null;
     ticketUsedCount?: number | null;
@@ -26,10 +30,7 @@ type BookingSuccessDetails = {
     coachName?: string | null;
 };
 
-export function handleBookingConfirmationSuccess(
-    router: ImperativeRouter,
-    details: BookingSuccessDetails,
-) {
+export function handleBookingConfirmationSuccess(router: ImperativeRouter, details: BookingSuccessDetails) {
     triggerSuccessHaptic();
 
     const params: Record<string, string> = {
@@ -37,10 +38,7 @@ export function handleBookingConfirmationSuccess(
         mode: details.mode ?? "booking",
     };
 
-    const addParam = (
-        key: string,
-        value?: string | number | boolean | null,
-    ) => {
+    const addParam = (key: string, value?: string | number | boolean | null) => {
         if (value == null) return;
         const normalized = String(value).trim();
         if (!normalized) return;
@@ -48,6 +46,7 @@ export function handleBookingConfirmationSuccess(
     };
 
     addParam("ticketName", details.ticketName);
+    addParam("reservationId", details.reservationId);
     addParam("ticketTotalCount", details.ticketTotalCount);
     addParam("ticketUsedCount", details.ticketUsedCount);
     addParam("ticketRemainingCount", details.ticketRemainingCount);
@@ -66,28 +65,33 @@ export function handleBookingConfirmationSuccess(
     });
 }
 
-export function BookingConfirmationFooter({
-    title,
-    loading,
-    disabled,
-    onPress,
-}: BookingConfirmationFooterProps) {
+export function BookingConfirmationFooter({ title, loading, disabled, onPress }: BookingConfirmationFooterProps) {
+    return <ActionButton label={title} loading={loading} disabled={disabled} haptic="selection" onPress={onPress} />;
+}
+
+export function BookingConfirmationTicketField({
+    ticketName,
+    ticket,
+}: {
+    ticketName: string;
+    ticket?: Pick<TicketDetailResponse, "isUnlimited" | "remainingCount">;
+}) {
+    const { t } = useTranslation();
+    const remainingCount = ticket?.remainingCount;
+    const balance =
+        !ticket?.isUnlimited && remainingCount != null
+            ? t("bookingConfirmation.ticketBalanceDelta", {
+                  before: remainingCount,
+                  after: Math.max(0, remainingCount - 1),
+              })
+            : undefined;
+
     return (
-        <ActionButton
-            label={title}
-            loading={loading}
-            disabled={disabled}
-            haptic="selection"
-            onPress={onPress}
-        />
+        <ReservationDetailField label={t("bookingConfirmation.ticketLabel")} value={ticketName} description={balance} />
     );
 }
 
-export function BookingConfirmationLoadingState({
-    fieldCount,
-}: {
-    fieldCount: number;
-}) {
+export function BookingConfirmationLoadingState({ fieldCount }: { fieldCount: number }) {
     return (
         <View className="gap-6">
             <View className="gap-4">
@@ -97,9 +101,7 @@ export function BookingConfirmationLoadingState({
                             <Skeleton className="h-4 w-24 rounded-full" />
                             <Skeleton className="h-6 w-full rounded-full" />
                         </View>
-                        {index < fieldCount - 1 ? (
-                            <Divider className="bg-border" />
-                        ) : null}
+                        {index < fieldCount - 1 ? <Divider className="bg-border" /> : null}
                     </View>
                 ))}
             </View>

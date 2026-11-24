@@ -17,10 +17,7 @@ export function useMemberActivitySummary(enabled = true) {
     });
 }
 
-export function useMemberActivity(
-    year: number | "all",
-    enabled = true,
-) {
+export function useMemberActivity(year: number | "all", enabled = true) {
     const currentYear = new Date().getFullYear();
     const isPastYear = typeof year === "number" && year < currentYear;
 

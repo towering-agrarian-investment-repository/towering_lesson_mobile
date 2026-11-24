@@ -1,15 +1,9 @@
-import TicketHistoryCard, {
-    TicketHistoryCardSkeleton,
-} from "@/components/golf/TicketHistoryCard";
+import TicketHistoryCard, { TicketHistoryCardSkeleton } from "@/components/golf/TicketHistoryCard";
 import { EmptyState, ErrorState, ListRetryFooter, StateList } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import {
-    getMemberTicketByIdQueryOptions,
-    MY_TICKET_TYPES,
-    useMemberTickets,
-} from "@/lib/hook/useTicket";
+import { getMemberTicketByIdQueryOptions, MY_TICKET_TYPES, useMemberTickets } from "@/lib/hook/useTicket";
 import type { TicketListItemResponse } from "@/types/member-ticket";
 import type { TicketType } from "@/types/member.type";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
@@ -60,8 +54,9 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         isFetchingNextPage,
         isFetchNextPageError,
     } = useMemberTickets({ types: TICKET_TYPES_BY_TAB[type] });
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        refetch({ cancelRefetch: false }),
+    );
     const tickets = data?.items ?? [];
 
     const handleFetchNextPage = useCallback(() => {
@@ -74,27 +69,14 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     }, [handleFetchNextPage, isActive, isFetchNextPageError]);
 
     useEffect(() => {
-        if (
-            isActive &&
-            tickets.length === 0 &&
-            hasNextPage &&
-            !isFetchNextPageError
-        ) {
+        if (isActive && tickets.length === 0 && hasNextPage && !isFetchNextPageError) {
             handleFetchNextPage();
         }
-    }, [
-        tickets.length,
-        handleFetchNextPage,
-        hasNextPage,
-        isActive,
-        isFetchNextPageError,
-    ]);
+    }, [tickets.length, handleFetchNextPage, hasNextPage, isActive, isFetchNextPageError]);
 
     const handleTicketPress = useCallback(
         (item: TicketListItemResponse) => {
-            void queryClient.prefetchQuery(
-                getMemberTicketByIdQueryOptions(item.id),
-            );
+            void queryClient.prefetchQuery(getMemberTicketByIdQueryOptions(item.id));
             runWithNavigationLock(() => {
                 router.push({
                     pathname: "/tickets/[id]",
@@ -147,18 +129,11 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
 
     if (isError && !data) {
         return (
-            <StateList
-                refreshing={isPullRefreshing}
-                onRefresh={handlePullRefresh}
-            >
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
                 <ErrorState
                     title={t("tickets.loadError")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={
-                        isRefetching
-                            ? t("common.refreshing")
-                            : t("common.refreshTryAgain")
-                    }
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     actionPending={isRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
@@ -168,10 +143,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
 
     if (tickets.length === 0 && isFetchNextPageError) {
         return (
-            <StateList
-                refreshing={isPullRefreshing}
-                onRefresh={handlePullRefresh}
-            >
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
                 <ErrorState
                     title={t("tickets.loadError")}
                     message={t("common.pullToRefreshAndTryAgain")}
@@ -195,10 +167,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
 
     if (tickets.length === 0) {
         return (
-            <StateList
-                refreshing={isPullRefreshing}
-                onRefresh={handlePullRefresh}
-            >
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
                 <EmptyState
                     title={t("tickets.empty")}
                     actionLabel={t("common.refresh")}
@@ -212,18 +181,14 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     return (
         <FlashList
             data={tickets}
+            extraData={isLocked}
             keyExtractor={ticketKeyExtractor}
             renderItem={renderTicket}
             ItemSeparatorComponent={TicketSeparator}
             decelerationRate="normal"
             nestedScrollEnabled
             contentContainerStyle={TICKET_LIST_CONTENT_STYLE}
-            refreshControl={
-                <RefreshControl
-                    refreshing={isPullRefreshing}
-                    onRefresh={handlePullRefresh}
-                />
-            }
+            refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             showsVerticalScrollIndicator={false}
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.4}

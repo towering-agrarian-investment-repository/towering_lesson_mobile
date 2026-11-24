@@ -1,4 +1,4 @@
-import { showAppToast } from "../toast/toast";
+import { showAppToast } from "@/design-system/components/AppToast";
 import i18n from "@/i18n";
 
 export type CursorPageResponse<T> = {
@@ -35,8 +35,7 @@ export const API_ERROR_CODE = {
     RESERVATION_SLOT_UNAVAILABLE: "RESERVATION_SLOT_UNAVAILABLE",
 } as const;
 
-type ApiErrorCode =
-    (typeof API_ERROR_CODE)[keyof typeof API_ERROR_CODE];
+type ApiErrorCode = (typeof API_ERROR_CODE)[keyof typeof API_ERROR_CODE];
 
 export type ApiErrorResponse = {
     httpStatus: number;
@@ -45,9 +44,7 @@ export type ApiErrorResponse = {
     timestamp: string;
 };
 
-export function isApiErrorResponse(
-    error: unknown,
-): error is ApiErrorResponse {
+export function isApiErrorResponse(error: unknown): error is ApiErrorResponse {
     if (!error || typeof error !== "object") {
         return false;
     }
@@ -67,9 +64,7 @@ export function isApiError(
     expected: { httpStatus: number; errorCode: ApiErrorCode },
 ): error is ApiErrorResponse {
     return (
-        isApiErrorResponse(error) &&
-        error.httpStatus === expected.httpStatus &&
-        error.errorCode === expected.errorCode
+        isApiErrorResponse(error) && error.httpStatus === expected.httpStatus && error.errorCode === expected.errorCode
     );
 }
 
@@ -84,9 +79,8 @@ export function responseStatus<T>(res: ApiResponse<T>): void {
 export class UserFacingError extends Error {}
 
 export function responseError(error: unknown): void {
-    const message = isApiErrorResponse(error) || error instanceof UserFacingError
-        ? error.message
-        : i18n.t("common.requestError");
+    const message =
+        isApiErrorResponse(error) || error instanceof UserFacingError ? error.message : i18n.t("common.requestError");
 
     showAppToast({
         message,

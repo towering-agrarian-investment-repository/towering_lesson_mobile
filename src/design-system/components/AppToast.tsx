@@ -1,26 +1,12 @@
+import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { NativeText } from "./NativeText";
-import {
-    CircleCheck,
-    CircleX,
-    Info,
-    TriangleAlert,
-    X,
-    type LucideIcon,
-} from "lucide-react-native";
-import {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-    type ReactNode,
-} from "react";
+import { CircleCheck, CircleX, Info, TriangleAlert, X, type LucideIcon } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View, type ViewStyle } from "react-native";
 import Animated, {
     cancelAnimation,
-    Easing,
     useAnimatedStyle,
     useReducedMotion,
     useSharedValue,
@@ -28,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { motionDuration, motionEase } from "../utils/motion";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -52,12 +39,7 @@ export function registerToastHandler(handler: ToastHandler | null) {
     toastHandler = handler;
 }
 
-export function showAppToast({
-    message,
-    type = "info",
-    duration,
-    position = "top",
-}: ToastOptions) {
+export function showAppToast({ message, type = "info", duration, position = "top" }: ToastOptions) {
     const normalizedMessage = message.trim();
 
     if (!normalizedMessage) return;
@@ -83,7 +65,6 @@ const TOAST_ICONS: Record<ToastType, LucideIcon> = {
     warning: TriangleAlert,
     info: Info,
 };
-const TOAST_EASING = Easing.bezier(0.23, 1, 0.32, 1);
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
     const { colors } = useTheme();
@@ -117,17 +98,25 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
             if (activeIdRef.current !== id) return;
 
             clearTimer();
-            opacity.set(withTiming(0, {
-                duration: reducedMotion ? 100 : 160,
-                easing: TOAST_EASING,
-            }, (finished) => {
-                if (finished) scheduleOnRN(removeToast, id);
-            }));
+            opacity.set(
+                withTiming(
+                    0,
+                    {
+                        duration: reducedMotion ? motionDuration.fast : motionDuration.normal,
+                        easing: motionEase,
+                    },
+                    (finished) => {
+                        if (finished) scheduleOnRN(removeToast, id);
+                    },
+                ),
+            );
             if (!reducedMotion) {
-                translateY.set(withTiming(activePositionRef.current === "top" ? -8 : 8, {
-                    duration: 160,
-                    easing: TOAST_EASING,
-                }));
+                translateY.set(
+                    withTiming(activePositionRef.current === "top" ? -8 : 8, {
+                        duration: motionDuration.normal,
+                        easing: motionEase,
+                    }),
+                );
             }
         },
         [clearTimer, opacity, reducedMotion, removeToast, translateY],
@@ -163,21 +152,22 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 
         opacity.set(0);
         translateY.set(reducedMotion ? 0 : toast.position === "top" ? -12 : 12);
-        opacity.set(withTiming(1, {
-            duration: reducedMotion ? 120 : 200,
-            easing: TOAST_EASING,
-        }));
+        opacity.set(
+            withTiming(1, {
+                duration: reducedMotion ? motionDuration.fast : motionDuration.standard,
+                easing: motionEase,
+            }),
+        );
         if (!reducedMotion) {
-            translateY.set(withTiming(0, {
-                duration: 200,
-                easing: TOAST_EASING,
-            }));
+            translateY.set(
+                withTiming(0, {
+                    duration: motionDuration.standard,
+                    easing: motionEase,
+                }),
+            );
         }
 
-        timeoutRef.current = setTimeout(
-            () => dismissToast(toast.id),
-            toast.duration,
-        );
+        timeoutRef.current = setTimeout(() => dismissToast(toast.id), toast.duration);
 
         return clearTimer;
     }, [clearTimer, dismissToast, opacity, reducedMotion, toast, translateY]);
@@ -211,34 +201,31 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
                     }}
                 >
                     <Animated.View
-                        accessibilityLiveRegion={
-                            toast.type === "error" ? "assertive" : "polite"
-                        }
+                        accessibilityLiveRegion={toast.type === "error" ? "assertive" : "polite"}
                         accessibilityRole="alert"
                         className="w-full max-w-xl flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
-                        style={[animatedStyle, {
-                            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
-                            borderCurve: "continuous",
-                        }]}
+                        style={[
+                            animatedStyle,
+                            {
+                                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
+                                borderCurve: "continuous",
+                            },
+                        ]}
                     >
                         <View
                             className="h-10 w-10 shrink-0 items-center justify-center rounded-full"
                             style={{ backgroundColor: `${accentColor}1A` }}
                         >
-                            <Icon
-                                size={21}
-                                color={accentColor}
-                                strokeWidth={2.4}
-                            />
+                            <Icon size={21} color={accentColor} strokeWidth={2.4} />
                         </View>
 
-                        <NativeText
+                        <AppText
                             variant="label"
                             style={{ flex: 1, minWidth: 0 }}
                             textStyle={{ lineHeight: typography.subtext.lineHeight }}
                         >
                             {toast.message}
-                        </NativeText>
+                        </AppText>
 
                         <Pressable
                             accessibilityRole="button"

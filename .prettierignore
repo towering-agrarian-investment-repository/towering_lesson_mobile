@@ -1,0 +1,43 @@
+# Tooling state, not source
+.agents/
+.claude/
+.idea/
+.sync-staging/
+
+# Dependencies and build output
+node_modules/
+.expo/
+.pnpm-store/
+dist/
+web-build/
+output/
+coverage/
+
+# Generated native projects
+android/
+ios/
+
+# Binary and design assets
+assets/
+design/
+
+# Prose documentation
+docs/
+*.md
+
+# Repo files the project guide marks as do-not-touch
+patches/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+metro.config.js
+scripts/startup-compat.test.cjs
+
+# JSONC / generated config is not valid strict JSON
+app.json
+google-services.json
+skills-lock.json
+
+# Generated Expo type declarations
+expo-env.d.ts
+nativewind-env.d.ts
+react-native-css-env.d.ts

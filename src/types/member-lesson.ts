@@ -1,8 +1,5 @@
 import type { MemberGroupSummaryResponse } from "./member-group";
-import type {
-    MemberHomeworkSubmissionResponse,
-    MemberHomeworkSummaryResponse,
-} from "./member-homework";
+import type { MemberHomeworkSubmissionResponse, MemberHomeworkSummaryResponse } from "./member-homework";
 import type { MemberLessonLogResponse as MemberLessonLogSummaryResponse } from "./member-lesson-log";
 import type { MemberReservationDomain } from "./member-reservation";
 import type { SessionInstanceResponse } from "./member-session";
@@ -12,12 +9,7 @@ type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
 
 type LessonSlotStatus = "AVAILABLE" | "BLOCKED" | "CANCELLED";
 
-export type LessonReservationStatus =
-    | "RESERVED"
-    | "CHECKED_IN"
-    | "COMPLETED"
-    | "CANCELLED"
-    | "NO_SHOW";
+export type LessonReservationStatus = "RESERVED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
 export type MemberLessonSummaryResponse = {
     lessonId: number;
@@ -49,7 +41,6 @@ type LessonMediaResponse = {
     createdAt: string;
     updatedAt: string;
 };
-
 
 export type MemberLessonDetailResponse = {
     lesson: MemberLessonSummaryResponse;

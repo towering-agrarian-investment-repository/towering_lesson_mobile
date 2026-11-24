@@ -26,14 +26,15 @@ function TitleSectionWithBadge({ label, length, variant = "h3" }: Props) {
 
             <View
                 className={cn(
-                    "h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5",
+                    "min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 py-0.5",
                     isZero ? "bg-muted" : "bg-primary/10",
                 )}
             >
                 <AppText
-                    variant="count"
+                    variant="subtext"
                     color={isZero ? "mutedForeground" : "primary"}
                     wrap={false}
+                    maxFontSizeMultiplier={1.35}
                     textStyle={{
                         lineHeight: typography.caption.lineHeight,
                         fontSize: typography.caption.fontSize,

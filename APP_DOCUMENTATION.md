@@ -225,6 +225,7 @@ pnpm start --dev-client
 Checks, when appropriate to a code/configuration change:
 
 ```sh
+pnpm exec prettier --check .
 pnpm exec tsc --noEmit
 pnpm exec eslint src
 pnpm dlx expo-doctor

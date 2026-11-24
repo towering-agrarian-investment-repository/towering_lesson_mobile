@@ -9,25 +9,23 @@ type SkeletonProps = {
     style?: StyleProp<ViewStyle>;
 };
 
+const SKELETON_PULSE_STYLE = {
+    animationName: {
+        from: { opacity: 0.45 },
+        to: { opacity: 1 },
+    },
+    animationDuration: "1040ms",
+    animationIterationCount: "infinite" as const,
+    animationDirection: "alternate" as const,
+    animationTimingFunction: "ease-in-out" as const,
+};
+
 export function Skeleton({ className, children, style }: SkeletonProps) {
     const reduceMotion = useReducedMotion();
 
     return (
         <Animated.View
-            style={[style,
-                reduceMotion
-                    ? undefined
-                    : {
-                          animationName: {
-                              from: { opacity: 0.45 },
-                              to: { opacity: 1 },
-                          },
-                          animationDuration: "1040ms",
-                          animationIterationCount: "infinite",
-                          animationDirection: "alternate",
-                          animationTimingFunction: "ease-in-out",
-                      },
-            ]}
+            style={[style, reduceMotion ? undefined : SKELETON_PULSE_STYLE]}
             className={cn("overflow-hidden rounded-xl bg-muted", className)}
         >
             {children}

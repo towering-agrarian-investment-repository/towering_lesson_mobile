@@ -17,13 +17,13 @@ If docs and code disagree, trust the code and flag the doc.
 
 - Types: `pnpm exec tsc --noEmit`
 - Lint: `pnpm exec eslint src`
+- Format: `pnpm format` (write) / `pnpm exec prettier --check .` (verify)
 - Config/deps: `pnpm dlx expo-doctor`
 - Bundles: `pnpm exec expo export --platform android --platform ios --output-dir dist`
 - Dev server: `pnpm start --dev-client`
-- Startup compat: `node --test scripts/startup-compat.test.cjs`
-- Bay availability tests: `node --test scripts/tests/bay-availability.test.cjs`
+- All Node tests: `pnpm test` (runs `scripts/startup-compat.test.cjs` plus every `scripts/tests/*.test.cjs`)
 
-Automated checks consist of `tsc`, `eslint`, `scripts/startup-compat.test.cjs`, and `scripts/tests/bay-availability.test.cjs`. Runtime/device behavior is verified manually: respect requests for manual device testing and clearly separate code/build checks from unverified runtime behavior. Checklist: `docs/qa-checklist.md`.
+Automated checks consist of `pnpm exec prettier --check .`, `pnpm exec tsc --noEmit`, `pnpm exec eslint src`, and `pnpm test`; CI runs the same four on every push and pull request. Prettier is the single formatter (`.prettierrc.json`: 4-space, 120 columns, double quotes). Do not add a second formatter or hand-format around it. Runtime/device behavior is verified manually: respect requests for manual device testing and clearly separate code/build checks from unverified runtime behavior. Checklist: `docs/qa-checklist.md`.
 
 Native dependency/config changes may need a fresh dev build (profiles in `eas.json`; `development-simulator` for iOS simulator; physical iOS needs signing credentials).
 
@@ -51,7 +51,7 @@ Native dependency/config changes may need a fresh dev build (profiles in `eas.js
 - Forms: reuse `FormTextInput`, `FormPasswordInput`, and their field shell in `src/components/ui/form/` (backed by core RN `TextInput` so focus survives password visibility toggles and multiline alignment stays consistent). Do not restore removed select/checkbox/date/number wrappers as unused code.
 - Generic UI lives in `src/design-system/` (see its `index.ts`). Feature components live under `src/components/`.
 - Layout/alignment/sizing pitfalls for native hosts: `docs/native-ui-gotchas.md`. Read it before touching native text, buttons, or empty states.
-- Text default: use `AppText` (`src/design-system/components/AppText.tsx`) for chrome, standalone labels, tab bars, list rows, badges, and chart labels (`NativeText` delegates to `AppText` for compatibility). Reserve `@expo/ui` `Text` strictly for children inside an existing `@expo/ui` `Host`.
+- Text default: use `AppText` (`src/design-system/components/AppText.tsx`) for chrome, standalone labels, tab bars, list rows, badges, and chart labels. Reserve `@expo/ui` `Text` strictly for children inside an existing `@expo/ui` `Host`.
 
 ## Theme and styling
 

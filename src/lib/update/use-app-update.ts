@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Constants from "expo-constants";
 import {
     fetchAppUpdateState,
@@ -10,8 +10,7 @@ import {
 } from "./app-update";
 
 export function useAppUpdate() {
-    const skipUpdateCheck =
-        __DEV__ && process.env.EXPO_PUBLIC_SKIP_APP_UPDATE_CHECK === "true";
+    const skipUpdateCheck = __DEV__ && process.env.EXPO_PUBLIC_SKIP_APP_UPDATE_CHECK === "true";
     const [state, setState] = useState<AppUpdateState | null>(null);
     const [isCheckingAgain, setIsCheckingAgain] = useState(false);
     const [isOptionalUpdateDismissed, setIsOptionalUpdateDismissed] = useState(false);
@@ -24,17 +23,18 @@ export function useAppUpdate() {
             return;
         }
 
-        const check = () => fetchAppUpdateState().then((nextState) => {
-            if (!mounted) {
-                return;
-            }
+        const check = () =>
+            fetchAppUpdateState().then((nextState) => {
+                if (!mounted) {
+                    return;
+                }
 
-            setState((current) =>
-                current && isVersionLessThan(current.installedVersion, current.minimumSupportedVersion)
-                    ? current
-                    : nextState,
-            );
-        });
+                setState((current) =>
+                    current && isVersionLessThan(current.installedVersion, current.minimumSupportedVersion)
+                        ? current
+                        : nextState,
+                );
+            });
 
         void check();
         const unsubscribe = subscribeToUpdateRequired((config?: AppUpdateConfig) => {
@@ -59,7 +59,7 @@ export function useAppUpdate() {
         };
     }, [skipUpdateCheck]);
 
-    const checkAgain = async () => {
+    const checkAgain = useCallback(async () => {
         if (checkingAgain.current) return false;
         checkingAgain.current = true;
         setIsCheckingAgain(true);
@@ -72,28 +72,28 @@ export function useAppUpdate() {
             checkingAgain.current = false;
             setIsCheckingAgain(false);
         }
-    };
+    }, []);
 
-    return {
-        state,
-        isCheckingAgain,
-        checkAgain,
-        isForceUpdateRequired: Boolean(
-            state &&
-                isVersionLessThan(
-                    state.installedVersion,
-                    state.minimumSupportedVersion,
-                ),
-        ),
-        isOptionalUpdateAvailable: Boolean(
-            !isOptionalUpdateDismissed &&
-            state &&
-                !isVersionLessThan(
-                    state.installedVersion,
-                    state.minimumSupportedVersion,
-                ) &&
+    const dismissOptionalUpdate = useCallback(() => {
+        setIsOptionalUpdateDismissed(true);
+    }, []);
+
+    return useMemo(
+        () => ({
+            state,
+            isCheckingAgain,
+            checkAgain,
+            isForceUpdateRequired: Boolean(
+                state && isVersionLessThan(state.installedVersion, state.minimumSupportedVersion),
+            ),
+            isOptionalUpdateAvailable: Boolean(
+                !isOptionalUpdateDismissed &&
+                state &&
+                !isVersionLessThan(state.installedVersion, state.minimumSupportedVersion) &&
                 isVersionLessThan(state.installedVersion, state.latestVersion),
-        ),
-        dismissOptionalUpdate: () => setIsOptionalUpdateDismissed(true),
-    };
+            ),
+            dismissOptionalUpdate,
+        }),
+        [checkAgain, dismissOptionalUpdate, isCheckingAgain, isOptionalUpdateDismissed, state],
+    );
 }

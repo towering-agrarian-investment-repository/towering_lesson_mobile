@@ -7,11 +7,7 @@ import {
     MemberHomeworkSubmissionResponse,
     SubmitHomeworkRequest,
 } from "@/types/member-homework";
-import {
-    HOMEWORK_SUBMISSION_MAX_SIZE_BYTES,
-    HOMEWORK_SUBMISSION_MIME_TYPES,
-    isAllowedMimeType,
-} from "@/utils/media";
+import { HOMEWORK_SUBMISSION_MAX_SIZE_BYTES, HOMEWORK_SUBMISSION_MIME_TYPES, isAllowedMimeType } from "@/utils/media";
 import { fetch as expoFetch } from "expo/fetch";
 import { File } from "expo-file-system";
 
@@ -54,13 +50,10 @@ export async function generateHomeworkSubmissionUpload(
         }
     }
 
-    return apiClient(
-        `/member/homework-submissions/homework/${homeworkId}/presigned-upload`,
-        {
-            method: "POST",
-            body: JSON.stringify(data),
-        },
-    );
+    return apiClient(`/member/homework-submissions/homework/${homeworkId}/presigned-upload`, {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
 }
 
 export async function submitHomework(
@@ -72,11 +65,7 @@ export async function submitHomework(
     });
 }
 
-export async function uploadHomeworkSubmissionFile(
-    uploadUrl: string,
-    file: File,
-    mediaType: string,
-) {
+export async function uploadHomeworkSubmissionFile(uploadUrl: string, file: File, mediaType: string) {
     if (!file.exists || file.size <= 0) {
         throw new Error("The selected homework file is empty.");
     }
@@ -107,9 +96,7 @@ export async function uploadHomeworkSubmissionFile(
 
     if (!uploadResponse.ok) {
         throw Object.assign(
-            new Error(
-                `Storage upload failed: ${uploadResponse.status} ${await uploadResponse.text()}`,
-            ),
+            new Error(`Storage upload failed: ${uploadResponse.status} ${await uploadResponse.text()}`),
             { status: uploadResponse.status },
         );
     }

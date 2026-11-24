@@ -1,65 +1,54 @@
-import { NativeText } from "@/design-system/components/NativeText";
 import { AnimatedPressable, Badge, EmptyState } from "@/design-system";
+import { AppText } from "@/design-system/components/AppText";
+import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
 import type { SessionInstanceResponse } from "@/types/member-session";
 import { formatType } from "@/utils/format-enum";
 import { getSessionTitle } from "@/utils/member-lesson";
 import { getSessionStatusTone, getSessionTypeTone } from "@/utils/status-tone";
 import { fmtDateTime } from "@/utils/time-helper";
+import { Award, Check, CheckCircle2, Clock, MessageSquare } from "lucide-react-native";
 import { memo, type RefObject, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-    type LayoutChangeEvent,
-    FlatList,
-    Platform,
-    View,
-} from "react-native";
+import { FlatList, type LayoutChangeEvent, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { SessionResourceSection } from "./SessionResourceSection";
-import Animated, {
-    useAnimatedScrollHandler,
-    useAnimatedStyle,
-    useSharedValue,
-    useReducedMotion,
-    withTiming,
-} from "react-native-reanimated";
 
-const sessionKeyExtractor = (session: SessionInstanceResponse) =>
-    String(session.id);
+const sessionKeyExtractor = (session: SessionInstanceResponse) => String(session.id);
 
 function SessionSeparator() {
-    return <View className="w-3" />;
+    return <View className="w-2" />;
 }
 
-const SessionSwitcherItem = memo(function SessionSwitcherItem({
+const SessionPill = memo(function SessionPill({
     session,
-    index,
+    stepNumber,
     isSelected,
     onItemLayout,
     onSelect,
 }: {
     session: SessionInstanceResponse;
-    index: number;
+    stepNumber: number;
     isSelected: boolean;
     onItemLayout: (sessionId: number, event: LayoutChangeEvent) => void;
     onSelect: (sessionId: number) => void;
 }) {
-    const { colors: uiColors } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const statusTone = getSessionStatusTone(session.status);
+    const isCompleted = isSessionCompleted(session);
 
     return (
         <AnimatedPressable
-            accessibilityRole="button"
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isSelected }}
             accessibilityLabel={t("lessonSessions.openSession", {
                 title: getSessionTitle(session),
             })}
             haptic="selection"
-            className={
-                isSelected
-                    ? "min-h-16 min-w-32 rounded-2xl border border-primary bg-primary/10 px-4 py-3"
-                    : "min-h-16 min-w-32 rounded-2xl border border-border bg-card px-4 py-3"
-            }
+            className={cn(
+                "min-h-12 flex-row items-center gap-2 rounded-full border px-3.5 py-2",
+                isSelected ? "border-primary bg-primary" : "border-border bg-card",
+            )}
             onLayout={(event) => {
                 onItemLayout(session.id, event);
             }}
@@ -67,42 +56,36 @@ const SessionSwitcherItem = memo(function SessionSwitcherItem({
                 onSelect(session.id);
             }}
         >
-            <View className="gap-1.5">
-                <NativeText
-                    variant="caption"
-                    textStyle={{
-                        color: isSelected
-                            ? uiColors.primary
-                            : uiColors.mutedForeground,
-                    }}
-                >
-                    {session.orderIndex != null
-                        ? t("lessonSessions.sessionNumber", {
-                              value: session.orderIndex,
-                          })
-                        : t("lessonSessions.sessionSequence", {
-                              value: index + 1,
-                          })}
-                </NativeText>
-                <NativeText
-                    variant="label"
-                    numberOfLines={2}
-                    textStyle={{
-                        color: isSelected
-                            ? uiColors.primary
-                            : uiColors.foreground,
-                    }}
-                >
-                    {getSessionTitle(session)}
-                </NativeText>
-                {session.status ? (
-                    <Badge
-                        label={formatType(session.status, t)}
-                        className={`px-2 py-1 ${statusTone.className}`}
-                        color={statusTone.color}
-                    />
-                ) : null}
+            <View
+                className={cn(
+                    "h-6 w-6 items-center justify-center rounded-full",
+                    isSelected ? "bg-primary-foreground/20" : isCompleted ? "bg-success/15" : "bg-muted",
+                )}
+            >
+                {isCompleted ? (
+                    <Check size={13} strokeWidth={2.5} color={isSelected ? colors.primaryForeground : colors.success} />
+                ) : (
+                    <AppText
+                        variant="badge"
+                        wrap={false}
+                        tabular
+                        maxFontSizeMultiplier={1.25}
+                        color={isSelected ? "primaryForeground" : "mutedForeground"}
+                    >
+                        {String(stepNumber)}
+                    </AppText>
+                )}
             </View>
+            <AppText
+                variant="subtext"
+                wrap={false}
+                numberOfLines={1}
+                color={isSelected ? "primaryForeground" : "foreground"}
+                style={{ maxWidth: 220 }}
+                textStyle={{ fontWeight: isSelected ? "600" : "400" }}
+            >
+                {getSessionTitle(session)}
+            </AppText>
         </AnimatedPressable>
     );
 });
@@ -112,11 +95,7 @@ type LessonSessionsViewProps = {
     sessions: SessionInstanceResponse[];
 };
 
-export function LessonSessionsView({
-    initialSessionId,
-    sessions,
-}: LessonSessionsViewProps) {
-
+export function LessonSessionsView({ initialSessionId, sessions }: LessonSessionsViewProps) {
     const { t } = useTranslation();
     const reducedMotion = useReducedMotion();
     const [selectedSessionId, setSelectedSessionId] = useState<number | null>(
@@ -125,9 +104,7 @@ export function LessonSessionsView({
     const [containerWidth, setContainerWidth] = useState(0);
     const [contentWidth, setContentWidth] = useState(0);
     const scrollViewRef = useRef<FlatList<SessionInstanceResponse>>(null);
-    const itemLayouts = useRef<Record<number, { width: number; x: number }>>(
-        {},
-    );
+    const itemLayouts = useRef<Record<number, { width: number; x: number }>>({});
     const selectedSession =
         sessions.find((session) => session.id === selectedSessionId) ??
         sessions.find((session) => session.id === initialSessionId) ??
@@ -162,10 +139,7 @@ export function LessonSessionsView({
 
     if (sessions.length === 0) {
         return (
-            <EmptyState
-                title={t("lessonSessions.noSessionsTitle")}
-                message={t("lessonSessions.noSessionsMessage")}
-            />
+            <EmptyState title={t("lessonSessions.noSessionsTitle")} message={t("lessonSessions.noSessionsMessage")} />
         );
     }
 
@@ -173,51 +147,55 @@ export function LessonSessionsView({
         return null;
     }
 
+    const selectedIndex = sessions.findIndex((session) => session.id === selectedSession.id);
+
     return (
-        <View className="gap-4">
-            <SessionSwitcher
-                contentWidth={contentWidth}
-                containerWidth={containerWidth}
-                onContainerLayout={(event) => {
-                    setContainerWidth(event.nativeEvent.layout.width);
-                }}
-                onContentSizeChange={(width) => {
-                    setContentWidth(width);
-                }}
-                onItemLayout={(sessionId, event) => {
-                    itemLayouts.current[sessionId] = event.nativeEvent.layout;
-                }}
-                selectedSessionId={selectedSession.id}
-                sessions={sessions}
-                onSelect={setSelectedSessionId}
-                scrollViewRef={scrollViewRef}
-            />
+        <View className="gap-6">
+            {sessions.length > 1 ? (
+                <SessionSwitcher
+                    onContainerLayout={(event) => {
+                        setContainerWidth(event.nativeEvent.layout.width);
+                    }}
+                    onContentSizeChange={(width) => {
+                        setContentWidth(width);
+                    }}
+                    onItemLayout={(sessionId, event) => {
+                        itemLayouts.current[sessionId] = event.nativeEvent.layout;
+                    }}
+                    selectedSessionId={selectedSession.id}
+                    sessions={sessions}
+                    onSelect={setSelectedSessionId}
+                    scrollViewRef={scrollViewRef}
+                />
+            ) : null}
 
-            <SessionDetailCard session={selectedSession} />
+            <SessionOverview session={selectedSession} fallbackNumber={selectedIndex + 1} />
 
-            <View className="flex-row items-center justify-between gap-4">
-                <NativeText
-                    variant="h3"
-                    wrap={false}
-                    textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
-                >
-                    {t("lessonSessions.resourcesTitle")}
-                </NativeText>
-                {selectedSession.resources.length > 0 ? (
-                    <NativeText variant="count" color="mutedForeground" wrap={false}>
-                        {String(selectedSession.resources.length ?? "")}
-                    </NativeText>
-                ) : null}
+            <View className="gap-3">
+                <View className="flex-row items-baseline justify-between gap-4">
+                    <AppText variant="subtitle" wrap={false} textStyle={{ fontWeight: "700" }}>
+                        {t("lessonSessions.resourcesTitle")}
+                    </AppText>
+                    {selectedSession.resources.length > 0 ? (
+                        <AppText
+                            variant="caption"
+                            color="mutedForeground"
+                            wrap={false}
+                            tabular
+                            textStyle={{ fontWeight: "600" }}
+                        >
+                            {String(selectedSession.resources.length)}
+                        </AppText>
+                    ) : null}
+                </View>
+
+                <SessionResourceSection key={selectedSession.id} resources={selectedSession.resources} />
             </View>
-
-            <SessionResourceSection resources={selectedSession.resources} />
         </View>
     );
 }
 
 function SessionSwitcher({
-    contentWidth,
-    containerWidth,
     onContainerLayout,
     onContentSizeChange,
     onItemLayout,
@@ -226,8 +204,6 @@ function SessionSwitcher({
     onSelect,
     scrollViewRef,
 }: {
-    contentWidth: number;
-    containerWidth: number;
     onContainerLayout: (event: LayoutChangeEvent) => void;
     onContentSizeChange: (width: number) => void;
     onItemLayout: (sessionId: number, event: LayoutChangeEvent) => void;
@@ -236,27 +212,11 @@ function SessionSwitcher({
     onSelect: (sessionId: number) => void;
     scrollViewRef: RefObject<FlatList<SessionInstanceResponse> | null>;
 }) {
-    const { t } = useTranslation();
-    const reducedMotion = useReducedMotion();
-    const scrollX = useSharedValue(0);
-    const handleScroll = useAnimatedScrollHandler((event) => {
-        scrollX.set(event.contentOffset.x);
-    });
-    const cueStyle = useAnimatedStyle(() => {
-        const shouldShow =
-            contentWidth > containerWidth + 8 &&
-            scrollX.get() < contentWidth - containerWidth - 12;
-        return {
-            opacity: withTiming(shouldShow ? 1 : 0, {
-                duration: reducedMotion ? 0 : 150,
-            }),
-        };
-    });
     const renderSessionItem = useCallback(
         ({ item, index }: { item: SessionInstanceResponse; index: number }) => (
-            <SessionSwitcherItem
+            <SessionPill
                 session={item}
-                index={index}
+                stepNumber={item.orderIndex ?? index + 1}
                 isSelected={item.id === selectedSessionId}
                 onItemLayout={onItemLayout}
                 onSelect={onSelect}
@@ -264,100 +224,64 @@ function SessionSwitcher({
         ),
         [onItemLayout, onSelect, selectedSessionId],
     );
+
     return (
-        <View className="gap-3">
-            <View className="flex-row items-center justify-between gap-4">
-                <NativeText
-                    variant="h3"
-                    wrap={false}
-                    textStyle={{ fontSize: typography.subtitle.fontSize, fontWeight: "600" as const }}
-                >
-                    {t("lessonSessions.sessionsTitle")}
-                </NativeText>
-                <NativeText variant="count" color="mutedForeground" wrap={false}>
-                    {String(sessions.length ?? "")}
-                </NativeText>
-            </View>
-
-            <View className="relative" onLayout={onContainerLayout}>
-                <Animated.FlatList
-                    ref={scrollViewRef}
-                    data={sessions}
-                    keyExtractor={sessionKeyExtractor}
-                    horizontal
-                    renderItem={renderSessionItem}
-                    showsHorizontalScrollIndicator={Platform.OS === "android"}
-                    ItemSeparatorComponent={SessionSeparator}
-                    contentContainerStyle={{
-                        paddingRight: contentWidth > containerWidth ? 28 : 0,
-                    }}
-                    onContentSizeChange={(width) => {
-                        onContentSizeChange(width);
-                    }}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                />
-
-                <Animated.View
-                    pointerEvents="none"
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                    className="absolute bottom-0 right-0 top-0 items-end justify-center"
-                    style={cueStyle}
-                >
-                    <View className="rounded-full bg-background/95 px-2 py-1">
-                        <NativeText variant="caption" color="mutedForeground" wrap={false}>
-                            {t("lessonSessions.more")}
-                        </NativeText>
-                    </View>
-                </Animated.View>
-            </View>
+        <View onLayout={onContainerLayout}>
+            <FlatList
+                ref={scrollViewRef}
+                data={sessions}
+                keyExtractor={sessionKeyExtractor}
+                horizontal
+                renderItem={renderSessionItem}
+                showsHorizontalScrollIndicator={false}
+                ItemSeparatorComponent={SessionSeparator}
+                onContentSizeChange={(width) => {
+                    onContentSizeChange(width);
+                }}
+            />
         </View>
     );
 }
 
-function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
-    const { colors: uiColors } = useTheme();
+function SessionOverview({ session, fallbackNumber }: { session: SessionInstanceResponse; fallbackNumber: number }) {
+    const { colors } = useTheme();
     const { t } = useTranslation();
-    const isCompleted = isSessionCompleted(session);
     const score = session.memberSession?.score;
     const memo = session.memberSession?.memo?.trim() || null;
+    const description = session.descriptionSnapshot?.trim() || null;
     const statusTone = getSessionStatusTone(session.status);
     const typeTone = getSessionTypeTone(session.typeSnapshot);
-    const details = [
-        session.durationMinutesSnapshot != null
-            ? {
-                label: t("lessonSessions.duration"),
-                value: t("lessonSessions.minutes", {
-                    value: session.durationMinutesSnapshot,
-                }),
-            }
-            : null,
-        session.completedAt
-            ? {
-                label: t("lessonSessions.completed"),
-                value: fmtDateTime(session.completedAt),
-            }
-            : null,
-    ].filter(Boolean) as { label: string; value: string }[];
+    const stepLabel =
+        session.orderIndex != null
+            ? t("lessonSessions.sessionNumber", { value: session.orderIndex })
+            : t("lessonSessions.sessionSequence", { value: fallbackNumber });
+    const hasMetaStrip =
+        session.durationMinutesSnapshot != null || isDrillSession(session) || Boolean(session.completedAt);
 
     return (
-        <View className="overflow-hidden rounded-xl bg-card">
-            <View className="gap-3 bg-surface px-4 py-4">
-                <View className="flex-row items-start justify-between gap-3">
-                    <View className="min-w-0 flex-1 gap-2">
-                        <NativeText
-                            variant="h3"
-                            numberOfLines={2}
-                            textStyle={{ color: isCompleted ? uiColors.foreground + "b3" : uiColors.foreground }}
+        <View className="gap-3">
+            <View className="gap-2">
+                <View className="flex-row flex-wrap items-center justify-between gap-2">
+                    <View className="flex-row items-center gap-2">
+                        <AppText
+                            variant="caption"
+                            color="mutedForeground"
+                            wrap={false}
+                            tabular
+                            textStyle={{ fontWeight: "600" }}
                         >
-                            {getSessionTitle(session)}
-                        </NativeText>
-                        <NativeText variant="body">
-                            {session.descriptionSnapshot?.trim() ||
-                                t("lessonSessions.noDescription")}
-                        </NativeText>
+                            {stepLabel}
+                        </AppText>
+                        {session.typeSnapshot ? (
+                            <Badge
+                                label={formatType(session.typeSnapshot, t)}
+                                size="sm"
+                                className={typeTone.className}
+                                color={typeTone.color}
+                            />
+                        ) : null}
                     </View>
+
                     {session.status ? (
                         <Badge
                             label={formatType(session.status, t)}
@@ -367,87 +291,83 @@ function SessionDetailCard({ session }: { session: SessionInstanceResponse }) {
                     ) : null}
                 </View>
 
-                <View className="flex-row flex-wrap gap-2">
-                    {session.orderIndex != null ? (
-                        <Badge
-                            label={t("lessonSessions.sessionNumber", {
-                                value: session.orderIndex,
-                            })}
-                            className="bg-muted"
-                            color="mutedForeground"
-                        />
-                    ) : null}
-                    {session.typeSnapshot ? (
-                        <Badge
-                            label={formatType(session.typeSnapshot, t)}
-                            className={typeTone.className}
-                            color={typeTone.color}
-                        />
-                    ) : null}
-                    {isDrillSession(session) ? (
-                        <Badge
-                            label={
-                                score != null
-                                    ? t("lessonSessions.score", {
-                                        value: score,
-                                    })
-                                    : t("lessonSessions.scoreEmpty")
-                            }
-                            className={
-                                score != null ? "bg-warning/10" : "bg-muted"
-                            }
-                            color={
-                                score != null ? "warning" : "mutedForeground"
-                            }
-                        />
-                    ) : null}
-                </View>
-
-                {details.length > 0 ? (
-                    <View className="gap-2 rounded-xl bg-background px-3 py-3">
-                        {details.map((detail) => (
-                            <DetailRow
-                                key={detail.label}
-                                label={detail.label}
-                                value={detail.value}
-                            />
-                        ))}
-                    </View>
-                ) : null}
+                <AppText variant="h2">{getSessionTitle(session)}</AppText>
             </View>
 
-            {memo ? (
-                <View className="px-4 py-4">
-                    <View className="gap-1 rounded-xl bg-background px-3 py-3">
-                        <NativeText variant="caption" color="mutedForeground">
-                            {t("lessonSessions.coachNote")}
-                        </NativeText>
-                        <NativeText variant="body">
-                            {memo}
-                        </NativeText>
-                    </View>
+            {hasMetaStrip ? (
+                <View className="flex-row flex-wrap items-center gap-x-4 gap-y-2 border-y border-border/70 py-2.5">
+                    {session.durationMinutesSnapshot != null ? (
+                        <View className="flex-row items-center gap-1.5">
+                            <Clock size={15} color={colors.mutedForeground} strokeWidth={2} />
+                            <AppText
+                                variant="subtext"
+                                color="foreground"
+                                wrap={false}
+                                tabular
+                                textStyle={{ fontWeight: "600" }}
+                            >
+                                {t("lessonSessions.minutes", {
+                                    value: session.durationMinutesSnapshot,
+                                })}
+                            </AppText>
+                        </View>
+                    ) : null}
+
+                    {isDrillSession(session) ? (
+                        <View className="flex-row items-center gap-1.5">
+                            <Award
+                                size={15}
+                                color={score != null ? colors.warning : colors.mutedForeground}
+                                strokeWidth={2}
+                            />
+                            <AppText
+                                variant="subtext"
+                                color={score != null ? "warning" : "mutedForeground"}
+                                wrap={false}
+                                tabular
+                                textStyle={{ fontWeight: "600" }}
+                            >
+                                {score != null
+                                    ? t("lessonSessions.score", {
+                                          value: score,
+                                      })
+                                    : t("lessonSessions.scoreEmpty")}
+                            </AppText>
+                        </View>
+                    ) : null}
+
+                    {session.completedAt ? (
+                        <View className="flex-row items-center gap-1.5">
+                            <CheckCircle2 size={15} color={colors.success} strokeWidth={2} />
+                            <AppText variant="subtext" color="mutedForeground" wrap={false} tabular>
+                                {fmtDateTime(session.completedAt)}
+                            </AppText>
+                        </View>
+                    ) : null}
                 </View>
             ) : null}
-        </View>
-    );
-}
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+            {description ? (
+                <AppText variant="body" color="mutedForeground">
+                    {description}
+                </AppText>
+            ) : (
+                <AppText variant="subtext" color="mutedForeground">
+                    {t("lessonSessions.noDescription")}
+                </AppText>
+            )}
 
-    return (
-        <View className="flex-row items-center justify-between gap-3">
-            <NativeText variant="caption" color="mutedForeground" wrap={false} style={{ flexShrink: 0 }}>
-                {label}
-            </NativeText>
-            <NativeText
-                variant="caption"
-                align="right"
-                numberOfLines={1}
-                style={{ flex: 1, minWidth: 0 }}
-                textStyle={{ fontWeight: "500" as const }}
-            >
-                {value}
-            </NativeText>
+            {memo ? (
+                <View className="mt-1 gap-2 rounded-2xl border border-border bg-surface p-4">
+                    <View className="flex-row items-center gap-2">
+                        <MessageSquare size={15} color={colors.primary} strokeWidth={2} />
+                        <AppText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "600" }}>
+                            {t("lessonSessions.coachNote")}
+                        </AppText>
+                    </View>
+                    <AppText variant="body">{memo}</AppText>
+                </View>
+            ) : null}
         </View>
     );
 }

@@ -1,0 +1,2 @@
+# Keep line endings stable across Windows and CI so `prettier --check` agrees everywhere.
+* text=auto eol=lf

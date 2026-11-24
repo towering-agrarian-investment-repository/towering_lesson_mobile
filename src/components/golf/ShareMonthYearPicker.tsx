@@ -17,7 +17,14 @@ export type ShareMonthYearPickerProps = {
     onConfirm: (year: number, month: number) => void;
 };
 
-export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onChange, onConfirm }: ShareMonthYearPickerProps) {
+export function ShareMonthYearPicker({
+    year,
+    month,
+    yearOnly = false,
+    years,
+    onChange,
+    onConfirm,
+}: ShareMonthYearPickerProps) {
     const { colors, fontScale } = useTheme();
     const { t, i18n } = useTranslation();
     const monthFormatter = useMemo(
@@ -43,16 +50,26 @@ export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onC
             <Row alignment="center" spacing={0} modifiers={[frame({ maxWidth: Infinity })]}>
                 {!yearOnly && (
                     <Column modifiers={[frame({ maxWidth: Infinity })]}>
-                        <Picker appearance="wheel" selectedValue={month} onValueChange={value => onChange(year, value)}>
+                        <Picker
+                            appearance="wheel"
+                            selectedValue={month}
+                            onValueChange={(value) => onChange(year, value)}
+                        >
                             {Array.from({ length: 12 }, (_, value) => (
-                                <Picker.Item key={value} label={monthFormatter.format(new Date(Date.UTC(2024, value, 1)))} value={value} />
+                                <Picker.Item
+                                    key={value}
+                                    label={monthFormatter.format(new Date(Date.UTC(2024, value, 1)))}
+                                    value={value}
+                                />
                             ))}
                         </Picker>
                     </Column>
                 )}
                 <Column modifiers={[frame({ maxWidth: Infinity })]}>
-                    <Picker appearance="wheel" selectedValue={year} onValueChange={value => onChange(value, month)}>
-                        {years.map(value => <Picker.Item key={value} label={String(value)} value={value} />)}
+                    <Picker appearance="wheel" selectedValue={year} onValueChange={(value) => onChange(value, month)}>
+                        {years.map((value) => (
+                            <Picker.Item key={value} label={String(value)} value={value} />
+                        ))}
                     </Picker>
                 </Column>
             </Row>
@@ -60,11 +77,19 @@ export function ShareMonthYearPicker({ year, month, yearOnly = false, years, onC
                 variant="text"
                 onPress={() => onConfirm(year, month)}
                 style={getNativeButtonStyle(colors, "filled")}
-                modifiers={isIOS ? [frame({ maxWidth: Infinity, minHeight: 48 })] : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]}
+                modifiers={
+                    isIOS
+                        ? [frame({ maxWidth: Infinity, minHeight: 48 })]
+                        : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
+                }
             >
                 <Text
                     textStyle={getNativeButtonTextStyle(colors, "filled", fontScale)}
-                    modifiers={isIOS ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())] : [fillMaxWidth()]}
+                    modifiers={
+                        isIOS
+                            ? [frame({ maxWidth: Infinity, minHeight: 48 }), contentShape(shapes.rectangle())]
+                            : [fillMaxWidth()]
+                    }
                 >
                     {t("activity.ok")}
                 </Text>

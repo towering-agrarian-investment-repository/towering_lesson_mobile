@@ -38,11 +38,7 @@ export function ErrorState({
             <View accessibilityRole="alert" className="w-full items-center gap-5">
                 <View className="w-full items-center gap-4">
                     <View className="h-14 w-14 items-center justify-center rounded-full bg-danger/10">
-                        <AlertCircle
-                            size={28}
-                            color={colors.danger}
-                            strokeWidth={2.2}
-                        />
+                        <AlertCircle size={28} color={colors.danger} strokeWidth={2.2} />
                     </View>
                     <View className="w-full items-center gap-2">
                         <AppText variant="h3" align="center">
@@ -61,7 +57,6 @@ export function ErrorState({
                         onPress={onAction}
                         disabled={actionPending}
                         loading={actionPending}
-                        haptic="selection"
                     />
                 ) : null}
             </View>
@@ -88,14 +83,10 @@ export function EmptyState({
 
     return (
         <StateCardShell>
-            <View accessibilityRole="alert" className="w-full items-center gap-5">
+            <View className="w-full items-center gap-5">
                 <View className="w-full items-center gap-4">
                     <View className="h-14 w-14 items-center justify-center rounded-full bg-muted">
-                        <Inbox
-                            size={28}
-                            color={colors.mutedForeground}
-                            strokeWidth={2.2}
-                        />
+                        <Inbox size={28} color={colors.mutedForeground} strokeWidth={2.2} />
                     </View>
                     <View className="w-full items-center gap-2">
                         <AppText variant="h3" align="center">
@@ -114,7 +105,6 @@ export function EmptyState({
                         onPress={onAction}
                         disabled={actionPending}
                         loading={actionPending}
-                        haptic="selection"
                     />
                 ) : null}
             </View>
@@ -140,9 +130,7 @@ export function StateList({
             contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
             contentInsetAdjustmentBehavior="automatic"
             showsVerticalScrollIndicator={false}
-            refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
             {children}
         </ScrollView>

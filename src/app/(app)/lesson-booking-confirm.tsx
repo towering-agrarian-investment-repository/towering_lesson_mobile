@@ -1,20 +1,25 @@
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
 import {
     BookingConfirmationFooter,
     BookingConfirmationLoadingState,
+    BookingConfirmationTicketField,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
 import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
+import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { responseError } from "@/lib/api-response/api-response";
+import { useIsOnline } from "@/lib/hook/useIsOnline";
 import {
     getMemberTicketLessonSlotsQueryOptions,
     isReservationSlotUnavailable,
     useCreateMemberLessonReservation,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
+import { useMemberTicketById } from "@/lib/hook/useTicket";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
-import { showAppToast } from "@/lib/toast/toast";
+import { showAppToast } from "@/design-system/components/AppToast";
 import {
     getLessonSlotDisplayName,
     isGroupLessonSlot,
@@ -22,24 +27,24 @@ import {
     isLessonSlotBookable,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
-import { formatDateValue, formatTimeRange } from "@/utils/time-helper";
+import { formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl } from "react-native";
 
 export default function LessonBookingConfirmScreen() {
     const { t } = useTranslation();
+    const isOnline = useIsOnline();
     const {
         date,
         ticketId,
         ticketName,
         ticketType,
         lessonAvailabilityId,
-        lessonName,
         coachName,
         startTime,
         endTime,
@@ -50,7 +55,6 @@ export default function LessonBookingConfirmScreen() {
         ticketName: string;
         ticketType?: string;
         lessonAvailabilityId?: string;
-        lessonName?: string;
         coachName?: string;
         startTime?: string;
         endTime?: string;
@@ -59,19 +63,16 @@ export default function LessonBookingConfirmScreen() {
     const router = useRouter();
     const submitting = useRef(false);
     const queryClient = useQueryClient();
-    const isGroupTicket =
-        String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
+    const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const notes = initialNotes?.trim() || null;
-    const { mutate: createReservation, isPending: isCreating } =
-        useCreateMemberLessonReservation();
+    const { mutate: createReservation, isPending: isCreating } = useCreateMemberLessonReservation();
     const { data: memberResponse } = useGetMemberProfile();
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
-    const ticketIdNumber = ticketId ? Number(ticketId) : null;
-    const lessonAvailabilityIdNumber = lessonAvailabilityId
-        ? Number(lessonAvailabilityId)
-        : null;
+    const parsedTicketId = Number(ticketId);
+    const ticketIdNumber = Number.isSafeInteger(parsedTicketId) && parsedTicketId > 0 ? parsedTicketId : null;
+    const lessonAvailabilityIdNumber = lessonAvailabilityId ? Number(lessonAvailabilityId) : null;
     const canLoadSlot =
         Boolean(ticketIdNumber) &&
         Boolean(lessonAvailabilityIdNumber) &&
@@ -83,14 +84,18 @@ export default function LessonBookingConfirmScreen() {
         month,
         canLoadSlot,
     );
-    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } =
-        usePullToRefresh(() => refetch({ cancelRefetch: false }));
+    const balanceTicketId = canLoadSlot ? (ticketIdNumber ?? undefined) : undefined;
+    const { data: ticket, refetch: refetchTicket } = useMemberTicketById(balanceTicketId);
+    const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
+        Promise.all([
+            refetch({ cancelRefetch: false }),
+            balanceTicketId ? refetchTicket({ cancelRefetch: false }) : undefined,
+        ]),
+    );
     const policies = [
         {
             title: t("bookingConfirmation.lessonCancellationPolicyTitle"),
-            description: t(
-                "bookingConfirmation.lessonCancellationPolicyDescription",
-            ),
+            description: t("bookingConfirmation.lessonCancellationPolicyDescription"),
         },
         {
             title: t("bookingConfirmation.lessonNoShowPolicyTitle"),
@@ -99,23 +104,13 @@ export default function LessonBookingConfirmScreen() {
     ] as const;
 
     const hasLoadError = isError && !data;
-    const selectedSlot = (data?.data ?? []).find(
-        (slot) => slot.id === lessonAvailabilityIdNumber,
-    );
-    const isSelectedSlotBookable = selectedSlot
-        ? isLessonSlotBookable(selectedSlot)
-        : false;
-    const isSelectedSlotFull = selectedSlot
-        ? isLessonSlotFull(selectedSlot)
-        : false;
-    const isGroupSelection = selectedSlot
-        ? isGroupLessonSlot(selectedSlot)
-        : isGroupTicket;
-    const isSelectedSlotAlreadyBooked = isGroupSelection && selectedSlot
-        ? isLessonSlotBookedByMember(selectedSlot, memberResponse?.data.id)
-        : false;
-    const isMissingRequiredData =
-        !ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot;
+    const selectedSlot = (data?.data ?? []).find((slot) => slot.id === lessonAvailabilityIdNumber);
+    const isSelectedSlotBookable = selectedSlot ? isLessonSlotBookable(selectedSlot) : false;
+    const isSelectedSlotFull = selectedSlot ? isLessonSlotFull(selectedSlot) : false;
+    const isGroupSelection = selectedSlot ? isGroupLessonSlot(selectedSlot) : isGroupTicket;
+    const isSelectedSlotAlreadyBooked =
+        isGroupSelection && selectedSlot ? isLessonSlotBookedByMember(selectedSlot, memberResponse?.data.id) : false;
+    const isMissingRequiredData = !ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot;
 
     const handleSlotUnavailable = async (error: unknown) => {
         if (!isReservationSlotUnavailable(error) || !ticketIdNumber) {
@@ -124,11 +119,7 @@ export default function LessonBookingConfirmScreen() {
         triggerNotificationHaptic(Haptics.NotificationFeedbackType.Warning);
 
         await queryClient.invalidateQueries({
-            queryKey: getMemberTicketLessonSlotsQueryOptions(
-                ticketIdNumber,
-                year,
-                month,
-            ).queryKey,
+            queryKey: getMemberTicketLessonSlotsQueryOptions(ticketIdNumber, year, month).queryKey,
             refetchType: "all",
         });
         router.dismissTo({
@@ -149,7 +140,10 @@ export default function LessonBookingConfirmScreen() {
 
     const handleConfirm = () => {
         if (
-            submitting.current || isCreating || hasLoadError ||
+            !isOnline ||
+            submitting.current ||
+            isCreating ||
+            hasLoadError ||
             !ticketIdNumber ||
             !lessonAvailabilityIdNumber ||
             !selectedSlot
@@ -162,12 +156,12 @@ export default function LessonBookingConfirmScreen() {
                 message: isSelectedSlotAlreadyBooked
                     ? t("booking.alreadyBooked")
                     : isSelectedSlotBookable
-                        ? isGroupSelection
-                            ? t("bookingConfirmation.selectedGroupUnavailable")
-                            : t("bookingConfirmation.selectedLessonSlotUnavailable")
-                        : isGroupSelection
-                            ? t("bookingConfirmation.selectedGroupNotBookable")
-                            : t("bookingConfirmation.selectedLessonSlotNotBookable"),
+                      ? isGroupSelection
+                          ? t("bookingConfirmation.selectedGroupUnavailable")
+                          : t("bookingConfirmation.selectedLessonSlotUnavailable")
+                      : isGroupSelection
+                        ? t("bookingConfirmation.selectedGroupNotBookable")
+                        : t("bookingConfirmation.selectedLessonSlotNotBookable"),
                 type: "warning",
             });
 
@@ -197,11 +191,11 @@ export default function LessonBookingConfirmScreen() {
                     handleBookingConfirmationSuccess(router, {
                         type: "lesson",
                         mode: "booking",
+                        reservationId: response.data.id,
                         ticketName: response.data.ticket?.name ?? ticketName,
                         ticketTotalCount: response.data.ticket?.totalCount,
                         ticketUsedCount: response.data.ticket?.usedCount,
-                        ticketRemainingCount:
-                            response.data.ticket?.remainingCount,
+                        ticketRemainingCount: response.data.ticket?.remainingCount,
                         ticketIsUnlimited: response.data.ticket?.isUnlimited,
                         date,
                         startTime: selectedSlot.startTime ?? startTime,
@@ -210,48 +204,42 @@ export default function LessonBookingConfirmScreen() {
                         coachName: selectedSlot.coachName ?? coachName,
                     }),
                 onError: handleSlotUnavailable,
-                onSettled: () => { submitting.current = false; },
+                onSettled: () => {
+                    submitting.current = false;
+                },
             },
         );
     };
 
-    const reservationName =
-        (selectedSlot ? getLessonSlotDisplayName(selectedSlot, t) : null) ??
-        lessonName ??
-        (isGroupSelection
-            ? t("bookingConfirmation.groupLessonFallback")
-            : t("bookingConfirmation.privateLessonFallback"));
-    const dateValue = formatDateValue(date, "yyyy. MM. dd");
-    const timeValue = formatTimeRange(
-        selectedSlot?.startTime ?? startTime,
-        selectedSlot?.endTime ?? endTime,
-    );
+    const dateValue = formatDateMedium(date);
+    const timeValue = formatTimeRange(selectedSlot?.startTime ?? startTime, selectedSlot?.endTime ?? endTime);
     const coachNameValue = selectedSlot?.coachName ?? coachName;
-    const isDisabled =
-        isCreating ||
-        isSelectedSlotFull ||
-        isSelectedSlotAlreadyBooked;
+    const isDisabled = !isOnline || isCreating || isSelectedSlotFull || isSelectedSlotAlreadyBooked;
     const disabledReason = isSelectedSlotAlreadyBooked
         ? t("booking.alreadyBooked")
         : isSelectedSlotFull
-            ? isSelectedSlotBookable
-                ? isGroupSelection
-                    ? t("bookingConfirmation.selectedGroupNowFull")
-                    : t("bookingConfirmation.selectedLessonSlotNowFull")
-                : isGroupSelection
-                    ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
-                    : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
-            : null;
+          ? isSelectedSlotBookable
+              ? isGroupSelection
+                  ? t("bookingConfirmation.selectedGroupNowFull")
+                  : t("bookingConfirmation.selectedLessonSlotNowFull")
+              : isGroupSelection
+                ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
+                : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
+          : null;
+
+    const screenOptions = useMemo(
+        () => ({
+            title: isGroupSelection
+                ? t("bookingConfirmation.joinGroupConfirmation")
+                : t("bookingConfirmation.bookingConfirmationTitle"),
+        }),
+        [isGroupSelection, t],
+    );
 
     return (
         <Screen
-            contentClassName="grow"
-            refreshControl={
-                <RefreshControl
-                    refreshing={isPullRefreshing}
-                    onRefresh={handlePullRefresh}
-                />
-            }
+            contentClassName="grow gap-6"
+            refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
             footer={
                 !isLoading && !hasLoadError && !isMissingRequiredData ? (
                     <BookingConfirmationFooter
@@ -267,26 +255,24 @@ export default function LessonBookingConfirmScreen() {
                 ) : null
             }
         >
-            <Stack.Screen
-                options={{
-                    title: isGroupSelection
-                        ? t("bookingConfirmation.joinGroupConfirmation")
-                        : t("bookingConfirmation.bookingConfirmationTitle"),
-                }}
+            <Stack.Screen options={screenOptions} />
+            <BookingStepHeader
+                step={3}
+                totalSteps={3}
+                context={formatTicketTypeLabel(ticketType, t) || ticketName}
+                selectionTrail={[
+                    formatTicketTypeLabel(ticketType, t) || ticketName,
+                    formatDateShort(date),
+                    formatTimeRange(selectedSlot?.startTime ?? startTime, selectedSlot?.endTime ?? endTime),
+                ]}
             />
             {isLoading ? (
-                <BookingConfirmationLoadingState fieldCount={5} />
+                <BookingConfirmationLoadingState fieldCount={4} />
             ) : hasLoadError ? (
                 <ErrorState
-                    title={t(
-                        "bookingConfirmation.failedReservationDetailsTitle",
-                    )}
+                    title={t("bookingConfirmation.failedReservationDetailsTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={
-                        isRefetching
-                            ? t("common.refreshing")
-                            : t("common.refreshTryAgain")
-                    }
+                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
                     actionPending={isRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
                 />
@@ -294,21 +280,13 @@ export default function LessonBookingConfirmScreen() {
                 <EmptyState
                     title={
                         isGroupSelection
-                            ? t(
-                                "bookingConfirmation.selectedGroupUnavailableTitle",
-                            )
-                            : t(
-                                "bookingConfirmation.selectedLessonSlotUnavailableTitle",
-                            )
+                            ? t("bookingConfirmation.selectedGroupUnavailableTitle")
+                            : t("bookingConfirmation.selectedLessonSlotUnavailableTitle")
                     }
                     message={
                         isGroupSelection
-                            ? t(
-                                "bookingConfirmation.selectedGroupUnavailableMessage",
-                            )
-                            : t(
-                                "bookingConfirmation.selectedLessonSlotUnavailableMessage",
-                            )
+                            ? t("bookingConfirmation.selectedGroupUnavailableMessage")
+                            : t("bookingConfirmation.selectedLessonSlotUnavailableMessage")
                     }
                     actionLabel={
                         isGroupSelection
@@ -329,32 +307,14 @@ export default function LessonBookingConfirmScreen() {
                     }}
                 />
             ) : (
-                <ReservationContent
-                    disabledReason={disabledReason}
-                    policies={policies}
-                >
-                    <ReservationDetailField
-                        label={t("bookingConfirmation.ticketLabel")}
-                        value={ticketName}
-                    />
+                <ReservationContent disabledReason={disabledReason} policies={policies}>
+                    <BookingConfirmationTicketField ticketName={ticketName} ticket={ticket} />
                     <Divider className="bg-border" />
 
-                    <ReservationDetailField
-                        label={t("bookingConfirmation.reservationNameLabel")}
-                        value={reservationName}
-                    />
+                    <ReservationDetailField label={t("bookingConfirmation.dateLabel")} value={dateValue} />
                     <Divider className="bg-border" />
 
-                    <ReservationDetailField
-                        label={t("bookingConfirmation.dateLabel")}
-                        value={dateValue}
-                    />
-                    <Divider className="bg-border" />
-
-                    <ReservationDetailField
-                        label={t("bookingConfirmation.timeLabel")}
-                        value={timeValue}
-                    />
+                    <ReservationDetailField label={t("bookingConfirmation.timeLabel")} value={timeValue} />
 
                     {coachNameValue ? (
                         <>

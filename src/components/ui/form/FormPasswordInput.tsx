@@ -1,6 +1,6 @@
 import { AnimatedPressable, useTheme } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
-import { Ionicons } from "@expo/vector-icons";
+import { Eye, EyeOff } from "lucide-react-native";
 import { useState } from "react";
 import { useController, type FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,7 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     name,
     label,
     placeholder,
+    helperText,
     rules,
     autoComplete = "password",
     textContentType,
@@ -21,12 +22,10 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     maxLength,
     editable = true,
     autoFocus,
-}: Omit<
-    FormInputBaseProps<TFieldValues>,
-    "autoCapitalize" | "keyboardType" | "multiline" | "numberOfLines"
->) {
+}: Omit<FormInputBaseProps<TFieldValues>, "autoCapitalize" | "keyboardType" | "multiline" | "numberOfLines">) {
     const { colors, resolvedScheme } = useTheme();
     const { t } = useTranslation();
+    const [isFocused, setIsFocused] = useState(false);
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
     const {
@@ -36,27 +35,29 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
     const value = String(fieldValue ?? "");
 
     return (
-        <FormFieldShell label={label} errorMessage={fieldState.error?.message}>
+        <FormFieldShell label={label} errorMessage={fieldState.error?.message} helperText={helperText}>
             <View
-                className="min-h-12 flex-row items-center border-b"
+                className="mt-2 min-h-12 flex-row items-center border-b"
                 style={{
-                    borderColor: fieldState.error ? colors.danger : colors.border,
+                    borderBottomColor: fieldState.error ? colors.danger : isFocused ? colors.primary : colors.border,
+                    borderBottomWidth: 1,
                 }}
             >
                 <TextInput
                     ref={inputRef}
                     value={value}
                     onChangeText={onChange}
-                    onBlur={onBlur}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => {
+                        setIsFocused(false);
+                        onBlur();
+                    }}
                     placeholder={placeholder}
                     placeholderTextColor={colors.mutedForeground}
                     autoCapitalize="none"
                     autoCorrect={false}
                     autoComplete={autoComplete}
-                    textContentType={resolveTextContentType(
-                        autoComplete,
-                        textContentType,
-                    )}
+                    textContentType={resolveTextContentType(autoComplete, textContentType)}
                     keyboardAppearance={resolvedScheme}
                     returnKeyType={returnKeyType}
                     onSubmitEditing={onSubmitEditing}
@@ -81,13 +82,8 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
 
                 <AnimatedPressable
                     accessibilityRole="button"
-                    accessibilityLabel={
-                        isPasswordVisible
-                            ? t("common.hidePassword")
-                            : t("common.showPassword")
-                    }
+                    accessibilityLabel={isPasswordVisible ? t("common.hidePassword") : t("common.showPassword")}
                     accessibilityState={{ disabled: !editable }}
-                    haptic="selection"
                     onPress={() => {
                         setIsPasswordVisible((current) => !current);
                     }}
@@ -95,17 +91,11 @@ export function FormPasswordInput<TFieldValues extends FieldValues>({
                     className="h-12 w-12 items-center justify-center"
                     hitSlop={8}
                 >
-                    <Ionicons
-                        name={
-                            isPasswordVisible
-                                ? "eye-off-outline"
-                                : "eye-outline"
-                        }
-                        size={20}
-                        color={
-                            editable ? colors.mutedForeground : colors.border
-                        }
-                    />
+                    {isPasswordVisible ? (
+                        <EyeOff size={20} color={editable ? colors.mutedForeground : colors.border} />
+                    ) : (
+                        <Eye size={20} color={editable ? colors.mutedForeground : colors.border} />
+                    )}
                 </AnimatedPressable>
             </View>
         </FormFieldShell>

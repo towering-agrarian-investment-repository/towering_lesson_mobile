@@ -2,7 +2,6 @@ import { ApiResponse, CursorPageResponse } from "@/lib/api-response/api-response
 import { apiClient } from "@/lib/client/api-client";
 import { MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
 
-
 export type MemberReservationType = "all" | "bay" | "private" | "group" | "program";
 
 type MemberReservationHistoryParams = {
@@ -15,15 +14,10 @@ type MemberReservationHistoryParams = {
 
 export const MEMBER_RESERVATION_CURSOR_PAGE_SIZE = 20;
 
-export async function getMemberReservations({
-    type,
-    cursor,
-    limit = MEMBER_RESERVATION_CURSOR_PAGE_SIZE,
-    from,
-    to,
-}: MemberReservationHistoryParams, signal?: AbortSignal): Promise<
-    ApiResponse<CursorPageResponse<MemberReservationResponse>>
-> {
+export async function getMemberReservations(
+    { type, cursor, limit = MEMBER_RESERVATION_CURSOR_PAGE_SIZE, from, to }: MemberReservationHistoryParams,
+    signal?: AbortSignal,
+): Promise<ApiResponse<CursorPageResponse<MemberReservationResponse>>> {
     const params = new URLSearchParams({
         type,
         limit: String(limit),
@@ -45,9 +39,10 @@ export async function getMemberReservations({
     });
 }
 
-export async function getMemberReservationsByDate(date: string, signal?: AbortSignal): Promise<
-    ApiResponse<MemberReservationSummaryResponse[]>
-> {
+export async function getMemberReservationsByDate(
+    date: string,
+    signal?: AbortSignal,
+): Promise<ApiResponse<MemberReservationSummaryResponse[]>> {
     const params = new URLSearchParams({ date });
 
     return apiClient(`/member/reservations/by-date?${params.toString()}`, {
@@ -56,9 +51,9 @@ export async function getMemberReservationsByDate(date: string, signal?: AbortSi
     });
 }
 
-export async function getTodayMemberReservations(signal?: AbortSignal): Promise<
-    ApiResponse<MemberReservationSummaryResponse[]>
-> {
+export async function getTodayMemberReservations(
+    signal?: AbortSignal,
+): Promise<ApiResponse<MemberReservationSummaryResponse[]>> {
     return apiClient("/member/reservations/today", {
         method: "GET",
         signal,
