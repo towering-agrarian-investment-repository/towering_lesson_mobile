@@ -387,8 +387,6 @@ const ko: TranslationResource<typeof en> = {
         viewReservation: "예약 보기",
         cancelRefundNote: "이용권 횟수가 이 티켓으로 환원됩니다.",
         cancelUnavailableHint: "이 예약은 더 이상 앱에서 취소할 수 없습니다. 도움이 필요하면 클럽에 문의해 주세요.",
-        lessonRescheduleUnavailableHint:
-            "레슨 예약은 여기에서 일정을 변경할 수 없습니다. 취소 후 새 시간으로 예약해 주세요.",
         todayTitle: "오늘의 예약",
         loadError: "예약을 불러오지 못했습니다",
         empty: "오늘 예약이 없습니다",

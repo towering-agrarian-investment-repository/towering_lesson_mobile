@@ -387,7 +387,6 @@ const km: TranslationResource<typeof en> = {
         viewReservation: "មើលការកក់",
         cancelRefundNote: "ឥណទានសំបុត្រនឹងត្រូវប្រគល់មកសំបុត្រនេះវិញ។",
         cancelUnavailableHint: "ការកក់នេះមិនអាចបោះបង់តាមកម្មវិធីបានទៀតទេ។ សូមទាក់ទងក្លឹប ប្រសិនបើអ្នកត្រូវការជំនួយ។",
-        lessonRescheduleUnavailableHint: "ការកក់មេរៀនមិនអាចផ្លាស់ប្តូរពេលវេលានៅទីនេះបានទេ។ សូមបោះបង់ ហើយកក់ពេលថ្មីជំនួសវិញ។",
         todayTitle: "ការកក់ថ្ងៃនេះ",
         loadError: "មិនអាចផ្ទុកការកក់បានទេ",
         empty: "គ្មានការកក់សម្រាប់ថ្ងៃនេះទេ",

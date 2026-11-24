@@ -388,8 +388,6 @@ const ja: TranslationResource<typeof en> = {
         cancelRefundNote: "チケットの回数がこのチケットに戻ります。",
         cancelUnavailableHint:
             "この予約はアプリからキャンセルできなくなりました。必要な場合はクラブにお問い合わせください。",
-        lessonRescheduleUnavailableHint:
-            "レッスン予約はここでは日程変更できません。キャンセルして新しい時間を予約してください。",
         todayTitle: "本日の予約",
         loadError: "予約を読み込めませんでした",
         empty: "本日の予約はありません",

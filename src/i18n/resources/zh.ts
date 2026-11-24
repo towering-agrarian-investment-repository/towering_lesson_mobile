@@ -387,7 +387,6 @@ const zh: TranslationResource<typeof en> = {
         viewReservation: "查看预约",
         cancelRefundNote: "票券次数将退回到此票券。",
         cancelUnavailableHint: "此预约已无法在应用内取消。如需帮助，请联系俱乐部。",
-        lessonRescheduleUnavailableHint: "课程预约无法在此更改时间。请取消后重新预约。",
         todayTitle: "今日预约",
         loadError: "无法加载预约",
         empty: "今日暂无预约",

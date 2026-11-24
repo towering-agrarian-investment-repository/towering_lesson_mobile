@@ -389,8 +389,6 @@ const en = {
         cancelRefundNote: "Your ticket credit will be returned to this ticket.",
         cancelUnavailableHint:
             "This reservation can no longer be cancelled online. Please contact the club if you need help.",
-        lessonRescheduleUnavailableHint:
-            "Lesson reservations can't be rescheduled here. Cancel and book a new time instead.",
         todayTitle: "Today's Reservations",
         loadError: "Couldn't load reservations",
         empty: "No reservations today",
