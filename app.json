@@ -65,13 +65,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#5FB1FF",
-          "image": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-foreground.png",
-          "imageWidth": 240,
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/happy-golf-splash-light.png",
+          "imageWidth": 148,
           "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#0A0E16",
-            "image": "./assets/images/Happy-Golf-V2-Icons/expo/android-adaptive-foreground.png"
+            "image": "./assets/images/happy-golf-splash-dark.png"
           }
         }
       ],
