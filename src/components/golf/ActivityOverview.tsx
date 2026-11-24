@@ -2,7 +2,7 @@ import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { AppText } from "@/design-system/components/AppText";
 import { ActivitySharePreview } from "@/components/golf/ActivitySharePreview";
 import { mapActivityDays } from "@/components/golf/activity-display-data";
-import ReservationCard, { ReservationCardSkeleton } from "@/components/golf/ReservationCard";
+import ReservationCard from "@/components/golf/ReservationCard";
 import {
     ActivityHeatmap,
     AnimatedPressable,
@@ -65,6 +65,7 @@ export function ActivityOverview() {
     const {
         data: activity,
         isPending,
+        fetchStatus,
         isPlaceholderData,
         refetch,
         isRefetching,
@@ -132,11 +133,13 @@ export function ActivityOverview() {
         />
     );
 
-    if (isPending) {
+    const isWaitingForConnection = fetchStatus === "paused";
+
+    if (isPending && !isWaitingForConnection) {
         return (
             <>
                 {preview}
-                <ActivityLoadingState yearCount={availableYears.length} showSelectedDay={Boolean(selectedDateKey)} />
+                <ActivityLoadingState />
             </>
         );
     }
@@ -150,12 +153,16 @@ export function ActivityOverview() {
                     contentClassName="grow"
                     bottomPadding={16}
                     bottomSafeArea={process.env.EXPO_OS === "ios"}
-                    refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
+                    refreshControl={
+                        isWaitingForConnection ? undefined : (
+                            <RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />
+                        )
+                    }
                 >
                     <ErrorState
                         title={t("activity.couldNotLoad")}
-                        message={t("home.checkConnection")}
-                        actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
+                        message={isWaitingForConnection ? undefined : t("home.checkConnection")}
+                        actionLabel={isWaitingForConnection ? undefined : t("common.refreshTryAgain")}
                         actionPending={isRefetching || isPullRefreshing}
                         onAction={() => {
                             void refetch();
@@ -323,7 +330,7 @@ export function ActivityOverview() {
                                 }
                                 onTodayPress={isPlaceholderData ? undefined : handleTodayJump}
                             />
-                            {selectedDateKey ? (
+                            {selectedDateKey && !isPlaceholderData ? (
                                 <View className="gap-3 pt-1">
                                     <View className="flex-row items-center justify-between gap-3">
                                         <AppText variant="h3" style={{ flex: 1, minWidth: 0 }}>
@@ -367,7 +374,7 @@ function ActivityDayReservations({
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data, isError, isRefetching, refetch } = query;
+    const { data, fetchStatus, isError, isRefetching, refetch } = query;
 
     const handleReservationPress = useCallback(
         (reservation: MemberReservationSummaryResponse) => {
@@ -391,12 +398,11 @@ function ActivityDayReservations({
         return <CompactEmptyState title={t("reservations.noReservationsTitle")} />;
     }
 
-    if (!data && !isError) {
+    if (!data && !isError && fetchStatus !== "paused") {
         return (
-            <View className="gap-2.5" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
-                <ReservationCardSkeleton />
-                <ReservationCardSkeleton />
-            </View>
+            <AppText variant="subtext" color="mutedForeground" accessibilityRole="progressbar">
+                {t("tickets.loadingReservations")}
+            </AppText>
         );
     }
 
@@ -405,8 +411,8 @@ function ActivityDayReservations({
             <CompactEmptyState
                 tone="danger"
                 title={t("reservations.failedListTitle")}
-                message={t("common.pullToRefreshAndTryAgain")}
-                actionLabel={t("common.refreshTryAgain")}
+                message={t(fetchStatus === "paused" ? "common.offlineMessage" : "common.pullToRefreshAndTryAgain")}
+                actionLabel={fetchStatus === "paused" ? undefined : t("common.refreshTryAgain")}
                 actionPending={isRefetching}
                 onAction={() => {
                     void refetch();
@@ -510,18 +516,16 @@ function ActivityChartHeader({
     );
 }
 
-function ActivityLoadingState({ yearCount, showSelectedDay }: { yearCount: number; showSelectedDay: boolean }) {
+function ActivityLoadingState() {
     const { t } = useTranslation();
 
     return (
         <Screen bottomSafeArea={process.env.EXPO_OS === "ios"}>
             <View className="gap-5" accessibilityRole="progressbar" accessibilityLabel={t("activity.loading")}>
-                <View className="flex-row flex-wrap items-center gap-2">
-                    {Array.from({ length: yearCount }, (_, index) => (
-                        <View key={index} className="min-h-12 justify-center">
-                            <Skeleton className="h-8 w-16 rounded-full" />
-                        </View>
-                    ))}
+                <View className="flex-row items-center gap-2">
+                    <View className="min-h-12 justify-center">
+                        <Skeleton className="h-8 w-16 rounded-full" />
+                    </View>
                     <View className="min-h-12 justify-center">
                         <Skeleton className="h-8 w-14 rounded-full" />
                     </View>
@@ -549,19 +553,7 @@ function ActivityLoadingState({ yearCount, showSelectedDay }: { yearCount: numbe
                                 </View>
                             ))}
                         </View>
-                        {showSelectedDay ? (
-                            <View className="flex-row items-center justify-between gap-3">
-                                <Skeleton className="h-7 w-48 max-w-[70%]" />
-                                <Skeleton className="h-4 w-16" />
-                            </View>
-                        ) : null}
                     </View>
-                    {showSelectedDay ? (
-                        <View className="gap-3">
-                            <ReservationCardSkeleton />
-                            <ReservationCardSkeleton />
-                        </View>
-                    ) : null}
                 </View>
             </View>
         </Screen>

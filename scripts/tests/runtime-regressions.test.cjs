@@ -62,6 +62,18 @@ function hooks() {
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
+function findElement(tree, predicate) {
+    if (Array.isArray(tree)) {
+        for (const child of tree) {
+            const match = findElement(child, predicate);
+            if (match) return match;
+        }
+        return null;
+    }
+    if (!React.isValidElement(tree)) return null;
+    return predicate(tree) ? tree : findElement(tree.props.children, predicate);
+}
+
 function pullRefreshHarness(refresh) {
     const values = [];
     let cursor = 0;
@@ -563,6 +575,89 @@ test("preference sheets block duplicate saves and dismissal, and stay open when 
     }
 });
 
+test("activity keeps one initial skeleton and loads day details within the overview", () => {
+    const today = "2026-11-25";
+    const summary = { data: undefined };
+    const activity = { data: undefined, isPending: true, fetchStatus: "fetching" };
+    const day = { data: undefined, fetchStatus: "fetching" };
+    let requestedDay;
+    const { ActivityOverview } = load("src/components/golf/ActivityOverview.tsx", {
+        react: hooks().react,
+        "react-i18next": { useTranslation: () => ({ t: (key) => key, i18n: { language: "en" } }) },
+        "react-native": { RefreshControl: "RefreshControl", ScrollView: "ScrollView", View: "View" },
+        "expo-router": { useIsFocused: () => true, useRouter: () => ({}), useScrollToTop() {} },
+        "lucide-react-native": { ChevronRight: "ChevronRight", Sparkles: "Sparkles" },
+        "@tanstack/react-query": { useQueryClient: () => ({}) },
+        "@/design-system": {
+            ActivityHeatmap: "ActivityHeatmap",
+            AnimatedPressable: "AnimatedPressable",
+            CompactEmptyState: "CompactEmptyState",
+            ErrorState: "ErrorState",
+            Screen: "Screen",
+            Skeleton: "Skeleton",
+            cn: (...names) => names.filter(Boolean).join(" "),
+            useTheme: () => ({ colors: {} }),
+        },
+        "@/design-system/components/AppText": { AppText: "AppText" },
+        "@/design-system/components/charts/activity-chart-data": {
+            formatActivityDate: (date) => date,
+            toDateKey: (value) =>
+                typeof value === "string"
+                    ? value
+                    : [value.getFullYear(), value.getMonth() + 1, value.getDate()]
+                          .map((part) => String(part).padStart(2, "0"))
+                          .join("-"),
+        },
+        "@/design-system/components/charts/activity-heatmap-layout": {},
+        "@/components/golf/ActivitySharePreview": { ActivitySharePreview: "ActivitySharePreview" },
+        "@/components/golf/ReservationCard": { default: "ReservationCard" },
+        "@/components/golf/activity-display-data": { mapActivityDays: (days) => days },
+        "@/lib/hook/useMemberActivity": {
+            useMemberActivitySummary: () => summary,
+            useMemberActivity: () => activity,
+        },
+        "@/lib/hook/useMinuteClock": { useDayClock: () => Date.parse(`${today}T12:00:00Z`) },
+        "@/lib/hook/useNavigationLock": { useNavigationLock: () => ({}) },
+        "@/lib/hook/usePullToRefresh": { usePullToRefresh: () => ({}) },
+        "@/lib/hook/useReservation": {
+            useMemberReservationsForDay: (date) => {
+                requestedDay = date;
+                return day;
+            },
+        },
+        "@/lib/hook/useUser": { useGetMemberProfile: () => ({}) },
+        "@/utils/time-helper": { formatDateForAPI: () => today },
+    });
+
+    const getSkeleton = () =>
+        findElement(ActivityOverview(), (element) => element.type.name === "ActivityLoadingState");
+    const initial = getSkeleton();
+    assert.ok(initial, "The first response is pending");
+    summary.data = { availableYears: [2026, 2025, 2024] };
+    const withSummary = getSkeleton();
+    assert.equal(JSON.stringify(withSummary.type(withSummary.props)), JSON.stringify(initial.type(initial.props)));
+    assert.equal(requestedDay, null, "The summary alone must not start a day request");
+
+    activity.fetchStatus = "paused";
+    assert.ok(findElement(ActivityOverview(), (element) => element.type === "ErrorState"));
+
+    activity.isPending = false;
+    activity.fetchStatus = "idle";
+    activity.data = { year: 2026, daily: [{ date: today, count: 2 }], weekly: [], totalReservations: 2 };
+    const overview = ActivityOverview();
+    assert.ok(findElement(overview, (element) => element.type === "ActivityHeatmap"));
+    assert.equal(requestedDay, today);
+    const daySection = findElement(overview, (element) => element.type.name === "ActivityDayReservations");
+    assert.equal(daySection.type(daySection.props).props.accessibilityRole, "progressbar");
+
+    activity.isPlaceholderData = true;
+    assert.equal(
+        findElement(ActivityOverview(), (element) => element.type.name === "ActivityDayReservations"),
+        null,
+    );
+    assert.equal(requestedDay, null, "The previous period cannot start a day request");
+});
+
 // Whole-screen tests: the router, theme, and list primitives are stubbed, and
 // `memo` is flattened so the scene can be invoked directly. `usePullToRefresh`
 // is the real implementation, loaded against the same React harness, because
@@ -682,6 +777,7 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
                       "@/components/golf/notice/DeleteAllNotificationsSheet": {
                           DeleteAllNotificationsSheet: "DeleteAllNotificationsSheet",
                       },
+                      "@/components/golf/notice/NoticeHeaderActions": { NoticeHeaderActions: "NoticeHeaderActions" },
                       "@/components/golf/notice/NotificationRow": {
                           MemoNotificationRow: "MemoNotificationRow",
                           NoticeListFooter: "NoticeListFooter",
@@ -690,16 +786,21 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
                           NotificationSectionHeader: "NotificationSectionHeader",
                           NotificationSeparator: "NotificationSeparator",
                       },
+                      "@/components/golf/notice/notice-list-entries": load(
+                          "src/components/golf/notice/notice-list-entries.ts",
+                          {
+                              "@/utils/timezone": { toAppTimeZoneDate: (value) => new Date(value) },
+                              "date-fns": require("date-fns"),
+                          },
+                      ),
                       "@/design-system": {
                           EmptyState: "EmptyState",
                           ErrorState: "ErrorState",
                           Screen: "Screen",
                           StateList: "StateList",
-                          cn: (...classNames) => classNames.filter(Boolean).join(" "),
                           triggerImpactHaptic() {},
                           triggerSelectionHaptic() {},
                       },
-                      "@/design-system/utils/theme": { useTheme: () => ({ colors: {}, resolvedScheme: "light" }) },
                       "@/lib/hook/shared/useNotification": {
                           useDeleteAllNotifications: mutation,
                           useDeleteNotification: mutation,
@@ -710,9 +811,6 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
                       "@/lib/hook/useLessonLog": {},
                       "@/lib/hook/useMinuteClock": { useDayClock: () => Date.now() },
                       "@/lib/hook/useReservation": { getMemberReservationDetailQueryOptions: () => ({}) },
-                      "@/utils/timezone": { toAppTimeZoneDate: (value) => new Date(value) },
-                      "@expo/ui/community/menu": { MenuView: "MenuView" },
-                      "date-fns": { differenceInCalendarDays: () => 0 },
                       "expo-notifications": { getPermissionsAsync: async () => ({ status: "granted" }) },
                       "expo-router": {
                           useFocusEffect() {},
@@ -724,18 +822,31 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
                   },
         );
 
-        function findList() {
+        function findSceneElement(type) {
             cursor = 0;
             const tree = reservationType ? scene.ReservationTabScene({ type: reservationType }) : scene.default();
-            let found = null;
-            (function walk(node) {
-                if (Array.isArray(node)) return node.forEach(walk);
-                if (!React.isValidElement(node)) return;
-                if (node.type === "FlatList") found = node;
-                walk(node.props.children);
-            })(tree);
+            return findElement(tree, (element) => element.type === type);
+        }
+
+        function findList() {
+            const found = findSceneElement("FlatList");
             assert.ok(found, "the scene renders its cursor-paginated list");
             return found;
+        }
+
+        if (!reservationType) {
+            const populated = result.data;
+            Object.assign(result, { data: undefined, isPending: true, fetchStatus: "idle", isFetching: false });
+            assert.ok(findSceneElement("NotificationListSkeleton"), "First focus can precede the first fetch");
+            assert.equal(findSceneElement("EmptyState"), null);
+
+            result.fetchStatus = "paused";
+            assert.ok(findSceneElement("ErrorState"), "An offline first read cannot establish an empty inbox");
+            assert.equal(findSceneElement("EmptyState"), null);
+
+            Object.assign(result, { data: { items: [] }, isPending: false, fetchStatus: "idle" });
+            assert.ok(findSceneElement("EmptyState"), "A successful empty response shows the empty state");
+            Object.assign(result, { data: populated, isFetching: true });
         }
 
         assert.equal(findList().props.refreshControl.props.refreshing, false, "Background work is not a user pull");
