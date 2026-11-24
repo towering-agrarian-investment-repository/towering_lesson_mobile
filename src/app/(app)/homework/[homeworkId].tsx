@@ -1,4 +1,8 @@
+import { HomeworkDetailHeader } from "@/components/golf/homework/HomeworkDetailHeader";
+import { HomeworkDetailSkeleton } from "@/components/golf/homework/HomeworkDetailSkeleton";
+import { HomeworkReviewCard } from "@/components/golf/homework/HomeworkReviewCard";
 import { HomeworkSourceSheet } from "@/components/golf/homework/HomeworkSourceSheet";
+import { HomeworkSubmissionComposer } from "@/components/golf/homework/HomeworkSubmissionComposer";
 import { HomeworkSubmissionRow } from "@/components/golf/homework/HomeworkSubmissionRow";
 import {
     createFileFromDocument,
@@ -7,44 +11,31 @@ import {
     getHomeworkDisplayState,
     homeworkDraftKey,
     HomeworkFileValidationError,
-    isImageFile,
-    isVideoFile,
     type HomeworkDraft,
 } from "@/components/golf/homework/homework-utils";
-import { FormTextInput } from "@/components/ui/form";
 import {
     ActionButton,
-    AnimatedPressable,
-    Badge,
     CompactEmptyState,
     Divider,
     ErrorState,
     ImageViewerModal,
     Screen,
-    Skeleton,
     triggerSuccessHaptic,
 } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { showAppToast } from "@/design-system/components/AppToast";
-import { cn } from "@/design-system/utils/cn";
-import { useTheme } from "@/design-system/utils/theme";
 import { useMemberHomeworkById, useSubmitMemberHomework } from "@/lib/hook/useMemberLessonFlow";
 import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import type { HomeworkSubmissionFile } from "@/service/member-homework.service";
 import type { MemberHomeworkSubmissionResponse } from "@/types/member-homework";
-import { formatFileSize } from "@/utils/file";
-import { getHomeworkTitle } from "@/utils/member-lesson";
-import { fmtDateTime, formatDateForDisplay } from "@/utils/time-helper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
-import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, usePreventRemove } from "expo-router";
-import { Award, Calendar, FileCheck, FileUp, MessageSquare, Video, X } from "lucide-react-native";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { type Control, useForm, useWatch } from "react-hook-form";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
     Alert,
@@ -60,6 +51,10 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 type HomeworkParams = {
     homeworkId: string;
+};
+
+type HomeworkMemoFormValues = {
+    memo: string;
 };
 
 const submissionKeyExtractor = (submission: MemberHomeworkSubmissionResponse) => `submission-${submission.id}`;
@@ -84,40 +79,11 @@ function showPermissionSettingsAlert(t: (key: string) => string, message: string
     ]);
 }
 
-type HomeworkMemoFormValues = {
-    memo: string;
-};
-
 const renderHomeworkScrollComponent = (props: ScrollViewProps) => (
     <KeyboardAwareScrollView {...props} bottomOffset={20} mode="layout" />
 );
 
-const HomeworkMemoSection = memo(function HomeworkMemoSection({
-    control,
-    editable,
-}: {
-    control: Control<HomeworkMemoFormValues>;
-    editable: boolean;
-}) {
-    const { t } = useTranslation();
-
-    return (
-        <FormTextInput
-            control={control}
-            name="memo"
-            label={t("homework.memo")}
-            placeholder={t("homework.noteForCoach")}
-            editable={editable}
-            multiline
-            numberOfLines={3}
-            maxLength={500}
-            showCharacterCount
-        />
-    );
-});
-
 export default function HomeworkDetailScreen() {
-    const { colors } = useTheme();
     const { t } = useTranslation();
     const { homeworkId } = useLocalSearchParams<HomeworkParams>();
     const numericHomeworkId = Number(homeworkId);
@@ -235,40 +201,6 @@ export default function HomeworkDetailScreen() {
     const submissions = homeworkDetail?.submissions ?? [];
     const latestReview = submissions.find((submission) => submission.review)?.review;
     const displayState = homework ? getHomeworkDisplayState(homework, submissions, referenceTime) : "assigned";
-    const displayStateLabel = t(`homework.state_${displayState}`);
-    const displayStateTone = {
-        approved: { className: "bg-success/10", color: "success" as const },
-        needsRevision: { className: "bg-danger/10", color: "danger" as const },
-        awaitingReview: {
-            className: "bg-primary/10",
-            color: "primary" as const,
-        },
-        overdue: { className: "bg-danger/10", color: "danger" as const },
-        dueSoon: { className: "bg-warning/10", color: "warning" as const },
-        assigned: {
-            className: "bg-muted",
-            color: "mutedForeground" as const,
-        },
-    }[displayState];
-
-    const reviewCardClassName =
-        displayState === "approved"
-            ? "border-success/25 bg-success/5"
-            : displayState === "needsRevision"
-              ? "border-danger/25 bg-danger/5"
-              : "border-border bg-surface";
-    const reviewAccentColor =
-        displayState === "approved"
-            ? colors.success
-            : displayState === "needsRevision"
-              ? colors.danger
-              : colors.primary;
-    const reviewAccentToken =
-        displayState === "approved"
-            ? ("success" as const)
-            : displayState === "needsRevision"
-              ? ("danger" as const)
-              : ("primary" as const);
 
     const refreshControl = <RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />;
 
@@ -468,8 +400,6 @@ export default function HomeworkDetailScreen() {
         );
     }
 
-    const description = homework.description?.trim() || null;
-
     return (
         <>
             <ImageViewerModal
@@ -518,200 +448,23 @@ export default function HomeworkDetailScreen() {
                     contentContainerStyle={SUBMISSION_LIST_CONTENT_STYLE}
                     ListHeaderComponent={
                         <View className="gap-6 pb-3">
-                            <View className="gap-3">
-                                <View className="gap-2">
-                                    <View className="flex-row flex-wrap items-center justify-between gap-2">
-                                        <Badge
-                                            label={displayStateLabel}
-                                            className={displayStateTone.className}
-                                            color={displayStateTone.color}
-                                        />
-
-                                        <View className="flex-row items-center gap-1.5">
-                                            <Calendar size={15} color={colors.mutedForeground} strokeWidth={2} />
-                                            <AppText
-                                                variant="caption"
-                                                color="mutedForeground"
-                                                wrap={false}
-                                                tabular
-                                                textStyle={{ fontWeight: "600" }}
-                                            >
-                                                {homework.dueAt
-                                                    ? t("homework.dueDate", {
-                                                          date: formatDateForDisplay(homework.dueAt),
-                                                      })
-                                                    : t("homework.noDueDate")}
-                                            </AppText>
-                                        </View>
-                                    </View>
-
-                                    <AppText variant="h2">{getHomeworkTitle(homework)}</AppText>
-                                </View>
-
-                                {description ? (
-                                    <AppText variant="body" color="mutedForeground">
-                                        {description}
-                                    </AppText>
-                                ) : (
-                                    <AppText variant="subtext" color="mutedForeground">
-                                        {t("homework.noDescription")}
-                                    </AppText>
-                                )}
-                            </View>
+                            <HomeworkDetailHeader homework={homework} displayState={displayState} />
 
                             {latestReview ? (
-                                <View className={cn("gap-3 rounded-2xl border p-4", reviewCardClassName)}>
-                                    <View className="flex-row items-center justify-between gap-3">
-                                        <View className="flex-row items-center gap-2">
-                                            <MessageSquare size={15} color={reviewAccentColor} strokeWidth={2} />
-                                            <AppText
-                                                variant="label"
-                                                color={reviewAccentToken}
-                                                wrap={false}
-                                                textStyle={{
-                                                    fontWeight: "700",
-                                                }}
-                                            >
-                                                {t("homework.coachReview")}
-                                            </AppText>
-                                        </View>
-
-                                        {latestReview.score != null ? (
-                                            <View className="flex-row items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1">
-                                                <Award size={13} color={colors.warning} strokeWidth={2} />
-                                                <AppText
-                                                    variant="caption"
-                                                    color="foreground"
-                                                    wrap={false}
-                                                    tabular
-                                                    textStyle={{
-                                                        fontWeight: "700",
-                                                    }}
-                                                >
-                                                    {t("homework.score", {
-                                                        score: latestReview.score,
-                                                    })}
-                                                </AppText>
-                                            </View>
-                                        ) : null}
-                                    </View>
-
-                                    <AppText variant="body">
-                                        {latestReview.coachFeedback?.trim() || t("homework.noReviewComment")}
-                                    </AppText>
-
-                                    {latestReview.reviewedAt ? (
-                                        <AppText variant="caption" color="mutedForeground" tabular>
-                                            {t("homework.reviewedAt", {
-                                                date: fmtDateTime(latestReview.reviewedAt),
-                                            })}
-                                        </AppText>
-                                    ) : null}
-                                </View>
+                                <HomeworkReviewCard review={latestReview} displayState={displayState} />
                             ) : null}
 
                             <Divider className="bg-border/70" />
 
-                            <View className="gap-4">
-                                <AppText variant="subtitle" textStyle={{ fontWeight: "700" }}>
-                                    {t("homework.submission")}
-                                </AppText>
-
-                                {selectedFile ? (
-                                    <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                                        {isImageFile(selectedFile) ? (
-                                            <AnimatedPressable
-                                                accessibilityRole="imagebutton"
-                                                accessibilityLabel={t("sessionResources.openImage", {
-                                                    title: selectedFile.name,
-                                                })}
-                                                haptic="selection"
-                                                className="shrink-0 overflow-hidden rounded-xl"
-                                                onPress={() =>
-                                                    setPreviewImage({
-                                                        uri: selectedFile.uri,
-                                                        title: selectedFile.name,
-                                                    })
-                                                }
-                                            >
-                                                <Image
-                                                    source={{
-                                                        uri: selectedFile.uri,
-                                                    }}
-                                                    contentFit="cover"
-                                                    recyclingKey={selectedFile.uri}
-                                                    className="h-14 w-14 rounded-xl bg-muted"
-                                                />
-                                            </AnimatedPressable>
-                                        ) : (
-                                            <View className="h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                                                {isVideoFile(selectedFile) ? (
-                                                    <Video size={22} color={colors.primary} strokeWidth={2} />
-                                                ) : (
-                                                    <FileCheck size={22} color={colors.primary} strokeWidth={2} />
-                                                )}
-                                            </View>
-                                        )}
-
-                                        <AnimatedPressable
-                                            accessibilityRole="button"
-                                            accessibilityLabel={t("homework.chooseFile")}
-                                            disabled={isDraftEditingDisabled || isPicking}
-                                            haptic="selection"
-                                            style={{ flex: 1, minWidth: 0 }}
-                                            className="gap-1"
-                                            onPress={openSourceSheet}
-                                        >
-                                            <AppText variant="label" numberOfLines={2} ellipsizeMode="middle">
-                                                {selectedFile.name}
-                                            </AppText>
-                                            <AppText
-                                                variant="caption"
-                                                color="mutedForeground"
-                                                numberOfLines={1}
-                                                tabular
-                                            >
-                                                {formatFileSize(selectedFile.size)}
-                                            </AppText>
-                                        </AnimatedPressable>
-
-                                        <AnimatedPressable
-                                            accessibilityRole="button"
-                                            accessibilityLabel={t("homework.removeFile")}
-                                            disabled={isDraftEditingDisabled}
-                                            hitSlop={6}
-                                            haptic="selection"
-                                            className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted"
-                                            onPress={handleRemoveFile}
-                                        >
-                                            <X size={16} color={colors.mutedForeground} strokeWidth={2} />
-                                        </AnimatedPressable>
-                                    </View>
-                                ) : (
-                                    <AnimatedPressable
-                                        accessibilityRole="button"
-                                        accessibilityLabel={t("homework.chooseFile")}
-                                        disabled={isDraftEditingDisabled || isPicking}
-                                        haptic="selection"
-                                        className="items-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-6 active:bg-primary/10 disabled:opacity-60"
-                                        onPress={openSourceSheet}
-                                    >
-                                        <View className="h-12 w-12 items-center justify-center rounded-full bg-primary/15">
-                                            <FileUp size={20} color={colors.primary} strokeWidth={2} />
-                                        </View>
-                                        <View className="items-center gap-1">
-                                            <AppText variant="label" color="primary">
-                                                {t("homework.chooseFile")}
-                                            </AppText>
-                                            <AppText variant="caption" color="mutedForeground" align="center">
-                                                {t("homework.uploadHint")}
-                                            </AppText>
-                                        </View>
-                                    </AnimatedPressable>
-                                )}
-
-                                <HomeworkMemoSection control={memoForm.control} editable={!isDraftEditingDisabled} />
-                            </View>
+                            <HomeworkSubmissionComposer
+                                control={memoForm.control}
+                                selectedFile={selectedFile}
+                                isEditingDisabled={isDraftEditingDisabled}
+                                isPicking={isPicking}
+                                onOpenSource={openSourceSheet}
+                                onRemoveFile={handleRemoveFile}
+                                onPreviewImage={(uri, title) => setPreviewImage({ uri, title })}
+                            />
 
                             <View className="gap-3">
                                 <View className="flex-row items-baseline justify-between gap-4">
@@ -745,24 +498,6 @@ export default function HomeworkDetailScreen() {
                     windowSize={7}
                 />
             </Screen>
-        </>
-    );
-}
-
-function HomeworkDetailSkeleton() {
-    return (
-        <>
-            <View className="gap-3">
-                <View className="flex-row items-center justify-between">
-                    <Skeleton className="h-6 w-24 rounded-md" />
-                    <Skeleton className="h-4 w-28 rounded-full" />
-                </View>
-                <Skeleton className="h-8 w-4/5 rounded-lg" />
-                <Skeleton className="h-16 w-full rounded-lg" />
-            </View>
-
-            <Skeleton className="h-36 w-full rounded-2xl" />
-            <Skeleton className="h-28 w-full rounded-2xl" />
         </>
     );
 }

@@ -1,106 +1,40 @@
-import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
-import { TicketTypeIcon } from "@/components/golf/TicketTypeIcon";
-import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import { AppText } from "@/design-system/components/AppText";
-import { colorWithOpacity } from "@/design-system/utils/color";
-import { getNativeButtonStyle } from "@/design-system/utils/native-button-styles";
-import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
+import { ReservationContent } from "@/components/golf/reservation/ReservationSections";
+import { ReservationCancelSheet } from "@/components/golf/reservation/detail/ReservationCancelSheet";
+import { ReservationCoachAvatar } from "@/components/golf/reservation/detail/ReservationCoachAvatar";
+import { ReservationDetailHeader } from "@/components/golf/reservation/detail/ReservationDetailHeader";
+import { ReservationDetailRow } from "@/components/golf/reservation/detail/ReservationDetailRow";
+import { ReservationPreviewView } from "@/components/golf/reservation/detail/ReservationPreviewView";
 import {
-    ActionButton,
-    cn,
-    Divider,
-    EmptyState,
-    ErrorState,
-    AnimatedPressable,
-    Screen,
-    Skeleton,
-    triggerSuccessHaptic,
-    useThemeColors,
-} from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
-import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
-import { typography } from "@/design-system/utils/typography";
+    getReservationPolicies,
+    getReservationTitle,
+    isBayReservationDetail,
+    isLessonReservationDetail,
+    isReservationDomain,
+} from "@/components/golf/reservation/detail/reservation-detail-utils";
+import { ActionButton, Divider, EmptyState, ErrorState, Screen, Skeleton, triggerSuccessHaptic } from "@/design-system";
+import { AppText } from "@/design-system/components/AppText";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
-    MemberReservationDetailResponse,
-    MemberReservationDetailPreview,
     useCancelMemberBayReservation,
     useCancelMemberLessonReservation,
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
-import { MemberBayReservationResponse } from "@/types/member-bay";
-import { MemberLessonReservationResponse } from "@/types/member-lesson";
-import { MemberReservationDomain } from "@/types/member-reservation";
-import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
+import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
-import { Button, Column, RNHostView, Row, Text, Spacer } from "@expo/ui";
-import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { contentShape, shapes, frame } from "@expo/ui/swift-ui/modifiers";
 import { useQueryClient } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { Href, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
-import { type ReactNode, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, RefreshControl, View } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
+import { RefreshControl, View } from "react-native";
 
 type ReservationParams = {
     id: string;
     type?: string;
 };
 
-function isReservationDomain(value?: string | string[]): value is MemberReservationDomain {
-    return value === "lesson" || value === "bay";
-}
-
-function isBayReservationDetail(
-    reservation: MemberReservationDetailResponse,
-): reservation is MemberBayReservationResponse {
-    return reservation.reservationType === "bay";
-}
-
-function isLessonReservationDetail(
-    reservation: MemberReservationDetailResponse,
-): reservation is MemberLessonReservationResponse {
-    return reservation.reservationType === "lesson";
-}
-
-function getReservationTitle(reservation: MemberReservationDetailResponse, t: (key: string) => string) {
-    const name = isBayReservationDetail(reservation) ? reservation.bayName : reservation.lessonAvailability?.name;
-
-    return name?.trim() || t("common.notAvailable");
-}
-
-function getReservationPolicies(t: (key: string) => string) {
-    return {
-        lesson: [
-            {
-                title: t("bookingConfirmation.lessonCancellationPolicyTitle"),
-                description: t("bookingConfirmation.lessonCancellationPolicyDescription"),
-            },
-            {
-                title: t("bookingConfirmation.lessonNoShowPolicyTitle"),
-                description: t("bookingConfirmation.lessonNoShowPolicyDescription"),
-            },
-        ],
-        bay: [
-            {
-                title: t("bookingConfirmation.bayCancellationPolicyTitle"),
-                description: t("bookingConfirmation.bayCancellationPolicyDescription"),
-            },
-            {
-                title: t("bookingConfirmation.bayNoShowPolicyTitle"),
-                description: t("bookingConfirmation.bayNoShowPolicyDescription"),
-            },
-        ],
-    } as const;
-}
-
 export default function ReservationDetailScreen() {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
     const { t } = useTranslation();
     const isOnline = useIsOnline();
     const { id, type } = useLocalSearchParams<ReservationParams>();
@@ -161,7 +95,7 @@ export default function ReservationDetailScreen() {
     }
 
     if (reservation && "isListPreview" in reservation) {
-        return <ReservationPreviewScreen preview={reservation} />;
+        return <ReservationPreviewView preview={reservation} />;
     }
 
     if (!reservation) {
@@ -187,6 +121,7 @@ export default function ReservationDetailScreen() {
 
     const isBayReservation = isBayReservationDetail(reservation);
     const lessonReservation = isLessonReservationDetail(reservation) ? reservation : null;
+    const isProgramReservation = lessonReservation?.lessonProgramEnrollmentId != null;
 
     const canCancelReservation = reservation.reservationStatus === "RESERVED" && reservation.isCancellable;
     const canRescheduleReservation =
@@ -202,11 +137,7 @@ export default function ReservationDetailScreen() {
     const title = getReservationTitle(reservation, t);
     const dateValue = formatDateForDisplay(reservation.startTime) || "-";
     const timeValue = formatTimeRange(reservation.startTime, reservation.endTime);
-    const lessonNameValue = isBayReservation
-        ? null
-        : lessonReservation?.lessonProgramEnrollmentId != null
-          ? lessonReservation.lessonName?.trim() || "-"
-          : null;
+    const lessonNameValue = isProgramReservation ? lessonReservation.lessonName?.trim() || "-" : null;
 
     const programValue = isBayReservation
         ? "-"
@@ -309,173 +240,18 @@ export default function ReservationDetailScreen() {
 
     return (
         <>
-            <PendingBottomSheet
+            <ReservationCancelSheet
                 isPresented={isCancelSheetVisible}
+                isCancelling={isCancelling}
+                isConfirmDisabled={isCancelDisabled}
+                isOnline={isOnline}
+                title={title}
+                dateValue={dateValue}
+                timeValue={timeValue}
+                showRefundNote={Boolean(reservation.ticket?.id)}
+                onConfirm={confirmCancelReservation}
                 onDismiss={closeCancelSheet}
-                dismissDisabled={isCancelling}
-                containerColor={uiColors.card}
-                contentColor={uiColors.foreground}
-                contentPadding={{ top: 20, bottom: 32, left: 24, right: 24 }}
-            >
-                <Column
-                    spacing={20}
-                    modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}
-                >
-                    <Column
-                        spacing={8}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}
-                    >
-                        <Text
-                            textStyle={{
-                                ...typography.h3,
-                                lineHeight: typography.h3.lineHeight * uiFontScale,
-                                color: uiColors.danger,
-                                fontSize: typography.h3.fontSize * uiFontScale,
-                            }}
-                        >
-                            {t("reservations.cancelTitle")}
-                        </Text>
-                        <Text
-                            textStyle={{
-                                ...typography.body,
-                                lineHeight: typography.body.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize: typography.body.fontSize * uiFontScale,
-                            }}
-                        >
-                            {t("reservations.cancelMessage")}
-                        </Text>
-                        {!isOnline ? (
-                            <Text
-                                textStyle={{
-                                    ...typography.body,
-                                    lineHeight: typography.body.lineHeight * uiFontScale,
-                                    color: uiColors.warning,
-                                    fontSize: typography.body.fontSize * uiFontScale,
-                                }}
-                            >
-                                {t("common.offlineMessage")}
-                            </Text>
-                        ) : null}
-                    </Column>
-                    <Column
-                        spacing={2}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}
-                    >
-                        <Text
-                            textStyle={{
-                                ...typography.label,
-                                lineHeight: typography.label.lineHeight * uiFontScale,
-                                color: uiColors.foreground,
-                                fontSize: typography.label.fontSize * uiFontScale,
-                            }}
-                        >
-                            {title}
-                        </Text>
-                        <Text
-                            textStyle={{
-                                ...typography.body,
-                                lineHeight: typography.body.lineHeight * uiFontScale,
-                                color: uiColors.mutedForeground,
-                                fontSize: typography.body.fontSize * uiFontScale,
-                            }}
-                        >{`${dateValue} · ${timeValue}`}</Text>
-                        {reservation.ticket?.id ? (
-                            <Text
-                                textStyle={{
-                                    ...typography.caption,
-                                    lineHeight: typography.caption.lineHeight * uiFontScale,
-                                    color: uiColors.mutedForeground,
-                                    fontSize: typography.caption.fontSize * uiFontScale,
-                                }}
-                            >
-                                {t("reservations.cancelRefundNote")}
-                            </Text>
-                        ) : null}
-                    </Column>
-                    <Column
-                        spacing={12}
-                        modifiers={process.env.EXPO_OS === "ios" ? [frame({ maxWidth: Infinity })] : [fillMaxWidth()]}
-                    >
-                        <Button
-                            variant="text"
-                            disabled={isCancelDisabled}
-                            onPress={confirmCancelReservation}
-                            style={getNativeButtonStyle(uiColors, "filled", isCancelDisabled, uiColors.danger)}
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                    : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
-                            }
-                        >
-                            <Row
-                                spacing={8}
-                                alignment="center"
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [
-                                              frame({ maxWidth: Infinity, minHeight: 48 }),
-                                              contentShape(shapes.rectangle()),
-                                          ]
-                                        : [fillMaxWidth()]
-                                }
-                            >
-                                <Spacer flexible />
-                                {isCancelling ? (
-                                    <RNHostView matchContents>
-                                        <ActivityIndicator color={uiColors.dangerForeground} />
-                                    </RNHostView>
-                                ) : null}
-                                <Text
-                                    textStyle={{
-                                        textAlign: "center",
-                                        ...typography.label,
-                                        lineHeight: typography.label.lineHeight * uiFontScale,
-                                        fontWeight: "600",
-                                        color: uiColors.dangerForeground,
-                                        fontSize: typography.label.fontSize * uiFontScale,
-                                    }}
-                                >
-                                    {t("reservations.cancelTitle")}
-                                </Text>
-                                <Spacer flexible />
-                            </Row>
-                        </Button>
-                        <Button
-                            variant="text"
-                            disabled={isCancelling}
-                            onPress={closeCancelSheet}
-                            style={getNativeButtonStyle(uiColors, "text", isCancelling)}
-                            modifiers={
-                                process.env.EXPO_OS === "ios"
-                                    ? [frame({ maxWidth: Infinity, minHeight: 48 })]
-                                    : [fillMaxWidth(), defaultMinSize({ minHeight: 48 })]
-                            }
-                        >
-                            <Text
-                                modifiers={
-                                    process.env.EXPO_OS === "ios"
-                                        ? [
-                                              frame({ maxWidth: Infinity, minHeight: 48 }),
-                                              contentShape(shapes.rectangle()),
-                                          ]
-                                        : [fillMaxWidth()]
-                                }
-                                textStyle={{
-                                    ...typography.label,
-                                    lineHeight: typography.label.lineHeight * uiFontScale,
-                                    fontWeight: "600",
-                                    color: uiColors.foreground,
-                                    fontSize: typography.label.fontSize * uiFontScale,
-                                    textAlign: "center",
-                                }}
-                            >
-                                {t("reservations.keepReservation")}
-                            </Text>
-                        </Button>
-                    </Column>
-                </Column>
-            </PendingBottomSheet>
+            />
             <Screen
                 contentClassName="grow"
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
@@ -505,51 +281,49 @@ export default function ReservationDetailScreen() {
                                     {t("reservations.cancelUnavailableHint")}
                                 </AppText>
                             ) : null}
-                            {!isBayReservation ? (
-                                <AppText variant="caption" color="mutedForeground" align="center">
-                                    {t("reservations.lessonRescheduleUnavailableHint")}
-                                </AppText>
-                            ) : null}
                         </View>
                     ) : null
                 }
             >
                 <View className="grow flex-col gap-6 bg-background">
-                    <HeaderSection
+                    <ReservationDetailHeader
                         title={title}
                         reservationStatus={reservation.reservationStatus}
-                        ticketType={reservation.ticket?.type ?? null}
+                        ticketType={isProgramReservation ? "LESSON_PROGRAM" : reservation.ticket?.type}
                     />
 
                     <ReservationContent policies={policies}>
-                        <DetailRow label={t("bookingConfirmation.dateLabel")} value={dateValue} />
+                        <ReservationDetailRow label={t("bookingConfirmation.dateLabel")} value={dateValue} />
 
                         <Divider className="bg-border" />
 
-                        <DetailRow label={t("bookingConfirmation.timeLabel")} value={timeValue} />
+                        <ReservationDetailRow label={t("bookingConfirmation.timeLabel")} value={timeValue} />
 
                         {isBayReservation ? (
                             <>
                                 <Divider className="bg-border" />
-                                <DetailRow label={t("reservations.bayLabel")} value={title} />
+                                <ReservationDetailRow label={t("reservations.bayLabel")} value={title} />
                             </>
                         ) : null}
 
                         {programValue !== "-" ? (
                             <>
                                 <Divider className="bg-border" />
-                                <DetailRow label={t("reservations.programLabel")} value={programValue} />
+                                <ReservationDetailRow label={t("reservations.programLabel")} value={programValue} />
                             </>
                         ) : null}
 
                         {isBayReservation ? null : (
                             <>
                                 <Divider className="bg-border" />
-                                <DetailRow
+                                <ReservationDetailRow
                                     label={t("reservations.coachLabel")}
                                     value={coachName}
                                     leftElement={
-                                        <Avatar name={coachName} imageUrl={lessonReservation?.coach?.profileImage} />
+                                        <ReservationCoachAvatar
+                                            name={coachName}
+                                            imageUrl={lessonReservation?.coach?.profileImage}
+                                        />
                                     }
                                 />
                             </>
@@ -558,7 +332,7 @@ export default function ReservationDetailScreen() {
                         {lessonNameValue ? (
                             <>
                                 <Divider className="bg-border" />
-                                <DetailRow
+                                <ReservationDetailRow
                                     label={t("reservations.lessonLabel")}
                                     value={lessonNameValue}
                                     disabled={isLocked}
@@ -578,7 +352,7 @@ export default function ReservationDetailScreen() {
                         {lessonLogHref ? (
                             <>
                                 <Divider className="bg-border" />
-                                <DetailRow
+                                <ReservationDetailRow
                                     label={t("reservations.lessonPostLabel")}
                                     value={lessonLogValue}
                                     disabled={isLocked}
@@ -594,7 +368,7 @@ export default function ReservationDetailScreen() {
                         {reservation.ticket?.id && reservation.ticket?.name ? (
                             <>
                                 <Divider className="bg-border" />
-                                <DetailRow
+                                <ReservationDetailRow
                                     label={t("bookingConfirmation.ticketLabel")}
                                     value={reservation.ticket.name}
                                     disabled={isLocked}
@@ -613,234 +387,10 @@ export default function ReservationDetailScreen() {
                         ) : null}
 
                         <Divider className="bg-border" />
-                        <DetailRow label={t("reservations.notesLabel")} value={noteValue} />
+                        <ReservationDetailRow label={t("reservations.notesLabel")} value={noteValue} />
                     </ReservationContent>
                 </View>
             </Screen>
         </>
-    );
-}
-
-function ReservationPreviewScreen({ preview }: { preview: MemberReservationDetailPreview }) {
-    const { t } = useTranslation();
-    const reservation = preview.reservation;
-    const isBayReservation = reservation.reservationType === "bay";
-    const title =
-        (isBayReservation
-            ? reservation.bayName
-            : (reservation.lessonAvailabilityName ??
-              reservation.lessonProgramGroupName ??
-              reservation.lessonProgramName)
-        )?.trim() || t("common.notAvailable");
-    const programValue = isBayReservation
-        ? ""
-        : [reservation.lessonProgramName, reservation.lessonProgramGroupName].filter(Boolean).join(" / ");
-    const policies = getReservationPolicies(t);
-
-    return (
-        <Screen contentClassName="grow">
-            <View className="grow flex-col gap-6 bg-background">
-                <HeaderSection
-                    title={title}
-                    reservationStatus={reservation.reservationStatus}
-                    ticketType={reservation.ticketType}
-                />
-                <ReservationContent policies={isBayReservation ? policies.bay : policies.lesson}>
-                    <DetailRow
-                        label={t("bookingConfirmation.dateLabel")}
-                        value={formatDateForDisplay(reservation.startTime) || "-"}
-                    />
-                    <Divider className="bg-border" />
-                    <DetailRow
-                        label={t("bookingConfirmation.timeLabel")}
-                        value={formatTimeRange(reservation.startTime, reservation.endTime)}
-                    />
-                    {isBayReservation ? (
-                        <>
-                            <Divider className="bg-border" />
-                            <DetailRow label={t("reservations.bayLabel")} value={title} />
-                        </>
-                    ) : null}
-                    {programValue ? (
-                        <>
-                            <Divider className="bg-border" />
-                            <DetailRow label={t("reservations.programLabel")} value={programValue} />
-                        </>
-                    ) : null}
-                    <Divider className="bg-border" />
-                    <DetailRow label={t("reservations.notesLabel")} value={reservation.memberNotes?.trim() || "-"} />
-                    <View
-                        className="gap-3 py-2"
-                        accessibilityLiveRegion="polite"
-                        accessibilityLabel={t("reservations.loadingDetail")}
-                    >
-                        <View className="flex-row items-center justify-between gap-4">
-                            <Skeleton className="h-4 w-24 rounded-md" />
-                            <Skeleton className="h-4 w-36 rounded-md" />
-                        </View>
-                        <View className="flex-row items-center justify-between gap-4">
-                            <Skeleton className="h-4 w-20 rounded-md" />
-                            <Skeleton className="h-4 w-28 rounded-md" />
-                        </View>
-                    </View>
-                </ReservationContent>
-            </View>
-        </Screen>
-    );
-}
-
-function HeaderSection({
-    title,
-    reservationStatus,
-    ticketType,
-}: {
-    title: string;
-    reservationStatus?: string | null;
-    ticketType?: string | null;
-}) {
-    const { colors } = useTheme();
-    const { t } = useTranslation();
-    const ticketTone = ticketType ? getTicketTypeTone(ticketType) : null;
-    const typeLabel = ticketType ? formatTicketTypeLabel(ticketType, t) : null;
-    const statusLabel = getReservationStatusLabel(reservationStatus, t);
-    const statusColor = getReservationStatusColor(colors, reservationStatus);
-
-    return (
-        <View className="flex-col gap-2.5">
-            {ticketTone || statusLabel !== "-" ? (
-                <View className="flex-row items-center justify-between gap-2">
-                    <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                        {ticketType && ticketTone ? (
-                            <>
-                                <View
-                                    className={cn(
-                                        "h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                                        ticketTone.badgeClassName,
-                                    )}
-                                >
-                                    <TicketTypeIcon
-                                        type={ticketType}
-                                        size={15}
-                                        color={colors[ticketTone.color]}
-                                        strokeWidth={2.2}
-                                    />
-                                </View>
-                                {typeLabel ? (
-                                    <AppText
-                                        variant="subtext"
-                                        color="mutedForeground"
-                                        numberOfLines={1}
-                                        style={{ flex: 1, minWidth: 0 }}
-                                        textStyle={{ fontWeight: "600" }}
-                                    >
-                                        {typeLabel}
-                                    </AppText>
-                                ) : null}
-                            </>
-                        ) : null}
-                    </View>
-
-                    {statusLabel !== "-" ? (
-                        <View
-                            className="shrink-0 rounded-md px-2.5 py-1"
-                            style={{
-                                backgroundColor: colorWithOpacity(statusColor, 0.12),
-                            }}
-                        >
-                            <AppText
-                                variant="badge"
-                                wrap={false}
-                                textStyle={{
-                                    color: statusColor,
-                                    fontWeight: "600",
-                                }}
-                            >
-                                {statusLabel}
-                            </AppText>
-                        </View>
-                    ) : null}
-                </View>
-            ) : null}
-
-            <AppText variant="h2" textStyle={{ fontWeight: "700" }}>
-                {title}
-            </AppText>
-        </View>
-    );
-}
-
-function DetailRow({
-    label,
-    value,
-    disabled = false,
-    leftElement,
-    onPress,
-}: {
-    label: string;
-    value: string;
-    disabled?: boolean;
-    leftElement?: ReactNode;
-    onPress?: () => void;
-}) {
-    const colors = useThemeColors();
-
-    const content = (
-        <ReservationDetailField
-            label={label}
-            value={value}
-            selectable
-            leftElement={leftElement}
-            trailingElement={
-                onPress ? <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={2.25} /> : undefined
-            }
-        />
-    );
-
-    if (!onPress) {
-        return content;
-    }
-
-    return (
-        <AnimatedPressable accessibilityRole="button" disabled={disabled} haptic="selection" onPress={onPress}>
-            {content}
-        </AnimatedPressable>
-    );
-}
-
-function Avatar({ name, imageUrl }: { name: string; imageUrl?: string | null }) {
-    const reducedMotion = useReducedMotion();
-
-    if (imageUrl) {
-        return (
-            <Image
-                source={{ uri: imageUrl }}
-                cachePolicy="memory-disk"
-                recyclingKey={imageUrl}
-                style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                }}
-                contentFit="cover"
-                transition={reducedMotion ? 0 : 150}
-            />
-        );
-    }
-
-    return (
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
-            <AppText
-                variant="body"
-                color="foreground"
-                wrap={false}
-                textStyle={{
-                    lineHeight: typography.caption.lineHeight,
-                    fontSize: typography.caption.fontSize,
-                    fontWeight: "700" as const,
-                }}
-            >
-                {name?.charAt(0).toUpperCase() || "?"}
-            </AppText>
-        </View>
     );
 }

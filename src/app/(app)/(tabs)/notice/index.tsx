@@ -1,4 +1,5 @@
 import { DeleteAllNotificationsSheet } from "@/components/golf/notice/DeleteAllNotificationsSheet";
+import { NoticeHeaderActions } from "@/components/golf/notice/NoticeHeaderActions";
 import {
     MemoNotificationRow,
     NoticeListFooter,
@@ -8,7 +9,12 @@ import {
     NotificationSeparator,
 } from "@/components/golf/notice/NotificationRow";
 import {
-    cn,
+    buildNotificationEntries,
+    getNotificationItemType,
+    notificationKeyExtractor,
+    type NotificationListEntry,
+} from "@/components/golf/notice/notice-list-entries";
+import {
     EmptyState,
     ErrorState,
     Screen,
@@ -16,7 +22,6 @@ import {
     triggerImpactHaptic,
     triggerSelectionHaptic,
 } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
 import {
     useDeleteAllNotifications,
     useDeleteNotification,
@@ -30,45 +35,18 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import { NotificationResponse, type NotificationReferenceType } from "@/service/shared/notification-service";
-import { toAppTimeZoneDate } from "@/utils/timezone";
-import * as Notifications from "expo-notifications";
-import { differenceInCalendarDays } from "date-fns";
-import { MenuView, type MenuAction } from "@expo/ui/community/menu";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
+import * as Notifications from "expo-notifications";
 import { useFocusEffect, useIsFocused, useNavigation, useRouter, useScrollToTop } from "expo-router";
-import { MoreVertical } from "lucide-react-native";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlashList, type FlashListRef } from "@shopify/flash-list";
-import * as Haptics from "expo-haptics";
-import { Linking, RefreshControl, View } from "react-native";
+import { Linking, RefreshControl } from "react-native";
 import { ScrollView as GestureHandlerScrollView } from "react-native-gesture-handler";
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 
-type NotificationSectionKey = "today" | "yesterday" | "thisWeek" | "earlier";
-type NotificationListEntry =
-    { kind: "header"; key: string; label: string } | { kind: "item"; item: NotificationResponse };
-
-const notificationKeyExtractor = (entry: NotificationListEntry) =>
-    entry.kind === "header" ? `section-${entry.key}` : String(entry.item.id);
-
-const getNotificationItemType = (entry: NotificationListEntry) =>
-    entry.kind === "header" ? "header" : entry.item.isRead ? "read" : "unread";
-
-function getNotificationSectionKey(createdAt: string, referenceTime: number): NotificationSectionKey | null {
-    const created = toAppTimeZoneDate(createdAt);
-    const reference = toAppTimeZoneDate(referenceTime);
-    if (!created || !reference) return null;
-
-    const daysAgo = differenceInCalendarDays(reference, created);
-    if (daysAgo <= 0) return "today";
-    if (daysAgo === 1) return "yesterday";
-    if (daysAgo <= 6) return "thisWeek";
-    return "earlier";
-}
-
 function NoticeScreen() {
-    const { colors, resolvedScheme } = useTheme();
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -102,7 +80,8 @@ function NoticeScreen() {
 
     const {
         data,
-        isLoading,
+        isPending,
+        fetchStatus,
         isError,
         isFetching,
         refetch,
@@ -182,116 +161,54 @@ function NoticeScreen() {
     };
 
     const notifications = useMemo(() => data?.items ?? [], [data]);
-    const groupedNotifications = useMemo(() => {
-        const entries: NotificationListEntry[] = [];
-        const stickyHeaderIndices: number[] = [];
-        let currentKey: NotificationSectionKey | null = null;
-
-        for (const notification of notifications) {
-            const key = getNotificationSectionKey(notification.createdAt, now);
-            if (key && key !== currentKey) {
-                stickyHeaderIndices.push(entries.length);
-                entries.push({
-                    kind: "header",
-                    key,
-                    label:
-                        key === "today"
-                            ? t("notice.groupToday")
-                            : key === "yesterday"
-                              ? t("notice.groupYesterday")
-                              : key === "thisWeek"
-                                ? t("notice.groupThisWeek")
-                                : t("notice.groupEarlier"),
-                });
-                currentKey = key;
-            }
-            entries.push({ kind: "item", item: notification });
-        }
-
-        return { data: entries, stickyHeaderIndices };
-    }, [notifications, now, t]);
+    const groupedNotifications = useMemo(
+        () => buildNotificationEntries(notifications, now, t),
+        [notifications, now, t],
+    );
     const hasUnread = notifications.some((item) => !item.isRead);
 
-    useLayoutEffect(() => {
-        const moreActions: MenuAction[] = [
-            ...(hasUnread
-                ? [
-                      {
-                          id: "mark-all-read",
-                          title: isMarkingAllAsRead ? t("notice.marking") : t("notice.markAllRead"),
-                          image: "checkmark.circle" as const,
-                          attributes: {
-                              disabled: isNotificationActionPending,
-                          },
-                      },
-                  ]
-                : []),
-            {
-                id: "delete-all",
-                title: isDeletingAllNotifications ? t("notice.deleting") : t("notice.deleteAll"),
-                image: "trash",
-                imageColor: colors.danger,
-                titleColor: colors.danger,
-                attributes: {
-                    destructive: true,
-                    disabled: isNotificationActionPending,
-                },
+    const handleMarkAllRead = useCallback(() => {
+        if (isNotificationActionPending || notificationActionLocked.current) {
+            return;
+        }
+        notificationActionLocked.current = true;
+        markAllAsRead(undefined, {
+            onSettled: () => {
+                notificationActionLocked.current = false;
             },
-        ];
+        });
+    }, [isNotificationActionPending, markAllAsRead]);
 
+    const handleDeleteAllRequest = useCallback(() => {
+        if (isNotificationActionPending || notificationActionLocked.current) {
+            return;
+        }
+        setIsDeleteAllConfirmationOpen(true);
+    }, [isNotificationActionPending]);
+
+    useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () =>
                 notifications.length > 0 ? (
-                    <MenuView
-                        actions={moreActions}
-                        colorScheme={resolvedScheme}
-                        onPressAction={({ nativeEvent }) => {
-                            if (isNotificationActionPending || notificationActionLocked.current) {
-                                return;
-                            }
-                            if (nativeEvent.event === "mark-all-read") {
-                                notificationActionLocked.current = true;
-                                markAllAsRead(undefined, {
-                                    onSettled: () => {
-                                        notificationActionLocked.current = false;
-                                    },
-                                });
-                                return;
-                            }
-                            if (nativeEvent.event === "delete-all") {
-                                setIsDeleteAllConfirmationOpen(true);
-                            }
-                        }}
-                    >
-                        <View
-                            accessibilityRole="button"
-                            accessibilityLabel={t("notice.moreActions", {
-                                defaultValue: "More actions",
-                            })}
-                            accessibilityState={{
-                                disabled: isNotificationActionPending,
-                                busy: isMarkingAllAsRead || isDeletingAllNotifications,
-                            }}
-                            className={cn("items-center justify-center", isNotificationActionPending && "opacity-60")}
-                            style={{ minHeight: 48, minWidth: 48 }}
-                        >
-                            <MoreVertical size={22} color={colors.foreground} />
-                        </View>
-                    </MenuView>
+                    <NoticeHeaderActions
+                        hasUnread={hasUnread}
+                        isMarkingAllAsRead={isMarkingAllAsRead}
+                        isDeletingAllNotifications={isDeletingAllNotifications}
+                        isPending={isNotificationActionPending}
+                        onMarkAllRead={handleMarkAllRead}
+                        onDeleteAll={handleDeleteAllRequest}
+                    />
                 ) : null,
         });
     }, [
-        colors.danger,
-        colors.foreground,
+        handleDeleteAllRequest,
+        handleMarkAllRead,
         hasUnread,
         isDeletingAllNotifications,
         isMarkingAllAsRead,
         isNotificationActionPending,
-        markAllAsRead,
         navigation,
         notifications.length,
-        resolvedScheme,
-        t,
     ]);
 
     const navigateFromNotification = useCallback(
@@ -430,9 +347,11 @@ function NoticeScreen() {
             <Screen
                 scroll={false}
                 bottomSafeArea={process.env.EXPO_OS === "ios"}
-                bottomPadding={isLoading || (isError && !data) || notifications.length === 0 ? 16 : 0}
+                bottomPadding={notifications.length === 0 ? 16 : 0}
             >
-                {isLoading ? (
+                {!data && fetchStatus === "paused" ? (
+                    <ErrorState title={t("notice.failedNotificationsTitle")} />
+                ) : isPending ? (
                     <NotificationListSkeleton />
                 ) : isError && !data ? (
                     <StateList
