@@ -51,7 +51,7 @@ type TicketResponse = {
     endDate: string; // OffsetDateTime -> ISO string
     status: TicketStatus;
 };
-export type TicketStatus = "ACTIVE" | "EXPIRED" | "IN_USE" | "FULLY_USED" | "CANCELLED";
+export type TicketStatus = "ACTIVE" | "EXPIRED" | "IN_USE" | "FULLY_USED" | "CANCELLED" | "REFUNDED";
 export type TicketType =
     "BAY_USAGE" | "PRIVATE_LESSON" | "GROUP_LESSON" | "LESSON_PROGRAM" | "LOCKER_SERVICE" | "LOCATION" | "OTHER";
 

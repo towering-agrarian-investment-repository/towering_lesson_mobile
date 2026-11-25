@@ -44,6 +44,9 @@ import {
 } from "react-native";
 
 type ActivityFilter = number | "all";
+
+const ACTIVITY_FILTER_HIT_SLOP = { top: 24, bottom: 24 };
+
 export function ActivityOverview() {
     const { colors } = useTheme();
     const { t, i18n } = useTranslation();
@@ -203,6 +206,7 @@ export function ActivityOverview() {
                         contentContainerStyle={{
                             gap: 8,
                             alignItems: "center",
+                            minHeight: 48,
                         }}
                     >
                         {availableYears.map((year) => {
@@ -215,29 +219,26 @@ export function ActivityOverview() {
                                     accessibilityLabel={t("activity.showYear", {
                                         year,
                                     })}
-                                    className="min-h-12 justify-center"
+                                    hitSlop={ACTIVITY_FILTER_HIT_SLOP}
+                                    className={cn(
+                                        "items-center justify-center rounded-full px-3.5 py-1.5",
+                                        isSelected ? "bg-primary" : "bg-muted",
+                                    )}
                                     onPress={() => {
                                         if (selectedYear === year) return;
                                         triggerSelectionHaptic();
                                         setSelectedYear(year);
                                     }}
                                 >
-                                    <View
-                                        className={cn(
-                                            "items-center justify-center rounded-full px-3.5 py-1.5",
-                                            isSelected ? "bg-primary" : "bg-muted",
-                                        )}
+                                    <AppText
+                                        variant="subtext"
+                                        wrap={false}
+                                        color={isSelected ? "primaryForeground" : "mutedForeground"}
+                                        tabular
+                                        textStyle={{ fontWeight: "600" }}
                                     >
-                                        <AppText
-                                            variant="subtext"
-                                            wrap={false}
-                                            color={isSelected ? "primaryForeground" : "mutedForeground"}
-                                            tabular
-                                            textStyle={{ fontWeight: "600" }}
-                                        >
-                                            {String(year ?? "")}
-                                        </AppText>
-                                    </View>
+                                        {String(year ?? "")}
+                                    </AppText>
                                 </AnimatedPressable>
                             );
                         })}
@@ -247,28 +248,25 @@ export function ActivityOverview() {
                                 selected: selectedYear === "all",
                             }}
                             accessibilityLabel={t("activity.showAll")}
-                            className="min-h-12 justify-center"
+                            hitSlop={ACTIVITY_FILTER_HIT_SLOP}
+                            className={cn(
+                                "items-center justify-center rounded-full px-3.5 py-1.5",
+                                selectedYear === "all" ? "bg-primary" : "bg-muted",
+                            )}
                             onPress={() => {
                                 if (selectedYear === "all") return;
                                 triggerSelectionHaptic();
                                 setSelectedYear("all");
                             }}
                         >
-                            <View
-                                className={cn(
-                                    "items-center justify-center rounded-full px-3.5 py-1.5",
-                                    selectedYear === "all" ? "bg-primary" : "bg-muted",
-                                )}
+                            <AppText
+                                variant="subtext"
+                                wrap={false}
+                                color={selectedYear === "all" ? "primaryForeground" : "mutedForeground"}
+                                textStyle={{ fontWeight: "600" }}
                             >
-                                <AppText
-                                    variant="subtext"
-                                    wrap={false}
-                                    color={selectedYear === "all" ? "primaryForeground" : "mutedForeground"}
-                                    textStyle={{ fontWeight: "600" }}
-                                >
-                                    {t("activity.all")}
-                                </AppText>
-                            </View>
+                                {t("activity.all")}
+                            </AppText>
                         </AnimatedPressable>
                     </ScrollView>
                     <View className={cn("gap-5", isPlaceholderData && "opacity-60")}>
@@ -491,14 +489,12 @@ function ActivityChartHeader({
                         accessibilityRole="button"
                         accessibilityLabel={t("activity.today")}
                         hitSlop={8}
-                        className="justify-center"
+                        className="justify-center rounded-full bg-muted px-3 py-1"
                         onPress={onTodayPress}
                     >
-                        <View className="rounded-full bg-muted px-3 py-1">
-                            <AppText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "700" }}>
-                                {t("activity.today")}
-                            </AppText>
-                        </View>
+                        <AppText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "700" }}>
+                            {t("activity.today")}
+                        </AppText>
                     </AnimatedPressable>
                 ) : null}
                 <AppText

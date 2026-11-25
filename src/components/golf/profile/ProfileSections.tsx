@@ -36,7 +36,7 @@ function ProfileSection({ title, children }: { title: string; children: ReactNod
     return (
         <View className="gap-2">
             <SectionTitle title={title} />
-            <View className="overflow-hidden rounded-2xl border border-border bg-card px-4">{children}</View>
+            <View className="overflow-hidden rounded-2xl border border-border bg-card">{children}</View>
         </View>
     );
 }
@@ -47,9 +47,9 @@ export function ProfilePersonalRecordSection({ lessonLogCount }: { lessonLogCoun
     return (
         <ProfileSection title={t("profile.personalRecord")}>
             <LinkRow label={t("profile.lessonLog")} href="/lesson-log" count={lessonLogCount} icon={BookOpenText} />
-            <Divider className="bg-border" />
+            <Divider className="mx-4 w-auto" />
             <LinkRow label={t("navigation.tabs.lessons")} href="/lessons" icon={UsersRound} />
-            <Divider className="bg-border" />
+            <Divider className="mx-4 w-auto" />
             <LinkRow label={t("tickets.historyTitle")} href="/ticket-history" icon={Ticket} />
         </ProfileSection>
     );
@@ -72,7 +72,7 @@ export function ProfileGeneralInfoSection({ member }: { member?: MemberSelfRespo
         <ProfileSection title={t("profile.generalInfo")}>
             {rows.map((row, index) => (
                 <View key={row.label}>
-                    {index > 0 ? <Divider className="bg-border" /> : null}
+                    {index > 0 ? <Divider className="mx-4 w-auto" /> : null}
                     <InfoRow label={row.label} value={row.value} icon={row.icon} />
                 </View>
             ))}
@@ -100,7 +100,7 @@ export function ProfileSchoolInfoSection({ member }: { member?: MemberSelfRespon
         <ProfileSection title={t("profile.schoolInfo")}>
             {rows.map((row, index) => (
                 <View key={row.label}>
-                    {index > 0 ? <Divider className="bg-border" /> : null}
+                    {index > 0 ? <Divider className="mx-4 w-auto" /> : null}
                     <InfoRow label={row.label} value={row.value} icon={row.icon} />
                 </View>
             ))}
@@ -119,7 +119,7 @@ export function ProfileParentsSection({ parents }: { parents?: MemberSelfRespons
         <ProfileSection title={t("profile.parentsGuardians")}>
             {parents.map((parent, index) => (
                 <View key={parent.id}>
-                    {index > 0 ? <Divider className="bg-border" /> : null}
+                    {index > 0 ? <Divider className="mx-4 w-auto" /> : null}
                     <ParentRow
                         name={parent.name}
                         role={parent.role}
@@ -146,7 +146,7 @@ export function ProfileSettingsSection({
     return (
         <ProfileSection title={t("profile.settings")}>
             <LinkRow label={t("profile.changePassword")} href="/profile/change-password" icon={LockKeyhole} />
-            <Divider className="bg-border" />
+            <Divider className="mx-4 w-auto" />
             <LanguagePreferenceRow
                 currentLanguage={currentLanguage}
                 disabled={isChangingLanguage}
@@ -167,7 +167,7 @@ export function ProfileAppearanceSection() {
                 disabled={!isReady}
                 onChange={setPrimaryColorPreference}
             />
-            <Divider className="bg-border" />
+            <Divider className="mx-4 w-auto" />
             <ThemePreferenceRow preference={preference} disabled={!isReady} onChange={setPreference} />
         </ProfileSection>
     );

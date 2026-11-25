@@ -1,13 +1,18 @@
 import { AnimatedPressable, cn, Skeleton } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
+import { formatTicketTypeLabel, getTicketTypeTone, isBookableTicketType } from "@/design-system/utils/ticket-type";
+import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import type { TicketListItemResponse } from "@/types/member-ticket";
+import { getEffectiveTicketStatus, getTicketStatusGroup } from "@/utils/status-tone";
+import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
+import { formatDateForAPI } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import { TicketPausePeriods } from "./TicketPausePeriods";
 
 type Props = {
     item: TicketListItemResponse;
@@ -47,13 +52,29 @@ function getUsageNote(item: TicketListItemResponse, t: (key: string, options?: R
 function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const isFullyUsed = item.fullyUsed || item.status === "FULLY_USED";
-    const isInactive = item.status === "EXPIRED" || isFullyUsed;
+    const effectiveStatus = getEffectiveTicketStatus(item.status, item.fullyUsed);
+    const isRefunded = effectiveStatus === "REFUNDED";
+    const isFullyUsed = effectiveStatus === "FULLY_USED";
+    const isInactive = getTicketStatusGroup(effectiveStatus) !== "active";
     const ticketTone = getTicketTypeTone(item.type);
-    const isPressDisabled = disabled || isInactive;
+    const isPressDisabled = disabled || isInactive || (isBookableTicketType(item.type) && !canBookWithTicket(item));
 
     const badgeLabel = formatTicketTypeLabel(item.type, t) || "-";
     const usageNote = getUsageNote(item, t);
+    const today = formatDateForAPI(new Date());
+    const pausePeriods = getTicketPausePeriods(item.pauses).filter(({ endDate }) => endDate >= today);
+    const inactiveBadgeLabel = isRefunded
+        ? t("tickets.statuses.refunded")
+        : isFullyUsed
+          ? t("tickets.limitReachedBadge")
+          : null;
+    const accessibilityStatus = isRefunded
+        ? inactiveBadgeLabel
+        : isFullyUsed
+          ? t("tickets.limitReached")
+          : item.type === "LESSON_PROGRAM"
+            ? t("tickets.adminEnrollmentLabel")
+            : null;
 
     return (
         <AnimatedPressable
@@ -66,95 +87,93 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
                 onPress?.(item);
             }}
             accessibilityRole="button"
-            accessibilityLabel={
-                isFullyUsed
-                    ? `${item.name}, ${t("tickets.limitReached")}`
-                    : item.type === "LESSON_PROGRAM"
-                      ? `${item.name}, ${t("tickets.adminEnrollmentLabel")}`
-                      : item.name
-            }
+            accessibilityLabel={accessibilityStatus ? `${item.name}, ${accessibilityStatus}` : item.name}
+            accessibilityHint={pausePeriods.map((period) => formatTicketPausePeriod(period, t)).join(", ") || undefined}
             accessibilityState={{ disabled: isPressDisabled }}
-            className={isPressDisabled ? "opacity-75" : undefined}
+            className={cn(
+                "min-h-[148px] flex-col gap-3 rounded-xl border p-5",
+                fullWidth ? "w-full" : "w-[220px]",
+                !isInactive && ticketTone.borderClassName,
+                !isInactive && ticketTone.surfaceClassName,
+                isInactive && "border-border bg-muted",
+                isPressDisabled && "opacity-75",
+            )}
         >
-            <View
-                className={cn(
-                    "min-h-[148px] flex-col gap-3 rounded-xl border p-5",
-                    fullWidth ? "w-full" : "w-[220px]",
-                    !isInactive && ticketTone.borderClassName,
-                    !isInactive && ticketTone.surfaceClassName,
-                    isInactive && "border-border bg-muted",
-                )}
-            >
-                <View className="flex-col gap-3">
-                    <View className="flex-row items-center justify-between gap-3">
-                        <View
-                            className={cn(
-                                "self-start rounded-md px-2 py-1",
-                                !isInactive && ticketTone.badgeSolidClassName,
-                                isInactive && "bg-border",
-                            )}
-                        >
-                            <AppText
-                                variant="badge"
-                                wrap={false}
-                                color={isInactive ? "mutedForeground" : "primaryForeground"}
-                            >
-                                {badgeLabel}
-                            </AppText>
-                        </View>
-
-                        {isFullyUsed ? (
-                            <View className="min-w-0 shrink rounded-md bg-card px-2 py-1">
-                                <AppText variant="badge" color="warning" align="right" numberOfLines={2}>
-                                    {t("tickets.limitReachedBadge")}
-                                </AppText>
-                            </View>
-                        ) : item.type !== "LESSON_PROGRAM" ? (
-                            <ChevronRight
-                                size={18}
-                                color={isInactive ? colors.mutedForeground : colors.foreground}
-                                strokeWidth={2.4}
-                            />
-                        ) : (
-                            <AppText variant="badge" color="mutedForeground" align="right" numberOfLines={2}>
-                                {t("tickets.adminEnrollmentLabel")}
-                            </AppText>
+            <View className="flex-col gap-3">
+                <View className="flex-row items-center justify-between gap-3">
+                    <View
+                        className={cn(
+                            "self-start rounded-md px-2 py-1",
+                            !isInactive && ticketTone.badgeSolidClassName,
+                            isInactive && "bg-border",
                         )}
+                    >
+                        <AppText
+                            variant="badge"
+                            wrap={false}
+                            color={isInactive ? "mutedForeground" : "primaryForeground"}
+                        >
+                            {badgeLabel}
+                        </AppText>
                     </View>
 
-                    <AppText variant="body" numberOfLines={1}>
-                        {item.name}
-                    </AppText>
-
-                    <AppText variant="subtitle" tabular numberOfLines={1} textStyle={{ fontWeight: "700" }}>
-                        {`${formatTicketDate(item.startDate)} ~ ${formatTicketDate(item.endDate)}`}
-                    </AppText>
+                    {inactiveBadgeLabel ? (
+                        <View className="min-w-0 shrink rounded-md bg-card px-2 py-1">
+                            <AppText
+                                variant="badge"
+                                color={isRefunded ? "mutedForeground" : "warning"}
+                                align="right"
+                                numberOfLines={2}
+                            >
+                                {inactiveBadgeLabel}
+                            </AppText>
+                        </View>
+                    ) : item.type !== "LESSON_PROGRAM" ? (
+                        <ChevronRight
+                            size={18}
+                            color={isInactive ? colors.mutedForeground : colors.foreground}
+                            strokeWidth={2.4}
+                        />
+                    ) : (
+                        <AppText variant="badge" color="mutedForeground" align="right" numberOfLines={2}>
+                            {t("tickets.adminEnrollmentLabel")}
+                        </AppText>
+                    )}
                 </View>
 
-                <View className="flex-row items-center justify-between gap-2">
+                <AppText variant="body" numberOfLines={1}>
+                    {item.name}
+                </AppText>
+
+                <AppText variant="subtitle" tabular numberOfLines={1} textStyle={{ fontWeight: "700" }}>
+                    {`${formatTicketDate(item.startDate)} ~ ${formatTicketDate(item.endDate)}`}
+                </AppText>
+            </View>
+
+            <View className="flex-row items-center justify-between gap-2">
+                <AppText
+                    variant="caption"
+                    color="mutedForeground"
+                    tabular
+                    numberOfLines={1}
+                    style={{ flex: 1, minWidth: 0 }}
+                >
+                    {usageNote}
+                </AppText>
+
+                {!item.isUnlimited && item.onlyOnePerDay ? (
                     <AppText
                         variant="caption"
                         color="mutedForeground"
-                        tabular
+                        wrap={false}
                         numberOfLines={1}
-                        style={{ flex: 1, minWidth: 0 }}
+                        style={{ flexShrink: 0 }}
                     >
-                        {usageNote}
+                        {t("tickets.useOncePerDay")}
                     </AppText>
-
-                    {!item.isUnlimited && item.onlyOnePerDay ? (
-                        <AppText
-                            variant="caption"
-                            color="mutedForeground"
-                            wrap={false}
-                            numberOfLines={1}
-                            style={{ flexShrink: 0 }}
-                        >
-                            {t("tickets.useOncePerDay")}
-                        </AppText>
-                    ) : null}
-                </View>
+                ) : null}
             </View>
+            <TicketPausePeriods periods={pausePeriods} />
         </AnimatedPressable>
     );
 }

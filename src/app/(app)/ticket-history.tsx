@@ -15,7 +15,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberTicketByIdQueryOptions, useMemberTickets } from "@/lib/hook/useTicket";
 import type { TicketListItemResponse } from "@/types/member-ticket";
-import { getEffectiveTicketStatus } from "@/utils/status-tone";
+import { getTicketStatusGroup } from "@/utils/status-tone";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -30,6 +30,11 @@ type TicketHistoryFilter = (typeof TICKET_HISTORY_TABS)[number];
 
 const ALL_TICKET_STATUSES: readonly string[] = [];
 const ACTIVE_TICKET_STATUSES: readonly string[] = ["ACTIVE", "IN_USE"];
+const TICKET_HISTORY_GROUP_TITLES = {
+    active: "tickets.historyFilters.active",
+    past: "tickets.historyFilters.past",
+    other: "tickets.types.other",
+} as const;
 const ticketHistoryKeyExtractor = (item: TicketListItemResponse) => String(item.id);
 const TICKET_HISTORY_LIST_CONTENT_STYLE = {
     paddingTop: 12,
@@ -38,17 +43,6 @@ const TICKET_HISTORY_LIST_CONTENT_STYLE = {
 
 function TicketHistorySeparator() {
     return <View className="h-3" />;
-}
-
-function isPastTicket(ticket: TicketListItemResponse) {
-    const status = getEffectiveTicketStatus(ticket.status, ticket.fullyUsed);
-    return (
-        status === "FULLY_USED" ||
-        status === "EXPIRED" ||
-        status === "CANCELLED" ||
-        status === "CANCELED" ||
-        status === "TRANSFERRED"
-    );
 }
 
 export default function TicketHistoryScreen() {
@@ -150,39 +144,33 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         refetch({ cancelRefetch: false }),
     );
 
-    const { displayedTickets, activeCount, pastCount } = useMemo(() => {
-        const tickets = data?.items ?? [];
-        const active: TicketListItemResponse[] = [];
-        const past: TicketListItemResponse[] = [];
-
-        for (const ticket of tickets) {
-            if (isPastTicket(ticket)) {
-                past.push(ticket);
-            } else {
-                active.push(ticket);
-            }
-        }
-
-        if (filter === "active") {
-            return {
-                displayedTickets: active,
-                activeCount: active.length,
-                pastCount: 0,
-            };
-        }
-        if (filter === "past") {
-            return {
-                displayedTickets: past,
-                activeCount: 0,
-                pastCount: past.length,
-            };
-        }
-
-        return {
-            displayedTickets: [...active, ...past],
-            activeCount: active.length,
-            pastCount: past.length,
+    const { displayedTickets, sectionHeaders } = useMemo(() => {
+        const groups: Record<ReturnType<typeof getTicketStatusGroup>, TicketListItemResponse[]> = {
+            active: [],
+            past: [],
+            other: [],
         };
+        for (const ticket of data?.items ?? []) {
+            groups[getTicketStatusGroup(ticket.status, ticket.fullyUsed)].push(ticket);
+        }
+
+        const sectionHeaders = new Map<number, { title: string; count: number }>();
+        if (filter !== "all") {
+            return { displayedTickets: groups[filter], sectionHeaders };
+        }
+
+        const displayedTickets: TicketListItemResponse[] = [];
+        for (const group of ["active", "past", "other"] as const) {
+            const tickets = groups[group];
+            if (tickets.length === 0) continue;
+
+            sectionHeaders.set(displayedTickets.length, {
+                title: TICKET_HISTORY_GROUP_TITLES[group],
+                count: tickets.length,
+            });
+            displayedTickets.push(...tickets);
+        }
+        return { displayedTickets, sectionHeaders };
     }, [data?.items, filter]);
 
     const handleFetchNextPage = useCallback(() => {
@@ -218,35 +206,26 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
 
     const renderTicket: ListRenderItem<TicketListItemResponse> = useCallback(
         ({ item, index }) => {
-            const showActiveHeader = filter === "all" && activeCount > 0 && index === 0;
-            const showPastHeader = filter === "all" && pastCount > 0 && index === activeCount;
+            const section = sectionHeaders.get(index);
             const card = <TicketHistoryCard item={item} disabled={isLocked} onPress={handleTicketPress} />;
 
-            if (!showActiveHeader && !showPastHeader) {
+            if (!section) {
                 return card;
             }
 
             return (
                 <View className="gap-2.5">
-                    <TicketSectionHeader
-                        title={t(showActiveHeader ? "tickets.historyFilters.active" : "tickets.historyFilters.past")}
-                        count={showActiveHeader ? activeCount : pastCount}
-                        isFirst={index === 0}
-                    />
+                    <TicketSectionHeader title={t(section.title)} count={section.count} isFirst={index === 0} />
                     {card}
                 </View>
             );
         },
-        [activeCount, filter, handleTicketPress, isLocked, pastCount, t],
+        [handleTicketPress, isLocked, sectionHeaders, t],
     );
 
     const getTicketHistoryItemType = useCallback(
-        (_item: TicketListItemResponse, index: number) => {
-            const hasHeader =
-                filter === "all" && ((activeCount > 0 && index === 0) || (pastCount > 0 && index === activeCount));
-            return hasHeader ? "header-card" : "card";
-        },
-        [activeCount, filter, pastCount],
+        (_item: TicketListItemResponse, index: number) => (sectionHeaders.has(index) ? "header-card" : "card"),
+        [sectionHeaders],
     );
 
     const emptyCopy =

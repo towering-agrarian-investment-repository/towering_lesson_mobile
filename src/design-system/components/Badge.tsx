@@ -8,6 +8,7 @@ type BadgeProps = {
     size?: "sm" | "md";
     className?: string;
     color?: AppTextColor;
+    wrap?: boolean;
 };
 
 const variantClasses = {
@@ -26,7 +27,7 @@ const variantTextColors: Record<NonNullable<BadgeProps["variant"]>, AppTextColor
     danger: "danger",
 };
 
-export function Badge({ label, variant = "default", size = "md", className, color }: BadgeProps) {
+export function Badge({ label, variant = "default", size = "md", className, color, wrap = false }: BadgeProps) {
     return (
         <View
             className={cn(
@@ -39,7 +40,7 @@ export function Badge({ label, variant = "default", size = "md", className, colo
             <AppText
                 variant="badge"
                 color={color ?? variantTextColors[variant]}
-                wrap={false}
+                wrap={wrap}
                 maxFontSizeMultiplier={1.35}
             >
                 {label}

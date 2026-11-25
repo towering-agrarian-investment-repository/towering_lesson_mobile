@@ -3,6 +3,7 @@ import { AnimatedPressable, CompactEmptyState } from "@/design-system";
 import { isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
+import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberTicketByIdQueryOptions,
@@ -47,6 +48,8 @@ function MyTicket() {
             }
 
             if (isBookableTicketType(item.type)) {
+                if (!canBookWithTicket(item)) return;
+
                 prefetchTicketAvailability(queryClient, item);
                 runWithNavigationLock(() => {
                     router.push({

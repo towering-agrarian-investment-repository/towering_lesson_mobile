@@ -18,6 +18,7 @@
     --color-danger-foreground: var(--danger-foreground);
     --color-success: var(--success);
     --color-warning: var(--warning);
+    --color-warning-text: var(--warning-text);
     --color-ticket-bay: var(--ticket-bay);
     --color-ticket-private: var(--ticket-private);
     --color-ticket-group: var(--ticket-group);
@@ -49,6 +50,7 @@
     --danger-foreground: #ffffff;
     --success: #16a34a;
     --warning: #f59e0b;
+    --warning-text: #92400e;
 
     --ticket-bay: #26a9e0;
     --ticket-private: #4071c0;
@@ -87,6 +89,7 @@
         --danger-foreground: #ffffff;
         --success: #4ade80;
         --warning: #fbbf24;
+        --warning-text: #fbbf24;
 
         --ticket-bay: #4cc3f0;
         --ticket-private: #5b8def;

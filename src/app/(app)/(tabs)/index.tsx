@@ -1,6 +1,6 @@
 import { useTheme } from "@/design-system/utils/theme";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
-import { HomeBanner } from "@/components/golf/HomeBanner";
+import { HomeBanner, HomeBannerSkeleton } from "@/components/golf/HomeBanner";
 import MyTicket from "@/components/golf/MyTicket";
 import { ReservationCardSkeleton } from "@/components/golf/ReservationCard";
 import { TicketCardSkeleton } from "@/components/golf/TicketCard";
@@ -27,7 +27,7 @@ export default function HomeScreen() {
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const scrollRef = useRef<ScrollViewInstance>(null);
     useScrollToTop(scrollRef);
-    const { data: publishedBanners, refetch: refetchBanners } = usePublishedBanners();
+    const { data: publishedBanners, isLoading: isBannerLoading, refetch: refetchBanners } = usePublishedBanners();
     const { data: memberResponse, isLoading, isError, refetch, isRefetching } = useGetMemberProfile();
 
     const member = memberResponse?.data;
@@ -64,7 +64,7 @@ export default function HomeScreen() {
                 <View className="grow gap-4">
                     <HappyGolfLogo width={120} height={28} primaryColor={colors.primary} accentColor={colors.warning} />
                     <View className="gap-6">
-                        <Skeleton className="h-44 w-full rounded-2xl" />
+                        <HomeBannerSkeleton />
                         <View className="gap-3">
                             <Skeleton className="h-5 w-32 rounded-full" />
                             <TicketCardSkeleton />
@@ -141,7 +141,7 @@ export default function HomeScreen() {
                     <HappyGolfLogo width={120} height={28} primaryColor={colors.primary} accentColor={colors.warning} />
 
                     <View className="gap-6">
-                        <HomeBanner banners={publishedBanners} />
+                        {isBannerLoading ? <HomeBannerSkeleton /> : <HomeBanner banners={publishedBanners} />}
 
                         {member ? <MyTicket /> : <CompactEmptyState title={t("home.noMemberProfile")} />}
                         <TodayReservation />

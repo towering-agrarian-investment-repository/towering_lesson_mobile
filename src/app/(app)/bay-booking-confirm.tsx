@@ -6,6 +6,7 @@ import {
     BookingConfirmationTicketField,
     handleBookingConfirmationSuccess,
 } from "@/components/golf/booking/BookingConfirmationShared";
+import { isBayReservationDetail } from "@/components/golf/reservation/detail/reservation-detail-utils";
 import {
     ReservationContent,
     ReservationDetailField,
@@ -14,6 +15,7 @@ import {
 import { FormTextInput } from "@/components/ui/form";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { canBookWithTicket, canRescheduleBayReservation } from "@/lib/booking/ticket-eligibility";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -22,10 +24,13 @@ import {
     isReservationSlotUnavailable,
     useCreateMemberBayReservation,
     useMemberBaySlotGroups,
+    useMemberReservationById,
     useRescheduleMemberBayReservation,
 } from "@/lib/hook/useReservation";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
-import { formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
+import { getEffectiveTicketStatus } from "@/utils/status-tone";
+import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
+import { formatDateForAPI, formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -89,23 +94,38 @@ export default function BayBookingConfirmScreen() {
     const { mutateAsync: createReservation, isPending: isCreating } = useCreateMemberBayReservation();
     const memberNotes = useWatch({ control: form.control, name: "memberNotes" });
     const { mutateAsync: rescheduleReservation, isPending: isRescheduling } = useRescheduleMemberBayReservation();
-    const balanceTicketId = !isRescheduleMode && hasTicketId ? ticketIdNumber : undefined;
-    const { data: ticket, refetch: refetchTicket } = useMemberTicketById(balanceTicketId);
+    const {
+        data: ticket,
+        isLoading: isTicketLoading,
+        isError: isTicketError,
+        isPlaceholderData: isTicketPreview,
+        isRefetching: isTicketRefetching,
+        refetch: refetchTicket,
+    } = useMemberTicketById(hasTicketId ? ticketIdNumber : undefined);
+    const shouldLoadReservation = isRescheduleMode && hasReservationId;
+    const reservationQuery = useMemberReservationById(reservationIdNumber, shouldLoadReservation ? "bay" : undefined);
+    const reservationData = reservationQuery.data?.data;
+    const rescheduleReservationData =
+        reservationData && !("isListPreview" in reservationData) && isBayReservationDetail(reservationData)
+            ? reservationData
+            : undefined;
 
     useEffect(() => {
         if (!hasSlotGroupId) return;
         bayNotesDraft.set(slotGroupIdNumber, memberNotes ?? "");
     }, [hasSlotGroupId, memberNotes, slotGroupIdNumber]);
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberBaySlotGroups(
-        ticketIdNumber,
-        date,
-        date,
-        Boolean(date),
-    );
+    const {
+        data,
+        isLoading: isSlotLoading,
+        isError,
+        refetch,
+        isRefetching,
+    } = useMemberBaySlotGroups(ticketIdNumber, date, date, Boolean(date));
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         Promise.all([
             refetch({ cancelRefetch: false }),
-            balanceTicketId ? refetchTicket({ cancelRefetch: false }) : undefined,
+            refetchTicket({ cancelRefetch: false }),
+            shouldLoadReservation ? reservationQuery.refetch({ cancelRefetch: false }) : undefined,
         ]),
     );
     const policies = [
@@ -120,24 +140,45 @@ export default function BayBookingConfirmScreen() {
     ] as const;
 
     const isSubmitting = isCreating || isRescheduling || form.formState.isSubmitting;
-    const hasLoadError = isError && !data;
+    const isLoadingReservation =
+        shouldLoadReservation && (reservationQuery.isLoading || (isOnline && reservationQuery.isPlaceholderData));
+    const isLoading = isSlotLoading || isTicketLoading || (isOnline && isTicketPreview) || isLoadingReservation;
+    const hasLoadError =
+        (isError && !data) ||
+        (isTicketError && !ticket) ||
+        (shouldLoadReservation && reservationQuery.isError && !rescheduleReservationData);
     const slotGroup = data?.data.find((group) => group.id === slotGroupIdNumber);
+    const isRefundedTicket = getEffectiveTicketStatus(ticket?.status) === "REFUNDED";
+    const canReschedule =
+        !!rescheduleReservationData &&
+        canRescheduleBayReservation(rescheduleReservationData) &&
+        rescheduleReservationData.ticket.id === ticketIdNumber;
+    const canUseTicket = isRescheduleMode
+        ? Boolean(ticket) && canReschedule && !isRefundedTicket
+        : canBookWithTicket(ticket);
+    const isBookingDatePaused = isTicketDatePaused(
+        getTicketPausePeriods(ticket?.pauses),
+        formatDateForAPI(slotGroup?.startDateTime ?? date),
+    );
     const isTimeUnavailable = !hasSlotGroupId || !slotGroup || slotGroup.totalReservableBaySlots <= 0;
     const isDisabled =
         !isOnline ||
         isSubmitting ||
         isLocked ||
         hasLoadError ||
+        !canUseTicket ||
+        isTicketPreview ||
+        isBookingDatePaused ||
         isTimeUnavailable ||
-        (isRescheduleMode ? !hasReservationId : !hasTicketId || !form.formState.isValid);
-    const disabledReason =
-        isRescheduleMode && !hasReservationId
-            ? t("bookingConfirmation.reservationInfoMissing")
-            : !isRescheduleMode && !hasTicketId
-              ? t("bookingConfirmation.ticketInfoMissing")
-              : isTimeUnavailable
-                ? t("booking.timeNoLongerAvailableMessage")
-                : null;
+        (!isRescheduleMode && !form.formState.isValid);
+    const disabledReason = isRefundedTicket
+        ? t("tickets.statuses.refunded")
+        : isRescheduleMode && !canReschedule
+          ? t(hasReservationId ? "reservations.notAvailableTitle" : "bookingConfirmation.reservationInfoMissing")
+          : !isRescheduleMode && ticket && !canUseTicket
+            ? t("tickets.bookingUnavailable")
+            : null;
+    const isRefreshing = isRefetching || isTicketRefetching || (shouldLoadReservation && reservationQuery.isRefetching);
 
     const chooseAnotherTime = (conflictId?: string) => {
         runWithNavigationLock(() => {
@@ -272,9 +313,31 @@ export default function BayBookingConfirmScreen() {
                 <ErrorState
                     title={t("bookingConfirmation.failedReservationDetailsTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
-                    actionPending={isRefetching || isPullRefreshing}
+                    actionLabel={isRefreshing ? t("common.refreshing") : t("common.refreshTryAgain")}
+                    actionPending={isRefreshing || isPullRefreshing}
                     onAction={handlePullRefresh}
+                />
+            ) : isBookingDatePaused ? (
+                <EmptyState
+                    title={t("booking.datePaused")}
+                    message={t("booking.chooseDateOutsidePause")}
+                    actionLabel={t("booking.chooseAnotherDate")}
+                    onAction={() =>
+                        runWithNavigationLock(() =>
+                            router.dismissTo({
+                                pathname: "/select-date",
+                                params: {
+                                    date,
+                                    ticketId,
+                                    ticketName,
+                                    ticketType,
+                                    mode,
+                                    reservationId,
+                                    notes: form.getValues("memberNotes"),
+                                },
+                            }),
+                        )
+                    }
                 />
             ) : isTimeUnavailable ? (
                 <EmptyState
@@ -285,7 +348,10 @@ export default function BayBookingConfirmScreen() {
                 />
             ) : (
                 <ReservationContent disabledReason={disabledReason} policies={policies}>
-                    <BookingConfirmationTicketField ticketName={ticketName} ticket={ticket} />
+                    <BookingConfirmationTicketField
+                        ticketName={ticketName}
+                        ticket={isRescheduleMode ? undefined : ticket}
+                    />
                     <Divider className="bg-border" />
                     <ReservationDetailField
                         label={t("reservations.bayLabel")}

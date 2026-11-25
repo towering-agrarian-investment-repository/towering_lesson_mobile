@@ -3,6 +3,7 @@ import { TicketTypeIcon } from "@/components/golf/TicketTypeIcon";
 import TitleSectionWithBadge from "@/components/golf/TitleSectionWithBadge";
 import {
     ActionButton,
+    Badge,
     cn,
     CompactEmptyState,
     Divider,
@@ -13,16 +14,17 @@ import {
 } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import { formatTicketTypeLabel, getTicketTypeTone, isBookableTicketType } from "@/design-system/utils/ticket-type";
+import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
+import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
 import type { MemberReservationResponse } from "@/types/member-reservation";
 import type { TicketDetailResponse, TicketPauseResponse } from "@/types/member-ticket";
-import { formatType } from "@/utils/format-enum";
-import { getEffectiveTicketStatus, getTicketStatusLabel, getTicketStatusTone } from "@/utils/status-tone";
-import { formatDateForDisplay, formatDateWeekdayYear } from "@/utils/time-helper";
+import { getTicketStatusGroup, getTicketStatusLabel, getTicketStatusTone } from "@/utils/status-tone";
+import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
+import { formatDateForAPI, formatDateForDisplay, formatDateWeekdayYear } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { useQueryClient } from "@tanstack/react-query";
 import { differenceInCalendarDays } from "date-fns";
@@ -75,6 +77,7 @@ export default function TicketDetailScreen() {
         refetch,
         isRefetching,
     } = useMemberTicketById(ticketId);
+    const canBook = canBookWithTicket(ticket);
 
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
@@ -109,7 +112,7 @@ export default function TicketDetailScreen() {
     );
 
     const handleBookPress = useCallback(() => {
-        if (!ticket || !isBookableTicketType(ticket.type) || isLocked) return;
+        if (!ticket || !canBook || isLocked) return;
         prefetchTicketAvailability(queryClient, ticket);
         runWithNavigationLock(() => {
             router.push({
@@ -121,7 +124,7 @@ export default function TicketDetailScreen() {
                 },
             });
         });
-    }, [isLocked, queryClient, router, runWithNavigationLock, ticket]);
+    }, [canBook, isLocked, queryClient, router, runWithNavigationLock, ticket]);
 
     const renderReservationItem = useCallback(
         ({ item, index }: { item: MemberReservationResponse; index: number }) => (
@@ -236,12 +239,6 @@ export default function TicketDetailScreen() {
     const reservationsCount = hasReservationHistory
         ? (ticket.reservations?.length ?? (ticket.reservationCount ?? 0) + (ticket.bayReservationCount ?? 0))
         : null;
-    const effectiveStatus = getEffectiveTicketStatus(ticket.status, ticket.fullyUsed);
-    const canBook =
-        (effectiveStatus === "ACTIVE" || effectiveStatus === "IN_USE") &&
-        !ticket.fullyUsed &&
-        isBookableTicketType(ticket.type);
-
     const footer = canBook ? (
         <ActionButton
             label={t("tickets.bookWithTicket")}
@@ -302,14 +299,19 @@ function TicketDetailHeader({
     const reducedMotion = useReducedMotion();
     const ticketTone = getTicketTypeTone(ticket.type);
     const typeLabel = formatTicketTypeLabel(ticket.type, t);
-    const effectiveStatus = getEffectiveTicketStatus(ticket.status, ticket.fullyUsed);
-    const isActive = effectiveStatus === "ACTIVE" || effectiveStatus === "IN_USE";
+    const isActive = getTicketStatusGroup(ticket.status, ticket.fullyUsed) === "active";
     const statusTone = getTicketStatusTone(ticket.status, ticket.fullyUsed);
     const statusLabel = getTicketStatusLabel(ticket.status, ticket.fullyUsed, t);
     const hasCountLimit = !ticket.isUnlimited && ticket.totalCount != null && ticket.totalCount > 0;
     const remainingCount = Math.max(0, ticket.remainingCount ?? 0);
     const remainingRatio = hasCountLimit ? Math.min(1, Math.max(0, remainingCount / ticket.totalCount!)) : 0;
     const daysLeftCount = getDaysLeftCount(ticket.endDate, isActive, referenceTime);
+    const todayKey = formatDateForAPI(new Date(referenceTime));
+    const activePauses = getTicketPausePeriods(ticket.pauses).filter((period) =>
+        isTicketDatePaused([period], todayKey),
+    );
+    const activePauseEndDate = activePauses.reduce((latest, { endDate }) => (endDate > latest ? endDate : latest), "");
+    const showPauseStatus = isActive && Boolean(activePauseEndDate);
     const validityValue = `${formatDateForDisplay(ticket.startDate) || "-"} ~ ${formatDateForDisplay(ticket.endDate) || "-"}`;
 
     const daysLeftTone: "danger" | undefined = daysLeftCount != null && daysLeftCount <= 7 ? "danger" : undefined;
@@ -405,7 +407,7 @@ function TicketDetailHeader({
                             ) : null}
                         </View>
 
-                        {statusLabel && statusLabel !== "-" ? (
+                        {!showPauseStatus && statusLabel && statusLabel !== "-" ? (
                             <View className={cn("shrink-0 rounded-md px-2.5 py-1", statusTone.className)}>
                                 <AppText
                                     variant="badge"
@@ -422,6 +424,15 @@ function TicketDetailHeader({
                     <AppText variant="h2" textStyle={{ fontWeight: "700" }}>
                         {ticket.name}
                     </AppText>
+                    {showPauseStatus ? (
+                        <Badge
+                            label={t("tickets.pausedThrough", { date: formatDateForDisplay(activePauseEndDate) })}
+                            variant="warning"
+                            color="warningText"
+                            className="max-w-full"
+                            wrap
+                        />
+                    ) : null}
                 </View>
 
                 <View className="gap-3">
@@ -480,7 +491,7 @@ function TicketDetailHeader({
                         <Divider className="bg-border/70" />
                         {ticket.pauses.map((pause) => (
                             <View key={pause.id}>
-                                <PauseItem pause={pause} />
+                                <PauseItem pause={pause} isActive={activePauses.some(({ id }) => id === pause.id)} />
                                 <Divider className="bg-border/70" />
                             </View>
                         ))}
@@ -553,23 +564,31 @@ function MetadataRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-function PauseItem({ pause }: { pause: TicketPauseResponse }) {
+function PauseItem({ pause, isActive }: { pause: TicketPauseResponse; isActive: boolean }) {
     const { t } = useTranslation();
-    const range = `${formatDateForDisplay(pause.pauseStartDate) || "-"} ~ ${formatDateForDisplay(pause.pauseEndDate) || "-"}`;
+    const range = `${formatDateForDisplay(pause.pausedStartDate) || "-"} ~ ${formatDateForDisplay(pause.pausedEndDate) || "-"}`;
 
     return (
         <View className="gap-1 py-3">
             <View className="flex-row items-center justify-between gap-2">
-                <AppText variant="subtext" tabular textStyle={{ fontWeight: "600" }} style={{ flex: 1, minWidth: 0 }}>
+                <AppText
+                    variant="subtext"
+                    color={isActive ? "warningText" : "foreground"}
+                    tabular
+                    textStyle={{ fontWeight: "600" }}
+                    style={{ flex: 1, minWidth: 0 }}
+                >
                     {range}
                 </AppText>
-                <AppText variant="badge" color="mutedForeground" wrap={false}>
-                    {formatType(pause.status, t)}
-                </AppText>
+                {pause.cancelledAt ? (
+                    <AppText variant="badge" color="mutedForeground" wrap={false}>
+                        {t("tickets.statuses.cancelled")}
+                    </AppText>
+                ) : null}
             </View>
-            {pause.reason ? (
+            {pause.notes ? (
                 <AppText variant="caption" color="mutedForeground">
-                    {pause.reason}
+                    {pause.notes}
                 </AppText>
             ) : null}
         </View>

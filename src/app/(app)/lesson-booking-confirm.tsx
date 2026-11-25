@@ -9,6 +9,7 @@ import {
 import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { responseError } from "@/lib/api-response/api-response";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import {
@@ -27,7 +28,9 @@ import {
     isLessonSlotBookable,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
-import { formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
+import { getEffectiveTicketStatus } from "@/utils/status-tone";
+import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
+import { formatDateForAPI, formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -78,14 +81,22 @@ export default function LessonBookingConfirmScreen() {
         Boolean(lessonAvailabilityIdNumber) &&
         Number.isFinite(year) &&
         Number.isFinite(month);
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
-        ticketIdNumber,
-        year,
-        month,
-        canLoadSlot,
-    );
+    const {
+        data,
+        isLoading: isSlotLoading,
+        isError,
+        refetch,
+        isRefetching,
+    } = useMemberTicketLessonSlots(ticketIdNumber, year, month, canLoadSlot);
     const balanceTicketId = canLoadSlot ? (ticketIdNumber ?? undefined) : undefined;
-    const { data: ticket, refetch: refetchTicket } = useMemberTicketById(balanceTicketId);
+    const {
+        data: ticket,
+        isLoading: isTicketLoading,
+        isError: isTicketError,
+        isPlaceholderData: isTicketPreview,
+        isRefetching: isTicketRefetching,
+        refetch: refetchTicket,
+    } = useMemberTicketById(balanceTicketId);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         Promise.all([
             refetch({ cancelRefetch: false }),
@@ -103,8 +114,15 @@ export default function LessonBookingConfirmScreen() {
         },
     ] as const;
 
-    const hasLoadError = isError && !data;
+    const isLoading = isSlotLoading || isTicketLoading || (isOnline && isTicketPreview);
+    const hasLoadError = (isError && !data) || (isTicketError && !ticket);
     const selectedSlot = (data?.data ?? []).find((slot) => slot.id === lessonAvailabilityIdNumber);
+    const isRefundedTicket = getEffectiveTicketStatus(ticket?.status) === "REFUNDED";
+    const canUseTicket = canBookWithTicket(ticket);
+    const isBookingDatePaused = isTicketDatePaused(
+        getTicketPausePeriods(ticket?.pauses),
+        formatDateForAPI(selectedSlot?.startTime ?? date),
+    );
     const isSelectedSlotBookable = selectedSlot ? isLessonSlotBookable(selectedSlot) : false;
     const isSelectedSlotFull = selectedSlot ? isLessonSlotFull(selectedSlot) : false;
     const isGroupSelection = selectedSlot ? isGroupLessonSlot(selectedSlot) : isGroupTicket;
@@ -144,6 +162,9 @@ export default function LessonBookingConfirmScreen() {
             submitting.current ||
             isCreating ||
             hasLoadError ||
+            !canUseTicket ||
+            isTicketPreview ||
+            isBookingDatePaused ||
             !ticketIdNumber ||
             !lessonAvailabilityIdNumber ||
             !selectedSlot
@@ -214,18 +235,29 @@ export default function LessonBookingConfirmScreen() {
     const dateValue = formatDateMedium(date);
     const timeValue = formatTimeRange(selectedSlot?.startTime ?? startTime, selectedSlot?.endTime ?? endTime);
     const coachNameValue = selectedSlot?.coachName ?? coachName;
-    const isDisabled = !isOnline || isCreating || isSelectedSlotFull || isSelectedSlotAlreadyBooked;
-    const disabledReason = isSelectedSlotAlreadyBooked
-        ? t("booking.alreadyBooked")
-        : isSelectedSlotFull
-          ? isSelectedSlotBookable
-              ? isGroupSelection
-                  ? t("bookingConfirmation.selectedGroupNowFull")
-                  : t("bookingConfirmation.selectedLessonSlotNowFull")
-              : isGroupSelection
-                ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
-                : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
-          : null;
+    const isDisabled =
+        !isOnline ||
+        isCreating ||
+        !canUseTicket ||
+        isTicketPreview ||
+        isBookingDatePaused ||
+        isSelectedSlotFull ||
+        isSelectedSlotAlreadyBooked;
+    const disabledReason = isRefundedTicket
+        ? t("tickets.statuses.refunded")
+        : ticket && !canUseTicket
+          ? t("tickets.bookingUnavailable")
+          : isSelectedSlotAlreadyBooked
+            ? t("booking.alreadyBooked")
+            : isSelectedSlotFull
+              ? isSelectedSlotBookable
+                  ? isGroupSelection
+                      ? t("bookingConfirmation.selectedGroupNowFull")
+                      : t("bookingConfirmation.selectedLessonSlotNowFull")
+                  : isGroupSelection
+                    ? t("bookingConfirmation.selectedGroupCurrentlyNotBookable")
+                    : t("bookingConfirmation.selectedLessonSlotCurrentlyNotBookable")
+              : null;
 
     const screenOptions = useMemo(
         () => ({
@@ -272,9 +304,23 @@ export default function LessonBookingConfirmScreen() {
                 <ErrorState
                     title={t("bookingConfirmation.failedReservationDetailsTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
-                    actionLabel={isRefetching ? t("common.refreshing") : t("common.refreshTryAgain")}
-                    actionPending={isRefetching || isPullRefreshing}
+                    actionLabel={
+                        isRefetching || isTicketRefetching ? t("common.refreshing") : t("common.refreshTryAgain")
+                    }
+                    actionPending={isRefetching || isTicketRefetching || isPullRefreshing}
                     onAction={handlePullRefresh}
+                />
+            ) : isBookingDatePaused ? (
+                <EmptyState
+                    title={t("booking.datePaused")}
+                    message={t("booking.chooseDateOutsidePause")}
+                    actionLabel={t("booking.chooseAnotherDate")}
+                    onAction={() =>
+                        router.dismissTo({
+                            pathname: "/select-date",
+                            params: { date, ticketId, ticketName, ticketType, notes: notes ?? undefined },
+                        })
+                    }
                 />
             ) : isMissingRequiredData ? (
                 <EmptyState

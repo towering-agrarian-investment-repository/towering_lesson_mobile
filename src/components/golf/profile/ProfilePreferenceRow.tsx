@@ -77,7 +77,7 @@ export function ProfilePreferenceRow<T extends string>({
                 }
                 accessibilityLabel={accessibilityLabel}
                 disabled={disabled || pending}
-                className="border-0 bg-transparent px-0 py-3"
+                className="rounded-lg border-0 bg-transparent py-3"
                 onPress={() => {
                     if (selectionLocked.current) return;
                     setSaveError(null);

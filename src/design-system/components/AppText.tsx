@@ -16,6 +16,7 @@ const textColorClasses = {
     dangerForeground: "text-danger-foreground",
     success: "text-success",
     warning: "text-warning",
+    warningText: "text-warning-text",
     ticketBay: "text-ticket-bay",
     ticketPrivate: "text-ticket-private",
     ticketGroup: "text-ticket-group",

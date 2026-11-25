@@ -12,7 +12,7 @@ Run a short pass on an iPhone, an iPad, and an Android phone; include an Android
 4. Open a booking or edit form and use the keyboard; its primary action remains reachable. Rotate a tablet once and confirm the screen still scrolls.
 5. Check the fixed bottom actions on both booking confirmations, booking success, reservation detail, lesson log detail and comment, homework, profile edit and password change, and Welcome. Each action should stay above the system bottom area, use the same footer spacing, and have side padding in portrait and landscape.
 6. Open and back out of a detail screen, switch reservation and ticket filters, open and close Activity preview and Profile photo, and show and dismiss a toast. Repeat with system Reduce Motion enabled: stack navigation should fade, filters should switch without sliding, the banner should stop auto-rotating, and brief overlays should avoid movement.
-7. Press and release reservation, ticket, lesson-log, and profile rows plus icon buttons on iOS and Android. Their scale feedback should be brief and consistent, disabled controls should stay still, and Reduce Motion should remove the scale feedback.
+7. Press and release reservation, ticket, lesson-log, and profile rows plus icon buttons. On Android, the highlight should fill the tappable surface and follow its corners. On iOS, scale feedback should be brief and respect Reduce Motion. Disabled controls should give no press feedback.
 
 If this pass fails, fix the shared layout or the affected component and repeat the pass. Run the broader release checklist below before shipping.
 

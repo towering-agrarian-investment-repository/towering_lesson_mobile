@@ -1,5 +1,6 @@
 import { AppText } from "@/design-system/components/AppText";
 import { BookingStepHeader } from "@/components/golf/booking/BookingStepHeader";
+import { TicketPausePeriods } from "@/components/golf/TicketPausePeriods";
 import {
     AnimatedPressable,
     cn,
@@ -12,6 +13,7 @@ import {
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, isBookableTicketType } from "@/design-system/utils/ticket-type";
+import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { applyCalendarLocale } from "@/lib/calendar-locale";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -21,9 +23,12 @@ import {
     useMemberBaySlotGroups,
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
+import { useMemberTicketById } from "@/lib/hook/useTicket";
 import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/design-system/components/AppToast";
 import { isLessonSlotBookedByMember, isLessonSlotFull } from "@/utils/lesson-slot";
+import { getEffectiveTicketStatus } from "@/utils/status-tone";
+import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateWeekday } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -85,6 +90,7 @@ type DayCellProps = {
     dateFormatter: Intl.DateTimeFormat;
     isAvailabilityKnown: boolean;
     isAvailable: boolean;
+    isPaused: boolean;
     isSelected: boolean;
     onPress: (dateString: string) => void;
 };
@@ -96,6 +102,7 @@ const DayCell = memo(function DayCell({
     dateFormatter,
     isAvailabilityKnown,
     isAvailable,
+    isPaused,
     isSelected,
     onPress,
 }: DayCellProps) {
@@ -104,24 +111,27 @@ const DayCell = memo(function DayCell({
 
     const isPast = dateString < today;
     const isToday = dateString === today;
-    const isDisabled = isPast || !isAvailabilityKnown;
-    const isAvailableFuture = isAvailable && !isPast;
+    const isDisabled = isPast || isPaused || !isAvailabilityKnown;
+    const isAvailableFuture = isAvailable && !isPast && !isPaused;
     const dateLabel = dateFormatter.format(new Date(`${dateString}T12:00:00`));
-    const statusLabel =
-        isAvailabilityKnown || isPast
-            ? `, ${t(isAvailableFuture ? "booking.legendAvailable" : "booking.legendUnavailable")}`
-            : "";
+    const statusLabel = isPaused
+        ? `, ${t("booking.datePaused")}`
+        : isAvailabilityKnown || isPast
+          ? `, ${t(isAvailableFuture ? "booking.legendAvailable" : "booking.legendUnavailable")}`
+          : "";
 
-    const textColor = isSelected
-        ? colors.primary
-        : isToday
-          ? colors.success
-          : isAvailableFuture
-            ? colors.primary
-            : colors.mutedForeground;
+    const textColor = isPaused
+        ? colors.warning
+        : isSelected
+          ? colors.primary
+          : isToday
+            ? colors.success
+            : isAvailableFuture
+              ? colors.primary
+              : colors.mutedForeground;
 
     const textOpacity =
-        isSelected || isToday || isAvailableFuture ? 1 : isPast ? 0.35 : isAvailabilityKnown ? 0.7 : 0.5;
+        isPaused || isSelected || isToday || isAvailableFuture ? 1 : isPast ? 0.35 : isAvailabilityKnown ? 0.7 : 0.5;
 
     return (
         <Pressable
@@ -137,15 +147,17 @@ const DayCell = memo(function DayCell({
             <View
                 className={cn(
                     "h-11 w-11 items-center justify-center rounded-full",
-                    isSelected
-                        ? "border-2 border-primary bg-primary/15"
-                        : isToday
-                          ? isAvailableFuture
-                              ? "bg-success/15"
-                              : "border border-success"
-                          : isAvailableFuture
-                            ? "bg-primary/10"
-                            : undefined,
+                    isPaused
+                        ? "bg-warning/15"
+                        : isSelected
+                          ? "border-2 border-primary bg-primary/15"
+                          : isToday
+                            ? isAvailableFuture
+                                ? "bg-success/15"
+                                : "border border-success"
+                            : isAvailableFuture
+                              ? "bg-primary/10"
+                              : undefined,
                 )}
             >
                 <AppText
@@ -245,8 +257,23 @@ export default function DateScreen() {
     const normalizedTicketType = String(ticketType ?? "").toUpperCase();
     const isLessonTicket = LESSON_TICKET_TYPES.includes(normalizedTicketType);
     const isUnsupportedTicket = Boolean(normalizedTicketType) && !isBookableTicketType(normalizedTicketType);
+    const {
+        data: ticket,
+        isPending: isTicketPending,
+        isError: isTicketError,
+        isRefetching: isTicketRefetching,
+        refetch: refetchTicket,
+    } = useMemberTicketById(hasTicketId && !isUnsupportedTicket ? ticketIdNumber : undefined);
+    const isRescheduleMode = mode === "reschedule";
+    const isRefundedTicket = getEffectiveTicketStatus(ticket?.status) === "REFUNDED";
+    const isIneligibleTicket = ticket != null && (isRescheduleMode ? isRefundedTicket : !canBookWithTicket(ticket));
+    const canLoadAvailability = hasTicketId && !isUnsupportedTicket && !isIneligibleTicket;
+    const pausePeriods = useMemo(() => getTicketPausePeriods(ticket?.pauses), [ticket?.pauses]);
 
     const { startDate, endDate } = useMemo(() => getMonthRange(visibleMonth), [visibleMonth]);
+    const visiblePausePeriods = pausePeriods.filter(
+        (period) => period.endDate >= startDate && period.startDate <= endDate && period.endDate >= today,
+    );
     const lastVisibleMonthStart = useRef(startDate);
 
     const {
@@ -256,7 +283,7 @@ export default function DateScreen() {
         isPlaceholderData: isPlaceholderBaySlotGroups,
         isRefetching: isRefetchingBaySlotGroups,
         isError: isErrorBaySlotGroups,
-    } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, !isLessonTicket && !isUnsupportedTicket);
+    } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, canLoadAvailability && !isLessonTicket);
 
     const {
         data: lessonSlotData,
@@ -265,14 +292,21 @@ export default function DateScreen() {
         isPlaceholderData: isPlaceholderLessonSlots,
         isRefetching: isRefetchingLessonSlots,
         isError: isErrorLessonSlots,
-    } = useMemberTicketLessonSlots(ticketIdNumber, visibleMonth.year, visibleMonth.month, isLessonTicket);
+    } = useMemberTicketLessonSlots(
+        ticketIdNumber,
+        visibleMonth.year,
+        visibleMonth.month,
+        canLoadAvailability && isLessonTicket,
+    );
 
     const data = isLessonTicket ? lessonSlotData : baySlotGroupData;
     const isPlaceholderData = isLessonTicket ? isPlaceholderLessonSlots : isPlaceholderBaySlotGroups;
-    const isAvailabilityPending = isPlaceholderData || (isLessonTicket ? isPendingLessonSlots : isPendingBaySlotGroups);
-    const isAvailabilityKnown = data !== undefined && !isPlaceholderData;
-    const hasLoadError = (isLessonTicket ? isErrorLessonSlots : isErrorBaySlotGroups) && !isAvailabilityKnown;
-    const isRefetching = isLessonTicket ? isRefetchingLessonSlots : isRefetchingBaySlotGroups;
+    const isAvailabilityPending =
+        isTicketPending || isPlaceholderData || (isLessonTicket ? isPendingLessonSlots : isPendingBaySlotGroups);
+    const isAvailabilityKnown = canLoadAvailability && Boolean(ticket) && data !== undefined && !isPlaceholderData;
+    const hasLoadError =
+        (isTicketError && !ticket) || ((isLessonTicket ? isErrorLessonSlots : isErrorBaySlotGroups) && !data);
+    const isRefetching = isTicketRefetching || (isLessonTicket ? isRefetchingLessonSlots : isRefetchingBaySlotGroups);
 
     const handleVisibleMonthChange = useCallback<NonNullable<FlatListProps<string>["onViewableItemsChanged"]>>(
         ({ viewableItems }) => {
@@ -311,7 +345,7 @@ export default function DateScreen() {
     );
 
     useEffect(() => {
-        if (!hasTicketId || isUnsupportedTicket) {
+        if (!canLoadAvailability) {
             return;
         }
 
@@ -330,15 +364,7 @@ export default function DateScreen() {
                 getMemberBaySlotGroupsQueryOptions(ticketIdNumber, followingRange.startDate, followingRange.endDate),
             );
         }
-    }, [
-        hasTicketId,
-        isLessonTicket,
-        isUnsupportedTicket,
-        queryClient,
-        ticketIdNumber,
-        visibleMonth.month,
-        visibleMonth.year,
-    ]);
+    }, [canLoadAvailability, isLessonTicket, queryClient, ticketIdNumber, visibleMonth.month, visibleMonth.year]);
 
     const availableDates = useMemo(() => {
         const dates = new Set<string>();
@@ -350,7 +376,7 @@ export default function DateScreen() {
                     continue;
                 }
                 const date = formatDateForAPI(slot.startTime);
-                if (date >= startDate && date <= endDate) {
+                if (date >= startDate && date <= endDate && !isTicketDatePaused(pausePeriods, date)) {
                     dates.add(date);
                 }
             }
@@ -358,7 +384,7 @@ export default function DateScreen() {
             for (const group of baySlotGroupData?.data ?? []) {
                 if (group.totalReservableBaySlots > 0) {
                     const date = formatDateForAPI(group.startDateTime);
-                    if (date >= startDate && date <= endDate) {
+                    if (date >= startDate && date <= endDate && !isTicketDatePaused(pausePeriods, date)) {
                         dates.add(date);
                     }
                 }
@@ -366,11 +392,26 @@ export default function DateScreen() {
         }
 
         return dates;
-    }, [baySlotGroupData, endDate, isAvailabilityKnown, isLessonTicket, lessonSlotData, memberId, startDate]);
+    }, [
+        baySlotGroupData,
+        endDate,
+        isAvailabilityKnown,
+        isLessonTicket,
+        lessonSlotData,
+        memberId,
+        pausePeriods,
+        startDate,
+    ]);
 
     const handleDayPress = useCallback(
         (dateString: string) => {
-            if (!isAvailabilityKnown || dateString < today || dateString < startDate || dateString > endDate) {
+            if (
+                !isAvailabilityKnown ||
+                dateString < today ||
+                dateString < startDate ||
+                dateString > endDate ||
+                isTicketDatePaused(pausePeriods, dateString)
+            ) {
                 return;
             }
 
@@ -446,6 +487,7 @@ export default function DateScreen() {
             isLessonTicket,
             mode,
             notes,
+            pausePeriods,
             queryClient,
             reservationId,
             router,
@@ -466,6 +508,7 @@ export default function DateScreen() {
                 return null;
             }
 
+            const isPaused = isTicketDatePaused(pausePeriods, date.dateString);
             return (
                 <DayCell
                     dateString={date.dateString}
@@ -476,12 +519,23 @@ export default function DateScreen() {
                         isAvailabilityKnown && date.dateString >= startDate && date.dateString <= endDate
                     }
                     isAvailable={availableDates.has(date.dateString)}
-                    isSelected={selectedDate === date.dateString}
+                    isPaused={isPaused}
+                    isSelected={!isPaused && selectedDate === date.dateString}
                     onPress={handleDayPress}
                 />
             );
         },
-        [availableDates, dateFormatter, endDate, handleDayPress, isAvailabilityKnown, selectedDate, startDate, today],
+        [
+            availableDates,
+            dateFormatter,
+            endDate,
+            handleDayPress,
+            isAvailabilityKnown,
+            pausePeriods,
+            selectedDate,
+            startDate,
+            today,
+        ],
     );
 
     const calendarMinHeight = Math.round(CALENDAR_BASE_MIN_HEIGHT * Math.min(Math.max(fontScale, 1), 1.4));
@@ -546,7 +600,12 @@ export default function DateScreen() {
     );
 
     const { refreshing: isPullRefreshing, onRefresh: handleRefresh } = usePullToRefresh(() =>
-        isLessonTicket ? refetchLessonSlots({ cancelRefetch: false }) : refetchBaySlotGroups({ cancelRefetch: false }),
+        Promise.all([
+            refetchTicket({ cancelRefetch: false }),
+            isLessonTicket
+                ? refetchLessonSlots({ cancelRefetch: false })
+                : refetchBaySlotGroups({ cancelRefetch: false }),
+        ]),
     );
 
     const ticketTypeLabel = formatTicketTypeLabel(ticketType, t);
@@ -557,11 +616,18 @@ export default function DateScreen() {
             : ticketTypeLabel || trimmedTicketName || t("common.noTicket");
     const calendarLocale = applyCalendarLocale(i18n.resolvedLanguage);
 
-    if (!hasTicketId || isUnsupportedTicket) {
+    if (!canLoadAvailability) {
         return (
             <Screen>
                 <EmptyState
-                    title={t(hasTicketId ? "common.notAvailable" : "bookingConfirmation.ticketInfoMissing")}
+                    title={t(
+                        isRefundedTicket
+                            ? "tickets.statuses.refunded"
+                            : hasTicketId
+                              ? "common.notAvailable"
+                              : "bookingConfirmation.ticketInfoMissing",
+                    )}
+                    message={isIneligibleTicket && !isRescheduleMode ? t("tickets.bookingUnavailable") : undefined}
                     actionLabel={t("tickets.sectionTitle")}
                     onAction={() => runWithNavigationLock(() => router.dismissTo("/tickets"))}
                 />
@@ -610,6 +676,7 @@ export default function DateScreen() {
                 ) : null}
             </View>
 
+            <TicketPausePeriods periods={visiblePausePeriods} />
             <View className={hasLoadError ? "grow gap-4" : "gap-4"}>
                 <View
                     className="overflow-hidden rounded-2xl border border-border bg-card py-2"
@@ -638,14 +705,7 @@ export default function DateScreen() {
                     ) : null}
                 </View>
 
-                {isAvailabilityPending ? (
-                    <View accessibilityLiveRegion="polite" className="flex-row items-center justify-center gap-2">
-                        {reducedMotion ? null : <ActivityIndicator color={colors.primary} size="small" />}
-                        <AppText variant="caption" color="mutedForeground" align="center" style={{ flexShrink: 1 }}>
-                            {t("booking.refreshingAvailability")}
-                        </AppText>
-                    </View>
-                ) : hasLoadError ? (
+                {hasLoadError ? (
                     <ErrorState
                         title={t("booking.failedAvailableDatesTitle")}
                         message={t("booking.failedAvailableDatesMessage")}
@@ -653,6 +713,13 @@ export default function DateScreen() {
                         actionPending={isRefetching || isPullRefreshing}
                         onAction={handleRefresh}
                     />
+                ) : isAvailabilityPending ? (
+                    <View accessibilityLiveRegion="polite" className="flex-row items-center justify-center gap-2">
+                        {reducedMotion ? null : <ActivityIndicator color={colors.primary} size="small" />}
+                        <AppText variant="caption" color="mutedForeground" align="center" style={{ flexShrink: 1 }}>
+                            {t("booking.refreshingAvailability")}
+                        </AppText>
+                    </View>
                 ) : isAvailabilityKnown && availableDates.size === 0 ? (
                     <CompactEmptyState
                         title={t("booking.noAvailableDatesTitle", {

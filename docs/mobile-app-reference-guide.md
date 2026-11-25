@@ -1,6 +1,6 @@
 # Mobile App Reference Guide & Next-Project Playbook
 
-A practical, non-overwhelming guide to how **HappyGolf GO** (`towering_lesson_mobile`) is built, how each feature is implemented, the hardest lessons learned on this branch, and what to carry straight into your next mobile app.
+A guide to how **HappyGolf GO** (`towering_lesson_mobile`) is built, where to find each feature, and which patterns to carry into your next mobile app. The app runs on Android and iOS with Expo SDK 58.
 
 Paths below were verified against the source tree. If they drift again, trust the code and update this file.
 
@@ -18,12 +18,13 @@ Screen (src/app/)
             └─ Shared Fetch Client (src/lib/client/api-client.ts) + Types (src/types/)
 ```
 
-### Why this separation works
-- **Screens (`src/app/`)** only coordinate route params, navigation, and `loading → error → empty → content` states. They never call `fetch` directly and never copy server data into `useState`.
+### Layer responsibilities
+
+- **Screens (`src/app/`)** coordinate route params, navigation, user interactions, and loading, error, empty, and content states. They read server data directly from query hooks.
 - **Design System (`src/design-system/`)** holds reusable, domain-agnostic building blocks (`Screen`, `AppText`, `ActionButton`, `AnimatedPressable`, `PendingBottomSheet`, `SwipeableTabBar`, `ListRetryFooter`, `EmptyState`, `ErrorState`, `Skeleton`).
 - **Feature Components (`src/components/`)** hold domain cards and sections (`ReservationCard`, `TicketHistoryCard`, `ActivityOverview`, `SessionResourceSection`).
 - **Hooks (`src/lib/hook/`)** own TanStack Query keys, `staleTime`, cache seeding, optimistic rollbacks, and toast error handling.
-- **Services (`src/service/`)** are pure async functions that accept an `AbortSignal` and return typed `ApiResponse<T>` payloads.
+- **Services (`src/service/`)** own API calls and return typed responses. Query reads pass an `AbortSignal` through to the request.
 
 ---
 
@@ -31,79 +32,79 @@ Screen (src/app/)
 
 | Feature / Capability | Where It Lives in This Project | Key Implementation Pattern |
 | :--- | :--- | :--- |
-| **App Bootstrap, Auth & Guards** | [src/app/_layout.tsx](../src/app/_layout.tsx)<br>[src/lib/auth-client.ts](../src/lib/auth-client.ts)<br>[src/lib/update/use-app-update.ts](../src/lib/update/use-app-update.ts) | Wraps the app in the Better Auth session + welcome guards and starts the version check without blocking the first screen. Only a confirmed mandatory update swaps in `AppUpdateGate`; a failed check fails open. Theme colors are mapped to CSS variables at the root. |
+| **App Bootstrap, Auth & Guards** | [Root layout](../src/app/_layout.tsx)<br>[Auth client](../src/lib/auth-client.ts)<br>[App update hook](../src/lib/update/use-app-update.ts) | The native splash stays up until theme, language, welcome, and auth are ready. Better Auth stores session credentials in SecureStore and the route guard checks the member role. The version check runs independently and fails open on errors. A confirmed mandatory update shows `AppUpdateGate`. |
+| **Native Launch Screen** | [Expo config](../app.json)<br>[Light artwork](../assets/images/happy-golf-splash-light.png)<br>[Dark artwork](../assets/images/happy-golf-splash-dark.png) | `expo-splash-screen` bundles dedicated light and dark launch artwork selected by system appearance. Changes to the native splash assets or plugin config take effect in a fresh native build. |
 | **Main Tabs & Stack Headers** | [src/app/(app)/(tabs)/_layout.tsx](../src/app/(app)/(tabs)/_layout.tsx)<br>[src/design-system/utils/theme.ts](../src/design-system/utils/theme.ts) | `NativeTabs` from `expo-router/native-tabs` for platform-native tab bars (with unread badge count); nested `Stack` layouts share `getStackHeaderOptions(colors)` from the theme module. |
-| **Screen Layout & Safe Areas** | [src/design-system/components/Screen.tsx](../src/design-system/components/Screen.tsx) | Single-column container (`maxWidth: 430`, `16pt` horizontal padding) that handles scroll vs. list layouts (`scroll={false}`), iOS/Android safe-area insets, and fixed footers. |
-| **Theme & Dynamic Type** | [src/design-system/utils/theme.ts](../src/design-system/utils/theme.ts)<br>[src/global.css](../src/global.css) | Supports `system / light / dark` plus a user-selectable primary brand color (`blue / green`) persisted in `AsyncStorage`. Applies `fontScale` to explicit native font sizes on iOS while letting Android Compose scale natively. |
-| **Hybrid Native Controls (`@expo/ui`)** | [src/design-system/components/ActionButton.tsx](../src/design-system/components/ActionButton.tsx)<br>[src/design-system/components/PendingBottomSheet.tsx](../src/design-system/components/PendingBottomSheet.tsx) | Uses real SwiftUI (iOS) / Jetpack Compose (Android) for buttons, bottom sheets, wheel pickers, and switches, while using React Native `View` + NativeWind 5 for cards and layout. |
-| **Tactile Press Feedback** | [src/design-system/components/AnimatedPressable.tsx](../src/design-system/components/AnimatedPressable.tsx) | Single `ReanimatedPressable` driving `transform: [{ scale }]` on the UI thread via `useSharedValue`, respecting system Reduce Motion and preserving caller `opacity-*` classes. |
-| **Bay & Lesson Booking Flow** | [src/components/golf/booking/SelectDatePicker.tsx](../src/components/golf/booking/SelectDatePicker.tsx)<br>[src/app/(app)/select-time.tsx](../src/app/(app)/select-time.tsx)<br>[src/app/(app)/bay-booking-confirm.tsx](../src/app/(app)/bay-booking-confirm.tsx)<br>[src/app/(app)/lesson-booking-confirm.tsx](../src/app/(app)/lesson-booking-confirm.tsx) | Scopes availability queries by `[ticketId, startDate, endDate]`. Prefetches month/day availability on ticket tap, seeds day previews with `{ updatedAt: 0 }`, and handles `409 RESERVATION_SLOT_UNAVAILABLE` by returning to refreshed slots without losing user notes. |
+| **Screen Layout & Safe Areas** | [`Screen`](../src/design-system/components/Screen.tsx) | Phones and tablets share a centered 430-point column with 16-point horizontal padding and safe-area adjustments. Use `scroll={false}` for a screen with its own virtualized list. `Screen` also handles keyboard-aware scrolling and fixed footers. |
+| **Theme, Dynamic Type & Languages** | [Theme](../src/design-system/utils/theme.ts)<br>[CSS tokens](../src/global.css)<br>[i18n](../src/i18n/index.ts) | Persists system/light/dark, blue/green primary color, and language preferences in AsyncStorage. The root maps theme values to CSS variables. Explicit native font sizes use the shared font scale on iOS and Compose scaling on Android. Supported languages are English, Khmer, Korean, Japanese, and Chinese. |
+| **Hybrid Native Controls (`@expo/ui`)** | [`ActionButton`](../src/design-system/components/ActionButton.tsx)<br>[`PendingBottomSheet`](../src/design-system/components/PendingBottomSheet.tsx) | Uses SwiftUI and Jetpack Compose controls for native buttons and sheets, with React Native views and NativeWind 5 for layout and card surfaces. |
+| **Tactile Press Feedback** | [`AnimatedPressable`](../src/design-system/components/AnimatedPressable.tsx)<br>[`TicketCard`](../src/components/golf/TicketCard.tsx) | Android draws a theme-tinted highlight clipped to the pressable's corners. Put the visible card's radius on the pressable itself. iOS uses a brief UI-thread scale that respects Reduce Motion. |
+| **Connectivity & Query Cache** | [Signed-in layout](../src/app/(app)/_layout.tsx)<br>[API client](../src/lib/client/api-client.ts)<br>[`OfflineBanner`](../src/design-system/components/OfflineBanner.tsx) | Expo Network feeds TanStack Query's online manager, and `Screen` displays an offline banner. Fetched data is cached in memory during the signed-in session and cleared on sign-out. Mutations use `networkMode: "always"` so non-GET requests through `apiClient` fail immediately with a localized offline error and require a new user action after reconnect. |
+| **Bay & Lesson Booking Flow** | [Date selection](../src/components/golf/booking/SelectDatePicker.tsx)<br>[Bay confirmation](../src/app/(app)/bay-booking-confirm.tsx)<br>[Lesson confirmation](../src/app/(app)/lesson-booking-confirm.tsx) | Bay availability is keyed by ticket and date range. Lesson availability is keyed by ticket and month. Bay day previews are seeded with `{ updatedAt: 0 }` so the server result still loads. The server assigns a bay from the chosen time slot. A `409 RESERVATION_SLOT_UNAVAILABLE` refreshes slot choices and preserves notes when the member picks another time. |
+| **Reservation Details & Actions** | [Detail route](../src/app/(app)/reservation/%5Bid%5D.tsx)<br>[Detail components](../src/components/golf/reservation/detail) | Shows a list-row preview while full details load and gives program reservations a Lesson Program badge. The action footer appears only for `RESERVED` items whose API response has `isCancellable: true`. Cancellation requires a connection and uses a pending confirmation sheet. Rescheduling is available for eligible bay reservations with a ticket. |
+| **Tickets & Pause History** | [Home tickets](../src/components/golf/MyTicket.tsx)<br>[Ticket details](../src/app/(app)/tickets/%5Bid%5D.tsx)<br>[Pause date rules](../src/utils/ticket-pause.ts) | Home requests `ACTIVE` and `IN_USE` tickets. Cards show current and upcoming periods from `pauses[]`, and details show the full history. The calendar and confirmations block bay bookings, lesson bookings, and bay reschedules during a pause, including both boundary dates. Members can choose dates outside the pause. |
 | **Infinite Feeds & Pager Tabs** | [src/components/golf/reservation/ReservationTabScene.tsx](../src/components/golf/reservation/ReservationTabScene.tsx)<br>[src/components/golf/TicketTabScene.tsx](../src/components/golf/TicketTabScene.tsx)<br>[src/design-system/components/SwipeableTabBar.tsx](../src/design-system/components/SwipeableTabBar.tsx) | Pairs `react-native-pager-view` with `SwipeableTabBar` and cursor-paginated `FlashList` scenes. Uses `ListRetryFooter` for inline load-more retry and `usePullToRefresh` for user-initiated refresh. |
-| **Interactive Swipe-to-Delete Feed** | [src/app/(app)/(tabs)/notice/index.tsx](../src/app/(app)/(tabs)/notice/index.tsx)<br>[src/lib/hook/shared/useNotification.ts](../src/lib/hook/shared/useNotification.ts) | Combines `FlashList` (`renderScrollComponent={GestureHandlerScrollView}`) with `ReanimatedSwipeable` (1:1 `friction={1}` physics), recycle reset in `useLayoutEffect`, and a shared optimistic mutation lock. |
-| **Forms & Presigned S3 File Uploads** | [src/app/(app)/profile/edit.tsx](../src/app/(app)/profile/edit.tsx)<br>[src/app/(app)/homework/[homeworkId].tsx](../src/app/(app)/homework/%5BhomeworkId%5D.tsx)<br>[src/components/ui/form/FormTextInput.tsx](../src/components/ui/form/FormTextInput.tsx) | React Hook Form + Zod with field-level `useController` subscriptions. Multi-step presigned S3 upload (`expo/fetch` + `expo-file-system` `File`) validates MIME/size locally and automatically refreshes expired presigned URLs. |
-| **Activity Heatmap & Share Poster** | [src/components/golf/ActivityOverview.tsx](../src/components/golf/ActivityOverview.tsx)<br>[src/components/golf/ActivitySharePreview.tsx](../src/components/golf/ActivitySharePreview.tsx)<br>[src/lib/hook/useShareCardExport.ts](../src/lib/hook/useShareCardExport.ts) | Virtualized 52–53 week heatmap (`FlatList`) plus an offscreen poster captured with `react-native-view-shot` at the 1080 × 1350 export size defined in `monthly-share-card-layout.ts`, then handed to the system share sheet or photo library. |
-| **Deferred Lesson Video Playback** | [src/components/golf/SessionResourceSection.tsx](../src/components/golf/SessionResourceSection.tsx) | Renders a lightweight preview card inside lists and mounts `expo-video` (`useVideoPlayer` + `VideoView`) on tap, immediately calling `videoPlayer.play()` so playback starts on the first tap. |
+| **Notification Feed & Push** | [Notice route](../src/app/(app)/(tabs)/notice/index.tsx)<br>[Notice components](../src/components/golf/notice)<br>[Push registration](../src/lib/config/notification/registerPushNotification.ts) | The feed shows a skeleton on its initial fetch, an offline state if the first fetch pauses, and an empty state once it has an empty response. Swipe-to-delete uses recycled `FlashList` rows and a shared pending guard across optimistic changes. The app registers Expo push tokens after sign-in. Alert sounds depend on OS settings and, on iOS, the push payload. |
+| **Profile & Forms** | [Profile sections](../src/components/golf/profile/ProfileSections.tsx)<br>[Profile edit](../src/app/(app)/profile/edit.tsx)<br>[`FormTextInput`](../src/components/ui/form/FormTextInput.tsx) | Profile delegates settings and sign-out to feature components. Edit forms use React Hook Form and Zod with field-level `useController` subscriptions. Profile photo changes stage an upload through a presigned URL before committing it with the API. |
+| **Homework Detail & Uploads** | [Homework route](../src/app/(app)/homework/%5BhomeworkId%5D.tsx)<br>[Homework utilities](../src/components/golf/homework/homework-utils.ts)<br>[Submission hook](../src/lib/hook/useMemberLessonFlow.ts) | Feature components render the composer, reviews, and submission history. The utilities derive the six display states and validate attachments. The composer saves local drafts, and submission uploads via a presigned S3 URL before submitting to the API. |
+| **Activity Heatmap & Share Poster** | [Activity overview](../src/components/golf/ActivityOverview.tsx)<br>[Heatmap](../src/design-system/components/charts/activity-heatmap.tsx)<br>[Share preview modal](../src/components/golf/share/ActivitySharePreviewModal.tsx)<br>[Export hook](../src/lib/hook/useShareCardExport.ts) | The horizontal `FlatList` renders week columns. Activity date bucketing uses the business timezone, `Asia/Phnom_Penh`. A paused initial query shows an offline state. Monthly and yearly posters are captured at 1080 × 1350 with `react-native-view-shot` for sharing or saving to Photos. |
+| **Share Period Picker** | [iOS picker](../src/components/golf/ShareMonthYearPicker.tsx)<br>[Android picker](../src/components/golf/ShareMonthYearPicker.android.tsx) | iOS uses the native wheel picker. Android uses Material 3 year chips and a three-column month grid, with year-only mode for yearly posters. |
+| **Documents, Links & Lesson Video** | [External URL helper](../src/utils/open-external-url.ts)<br>[Session resources](../src/components/golf/SessionResourceSection.tsx) | Homework attachment links, lesson resources, and external home banners open HTTP(S) links in the platform's in-app browser. Other schemes or browser errors fall back to the system URL handler. Deferred videos mount an `expo-video` player on tap and start on that tap. |
 
 ---
 
 ## 3. Top 7 Lessons Learned (Pitfalls to Avoid in Future Apps)
 
 1. **Seeding React Query Detail/Day Caches from Parent Queries**
-   - *The trap*: Calling `queryClient.setQueryData(dayKey, previewData)` sets `dataUpdatedAt = Date.now()`. If the query has `staleTime: 10_000`, a subsequent `prefetchQuery(dayKey)` sees the seeded preview as "fresh" and skips fetching the real server data.
-   - *The fix*: Always pass `{ updatedAt: 0 }` when seeding partial or parent-derived data into a child query cache (`setQueryData(key, data, { updatedAt: 0 })`). That gives the UI an instant preview while still allowing `prefetchQuery` to fetch the authoritative response once.
+   - Calling `setQueryData(dayKey, previewData)` timestamps the preview as fresh. A subsequent prefetch within `staleTime` can then skip the server request.
+   - Pass `{ updatedAt: 0 }` when seeding a partial preview so the screen can display it immediately and still fetch the full response.
 
-2. **`AnimatedPressable` Must Not Write `opacity: 1` or Add Inner Layout Wrappers**
-   - *The trap*: Writing `opacity: 1` at rest in `useAnimatedStyle` on the outer `Pressable` overwrites NativeWind's `opacity-40` or `disabled:opacity-50` classes, making disabled buttons look enabled. Conversely, wrapping children in an extra inner `<Animated.View style={{ flexGrow: 1 }}>` breaks `self-center` and vertical flex layouts.
-   - *The fix*: Keep `AnimatedPressable` as a single `ReanimatedPressable` view that animates **only** `transform: [{ scale }]`.
+2. **Press Feedback on Rounded Surfaces**
+   - Animated opacity can override disabled styling, and an extra inner layout wrapper can change how children flex. Keep one `ReanimatedPressable` with scale as its only animated style.
+   - The Android highlight follows the pressable's radius. A radius on a child card or on the surrounding Profile section can leave an individual row's highlight square.
 
 3. **Keyboard-Aware Forms Inside Native Stacks**
-   - *The trap*: `KeyboardAwareScrollView` defaults to `mode="insets"` (`ClippingScrollViewDecoratorView`). Combined with `<PendingBottomSheet>` mounted inside the scroll tree or `<KeyboardStickyView>`, it can collapse form content height to `0` on iOS/Android stack screens.
-   - *The fix*: Default `KeyboardAwareScrollView` to `mode="layout"` with explicit `style: { flex: 1 }`, and always render `<PendingBottomSheet>` and `<Modal>` overlays as siblings **outside** `<Screen>`.
+   - Inset-based keyboard avoidance can collapse form content inside a native stack when combined with sticky keyboard views or overlays in the scroll tree.
+   - `Screen` uses `KeyboardAwareScrollView` in `mode="layout"` with `style={{ flex: 1 }}`. Render bottom sheets and modals as siblings of `Screen`.
 
 4. **`FlashList` Row Recycling + `ReanimatedSwipeable`**
-   - *The trap*: `FlashList` reuses mounted row components for different items as you scroll. Without resetting the swipeable ref, a newly recycled row inherits an open "Delete" swipe from a previous item. Also, setting `dragOffsetFromLeft={10000}` blocks rightward swipe-back-to-close gestures.
-   - *The fix*:
-     - Pass `renderScrollComponent={GestureHandlerScrollView}` to `FlashList`.
-     - Use 1:1 interactive swipe physics: `friction={1}`, `dragOffsetFromLeft={10}`, `dragOffsetFromRight={-10}`, `rightThreshold={32}`.
-     - Call `swipeableRef.current?.reset()` inside `useLayoutEffect` whenever `item.id` changes, and close any open row on `onScrollBeginDrag`.
+   - Pass `renderScrollComponent={GestureHandlerScrollView}` to `FlashList`. Use `friction={1}`, `dragOffsetFromLeft={10}`, `dragOffsetFromRight={-10}`, and `rightThreshold={32}` for interactive opening and closing.
+   - Reset the swipeable ref in `useLayoutEffect` when `item.id` changes so a recycled row starts closed. Close the open row when vertical scrolling starts.
 
 5. **Overlapping Optimistic Mutations Need One Shared Pending Guard**
-   - *The trap*: When a screen has multiple optimistic mutations (e.g., mark notification read, mark all read, delete one, delete all), each captures a full list snapshot in `onMutate`. If two actions overlap and the first one fails after the second succeeds, its `onError` rollback restores an older snapshot and undoes the second action in the UI.
-   - *The fix*: Gate all related optimistic actions behind one shared pending flag from snapshot through settlement.
+   - A failed notification mutation can restore an old snapshot over a later successful change. Gate mark-read and deletion actions with one shared pending guard from snapshot through settlement.
+   - Reservation, reschedule, and homework-submit flows wait for the server before committing results to the UI.
 
-6. **Lock Interactive Chart Cells While `keepPreviousData` (`isPlaceholderData`) Is Active**
-   - *The trap*: Keeping previous chart data visible while a new year/month loads prevents layout flash, but if cells remain tappable during loading, tapping a cell stores a date from the *old* year under the *new* filter.
-   - *The fix*: Pass `disabled={isPlaceholderData}` to interactive charts and verify `selectedDateKey` falls within the loaded `[startKey, endKey]` range before firing a by-date query.
+6. **Chart Interactions During Period Changes**
+   - Keeping previous data visible avoids layout shifts during a filter change. Disable the chart while `isPlaceholderData` is true and check the selected date against the loaded range before querying day details.
 
 7. **iOS `@expo/ui` Button Hit Targets**
-   - *The trap*: On iOS SwiftUI, a plain `<Button variant="text">` with an outer `frame({ maxWidth: Infinity, minHeight: 48 })` only makes the text glyph itself tappable—tapping the empty colored area toward the left/right edges of the button does nothing.
-   - *The fix*: Apply `contentShape(shapes.rectangle())` after `frame({ maxWidth: Infinity, minHeight: 48 })` on the inner `<Text>` or `<Row>` inside the button, and centralize this in a single `<ActionButton>` component so no screen has to repeat 40 lines of modifier boilerplate.
+   - The tappable area of a plain SwiftUI button follows its label. Apply `contentShape(shapes.rectangle())` after `frame({ maxWidth: Infinity, minHeight: 48 })` on the inner text or row to make the whole visible button tappable. `ActionButton` centralizes these modifiers.
 
 ---
 
 ## 4. Recommendations & Setup Checklist for Your Next Mobile App
 
-When starting your next Expo React Native project, set up these foundations on **Day 1**:
-
 ### A. Core Stack to Keep
-- **Framework & Routing**: Expo SDK + `expo-router` (with `NativeTabs` from `expo-router/native-tabs` for main tabs and native `Stack` for detail flows).
-- **Styling & UI**: NativeWind 5 + Tailwind CSS 4 for RN layout/surfaces, paired with `@expo/ui` for true native sheets, pickers, switches, and buttons.
-- **State & Networking**: TanStack Query v5 (`useQuery`, `useInfiniteQuery`, `useMutation`) + a single `apiClient` wrapper that injects `Accept-Language`, `X-App-Client`, `X-App-Platform`, and `X-App-Version` headers.
-- **Lists & Motion**: `@shopify/flash-list` for paginated feeds, `react-native-reanimated` (`useSharedValue`) for UI-thread motion, and `react-native-keyboard-controller` (`mode="layout"`) for forms.
-- **Forms & Validation**: `react-hook-form` + `zod` (`@hookform/resolvers/zod`).
+
+- Use Expo Router with `NativeTabs` for main tabs and native `Stack` for detail flows.
+- Pair NativeWind 5 and Tailwind CSS 4 for React Native surfaces with `@expo/ui` for platform controls.
+- Keep a single TanStack Query v5 client per signed-in layout and an API client that sets `Accept-Language`, `X-App-Client`, `X-App-Platform`, and `X-App-Version`.
+- Use `FlashList` for cursor-paginated feeds and `FlatList` for bounded virtualized lists. Drive continuous motion with Reanimated shared values.
+- Use React Hook Form with Zod and `react-native-keyboard-controller` for form scrolling.
 
 ### B. Build These 6 Primitives Before Any Feature Screen
-1. **`Screen`**: Single source of truth for max-width (`430pt`), `16pt` horizontal padding, safe areas, `KeyboardAwareScrollView` (`mode="layout"`), and fixed footers.
-2. **`AppText`**: The single text component for RN surfaces, with the shared type ramp (`h1`, `h2`, `h3`, `subtitle`, `body`, `label`, `subtext`, `caption`, `badge`), semantic color tokens, and tabular numerals.
-3. **`ActionButton`**: Wraps `@expo/ui` `Host` + `Button` with `appearance="filled" | "outlined" | "text"`, `tone="primary" | "danger"`, `loading`, `disabled`, optional haptics, and iOS full-width rectangular hit shapes.
-4. **`AnimatedPressable`**: Single-view Reanimated scale feedback (`0.97` spring) with reduced-motion support and optional selection/impact haptics.
-5. **`PendingBottomSheet`**: Wraps `@expo/ui` `BottomSheet` with a pending-lock guard (`dismissDisabled`) so users cannot swipe-dismiss a confirmation sheet mid-mutation.
-6. **`FormTextInput` / `FormPasswordInput`**: Core RN `TextInput` connected via `useController` so focus survives password visibility toggles and error states focus automatically on invalid submit.
+
+1. **`Screen`** centralizes the 430-point width cap, 16-point padding, safe areas, offline banner, keyboard-aware scrolling, and fixed footers.
+2. **`AppText`** provides the type ramp, semantic text colors, and tabular numerals for React Native surfaces.
+3. **`ActionButton`** wraps `@expo/ui` with filled, outlined, and text appearances, primary and danger tones, loading/disabled states, haptics, and a full-width iOS hit target.
+4. **`AnimatedPressable`** provides a clipped highlight on Android, timed scale feedback on iOS, and optional selection or impact haptics.
+5. **`PendingBottomSheet`** wraps the native sheet and lets confirmations block dismissal while pending.
+6. **`FormTextInput` and `FormPasswordInput`** connect core React Native inputs to `useController`. The password field preserves focus across visibility changes.
 
 ### C. Engineering Guardrails to Copy Over
-- **Copy [AGENTS.md](../AGENTS.md) and [docs/native-ui-gotchas.md](native-ui-gotchas.md)** into the root of your next repository on day one. Keeping a living list of UI and data rules prevents drift across features and AI sessions.
-- **Add targeted Node unit tests (`node --test`) for pure logic and query invariants**, then run them all through one script:
-  - `pnpm test` runs `scripts/run-tests.cjs`, which executes `scripts/startup-compat.test.cjs` plus every `scripts/tests/*.test.cjs`. This project tests timezone-safe date math (`activity-chart-data.test.cjs`), query-key isolation and cache seeding (`bay-availability.test.cjs`), pull-to-refresh vs. pagination wiring (`runtime-regressions.test.cjs`), auth recovery (`api-auth-recovery.test.cjs`), `Screen` keyboard plumbing (`screen-keyboard.test.cjs`), and the type ramp (`native-typography.test.cjs`) in seconds without a simulator boot.
-  - Wire `tsc`, `eslint`, and `pnpm test` into CI (`.github/workflows/checks.yml`) so refactors cannot silently strand a test the way hand-mocked screen tests do.
-- **Run a Dead Code & Unused Export scan before every store release**:
-  - Periodically scan `src/` for unused exports, dead service methods, and duplicated `<Host><Button>` blocks so the bundle stays lean and every exported type/hook has a real caller.
+
+- Keep project rules and native layout lessons close to the code. [Project working guide](../AGENTS.md) · [Native UI gotchas](native-ui-gotchas.md)
+- `pnpm test` discovers `scripts/startup-compat.test.cjs` and every `scripts/tests/*.test.cjs`. Coverage includes startup compatibility, timezone and activity calculations, homework states and attachment validation, booking cache keys, auth recovery, refresh and pagination, keyboard layout, and native typography. [Test runner](../scripts/run-tests.cjs) · [Test suites](../scripts/tests)
+- CI installs with the frozen pnpm lockfile and runs `pnpm exec prettier --check .`, `pnpm exec tsc --noEmit`, `pnpm exec eslint src`, and `pnpm test`. Follow the device checklist for visual behavior, native controls, and complete booking flows. [CI](../.github/workflows/checks.yml) · [Device QA](qa-checklist.md)
+- Keep native build profiles and EAS Update channels aligned with their environments. Changes to native config or resources need a compatible native build. [EAS profiles](../eas.json) · [Build and run](build-and-run.md) · [Local development](local-development.md)

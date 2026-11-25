@@ -62,6 +62,140 @@ function hooks() {
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
+test("direct confirmation blocks inactive tickets and uses the existing reservation for bay reschedules", async () => {
+    const status = load("src/utils/status-tone.ts", {
+        "./format-enum": load("src/utils/format-enum.ts", {}),
+    });
+    const ticketType = load("src/design-system/utils/ticket-type.ts", {});
+    const eligibility = load("src/lib/booking/ticket-eligibility.ts", {
+        "@/design-system/utils/ticket-type": ticketType,
+        "@/utils/status-tone": status,
+    });
+    const h = hooks();
+    const params = {
+        date: "2026-11-27",
+        ticketId: "1",
+        ticketName: "Ticket",
+        ticketType: "BAY_USAGE",
+        slotGroupId: "2",
+        lessonAvailabilityId: "2",
+    };
+    const ticket = { id: 1, type: "BAY_USAGE", status: "EXPIRED", fullyUsed: false, remainingCount: 1 };
+    const reservation = { reservationType: "bay", reservationStatus: "RESERVED", isCancellable: true, ticket };
+    const slots = { data: { data: [{ id: 2, totalReservableBaySlots: 1 }] } };
+    let created = 0;
+    let rescheduled = 0;
+    const mocks = {
+        react: h.react,
+        "@/components/golf/booking/BookingStepHeader": { BookingStepHeader: "BookingStepHeader" },
+        "@/components/golf/booking/BookingConfirmationShared": {
+            BookingConfirmationFooter: "BookingConfirmationFooter",
+            BookingConfirmationTicketField: "TicketField",
+            handleBookingConfirmationSuccess() {},
+        },
+        "@/components/golf/reservation/ReservationSections": {
+            ReservationContent: "ReservationContent",
+            ReservationDetailField: "ReservationDetailField",
+        },
+        "@/components/golf/reservation/detail/reservation-detail-utils": load(
+            "src/components/golf/reservation/detail/reservation-detail-utils.ts",
+            {},
+        ),
+        "@/components/ui/form": { FormTextInput: "FormTextInput" },
+        "@/design-system": { Screen: "Screen", Divider: "Divider" },
+        "@/design-system/components/AppText": { AppText: "AppText" },
+        "@/design-system/components/AppToast": {},
+        "@/design-system/utils/ticket-type": ticketType,
+        "@/lib/api-response/api-response": {},
+        "@/lib/booking/ticket-eligibility": eligibility,
+        "@/lib/hook/useIsOnline": { useIsOnline: () => true },
+        "@/lib/hook/useNavigationLock": { useNavigationLock: () => ({ isLocked: false }) },
+        "@/lib/hook/usePullToRefresh": { usePullToRefresh: () => ({ refreshing: false }) },
+        "@/lib/hook/useReservation": {
+            useMemberBaySlotGroups: () => slots,
+            useMemberTicketLessonSlots: () => slots,
+            useMemberReservationById: () => ({ data: { data: reservation } }),
+            useCreateMemberBayReservation: () => ({
+                mutateAsync: async () => {
+                    created++;
+                    return { data: {} };
+                },
+            }),
+            useCreateMemberLessonReservation: () => ({
+                mutate: () => {
+                    created++;
+                },
+            }),
+            useRescheduleMemberBayReservation: () => ({
+                mutateAsync: async () => {
+                    rescheduled++;
+                    return { data: {} };
+                },
+            }),
+        },
+        "@/lib/hook/useTicket": { useMemberTicketById: () => ({ data: ticket }) },
+        "@/lib/hook/useUser": { useGetMemberProfile: () => ({}) },
+        "@/utils/lesson-slot": {
+            isGroupLessonSlot: () => false,
+            isLessonSlotBookable: () => true,
+            isLessonSlotFull: () => false,
+        },
+        "@/utils/status-tone": status,
+        "@/utils/ticket-pause": { getTicketPausePeriods: () => [], isTicketDatePaused: () => false },
+        "@/utils/time-helper": {
+            formatDateForAPI: () => params.date,
+            formatDateMedium: () => params.date,
+            formatDateShort: () => params.date,
+            formatTimeRange: () => "10:00–11:00",
+        },
+        "@tanstack/react-query": { useQueryClient: () => ({}) },
+        "expo-haptics": {},
+        "expo-router": { Stack: { Screen: "StackScreen" }, useLocalSearchParams: () => params, useRouter: () => ({}) },
+        "expo-router/stack": { Stack: { Screen: "StackScreen" } },
+        "react-hook-form": {
+            useForm: () => ({
+                formState: { isValid: true },
+                handleSubmit: (submit) => () => submit({ memberNotes: "" }),
+            }),
+            useWatch: () => "",
+        },
+        "react-i18next": { useTranslation: () => ({ t: (key) => key }) },
+        "react-native": { RefreshControl: "RefreshControl" },
+    };
+    const bay = load("src/app/(app)/bay-booking-confirm.tsx", mocks).default;
+    const lesson = load("src/app/(app)/lesson-booking-confirm.tsx", mocks).default;
+    const footer = (screen) => screen().props.footer.props;
+
+    for (const [screen, type] of [
+        [bay, "BAY_USAGE"],
+        [lesson, "PRIVATE_LESSON"],
+    ]) {
+        ticket.type = params.ticketType = type;
+        ticket.status = "EXPIRED";
+        assert.equal(footer(screen).disabled, true);
+        footer(screen).onPress();
+        assert.equal(created, 0);
+        ticket.status = "ACTIVE";
+        assert.equal(footer(screen).disabled, false);
+    }
+
+    ticket.type = params.ticketType = "BAY_USAGE";
+    ticket.status = "FULLY_USED";
+    ticket.fullyUsed = true;
+    ticket.remainingCount = 0;
+    params.mode = "reschedule";
+    params.reservationId = "3";
+    assert.equal(footer(bay).disabled, false);
+    footer(bay).onPress();
+    await flush();
+    assert.equal(rescheduled, 1);
+
+    reservation.isCancellable = false;
+    assert.equal(footer(bay).disabled, true);
+    footer(bay).onPress();
+    assert.equal(rescheduled, 1);
+});
+
 function findElement(tree, predicate) {
     if (Array.isArray(tree)) {
         for (const child of tree) {

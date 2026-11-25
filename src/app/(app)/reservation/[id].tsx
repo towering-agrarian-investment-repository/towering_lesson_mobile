@@ -12,8 +12,8 @@ import {
     isReservationDomain,
 } from "@/components/golf/reservation/detail/reservation-detail-utils";
 import { ActionButton, Divider, EmptyState, ErrorState, Screen, Skeleton, triggerSuccessHaptic } from "@/design-system";
-import { AppText } from "@/design-system/components/AppText";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
+import { canRescheduleBayReservation } from "@/lib/booking/ticket-eligibility";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
@@ -22,6 +22,7 @@ import {
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
+import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Href, useLocalSearchParams, useRouter } from "expo-router";
@@ -122,14 +123,12 @@ export default function ReservationDetailScreen() {
     const isBayReservation = isBayReservationDetail(reservation);
     const lessonReservation = isLessonReservationDetail(reservation) ? reservation : null;
     const isProgramReservation = lessonReservation?.lessonProgramEnrollmentId != null;
+    const reservationTicket = reservation.ticket;
+    const isRefundedTicket = getEffectiveTicketStatus(reservationTicket?.status) === "REFUNDED";
+    const ticketDetailsId = isRefundedTicket ? undefined : reservationTicket?.id;
 
     const canCancelReservation = reservation.reservationStatus === "RESERVED" && reservation.isCancellable;
-    const canRescheduleReservation =
-        reservation.reservationStatus === "RESERVED" &&
-        isBayReservation &&
-        reservation.isCancellable &&
-        Boolean(reservation.ticket?.id);
-    const isReservedReservation = reservation.reservationStatus === "RESERVED";
+    const canRescheduleReservation = isBayReservation && canRescheduleBayReservation(reservation);
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
     const isCancelDisabled = !isOnline || !canCancelReservation || isCancelling;
     const isRescheduleDisabled = !isOnline || isLocked;
@@ -248,7 +247,7 @@ export default function ReservationDetailScreen() {
                 title={title}
                 dateValue={dateValue}
                 timeValue={timeValue}
-                showRefundNote={Boolean(reservation.ticket?.id)}
+                showRefundNote={Boolean(ticketDetailsId)}
                 onConfirm={confirmCancelReservation}
                 onDismiss={closeCancelSheet}
             />
@@ -256,7 +255,7 @@ export default function ReservationDetailScreen() {
                 contentClassName="grow"
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
                 footer={
-                    isReservedReservation ? (
+                    canCancelReservation ? (
                         <View className="gap-2">
                             {canRescheduleReservation ? (
                                 <ActionButton
@@ -276,11 +275,6 @@ export default function ReservationDetailScreen() {
                                 haptic="impact"
                                 onPress={handleCancelReservation}
                             />
-                            {!canCancelReservation ? (
-                                <AppText variant="caption" color="mutedForeground" align="center">
-                                    {t("reservations.cancelUnavailableHint")}
-                                </AppText>
-                            ) : null}
                         </View>
                     ) : null
                 }
@@ -365,23 +359,25 @@ export default function ReservationDetailScreen() {
                             </>
                         ) : null}
 
-                        {reservation.ticket?.id && reservation.ticket?.name ? (
+                        {reservationTicket?.name ? (
                             <>
                                 <Divider className="bg-border" />
                                 <ReservationDetailRow
                                     label={t("bookingConfirmation.ticketLabel")}
-                                    value={reservation.ticket.name}
+                                    value={reservationTicket.name}
                                     disabled={isLocked}
-                                    onPress={() => {
-                                        runWithNavigationLock(() => {
-                                            router.push({
-                                                pathname: "/tickets/[id]",
-                                                params: {
-                                                    id: String(reservation.ticket!.id),
-                                                },
-                                            });
-                                        });
-                                    }}
+                                    onPress={
+                                        ticketDetailsId
+                                            ? () => {
+                                                  runWithNavigationLock(() => {
+                                                      router.push({
+                                                          pathname: "/tickets/[id]",
+                                                          params: { id: String(ticketDetailsId) },
+                                                      });
+                                                  });
+                                              }
+                                            : undefined
+                                    }
                                 />
                             </>
                         ) : null}

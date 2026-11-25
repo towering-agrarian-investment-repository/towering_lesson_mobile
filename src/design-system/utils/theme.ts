@@ -26,6 +26,7 @@ export type ThemeColors = {
     dangerForeground: string;
     success: string;
     warning: string;
+    warningText: string;
     ticketBay: string;
     ticketPrivate: string;
     ticketGroup: string;
@@ -66,6 +67,7 @@ const lightThemeColors = {
     dangerForeground: "#ffffff",
     success: "#16a34a",
     warning: "#f59e0b",
+    warningText: "#92400e",
     ticketBay: "#26a9e0",
     ticketPrivate: "#4071c0",
     ticketGroup: "#faad3d",
@@ -100,6 +102,7 @@ const darkThemeColors = {
     dangerForeground: "#ffffff",
     success: "#4ade80",
     warning: "#fbbf24",
+    warningText: "#fbbf24",
     ticketBay: "#4cc3f0",
     ticketPrivate: "#5b8def",
     ticketGroup: "#ffc24b",

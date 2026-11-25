@@ -1,6 +1,7 @@
 import TicketHistoryCard, { TicketHistoryCardSkeleton } from "@/components/golf/TicketHistoryCard";
 import { EmptyState, ErrorState, ListRetryFooter, StateList } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
+import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberTicketByIdQueryOptions, MY_TICKET_TYPES, useMemberTickets } from "@/lib/hook/useTicket";
@@ -89,6 +90,8 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
 
     const handleBookPress = useCallback(
         (item: TicketListItemResponse) => {
+            if (!canBookWithTicket(item)) return;
+
             prefetchTicketAvailability(queryClient, item);
             runWithNavigationLock(() => {
                 router.push({

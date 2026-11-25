@@ -1,5 +1,6 @@
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { showAppToast } from "@/design-system/components/AppToast";
+import { Skeleton } from "@/design-system/components/Skeleton";
 import { useThemeColors } from "@/design-system/utils/theme";
 import type { PublishedBanner } from "@/types/banner";
 import { openExternalUrl } from "@/utils/open-external-url";
@@ -10,7 +11,8 @@ import { useTranslation } from "react-i18next";
 import { AppState, FlatList, Pressable, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
-const BANNER_ASPECT_RATIO = 993 / 250;
+const BANNER_FRAME_STYLE = { aspectRatio: 993 / 250 };
+const BANNER_CORNER_STYLE = { borderRadius: 16, borderCurve: "continuous" } as const;
 const AUTO_ROTATE_MS = 5000;
 const EMPTY_BANNERS: PublishedBanner[] = [];
 const bannerKeyExtractor = (banner: PublishedBanner) => String(banner.id);
@@ -44,8 +46,7 @@ const BannerSlide = memo(function BannerSlide({
             style={{
                 width: "100%",
                 height: "100%",
-                borderRadius: 16,
-                borderCurve: "continuous",
+                ...BANNER_CORNER_STYLE,
             }}
             onError={() => onImageError(imageUrl)}
             accessibilityLabel={banner.title}
@@ -71,6 +72,10 @@ const BannerSlide = memo(function BannerSlide({
         </View>
     );
 });
+
+export function HomeBannerSkeleton() {
+    return <Skeleton className="self-stretch" style={[BANNER_FRAME_STYLE, BANNER_CORNER_STYLE]} />;
+}
 
 export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBanner[] }) {
     const { t } = useTranslation();
@@ -192,7 +197,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     return (
         <View
             className="self-stretch"
-            style={{ aspectRatio: BANNER_ASPECT_RATIO }}
+            style={BANNER_FRAME_STYLE}
             onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
         >
             <FlatList

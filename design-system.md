@@ -29,7 +29,7 @@ The palette uses the original brand values. Helper roles (`primaryText`, `textTe
 | `success` | `#16A34A` | `#4ADE80` | Success |
 | `successText` | `#16A34A` | `#4ADE80` | Success text on tint |
 | `warning` | `#F59E0B` | `#FBBF24` | Warning |
-| `warningText` | `#F59E0B` | `#FBBF24` | Warning text on tint |
+| `warningText` | `#92400E` | `#FBBF24` | Warning text on plain and tinted surfaces |
 | `ticketBay` | `#26A9E0` | `#4CC3F0` | Bay ticket |
 | `ticketPrivate` | `#4071C0` | `#5B8DEF` | Private lesson ticket |
 | `ticketGroup` | `#FAAD3D` | `#FFC24B` | Group lesson ticket |

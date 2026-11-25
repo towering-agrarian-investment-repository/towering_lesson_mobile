@@ -2,12 +2,11 @@ import type { MemberReservationResponse } from "./member-reservation";
 
 export type TicketPauseResponse = {
     id: number;
-    reason: string | null;
-    pauseStartDate: string;
-    pauseEndDate: string;
-    pausedAt: string;
+    ticketId: number;
+    pausedStartDate: string;
+    pausedEndDate: string;
     cancelledAt: string | null;
-    status: string;
+    notes: string | null;
 };
 
 export type TicketListItemResponse = {

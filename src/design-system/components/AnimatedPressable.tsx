@@ -1,7 +1,8 @@
 import { forwardRef, useEffect, type ComponentRef } from "react";
-import { Pressable, type PressableProps, type PressableStateCallbackType } from "react-native";
+import { Pressable, StyleSheet, View, type PressableProps, type PressableStateCallbackType } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 
+import { cn } from "../utils/cn";
 import { colorWithOpacity } from "../utils/color";
 import { triggerImpactHaptic, triggerSelectionHaptic } from "../utils/haptics";
 import { motionDuration, motionEase, motionPressScale } from "../utils/motion";
@@ -14,8 +15,6 @@ type AnimatedPressableProps = Omit<PressableProps, "style"> & {
     className?: string;
     style?: PressableProps["style"];
     haptic?: "selection" | "impact" | false;
-    /** Uses native Material foreground ripple on Android (default true). */
-    ripple?: boolean;
 };
 
 export const AnimatedPressable = forwardRef<ComponentRef<typeof Pressable>, AnimatedPressableProps>(
@@ -24,8 +23,9 @@ export const AnimatedPressable = forwardRef<ComponentRef<typeof Pressable>, Anim
             disabled,
             pressRetentionOffset = 16,
             haptic = false,
-            ripple = true,
             android_ripple,
+            className,
+            children,
             onPress,
             onPressIn,
             onPressOut,
@@ -37,41 +37,41 @@ export const AnimatedPressable = forwardRef<ComponentRef<typeof Pressable>, Anim
         const { colors, resolvedScheme } = useTheme();
         const pressed = useSharedValue(0);
         const reducedMotion = useReducedMotion();
-        const useAndroidRipple = IS_ANDROID && ripple && !disabled && Boolean(onPress);
+        const useAndroidFeedback = IS_ANDROID && Boolean(onPress);
+        const showPressedSurface = useAndroidFeedback && android_ripple == null;
+        const pressedColor = showPressedSurface
+            ? colorWithOpacity(colors.foreground, resolvedScheme === "dark" ? 0.14 : 0.08)
+            : undefined;
 
         useEffect(() => {
-            if (disabled || useAndroidRipple) {
+            if (disabled || useAndroidFeedback) {
                 pressed.set(0);
             }
-        }, [disabled, pressed, useAndroidRipple]);
+        }, [disabled, pressed, useAndroidFeedback]);
 
         const animatedStyle = useAnimatedStyle(() => {
             const progress = pressed.get();
             return {
                 transform: [
                     {
-                        scale: reducedMotion || useAndroidRipple ? 1 : 1 - progress * (1 - motionPressScale),
+                        scale: reducedMotion || useAndroidFeedback ? 1 : 1 - progress * (1 - motionPressScale),
                     },
                 ],
             };
         });
 
-        const resolvedRipple =
-            android_ripple ??
-            (useAndroidRipple
-                ? {
-                      color: colorWithOpacity(colors.foreground, resolvedScheme === "dark" ? 0.14 : 0.08),
-                      foreground: true,
-                  }
-                : undefined);
-
         return (
             <ReanimatedPressable
                 {...props}
+                // Keep the active: variant stable for the component's lifetime:
+                // react-native-css resets pressable state and re-mounts children if a
+                // pressable variant appears or disappears after mount. A disabled
+                // pressable can never be active, so keeping the variant is harmless.
+                className={cn(className, showPressedSurface && "active:overflow-hidden")}
                 ref={ref}
                 disabled={disabled}
                 pressRetentionOffset={pressRetentionOffset}
-                android_ripple={resolvedRipple}
+                android_ripple={android_ripple}
                 onPress={
                     onPress
                         ? (event) => {
@@ -87,7 +87,7 @@ export const AnimatedPressable = forwardRef<ComponentRef<typeof Pressable>, Anim
                         : undefined
                 }
                 onPressIn={(event) => {
-                    if (!disabled && !useAndroidRipple) {
+                    if (!disabled && !useAndroidFeedback) {
                         pressed.set(
                             reducedMotion
                                 ? 1
@@ -100,7 +100,7 @@ export const AnimatedPressable = forwardRef<ComponentRef<typeof Pressable>, Anim
                     onPressIn?.(event);
                 }}
                 onPressOut={(event) => {
-                    if (!useAndroidRipple) {
+                    if (!useAndroidFeedback) {
                         pressed.set(
                             reducedMotion
                                 ? 0
@@ -117,7 +117,22 @@ export const AnimatedPressable = forwardRef<ComponentRef<typeof Pressable>, Anim
                         ? (state: PressableStateCallbackType) => [style(state), animatedStyle]
                         : [style, animatedStyle]
                 }
-            />
+            >
+                {showPressedSurface
+                    ? (state: PressableStateCallbackType) => (
+                          <>
+                              {typeof children === "function" ? children(state) : children}
+                              {!disabled && state.pressed ? (
+                                  <View
+                                      pointerEvents="none"
+                                      accessible={false}
+                                      style={[StyleSheet.absoluteFill, { backgroundColor: pressedColor }]}
+                                  />
+                              ) : null}
+                          </>
+                      )
+                    : children}
+            </ReanimatedPressable>
         );
     },
 );

@@ -148,60 +148,58 @@ const GroupCard = memo(function GroupCard({
             accessibilityRole="button"
             accessibilityLabel={t("groups.openGroup", { name: groupName })}
             disabled={disabled}
-            className="disabled:opacity-60"
+            className="gap-3 rounded-2xl border border-border bg-card p-4 disabled:opacity-60"
             onPress={() => onPress(group.groupId)}
             onPressIn={() => onPressIn(group.groupId)}
         >
-            <View className="gap-3 rounded-2xl border border-border bg-card p-4">
-                <View className="flex-row items-center justify-between gap-2">
-                    <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
-                        {statusLabel ? (
-                            <Badge
-                                label={statusLabel}
-                                size="sm"
-                                className={statusTone.className}
-                                color={statusTone.color}
-                            />
-                        ) : null}
+            <View className="flex-row items-center justify-between gap-2">
+                <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
+                    {statusLabel ? (
+                        <Badge
+                            label={statusLabel}
+                            size="sm"
+                            className={statusTone.className}
+                            color={statusTone.color}
+                        />
+                    ) : null}
 
-                        {lessonType ? (
-                            <AppText variant="caption" color="mutedForeground">
-                                {lessonType}
-                            </AppText>
-                        ) : null}
-                    </View>
-
-                    <ChevronRight size={16} color={colors.mutedForeground} strokeWidth={2.2} />
+                    {lessonType ? (
+                        <AppText variant="caption" color="mutedForeground">
+                            {lessonType}
+                        </AppText>
+                    ) : null}
                 </View>
 
-                <View className="gap-1">
-                    <AppText variant="subtitle" numberOfLines={2} textStyle={{ fontWeight: "700" }}>
-                        {groupName}
+                <ChevronRight size={16} color={colors.mutedForeground} strokeWidth={2.2} />
+            </View>
+
+            <View className="gap-1">
+                <AppText variant="subtitle" numberOfLines={2} textStyle={{ fontWeight: "700" }}>
+                    {groupName}
+                </AppText>
+                {subtitle ? (
+                    <AppText variant="subtext" color="mutedForeground" numberOfLines={2}>
+                        {subtitle}
                     </AppText>
-                    {subtitle ? (
-                        <AppText variant="subtext" color="mutedForeground" numberOfLines={2}>
-                            {subtitle}
-                        </AppText>
-                    ) : null}
+                ) : null}
+            </View>
+
+            <View className="flex-row flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 pt-3">
+                <View className="flex-row items-center gap-1.5">
+                    <Calendar size={15} color={colors.mutedForeground} strokeWidth={2} />
+                    <AppText variant="caption" color="mutedForeground" wrap={false} tabular>
+                        {dateRange}
+                    </AppText>
                 </View>
 
-                <View className="flex-row flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 pt-3">
+                {timeRange && timeRange !== "—" ? (
                     <View className="flex-row items-center gap-1.5">
-                        <Calendar size={15} color={colors.mutedForeground} strokeWidth={2} />
+                        <Clock size={15} color={colors.mutedForeground} strokeWidth={2} />
                         <AppText variant="caption" color="mutedForeground" wrap={false} tabular>
-                            {dateRange}
+                            {timeRange}
                         </AppText>
                     </View>
-
-                    {timeRange && timeRange !== "—" ? (
-                        <View className="flex-row items-center gap-1.5">
-                            <Clock size={15} color={colors.mutedForeground} strokeWidth={2} />
-                            <AppText variant="caption" color="mutedForeground" wrap={false} tabular>
-                                {timeRange}
-                            </AppText>
-                        </View>
-                    ) : null}
-                </View>
+                ) : null}
             </View>
         </AnimatedPressable>
     );

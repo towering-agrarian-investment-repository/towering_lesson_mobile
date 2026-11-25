@@ -265,7 +265,7 @@ export function LessonDetailView({
                                         accessibilityLabel={title}
                                         disabled={!url}
                                         haptic={url ? "selection" : false}
-                                        className="min-h-16 flex-row items-center gap-3 px-4 py-3.5 active:bg-surface"
+                                        className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface"
                                         onPress={
                                             url
                                                 ? () => {
@@ -346,7 +346,7 @@ function SessionRow({
             accessibilityLabel={getSessionTitle(session)}
             disabled={disabled}
             haptic="selection"
-            className="min-h-16 flex-row items-center gap-3 px-4 py-3.5 active:bg-surface disabled:opacity-60"
+            className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface disabled:opacity-60"
             onPress={onPress}
         >
             <View
@@ -438,7 +438,7 @@ function HomeworkRow({
             accessibilityLabel={`${getHomeworkTitle(homework)}, ${statusLabel}`}
             disabled={disabled}
             haptic="selection"
-            className="min-h-16 flex-row items-center gap-3 px-4 py-3.5 active:bg-surface disabled:opacity-60"
+            className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface disabled:opacity-60"
             onPress={onPress}
         >
             <View

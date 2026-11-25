@@ -70,6 +70,7 @@ export function ProfileHeader({
                 <AnimatedPressable
                     accessibilityRole="button"
                     accessibilityLabel={t("profile.viewProfilePhoto")}
+                    className="rounded-full"
                     haptic="selection"
                     onPress={onImagePress}
                 >
@@ -175,7 +176,7 @@ export function InfoRow({
     }
 
     return (
-        <View className="min-h-14 flex-row items-center gap-3 py-3">
+        <View className="min-h-14 flex-row items-center gap-3 px-4 py-3">
             <Icon size={20} color={colors.foreground} />
             <AppText variant="body" style={{ flex: 1, minWidth: 0 }}>
                 {label}
@@ -207,7 +208,7 @@ export function ParentRow({
     const { t } = useTranslation();
 
     return (
-        <View className="min-h-16 flex-row items-center gap-3 py-2">
+        <View className="min-h-16 flex-row items-center gap-3 px-4 py-2">
             <ProfileAvatar name={name} imageUrl={imageUrl} />
 
             <View className="min-w-0 flex-1 flex-col gap-1">
@@ -257,7 +258,7 @@ export function LinkRow({
                         <ChevronRight size={18} color={colors.mutedForeground} />
                     </View>
                 }
-                className="min-h-14 rounded-none border-0 bg-transparent px-0 py-3"
+                className="min-h-14 rounded-lg border-0 bg-transparent py-3"
             />
         </Link>
     );

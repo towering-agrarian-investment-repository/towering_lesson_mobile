@@ -98,16 +98,27 @@ export function getHomeworkReviewTone(status?: string | null): Tone {
 
 export function getEffectiveTicketStatus(status?: string | null, fullyUsed?: boolean): string {
     const normalized = status?.toUpperCase().replaceAll("-", "_") ?? "";
-    if (
-        fullyUsed &&
-        normalized !== "EXPIRED" &&
-        normalized !== "CANCELLED" &&
-        normalized !== "CANCELED" &&
-        normalized !== "TRANSFERRED"
-    ) {
+    if (fullyUsed && (normalized === "ACTIVE" || normalized === "IN_USE")) {
         return "FULLY_USED";
     }
     return normalized;
+}
+
+export function getTicketStatusGroup(status?: string | null, fullyUsed?: boolean): "active" | "past" | "other" {
+    switch (getEffectiveTicketStatus(status, fullyUsed)) {
+        case "ACTIVE":
+        case "IN_USE":
+            return "active";
+        case "FULLY_USED":
+        case "EXPIRED":
+        case "CANCELLED":
+        case "CANCELED":
+        case "TRANSFERRED":
+        case "REFUNDED":
+            return "past";
+        default:
+            return "other";
+    }
 }
 
 export function getTicketStatusTone(status?: string | null, fullyUsed?: boolean): Tone {
@@ -123,6 +134,7 @@ export function getTicketStatusTone(status?: string | null, fullyUsed?: boolean)
             return danger;
         case "EXPIRED":
         case "TRANSFERRED":
+        case "REFUNDED":
         default:
             return neutral;
     }
@@ -147,6 +159,8 @@ export function getTicketStatusLabel(
             return t("tickets.statuses.cancelled");
         case "TRANSFERRED":
             return t("tickets.statuses.transferred");
+        case "REFUNDED":
+            return t("tickets.statuses.refunded");
         default:
             return formatType(status, t);
     }
