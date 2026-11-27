@@ -1,6 +1,6 @@
 import { ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { AnimatedPressable, useThemeColors } from "@/design-system";
-import { ChevronRight } from "lucide-react-native";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import type { ReactNode } from "react";
 
 type ReservationDetailRowProps = {

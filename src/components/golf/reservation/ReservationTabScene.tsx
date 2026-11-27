@@ -5,9 +5,9 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberReservationDetailQueryOptions, useMemberReservations } from "@/lib/hook/useReservation";
 import type { MemberReservationType } from "@/service/reservation.service";
-import type { MemberReservationResponse } from "@/types/member-reservation";
+import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatDateWeekdayYear } from "@/utils/time-helper";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useMemo } from "react";
@@ -16,25 +16,33 @@ import { RefreshControl, View } from "react-native";
 
 export const RESERVATION_TABS: MemberReservationType[] = ["all", "bay", "private", "group", "program"];
 
-const reservationKeyExtractor = (item: MemberReservationResponse) => `${item.reservationType}:${item.id}`;
+type ReservationItemEntry = { type: "item"; key: string; reservation: MemberReservationSummaryResponse };
+type ReservationEntry =
+    { type: "header"; key: string; startTime: string; count: number; isFirst: boolean } | ReservationItemEntry;
+
+const reservationItemEntries = new WeakMap<MemberReservationSummaryResponse, ReservationItemEntry>();
+const reservationKeyExtractor = (entry: ReservationEntry) => entry.key;
+const getReservationItemType = (entry: ReservationEntry) => entry.type;
 const RESERVATION_LIST_CONTENT_STYLE = {
     paddingTop: 8,
     paddingBottom: 40,
 } as const;
 
-function ReservationSeparator() {
+function ReservationSeparator({ leadingItem }: { leadingItem: ReservationEntry }) {
+    if (leadingItem.type === "header") return null;
     return <View className="h-3" />;
 }
 
 type ReservationTabSceneProps = {
     type: MemberReservationType;
+    isActive: boolean;
     from?: string;
     to?: string;
     period: "all" | "upcoming" | "past";
     onPeriodChange: (period: "all" | "upcoming" | "past") => void;
 };
 
-function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: ReservationTabSceneProps) {
+function ReservationTabSceneContent({ type, isActive, from, to, period, onPeriodChange }: ReservationTabSceneProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -51,32 +59,46 @@ function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: 
         hasNextPage,
         isFetchingNextPage,
         isFetchNextPageError,
-    } = useMemberReservations(type, from, to);
+    } = useMemberReservations(type, from, to, isActive);
 
-    const reservations = useMemo(() => {
+    const { entries, reservationCount } = useMemo(() => {
         const seenKeys = new Set<string>();
-
-        return (data?.items ?? []).filter((reservation) => {
-            const key = reservationKeyExtractor(reservation);
-
-            if (seenKeys.has(key)) {
-                return false;
-            }
-
+        const dateCounts = new Map<string, number>();
+        const items: ReservationItemEntry[] = [];
+        for (const reservation of data?.items ?? []) {
+            const key = `${reservation.reservationType}:${reservation.id}`;
+            if (seenKeys.has(key)) continue;
             seenKeys.add(key);
-            return true;
-        });
-    }, [data?.items]);
-    const dateCounts = useMemo(() => {
-        const counts = new Map<string, number>();
-        for (const reservation of reservations) {
-            counts.set(reservation.reservationDate, (counts.get(reservation.reservationDate) ?? 0) + 1);
+            dateCounts.set(reservation.reservationDate, (dateCounts.get(reservation.reservationDate) ?? 0) + 1);
+            let entry = reservationItemEntries.get(reservation);
+            if (!entry) {
+                entry = { type: "item", key, reservation };
+                reservationItemEntries.set(reservation, entry);
+            }
+            items.push(entry);
         }
-        return counts;
-    }, [reservations]);
+
+        const entries: ReservationEntry[] = [];
+        let previousDate: string | undefined;
+        for (const entry of items) {
+            const { reservationDate, startTime } = entry.reservation;
+            if (reservationDate !== previousDate) {
+                entries.push({
+                    type: "header",
+                    key: `date:${entry.key}`,
+                    startTime,
+                    count: dateCounts.get(reservationDate) ?? 1,
+                    isFirst: entries.length === 0,
+                });
+                previousDate = reservationDate;
+            }
+            entries.push(entry);
+        }
+        return { entries, reservationCount: items.length };
+    }, [data?.items]);
 
     const handleReservationPress = useCallback(
-        (reservation: MemberReservationResponse) => {
+        (reservation: MemberReservationSummaryResponse) => {
             void queryClient.prefetchQuery(
                 getMemberReservationDetailQueryOptions(reservation.id, reservation.reservationType),
             );
@@ -93,28 +115,15 @@ function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: 
         [queryClient, router, runWithNavigationLock],
     );
 
-    const getReservationItemType = useCallback(
-        (item: MemberReservationResponse, index: number) =>
-            index === 0 || reservations[index - 1]?.reservationDate !== item.reservationDate ? "header-card" : "card",
-        [reservations],
+    const renderReservationItem: ListRenderItem<ReservationEntry> = useCallback(
+        ({ item }) =>
+            item.type === "header" ? (
+                <ReservationDateHeader startTime={item.startTime} count={item.count} isFirst={item.isFirst} />
+            ) : (
+                <ReservationCard reservation={item.reservation} disabled={isLocked} onPress={handleReservationPress} />
+            ),
+        [handleReservationPress, isLocked],
     );
-
-    const renderReservationItem = useCallback(
-        ({ item, index }: { item: MemberReservationResponse; index: number }) => (
-            <View className="gap-3">
-                {index === 0 || reservations[index - 1].reservationDate !== item.reservationDate ? (
-                    <ReservationDateHeader
-                        startTime={item.startTime}
-                        count={dateCounts.get(item.reservationDate) ?? 1}
-                        isFirst={index === 0}
-                    />
-                ) : null}
-                <ReservationCard reservation={item} disabled={isLocked} onPress={handleReservationPress} />
-            </View>
-        ),
-        [dateCounts, handleReservationPress, isLocked, reservations],
-    );
-    const flashListExtraData = useMemo(() => ({ isLocked, dateCounts }), [dateCounts, isLocked]);
 
     const { refreshing: isPullRefreshing, onRefresh: handleRefetch } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
@@ -127,8 +136,8 @@ function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: 
     }, [fetchNextPage, hasNextPage, isFetching, isPullRefreshing]);
 
     const handleEndReached = useCallback(() => {
-        if (!isFetchNextPageError) handleFetchNextPage();
-    }, [handleFetchNextPage, isFetchNextPageError]);
+        if (isActive && !isFetchNextPageError) handleFetchNextPage();
+    }, [handleFetchNextPage, isActive, isFetchNextPageError]);
 
     if (isLoading) {
         return <ReservationLoadingState />;
@@ -148,7 +157,7 @@ function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: 
         );
     }
 
-    if (reservations.length === 0) {
+    if (reservationCount === 0) {
         return (
             <StateList refreshing={isPullRefreshing} onRefresh={handleRefetch}>
                 <EmptyState
@@ -176,8 +185,8 @@ function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: 
 
     return (
         <FlashList
-            data={reservations}
-            extraData={flashListExtraData}
+            data={entries}
+            extraData={isLocked}
             keyExtractor={reservationKeyExtractor}
             getItemType={getReservationItemType}
             renderItem={renderReservationItem}
@@ -187,7 +196,7 @@ function ReservationTabSceneContent({ type, from, to, period, onPeriodChange }: 
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
                 <ReservationListHeader
-                    count={reservations.length}
+                    count={reservationCount}
                     hasMore={hasNextPage}
                     isUpdating={isFetching && !isFetchingNextPage}
                     hasRefreshError={isError && !isFetching && !isFetchNextPageError}
@@ -240,8 +249,8 @@ function ReservationDateHeader({
         <View
             className={
                 isFirst
-                    ? "flex-row items-baseline justify-between gap-2 px-0.5 pt-1"
-                    : "flex-row items-baseline justify-between gap-2 px-0.5 pt-3.5"
+                    ? "flex-row items-baseline justify-between gap-2 px-0.5 pb-3 pt-1"
+                    : "flex-row items-baseline justify-between gap-2 px-0.5 pb-3 pt-3.5"
             }
         >
             <AppText

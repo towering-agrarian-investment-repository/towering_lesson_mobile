@@ -4,7 +4,7 @@ import { useTheme } from "@/design-system/utils/theme";
 import type { MemberHomeworkSummaryResponse } from "@/types/member-homework";
 import { getHomeworkTitle } from "@/utils/member-lesson";
 import { formatDateForDisplay } from "@/utils/time-helper";
-import { Calendar } from "lucide-react-native";
+import Calendar from "lucide-react-native/icons/calendar";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import type { getHomeworkDisplayState } from "./homework-utils";

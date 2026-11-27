@@ -24,8 +24,8 @@ const timeHelper = load("time-helper.ts", {
 });
 const { getTicketPausePeriods, isTicketDatePaused } = load("ticket-pause.ts", { "./time-helper": timeHelper });
 
-function pause(id, pausedStartDate, pausedEndDate, overrides = {}) {
-    return { id, ticketId: 1088, pausedStartDate, pausedEndDate, cancelledAt: null, notes: null, ...overrides };
+function pause(id, pausedStartDate, pausedEndDate) {
+    return { id, ticketId: 1088, pausedStartDate, pausedEndDate };
 }
 
 test("pause start and end dates are blocked and adjacent dates remain selectable", () => {
@@ -51,13 +51,9 @@ test("a single-day pause uses the Phnom Penh date and separate periods leave the
     assert.equal(isTicketDatePaused(periods, "2026-12-05"), true);
 });
 
-test("missing, cancelled, invalid, and reversed pause periods leave dates selectable", () => {
+test("missing, invalid, and reversed pause periods leave dates selectable", () => {
     assert.equal(getTicketPausePeriods().length, 0);
-    const periods = getTicketPausePeriods([
-        pause(1, "2026-11-26", "2026-11-28", { cancelledAt: "2026-11-25T10:00:00Z" }),
-        pause(2, "invalid", "2026-11-28"),
-        pause(3, "2026-11-28", "2026-11-26"),
-    ]);
+    const periods = getTicketPausePeriods([pause(2, "invalid", "2026-11-28"), pause(3, "2026-11-28", "2026-11-26")]);
     assert.equal(periods.length, 0);
     assert.equal(isTicketDatePaused(periods, "2026-11-27"), false);
 });

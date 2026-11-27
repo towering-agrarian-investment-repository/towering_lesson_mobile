@@ -30,7 +30,11 @@ import { getHomeworkReviewTone, getHomeworkSubmissionTone, getLessonStatusTone }
 import { fmtDate, fmtTime, formatDateForDisplay } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { BookOpen, Calendar, Check, ClipboardCheck, Clock } from "lucide-react-native";
+import BookOpen from "lucide-react-native/icons/book-open";
+import Calendar from "lucide-react-native/icons/calendar";
+import Check from "lucide-react-native/icons/check";
+import ClipboardCheck from "lucide-react-native/icons/clipboard-check";
+import Clock from "lucide-react-native/icons/clock";
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, type ListRenderItem, RefreshControl, View } from "react-native";
@@ -332,6 +336,8 @@ export default function GroupDetailScreen() {
             </View>
 
             <TabView
+                lazy
+                renderLazyPlaceholder={() => <View className="flex-1 bg-background" />}
                 animationEnabled={!reducedMotion}
                 navigationState={{ index: activeIndex, routes }}
                 onIndexChange={handleTabChange}

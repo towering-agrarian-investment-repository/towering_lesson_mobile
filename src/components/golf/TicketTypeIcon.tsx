@@ -1,5 +1,11 @@
 import type { TicketType } from "@/types/member.type";
-import { BookOpen, LandPlot, Lock, MapPin, Ticket, UserRound, UsersRound } from "lucide-react-native";
+import BookOpen from "lucide-react-native/icons/book-open";
+import LandPlot from "lucide-react-native/icons/land-plot";
+import Lock from "lucide-react-native/icons/lock";
+import MapPin from "lucide-react-native/icons/map-pin";
+import Ticket from "lucide-react-native/icons/ticket";
+import UserRound from "lucide-react-native/icons/user-round";
+import UsersRound from "lucide-react-native/icons/users-round";
 
 type Props = {
     type?: TicketType | string | null;

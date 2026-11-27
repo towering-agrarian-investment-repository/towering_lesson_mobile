@@ -38,6 +38,32 @@ type YearlyShareCardProps = {
 const dayDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4.png");
 const darkDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4_dark_clear.png");
 
+function createYearlyFormatters(language: string) {
+    const weekdayFormatter = new Intl.DateTimeFormat(language, {
+        weekday: "narrow",
+        calendar: "gregory",
+        timeZone: "UTC",
+    });
+    return {
+        numberFormatter: new Intl.NumberFormat(language),
+        hoursFormatter: new Intl.NumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+        yearFormatter: new Intl.NumberFormat(language, { useGrouping: false }),
+        monthFormatter: new Intl.DateTimeFormat(language, { month: "long", calendar: "gregory", timeZone: "UTC" }),
+        weekdays: Array.from({ length: 7 }, (_, column) => weekdayFormatter.format(Date.UTC(2024, 0, column + 1))),
+    };
+}
+
+const formattersByLanguage = new Map<string, ReturnType<typeof createYearlyFormatters>>();
+
+function getYearlyFormatters(language: string) {
+    let formatters = formattersByLanguage.get(language);
+    if (!formatters) {
+        formatters = createYearlyFormatters(language);
+        formattersByLanguage.set(language, formatters);
+    }
+    return formatters;
+}
+
 /** Annual activity on the same export canvas as the monthly card. */
 export const YearlyShareCard = memo(
     forwardRef<React.ElementRef<typeof View>, YearlyShareCardProps>(function YearlyShareCard(
@@ -94,29 +120,12 @@ export const YearlyShareCard = memo(
             color,
             includeFontPadding: false,
         });
-        const numberFormatter = new Intl.NumberFormat(language);
+        const { numberFormatter, hoursFormatter, yearFormatter, monthFormatter, weekdays } =
+            getYearlyFormatters(language);
         const countLabel = numberFormatter.format(totalReservations);
-        const hoursLabel = new Intl.NumberFormat(language, {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
-        }).format(hoursPlayed);
+        const hoursLabel = hoursFormatter.format(hoursPlayed);
         const hourUnit = copy("hourShort");
-        const yearLabel = new Intl.NumberFormat(language, {
-            useGrouping: false,
-        }).format(year);
-        const monthFormatter = new Intl.DateTimeFormat(language, {
-            month: "long",
-            calendar: "gregory",
-            timeZone: "UTC",
-        });
-        const weekdayFormatter = new Intl.DateTimeFormat(language, {
-            weekday: "narrow",
-            calendar: "gregory",
-            timeZone: "UTC",
-        });
-        const weekdays = Array.from({ length: 7 }, (_, column) =>
-            weekdayFormatter.format(new Date(Date.UTC(2024, 0, column + 1))),
-        );
+        const yearLabel = yearFormatter.format(year);
         const byDate = new Map(
             dailyValues
                 .filter((day) => toDateKey(day.date).startsWith(`${year}-`))

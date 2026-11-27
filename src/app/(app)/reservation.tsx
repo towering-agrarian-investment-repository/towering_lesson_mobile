@@ -5,9 +5,10 @@ import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { MemberReservationType } from "@/service/reservation.service";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { MenuView, type MenuAction } from "@expo/ui/community/menu";
-import { format, subDays } from "date-fns";
-import { Stack } from "expo-router";
-import { Filter } from "lucide-react-native";
+import { format } from "date-fns/format";
+import { subDays } from "date-fns/subDays";
+import { Stack, useIsFocused } from "expo-router";
+import Filter from "lucide-react-native/icons/funnel";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -79,17 +80,19 @@ export default function ReservationScreen() {
         [activeIndex],
     );
 
+    const isFocused = useIsFocused();
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
             <ReservationTabScene
                 type={route.key as MemberReservationType}
+                isActive={isFocused && route.key === RESERVATION_TABS[activeIndex]}
                 from={from}
                 to={to}
                 period={period}
                 onPeriodChange={setPeriod}
             />
         ),
-        [from, period, to],
+        [activeIndex, from, isFocused, period, to],
     );
 
     const renderTabBar = useCallback(

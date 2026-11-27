@@ -1,7 +1,11 @@
 import { authClient } from "@/lib/auth-client";
-import { deactivateCurrentPushInstallation } from "@/lib/config/notification/pushRegistrationStorage";
+import {
+    beginPushRegistrationSignOut,
+    deactivateCurrentPushInstallation,
+} from "@/lib/config/notification/pushRegistrationStorage";
 import { clearCachedJwtToken } from "@/lib/client/jwt-token";
 import { clearInterruptedHref } from "@/lib/auth-session";
+import { clearBayNotesDrafts } from "@/lib/booking/bay-notes-draft";
 
 export const ALLOWED_APP_ROLE = "MEMBER";
 const PUSH_CLEANUP_TIMEOUT_MS = 1_500;
@@ -74,6 +78,7 @@ export const signIn = async ({ phoneNumber, password }: { phoneNumber: string; p
 
 export const signOut = async () => {
     clearInterruptedHref();
+    const endPushRegistrationSignOut = beginPushRegistrationSignOut();
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const cleanup = deactivateCurrentPushInstallation(controller.signal).catch((error) => {
@@ -92,12 +97,16 @@ export const signOut = async () => {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     clearCachedJwtToken();
 
-    const result = await authClient.signOut().finally(clearCachedJwtToken);
+    const result = await authClient.signOut().finally(() => {
+        clearCachedJwtToken();
+        endPushRegistrationSignOut();
+    });
 
     if (result.error) {
         throw result.error;
     }
 
+    clearBayNotesDrafts();
     return result.data;
 };
 

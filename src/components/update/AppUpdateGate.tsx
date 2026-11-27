@@ -3,7 +3,7 @@ import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { ActionButton, Screen } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { openStore, type AppUpdateState } from "@/lib/update/app-update";
-import { Download } from "lucide-react-native";
+import Download from "lucide-react-native/icons/download";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";

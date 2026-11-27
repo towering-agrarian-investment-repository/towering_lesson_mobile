@@ -5,15 +5,32 @@ import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatFileSize } from "@/utils/file";
 import { Image } from "expo-image";
-import { FileCheck, FileUp, Video, X } from "lucide-react-native";
-import type { Control } from "react-hook-form";
+import { usePreventRemove } from "expo-router";
+import FileCheck from "lucide-react-native/icons/file-check";
+import FileUp from "lucide-react-native/icons/file-up";
+import Video from "lucide-react-native/icons/video";
+import X from "lucide-react-native/icons/x";
+import { useWatch, type Control } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { isImageFile, isVideoFile } from "./homework-utils";
 
-type HomeworkSubmissionComposerProps = {
+type HomeworkDraftGuardProps = {
     control: Control<{ memo: string }>;
     selectedFile: HomeworkSubmissionFile | null;
+    isSubmitting: boolean;
+    onPreventRemove: (repeat: () => void) => void;
+};
+
+export function HomeworkDraftGuard({ control, selectedFile, isSubmitting, onPreventRemove }: HomeworkDraftGuardProps) {
+    const memo = useWatch({ control, name: "memo" });
+    usePreventRemove((Boolean(selectedFile) || Boolean(memo.trim())) && !isSubmitting, ({ repeat }) => {
+        onPreventRemove(repeat);
+    });
+    return null;
+}
+
+type HomeworkSubmissionComposerProps = HomeworkDraftGuardProps & {
     isEditingDisabled: boolean;
     isPicking: boolean;
     onOpenSource: () => void;
@@ -25,6 +42,8 @@ export function HomeworkSubmissionComposer({
     control,
     selectedFile,
     isEditingDisabled,
+    isSubmitting,
+    onPreventRemove,
     isPicking,
     onOpenSource,
     onRemoveFile,
@@ -35,6 +54,7 @@ export function HomeworkSubmissionComposer({
 
     return (
         <View className="gap-4">
+            <HomeworkDraftGuard {...{ control, selectedFile, isSubmitting, onPreventRemove }} />
             <AppText variant="subtitle" textStyle={{ fontWeight: "700" }}>
                 {t("homework.submission")}
             </AppText>

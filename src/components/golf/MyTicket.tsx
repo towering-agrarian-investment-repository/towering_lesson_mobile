@@ -12,7 +12,7 @@ import {
     useMemberTickets,
 } from "@/lib/hook/useTicket";
 import { showAppToast } from "@/design-system/components/AppToast";
-import { TicketListItemResponse } from "@/types/member-ticket";
+import { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -37,7 +37,7 @@ function MyTicket() {
     const showLoadError = !data && (isError || errorUpdateCount > 0);
 
     const handleTicketPress = useCallback(
-        (item: TicketListItemResponse) => {
+        (item: MemberTicketSummaryResponse) => {
             if (item.type === "LESSON_PROGRAM") {
                 showAppToast({
                     message: t("tickets.adminEnrollmentMessage"),

@@ -1,10 +1,32 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@/design-system";
 import { colorWithOpacity } from "@/design-system/utils/color";
 import { useGetUnreadNotificationCount } from "@/lib/hook/shared/useNotification";
 import { useAppUpdateContext } from "@/lib/update/update-context";
 import { NativeTabs } from "expo-router/native-tabs";
 import { useTranslation } from "react-i18next";
+
+// Gate PNG requires behind EXPO_OS so iOS uses SF Symbols with zero bundled tab PNGs.
+const ANDROID_TAB_ICONS =
+    process.env.EXPO_OS === "android"
+        ? {
+              home: {
+                  default: require("@/assets/images/tabs/home-outline.png"),
+                  selected: require("@/assets/images/tabs/home.png"),
+              },
+              notice: {
+                  default: require("@/assets/images/tabs/bell-outline.png"),
+                  selected: require("@/assets/images/tabs/bell.png"),
+              },
+              activity: {
+                  default: require("@/assets/images/tabs/chart-box-outline.png"),
+                  selected: require("@/assets/images/tabs/chart-box.png"),
+              },
+              profile: {
+                  default: require("@/assets/images/tabs/account-outline.png"),
+                  selected: require("@/assets/images/tabs/account.png"),
+              },
+          }
+        : undefined;
 
 export default function TabLayout() {
     const { colors, resolvedScheme } = useTheme();
@@ -44,20 +66,14 @@ export default function TabLayout() {
             <NativeTabs.Trigger name="index">
                 <NativeTabs.Trigger.Icon
                     sf={{ default: "house", selected: "house.fill" }}
-                    src={{
-                        default: <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="home-outline" />,
-                        selected: <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="home" />,
-                    }}
+                    src={ANDROID_TAB_ICONS?.home}
                 />
                 <NativeTabs.Trigger.Label>{t("navigation.tabs.home")}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
             <NativeTabs.Trigger name="notice">
                 <NativeTabs.Trigger.Icon
                     sf={{ default: "bell", selected: "bell.fill" }}
-                    src={{
-                        default: <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="bell-outline" />,
-                        selected: <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="bell" />,
-                    }}
+                    src={ANDROID_TAB_ICONS?.notice}
                 />
                 <NativeTabs.Trigger.Label>{t("navigation.tabs.notifications")}</NativeTabs.Trigger.Label>
                 {unreadNotificationCount > 0 ? (
@@ -69,24 +85,14 @@ export default function TabLayout() {
             <NativeTabs.Trigger name="activity">
                 <NativeTabs.Trigger.Icon
                     sf={{ default: "chart.bar", selected: "chart.bar.fill" }}
-                    src={{
-                        default: (
-                            <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="chart-box-outline" />
-                        ),
-                        selected: <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="chart-box" />,
-                    }}
+                    src={ANDROID_TAB_ICONS?.activity}
                 />
                 <NativeTabs.Trigger.Label>{t("activity.title")}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
             <NativeTabs.Trigger name="profile">
                 <NativeTabs.Trigger.Icon
                     sf={{ default: "person", selected: "person.fill" }}
-                    src={{
-                        default: (
-                            <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="account-outline" />
-                        ),
-                        selected: <NativeTabs.Trigger.VectorIcon family={MaterialCommunityIcons} name="account" />,
-                    }}
+                    src={ANDROID_TAB_ICONS?.profile}
                 />
                 <NativeTabs.Trigger.Label>{t("navigation.tabs.profile")}</NativeTabs.Trigger.Label>
                 <NativeTabs.Trigger.Badge hidden={!update.isOptionalUpdateAvailable} />

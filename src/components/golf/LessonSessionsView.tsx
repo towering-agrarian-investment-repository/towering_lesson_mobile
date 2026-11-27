@@ -2,19 +2,22 @@ import { AnimatedPressable, Badge, EmptyState } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { cn } from "@/design-system/utils/cn";
 import { useTheme } from "@/design-system/utils/theme";
-import type { SessionInstanceResponse } from "@/types/member-session";
+import type { MemberLessonSessionResponse } from "@/types/member-session";
 import { formatType } from "@/utils/format-enum";
 import { getSessionTitle } from "@/utils/member-lesson";
 import { getSessionStatusTone, getSessionTypeTone } from "@/utils/status-tone";
 import { fmtDateTime } from "@/utils/time-helper";
-import { Award, Check, CheckCircle2, Clock, MessageSquare } from "lucide-react-native";
+import Award from "lucide-react-native/icons/award";
+import Check from "lucide-react-native/icons/check";
+import CheckCircle2 from "lucide-react-native/icons/circle-check";
+import Clock from "lucide-react-native/icons/clock";
 import { memo, type RefObject, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, type LayoutChangeEvent, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { SessionResourceSection } from "./SessionResourceSection";
 
-const sessionKeyExtractor = (session: SessionInstanceResponse) => String(session.id);
+const sessionKeyExtractor = (session: MemberLessonSessionResponse) => String(session.id);
 
 function SessionSeparator() {
     return <View className="w-2" />;
@@ -27,7 +30,7 @@ const SessionPill = memo(function SessionPill({
     onItemLayout,
     onSelect,
 }: {
-    session: SessionInstanceResponse;
+    session: MemberLessonSessionResponse;
     stepNumber: number;
     isSelected: boolean;
     onItemLayout: (sessionId: number, event: LayoutChangeEvent) => void;
@@ -92,7 +95,7 @@ const SessionPill = memo(function SessionPill({
 
 type LessonSessionsViewProps = {
     initialSessionId?: number | null;
-    sessions: SessionInstanceResponse[];
+    sessions: MemberLessonSessionResponse[];
 };
 
 export function LessonSessionsView({ initialSessionId, sessions }: LessonSessionsViewProps) {
@@ -103,7 +106,7 @@ export function LessonSessionsView({ initialSessionId, sessions }: LessonSession
     );
     const [containerWidth, setContainerWidth] = useState(0);
     const [contentWidth, setContentWidth] = useState(0);
-    const scrollViewRef = useRef<FlatList<SessionInstanceResponse>>(null);
+    const scrollViewRef = useRef<FlatList<MemberLessonSessionResponse>>(null);
     const itemLayouts = useRef<Record<number, { width: number; x: number }>>({});
     const selectedSession =
         sessions.find((session) => session.id === selectedSessionId) ??
@@ -208,12 +211,12 @@ function SessionSwitcher({
     onContentSizeChange: (width: number) => void;
     onItemLayout: (sessionId: number, event: LayoutChangeEvent) => void;
     selectedSessionId: number;
-    sessions: SessionInstanceResponse[];
+    sessions: MemberLessonSessionResponse[];
     onSelect: (sessionId: number) => void;
-    scrollViewRef: RefObject<FlatList<SessionInstanceResponse> | null>;
+    scrollViewRef: RefObject<FlatList<MemberLessonSessionResponse> | null>;
 }) {
     const renderSessionItem = useCallback(
-        ({ item, index }: { item: SessionInstanceResponse; index: number }) => (
+        ({ item, index }: { item: MemberLessonSessionResponse; index: number }) => (
             <SessionPill
                 session={item}
                 stepNumber={item.orderIndex ?? index + 1}
@@ -243,11 +246,16 @@ function SessionSwitcher({
     );
 }
 
-function SessionOverview({ session, fallbackNumber }: { session: SessionInstanceResponse; fallbackNumber: number }) {
+function SessionOverview({
+    session,
+    fallbackNumber,
+}: {
+    session: MemberLessonSessionResponse;
+    fallbackNumber: number;
+}) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const score = session.memberSession?.score;
-    const memo = session.memberSession?.memo?.trim() || null;
     const description = session.descriptionSnapshot?.trim() || null;
     const statusTone = getSessionStatusTone(session.status);
     const typeTone = getSessionTypeTone(session.typeSnapshot);
@@ -356,26 +364,14 @@ function SessionOverview({ session, fallbackNumber }: { session: SessionInstance
                     {t("lessonSessions.noDescription")}
                 </AppText>
             )}
-
-            {memo ? (
-                <View className="mt-1 gap-2 rounded-2xl border border-border bg-surface p-4">
-                    <View className="flex-row items-center gap-2">
-                        <MessageSquare size={15} color={colors.primary} strokeWidth={2} />
-                        <AppText variant="caption" color="primary" wrap={false} textStyle={{ fontWeight: "600" }}>
-                            {t("lessonSessions.coachNote")}
-                        </AppText>
-                    </View>
-                    <AppText variant="body">{memo}</AppText>
-                </View>
-            ) : null}
         </View>
     );
 }
 
-function isSessionCompleted(session: SessionInstanceResponse) {
+function isSessionCompleted(session: MemberLessonSessionResponse) {
     return session.status === "COMPLETED" || !!session.completedAt;
 }
 
-function isDrillSession(session: SessionInstanceResponse) {
+function isDrillSession(session: MemberLessonSessionResponse) {
     return session.typeSnapshot === "DRILL";
 }

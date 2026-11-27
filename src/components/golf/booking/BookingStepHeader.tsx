@@ -1,6 +1,10 @@
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import { CalendarDays, ChevronRight, Clock3, MapPin, Ticket } from "lucide-react-native";
+import CalendarDays from "lucide-react-native/icons/calendar-days";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import Clock3 from "lucide-react-native/icons/clock-3";
+import MapPin from "lucide-react-native/icons/map-pin";
+import Ticket from "lucide-react-native/icons/ticket";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 

@@ -1,129 +1,93 @@
-import { toAppTimeZoneDate } from "@/utils/timezone";
-import { format } from "date-fns";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { AppState } from "react-native";
 
 const MINUTE_MS = 60_000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
+// Asia/Phnom_Penh is UTC+7 year-round.
+const PHNOM_PENH_OFFSET_MS = 7 * 60 * MINUTE_MS;
 
-function getCurrentMinuteTimestamp() {
-    return Math.floor(Date.now() / MINUTE_MS) * MINUTE_MS;
+function getCurrentMinuteTimestamp(now = Date.now()) {
+    return Math.floor(now / MINUTE_MS) * MINUTE_MS;
 }
 
-function getMsUntilNextMinute() {
-    const remainder = Date.now() % MINUTE_MS;
-    return remainder === 0 ? MINUTE_MS : MINUTE_MS - remainder;
+function getPhnomPenhDay(timestamp: number) {
+    return Math.floor((timestamp + PHNOM_PENH_OFFSET_MS) / DAY_MS);
+}
+
+function getMsUntilNextDay(now: number) {
+    return (getPhnomPenhDay(now) + 1) * DAY_MS - PHNOM_PENH_OFFSET_MS - now;
+}
+
+function startForegroundClock(update: (now: number) => void, getDelay: (now: number) => number) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const sync = () => {
+        clearTimeout(timer);
+        if (AppState.currentState !== "active") return;
+        const now = Date.now();
+        update(now);
+        timer = setTimeout(sync, getDelay(now));
+    };
+
+    const subscription = AppState.addEventListener("change", sync);
+    sync();
+    return () => {
+        clearTimeout(timer);
+        subscription.remove();
+    };
+}
+
+const minuteListeners = new Set<(minute: number) => void>();
+let currentMinute: number;
+let stopMinuteClock: (() => void) | undefined;
+
+function subscribeToMinute(listener: (minute: number) => void) {
+    minuteListeners.add(listener);
+    if (minuteListeners.size === 1) {
+        currentMinute = getCurrentMinuteTimestamp();
+        stopMinuteClock = startForegroundClock(
+            (now) => {
+                const minute = getCurrentMinuteTimestamp(now);
+                if (minute === currentMinute) return;
+                currentMinute = minute;
+                minuteListeners.forEach((notify) => notify(minute));
+            },
+            (now) => MINUTE_MS - (now % MINUTE_MS),
+        );
+    }
+    if (AppState.currentState === "active") listener(currentMinute);
+
+    return () => {
+        minuteListeners.delete(listener);
+        if (minuteListeners.size === 0) {
+            stopMinuteClock?.();
+            stopMinuteClock = undefined;
+        }
+    };
 }
 
 export function useMinuteClock(enabled = true) {
     const [now, setNow] = useState(getCurrentMinuteTimestamp);
-
-    useFocusEffect(
-        useCallback(() => {
-            if (!enabled) {
-                return undefined;
-            }
-
-            let timeout: ReturnType<typeof setTimeout> | undefined;
-            let interval: ReturnType<typeof setInterval> | undefined;
-
-            const clearTimers = () => {
-                if (timeout !== undefined) {
-                    clearTimeout(timeout);
-                    timeout = undefined;
-                }
-                if (interval !== undefined) {
-                    clearInterval(interval);
-                    interval = undefined;
-                }
-            };
-
-            const updateMinute = () => {
-                const nextMinute = getCurrentMinuteTimestamp();
-                setNow((prev) => (prev === nextMinute ? prev : nextMinute));
-            };
-
-            const syncClock = () => {
-                clearTimers();
-                if (AppState.currentState !== "active") {
-                    return;
-                }
-                updateMinute();
-                timeout = setTimeout(() => {
-                    updateMinute();
-                    interval = setInterval(updateMinute, MINUTE_MS);
-                }, getMsUntilNextMinute());
-            };
-
-            syncClock();
-            const subscription = AppState.addEventListener("change", syncClock);
-
-            return () => {
-                clearTimers();
-                subscription.remove();
-            };
-        }, [enabled]),
-    );
-
+    useFocusEffect(useCallback(() => (enabled ? subscribeToMinute(setNow) : undefined), [enabled]));
     return now;
 }
 
-function getDaySnapshot() {
-    const now = getCurrentMinuteTimestamp();
-    const tzDate = toAppTimeZoneDate(now);
-    const key = tzDate ? format(tzDate, "yyyy-MM-dd") : format(new Date(now), "yyyy-MM-dd");
-    return { key, timestamp: now };
-}
-
-/**
- * Updates only when the calendar date rolls over (or on focus after midnight),
- * avoiding 60s full-screen re-renders on containers that only need today's date.
- */
+/** Updates on Phnom Penh date changes while focused, including after a foreground resume. */
 export function useDayClock() {
-    const [day, setDay] = useState(getDaySnapshot);
+    const [day, setDay] = useState(getCurrentMinuteTimestamp);
 
     useFocusEffect(
-        useCallback(() => {
-            let timeout: ReturnType<typeof setTimeout> | undefined;
-            let interval: ReturnType<typeof setInterval> | undefined;
-
-            const clearTimers = () => {
-                if (timeout !== undefined) {
-                    clearTimeout(timeout);
-                    timeout = undefined;
-                }
-                if (interval !== undefined) {
-                    clearInterval(interval);
-                    interval = undefined;
-                }
-            };
-
-            const checkDay = () => {
-                const next = getDaySnapshot();
-                setDay((prev) => (prev.key === next.key ? prev : next));
-            };
-
-            const syncClock = () => {
-                clearTimers();
-                if (AppState.currentState !== "active") {
-                    return;
-                }
-                checkDay();
-                timeout = setTimeout(() => {
-                    checkDay();
-                    interval = setInterval(checkDay, MINUTE_MS);
-                }, getMsUntilNextMinute());
-            };
-
-            syncClock();
-            const subscription = AppState.addEventListener("change", syncClock);
-
-            return () => {
-                clearTimers();
-                subscription.remove();
-            };
-        }, []),
+        useCallback(
+            () =>
+                startForegroundClock((now) => {
+                    setDay((previous) =>
+                        getPhnomPenhDay(previous) === getPhnomPenhDay(now) ? previous : getCurrentMinuteTimestamp(now),
+                    );
+                }, getMsUntilNextDay),
+            [],
+        ),
     );
 
-    return day.timestamp;
+    return day;
 }

@@ -517,7 +517,6 @@ const ko: TranslationResource<typeof en> = {
         noDescription: "등록된 세션 설명이 없습니다.",
         score: "점수 {{value}}",
         scoreEmpty: "점수 -",
-        coachNote: "코치 메모",
     },
     sessionResources: {
         videoFailedToLoad: "동영상을 불러오지 못했습니다.",
@@ -589,8 +588,6 @@ const ko: TranslationResource<typeof en> = {
         usageLabel: "사용 현황",
         dailyLimitLabel: "일일 제한",
         reservationsTitle: "예약 내역",
-        reservationCount: "예약 {{count}}건",
-        reservationCount_one: "예약 {{count}}건",
         loadingReservations: "불러오는 중...",
         noReservationsYet: "예약 내역이 없습니다",
         pausesTitle: "일시정지 내역",
@@ -688,10 +685,11 @@ const ko: TranslationResource<typeof en> = {
         startsInDays_other: "{{count}}일 후 시작",
     },
     bookingConfirmation: {
+        noteLabel: "메모",
         ticketBalanceDelta: "예약 후 {{before}} → {{after}}회 남음",
         bayRequestLabel: "메모/타석 요청",
         bayRequestOptionalLabel: "메모/타석 요청 (선택)",
-        bayRequestPlaceholder: "가능하면 3번 타석을 이용하고 싶습니다.",
+        bayRequestPlaceholder: "Bay 5",
         bayRequestTooLong: "타석 요청은 {{count}}자 이내로 입력해 주세요.",
         bayRequestDisclaimer:
             "타석 요청은 보장되지 않습니다. 실제 이용 가능 여부에 따라 배정된 타석이 변경될 수 있습니다.",

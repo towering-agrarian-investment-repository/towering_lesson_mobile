@@ -16,7 +16,6 @@ type MemberHomeworkReviewResponse = {
     score: number | null;
     coachFeedback: string | null;
     status: string;
-    checkedByCoachId: number | null;
     checkedByCoachName: string | null;
     reviewedAt: string | null;
     confirmedAt: string | null;
@@ -27,10 +26,7 @@ export type MemberHomeworkSubmissionResponse = {
     homeworkId: number;
     memberId: number;
     memberName: string | null;
-    submittedByAuthUserId: string | null;
     submittedByName: string | null;
-    originalFileName: string | null;
-    externalUrl: string | null;
     fileUrl: string | null;
     mediaType: string | null;
     fileSizeBytes: number | null;

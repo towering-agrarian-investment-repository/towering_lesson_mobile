@@ -1,6 +1,6 @@
 import { ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { ActionButton, Divider, Skeleton, triggerSuccessHaptic } from "@/design-system";
-import type { TicketDetailResponse } from "@/types/member-ticket";
+import type { MemberTicketDetailResponse } from "@/types/member-ticket";
 import type { ImperativeRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -74,7 +74,7 @@ export function BookingConfirmationTicketField({
     ticket,
 }: {
     ticketName: string;
-    ticket?: Pick<TicketDetailResponse, "isUnlimited" | "remainingCount">;
+    ticket?: Pick<MemberTicketDetailResponse, "isUnlimited" | "remainingCount">;
 }) {
     const { t } = useTranslation();
     const remainingCount = ticket?.remainingCount;

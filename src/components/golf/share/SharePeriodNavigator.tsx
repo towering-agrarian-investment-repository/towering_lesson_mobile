@@ -1,6 +1,9 @@
 import { AnimatedPressable, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react-native";
+import Calendar from "lucide-react-native/icons/calendar";
+import ChevronDown from "lucide-react-native/icons/chevron-down";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { View } from "react-native";
 
 type SharePeriodNavigatorProps = {

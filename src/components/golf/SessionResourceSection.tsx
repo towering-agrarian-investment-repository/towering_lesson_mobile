@@ -9,7 +9,7 @@ import {
 import { showAppToast } from "@/design-system/components/AppToast";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import type { SessionResourcesFilesResponse } from "@/types/member-session";
+import type { MemberSessionResourceResponse } from "@/types/member-session";
 import {
     getFileExtension,
     isAllowedExtension,
@@ -22,7 +22,9 @@ import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { ExternalLink, FileText, Play } from "lucide-react-native";
+import ExternalLink from "lucide-react-native/icons/external-link";
+import FileText from "lucide-react-native/icons/file-text";
+import Play from "lucide-react-native/icons/play";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { openExternalUrl } from "@/utils/open-external-url";
@@ -30,7 +32,7 @@ import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
 type SessionResourceSectionProps = {
-    resources: SessionResourcesFilesResponse[];
+    resources: MemberSessionResourceResponse[];
 };
 
 const VIDEO_BACKGROUND_COLOR = "#000";
@@ -83,11 +85,11 @@ function ResourceVideo({ videoUrl }: { videoUrl: string }) {
     );
 }
 
-function getResourceKey(resource: SessionResourcesFilesResponse) {
+function getResourceKey(resource: MemberSessionResourceResponse) {
     if (resource.id != null) {
         return `resource-${resource.id}`;
     }
-    const url = resource.fileUrl ?? resource.externalUrl;
+    const url = resource.fileUrl;
     if (url) {
         return `resource-${url}`;
     }
@@ -138,7 +140,7 @@ function SessionResourceItem({
     onRequestPlay,
     onPreviewImage,
 }: {
-    resource: SessionResourcesFilesResponse;
+    resource: MemberSessionResourceResponse;
     playRequested: boolean;
     onRequestPlay: () => void;
     onPreviewImage: (uri: string, title: string) => void;
@@ -272,44 +274,35 @@ function SessionResourceItem({
     );
 }
 
-function getResourceUrl(resource: SessionResourcesFilesResponse) {
-    return resource.fileUrl?.trim() || resource.externalUrl?.trim() || null;
+function getResourceUrl(resource: MemberSessionResourceResponse) {
+    return resource.fileUrl?.trim() || null;
 }
 
-function isSupportedResource(resource: SessionResourcesFilesResponse) {
+function isSupportedResource(resource: MemberSessionResourceResponse) {
     return (
-        isAllowedExtension(
-            resource.originalFileName || resource.fileUrl || resource.externalUrl,
-            RESOURCE_FILE_EXTENSIONS,
-        ) ||
+        isAllowedExtension(resource.originalFileName || resource.fileUrl, RESOURCE_FILE_EXTENSIONS) ||
         isImageResource(resource) ||
         isVideoResource(resource) ||
         isAllowedMimeType(resource.mediaType, ["application/pdf"])
     );
 }
 
-function isImageResource(resource: SessionResourcesFilesResponse) {
+function isImageResource(resource: MemberSessionResourceResponse) {
     return (
         isAllowedMimeType(resource.mediaType, ["image/jpeg", "image/png", "image/webp"]) ||
-        isAllowedExtension(
-            resource.originalFileName || resource.fileUrl || resource.externalUrl,
-            RESOURCE_IMAGE_EXTENSIONS,
-        )
+        isAllowedExtension(resource.originalFileName || resource.fileUrl, RESOURCE_IMAGE_EXTENSIONS)
     );
 }
 
-function isVideoResource(resource: SessionResourcesFilesResponse) {
+function isVideoResource(resource: MemberSessionResourceResponse) {
     return (
         isAllowedMimeType(resource.mediaType, ["video/mp4"]) ||
-        isAllowedExtension(
-            resource.originalFileName || resource.fileUrl || resource.externalUrl,
-            RESOURCE_VIDEO_EXTENSIONS,
-        )
+        isAllowedExtension(resource.originalFileName || resource.fileUrl, RESOURCE_VIDEO_EXTENSIONS)
     );
 }
 
-function getResourceTypeLabel(resource: SessionResourcesFilesResponse, t: (key: string) => string) {
-    const extension = getFileExtension(resource.originalFileName || resource.fileUrl || resource.externalUrl);
+function getResourceTypeLabel(resource: MemberSessionResourceResponse, t: (key: string) => string) {
+    const extension = getFileExtension(resource.originalFileName || resource.fileUrl);
 
     if (extension) {
         return extension.toUpperCase();
@@ -320,11 +313,11 @@ function getResourceTypeLabel(resource: SessionResourcesFilesResponse, t: (key: 
     return mediaType?.toUpperCase() || t("common.file");
 }
 
-function getResourceExtension(resource: SessionResourcesFilesResponse) {
-    return getFileExtension(resource.originalFileName || resource.fileUrl || resource.externalUrl);
+function getResourceExtension(resource: MemberSessionResourceResponse) {
+    return getFileExtension(resource.originalFileName || resource.fileUrl);
 }
 
-function getFileAccentColor(resource: SessionResourcesFilesResponse, colors: ReturnType<typeof useThemeColors>) {
+function getFileAccentColor(resource: MemberSessionResourceResponse, colors: ReturnType<typeof useThemeColors>) {
     const extension = getResourceExtension(resource);
 
     if (extension === "pdf") {

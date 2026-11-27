@@ -1,30 +1,21 @@
-export type SessionResourcesFilesResponse = {
+export type MemberSessionResourceResponse = {
     id: number;
-    s3Key: string | null;
-    externalUrl: string | null;
     originalFileName: string | null;
     mediaType: string | null;
     fileSizeBytes: number | null;
-    createdAt: string;
-    updatedAt: string;
     uploadedByName: string | null;
     fileUrl: string | null;
 };
 
-type MemberSessionResponse = {
+type MemberSessionInstanceMemberResponse = {
     id: number;
     sessionInstanceId: number;
-    markByCoachId: number | null;
     score: number | null;
-    memo: string | null;
-    createdAt: string;
-    updatedAt: string;
 };
 
-export type SessionInstanceResponse = {
+export type MemberLessonSessionResponse = {
     id: number;
     lessonInstanceId: number;
-    sessionTemplateId: number | null;
     titleSnapshot: string | null;
     descriptionSnapshot: string | null;
     typeSnapshot: string | null;
@@ -32,8 +23,6 @@ export type SessionInstanceResponse = {
     orderIndex: number | null;
     status: string | null;
     completedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-    memberSession: MemberSessionResponse | null;
-    resources: SessionResourcesFilesResponse[];
+    memberSession: MemberSessionInstanceMemberResponse | null;
+    resources: MemberSessionResourceResponse[];
 };

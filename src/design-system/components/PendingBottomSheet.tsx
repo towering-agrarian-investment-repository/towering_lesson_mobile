@@ -1,5 +1,6 @@
 import { BottomSheet, type BottomSheetProps } from "@expo/ui";
 import { interactiveDismissDisabled, presentationCornerRadius } from "@expo/ui/swift-ui/modifiers";
+import { useState } from "react";
 
 export type PendingBottomSheetProps = Pick<
     BottomSheetProps,
@@ -15,6 +16,12 @@ export type PendingBottomSheetProps = Pick<
 
 /** Keeps pending actions visible; Android uses the native gesture lock. */
 export function PendingBottomSheet({ dismissDisabled, modifiers, ...props }: PendingBottomSheetProps) {
+    const [hasPresented, setHasPresented] = useState(props.isPresented);
+    if (props.isPresented && !hasPresented) setHasPresented(true);
+
+    // Keep the host mounted after first presentation so SwiftUI can finish dismissing.
+    if (!hasPresented) return null;
+
     return (
         <BottomSheet
             {...props}

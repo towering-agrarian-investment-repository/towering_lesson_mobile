@@ -1,4 +1,5 @@
-import { formatDistanceToNow, isValid } from "date-fns";
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { isValid } from "date-fns/isValid";
 import { getDateLocale } from "./date-locale";
 
 export function formatRelativeTime(value?: string | Date | null, language = "en") {

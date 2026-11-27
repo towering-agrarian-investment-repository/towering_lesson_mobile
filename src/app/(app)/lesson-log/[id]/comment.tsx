@@ -16,7 +16,7 @@ import { useMemberLessonLogById, useUpdateMemberLessonLog } from "@/lib/hook/use
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocalSearchParams, usePreventRemove, useRouter } from "expo-router";
-import { Star } from "lucide-react-native";
+import Star from "lucide-react-native/icons/star";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";

@@ -1,5 +1,5 @@
 import { useIsOnline } from "@/lib/hook/useIsOnline";
-import { WifiOff } from "lucide-react-native";
+import WifiOff from "lucide-react-native/icons/wifi-off";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useTheme } from "../utils/theme";

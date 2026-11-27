@@ -31,7 +31,8 @@ import type { MemberReservationSummaryResponse } from "@/types/member-reservatio
 import { formatDateForAPI } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIsFocused, useRouter, useScrollToTop } from "expo-router";
-import { ChevronRight, Sparkles } from "lucide-react-native";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import Sparkles from "lucide-react-native/icons/sparkles";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {

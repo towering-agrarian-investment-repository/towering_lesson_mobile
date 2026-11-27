@@ -2,8 +2,6 @@ import { useTheme } from "@/design-system/utils/theme";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
 import { HomeBanner, HomeBannerSkeleton } from "@/components/golf/HomeBanner";
 import MyTicket from "@/components/golf/MyTicket";
-import { ReservationCardSkeleton } from "@/components/golf/ReservationCard";
-import { TicketCardSkeleton } from "@/components/golf/TicketCard";
 import TodayReservation from "@/components/golf/TodayReservation";
 import { ActionButton, CompactEmptyState, ErrorState, Screen, Skeleton } from "@/design-system";
 import { usePublishedBanners } from "@/lib/hook/useBanner";
@@ -53,33 +51,6 @@ export default function HomeScreen() {
         ]),
     );
 
-    if (isLoading) {
-        return (
-            <Screen
-                scrollRef={scrollRef}
-                headerShown={false}
-                bottomSafeArea={process.env.EXPO_OS === "ios"}
-                contentClassName="flex-grow"
-            >
-                <View className="grow gap-4">
-                    <HappyGolfLogo width={120} height={28} primaryColor={colors.primary} accentColor={colors.warning} />
-                    <View className="gap-6">
-                        <HomeBannerSkeleton />
-                        <View className="gap-3">
-                            <Skeleton className="h-5 w-32 rounded-full" />
-                            <TicketCardSkeleton />
-                        </View>
-                        <View className="gap-3">
-                            <Skeleton className="h-5 w-40 rounded-full" />
-                            <ReservationCardSkeleton />
-                            <ReservationCardSkeleton />
-                        </View>
-                    </View>
-                </View>
-            </Screen>
-        );
-    }
-
     if (isError && !memberResponse) {
         return (
             <Screen
@@ -116,17 +87,20 @@ export default function HomeScreen() {
                 scrollRef={scrollRef}
                 headerShown={false}
                 contentClassName="flex-grow"
+                bottomSafeArea={isLoading && process.env.EXPO_OS === "ios"}
                 footerSafeArea={process.env.EXPO_OS === "ios"}
                 footer={
-                    <ActionButton
-                        label={t("home.viewMyReservations")}
-                        disabled={isLocked}
-                        onPress={() => {
-                            if (isLocked) return;
-                            void queryClient.prefetchInfiniteQuery(getMemberReservationsQueryOptions("all"));
-                            runWithNavigationLock(() => router.push("/reservation"));
-                        }}
-                    />
+                    isLoading ? null : (
+                        <ActionButton
+                            label={t("home.viewMyReservations")}
+                            disabled={isLocked}
+                            onPress={() => {
+                                if (isLocked) return;
+                                void queryClient.prefetchInfiniteQuery(getMemberReservationsQueryOptions("all"));
+                                runWithNavigationLock(() => router.push("/reservation"));
+                            }}
+                        />
+                    )
                 }
                 refreshControl={
                     <RefreshControl
@@ -138,12 +112,21 @@ export default function HomeScreen() {
                 }
             >
                 <View className="grow gap-4">
-                    <HappyGolfLogo width={120} height={28} primaryColor={colors.primary} accentColor={colors.warning} />
+                    {isLoading ? (
+                        <Skeleton className="h-7 w-[120px] rounded-md" />
+                    ) : (
+                        <HappyGolfLogo
+                            width={120}
+                            height={28}
+                            primaryColor={colors.primary}
+                            accentColor={colors.warning}
+                        />
+                    )}
 
                     <View className="gap-6">
                         {isBannerLoading ? <HomeBannerSkeleton /> : <HomeBanner banners={publishedBanners} />}
 
-                        {member ? <MyTicket /> : <CompactEmptyState title={t("home.noMemberProfile")} />}
+                        {isLoading || member ? <MyTicket /> : <CompactEmptyState title={t("home.noMemberProfile")} />}
                         <TodayReservation />
                     </View>
                 </View>

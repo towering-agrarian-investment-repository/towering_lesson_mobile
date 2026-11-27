@@ -6,11 +6,9 @@ import { typography } from "@/design-system/utils/typography";
 import { RNHostView } from "@expo/ui";
 import { Column, FilterChip, Row, Text } from "@expo/ui/jetpack-compose";
 import {
-    clip,
     defaultMinSize,
     fillMaxWidth,
     horizontalScroll,
-    Shapes,
     verticalScroll,
     weight,
 } from "@expo/ui/jetpack-compose/modifiers";
@@ -25,8 +23,6 @@ const MONTH_ROWS = [
 const CHIP_TOUCH_TARGET = defaultMinSize({ minWidth: 48, minHeight: 48 });
 const YEAR_CHIP_MODIFIERS = [CHIP_TOUCH_TARGET];
 const MONTH_CHIP_MODIFIERS = [weight(1), CHIP_TOUCH_TARGET];
-const SELECTED_YEAR_CHIP_MODIFIERS = [...YEAR_CHIP_MODIFIERS, clip(Shapes.Circle)];
-const SELECTED_MONTH_CHIP_MODIFIERS = [...MONTH_CHIP_MODIFIERS, clip(Shapes.Circle)];
 
 export function ShareMonthYearPicker({
     year,
@@ -71,7 +67,7 @@ export function ShareMonthYearPicker({
                         key={value}
                         selected={value === year}
                         colors={chipColors}
-                        modifiers={value === year ? SELECTED_YEAR_CHIP_MODIFIERS : YEAR_CHIP_MODIFIERS}
+                        modifiers={YEAR_CHIP_MODIFIERS}
                         onClick={() => select(value, month)}
                     >
                         <FilterChip.Label>
@@ -89,7 +85,7 @@ export function ShareMonthYearPicker({
                                     key={value}
                                     selected={value === month}
                                     colors={chipColors}
-                                    modifiers={value === month ? SELECTED_MONTH_CHIP_MODIFIERS : MONTH_CHIP_MODIFIERS}
+                                    modifiers={MONTH_CHIP_MODIFIERS}
                                     onClick={() => select(year, value)}
                                 >
                                     <FilterChip.Label>

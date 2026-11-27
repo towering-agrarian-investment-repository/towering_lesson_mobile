@@ -1,6 +1,7 @@
 import { AnimatedPressable, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
-import { CheckCircle2, X } from "lucide-react-native";
+import CheckCircle2 from "lucide-react-native/icons/circle-check";
+import X from "lucide-react-native/icons/x";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";

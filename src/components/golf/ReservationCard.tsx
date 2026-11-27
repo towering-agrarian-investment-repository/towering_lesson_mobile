@@ -4,10 +4,10 @@ import { colorWithOpacity } from "@/design-system/utils/color";
 import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { useTheme } from "@/design-system/utils/theme";
 import { useMinuteClock } from "@/lib/hook/useMinuteClock";
-import type { MemberReservationResponse, MemberReservationSummaryResponse } from "@/types/member-reservation";
+import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
 import { formatTimeRange } from "@/utils/time-helper";
 import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
-import { ChevronRight } from "lucide-react-native";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -84,14 +84,14 @@ type ReservationCardItem = MemberReservationSummaryResponse & {
     durationMinutes?: number;
 };
 
-type Props<T extends ReservationCardItem = MemberReservationResponse> = {
+type Props<T extends ReservationCardItem = MemberReservationSummaryResponse> = {
     reservation: T;
     referenceTime?: number;
     disabled?: boolean;
     onPress?: (reservation: T) => void;
 };
 
-function ReservationCard<T extends ReservationCardItem = MemberReservationResponse>({
+function ReservationCard<T extends ReservationCardItem = MemberReservationSummaryResponse>({
     reservation,
     referenceTime,
     disabled = false,

@@ -9,10 +9,11 @@ interface SavePushTokenRequest {
     platform: PushTokenPlatform;
 }
 
-export const savePushToken = async (data: SavePushTokenRequest): Promise<ApiResponse<null>> => {
+export const savePushToken = async (data: SavePushTokenRequest, signal: AbortSignal): Promise<ApiResponse<null>> => {
     return apiClient("/push-tokens", {
         method: "POST",
         body: JSON.stringify(data),
+        signal,
     });
 };
 

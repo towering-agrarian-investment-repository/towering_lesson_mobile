@@ -1,6 +1,6 @@
 import { AppText } from "./AppText";
 import { useTheme } from "@/design-system/utils/theme";
-import { ChevronRight } from "lucide-react-native";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { type ReactNode } from "react";
 import { View, type GestureResponderEvent, type PressableProps, type TextStyle } from "react-native";
 import { cn } from "../utils/cn";

@@ -3,7 +3,9 @@ import { AppText } from "@/design-system/components/AppText";
 import { PendingBottomSheet } from "@/design-system/components/PendingBottomSheet";
 import { useTheme } from "@/design-system/utils/theme";
 import { RNHostView } from "@expo/ui";
-import { FolderOpen, Image as ImageIcon, Video } from "lucide-react-native";
+import FolderOpen from "lucide-react-native/icons/folder-open";
+import ImageIcon from "lucide-react-native/icons/image";
+import Video from "lucide-react-native/icons/video";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 

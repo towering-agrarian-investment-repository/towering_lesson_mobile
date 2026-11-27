@@ -1,4 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+    PRIMARY_COLOR_PREFERENCE_STORAGE_KEY,
+    THEME_PREFERENCE_STORAGE_KEY,
+    loadStartupPreferences,
+} from "@/lib/startup-preferences";
 import * as SystemUI from "expo-system-ui";
 import {
     createContext,
@@ -8,9 +13,10 @@ import {
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
-import { Appearance, useColorScheme as useSystemColorScheme, useWindowDimensions } from "react-native";
+import { Appearance, Dimensions, useColorScheme as useSystemColorScheme } from "react-native";
 
 export type ThemeColors = {
     background: string;
@@ -123,9 +129,6 @@ const darkThemeColors = {
     reservationNoShow: "#FF4964",
 } satisfies ThemeColors;
 
-const THEME_PREFERENCE_STORAGE_KEY = "app-theme-preference";
-const PRIMARY_COLOR_PREFERENCE_STORAGE_KEY = "app-primary-color-preference";
-
 type ThemeContextValue = {
     colors: ThemeColors;
     /** Compose scales sp itself; SwiftUI's explicit font sizes need this factor. */
@@ -161,9 +164,32 @@ export function getThemeColors(
     return colors;
 }
 
+function useFontScale() {
+    const [fontScale, setFontScale] = useState(() =>
+        process.env.EXPO_OS === "ios" ? Math.min(Dimensions.get("window").fontScale, 1.5) : 1,
+    );
+    const lastFontScale = useRef(fontScale);
+
+    useEffect(() => {
+        if (process.env.EXPO_OS !== "ios") return;
+
+        const update = ({ window }: { window: { fontScale: number } }) => {
+            const nextFontScale = Math.min(window.fontScale, 1.5);
+            if (nextFontScale === lastFontScale.current) return;
+            lastFontScale.current = nextFontScale;
+            setFontScale(nextFontScale);
+        };
+        const subscription = Dimensions.addEventListener("change", update);
+        update({ window: Dimensions.get("window") });
+        return () => subscription.remove();
+    }, []);
+
+    return fontScale;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const systemColorScheme = useSystemColorScheme();
-    const { fontScale } = useWindowDimensions();
+    const nativeFontScale = useFontScale();
     const [preference, setPreferenceState] = useState<ThemePreference>("system");
     const [primaryColorPreference, setPrimaryColorPreferenceState] = useState<PrimaryColorPreference>("blue");
     const [isReady, setIsReady] = useState(false);
@@ -173,10 +199,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
         const loadPreference = async () => {
             try {
-                const [storedPreference, storedPrimaryColor] = await Promise.all([
-                    AsyncStorage.getItem(THEME_PREFERENCE_STORAGE_KEY),
-                    AsyncStorage.getItem(PRIMARY_COLOR_PREFERENCE_STORAGE_KEY),
-                ]);
+                const preferences = await loadStartupPreferences();
+                const storedPreference = preferences.get(THEME_PREFERENCE_STORAGE_KEY);
+                const storedPrimaryColor = preferences.get(PRIMARY_COLOR_PREFERENCE_STORAGE_KEY);
 
                 if (!isMounted) {
                     return;
@@ -221,7 +246,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         () => getThemeColors(resolvedScheme, primaryColorPreference),
         [resolvedScheme, primaryColorPreference],
     );
-    const nativeFontScale = process.env.EXPO_OS === "ios" ? Math.min(fontScale, 1.5) : 1;
 
     useEffect(() => {
         void SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});

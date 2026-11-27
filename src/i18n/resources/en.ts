@@ -518,7 +518,6 @@ const en = {
         noDescription: "No session description yet.",
         score: "Score {{value}}",
         scoreEmpty: "Score -",
-        coachNote: "Coach note",
     },
     sessionResources: {
         videoFailedToLoad: "Couldn't load video.",
@@ -590,8 +589,6 @@ const en = {
         usageLabel: "Usage",
         dailyLimitLabel: "Daily Limit",
         reservationsTitle: "Reservations",
-        reservationCount: "{{count}} reservations",
-        reservationCount_one: "{{count}} reservation",
         loadingReservations: "Loading...",
         noReservationsYet: "No reservations yet",
         pausesTitle: "Pause History",
@@ -689,10 +686,11 @@ const en = {
         startsInDays_other: "Starts in {{count}} days",
     },
     bookingConfirmation: {
+        noteLabel: "Note",
         ticketBalanceDelta: "{{before}} → {{after}} left after booking",
         bayRequestLabel: "Note/Bay Request",
         bayRequestOptionalLabel: "Note/Bay Request (optional)",
-        bayRequestPlaceholder: "If possible, I would prefer Bay 3.",
+        bayRequestPlaceholder: "Bay 5",
         bayRequestTooLong: "Bay requests must be {{count}} characters or fewer.",
         bayRequestDisclaimer:
             "Bay requests are not guaranteed. Your assigned bay may change depending on actual availability.",

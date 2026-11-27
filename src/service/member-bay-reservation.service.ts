@@ -1,10 +1,11 @@
 import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 import {
-    BaySlotGroupScheduleResponse,
+    MemberBaySlotGroupResponse,
     MemberBayReservationResponse,
     CreateBayReservationRequest,
     RescheduleBayReservationRequest,
+    UpdateBayReservationNotesRequest,
 } from "@/types/member-bay";
 
 export async function getBayReservationById(
@@ -31,7 +32,7 @@ export async function getMemberBaySlotGroups(
     startDate: string,
     endDate: string,
     signal?: AbortSignal,
-): Promise<ApiResponse<BaySlotGroupScheduleResponse[]>> {
+): Promise<ApiResponse<MemberBaySlotGroupResponse[]>> {
     if (!Number.isSafeInteger(ticketId) || ticketId <= 0) {
         throw new Error("A positive ticketId is required for bay availability.");
     }
@@ -48,6 +49,16 @@ export async function getMemberBaySlotGroups(
 export async function cancelBayReservationById(id: number): Promise<ApiResponse<null>> {
     return apiClient(`/member/bay-reservations/${id}/cancel`, {
         method: "PUT",
+    });
+}
+
+export async function updateBayReservationMemberNotes(
+    id: number,
+    data: UpdateBayReservationNotesRequest,
+): Promise<ApiResponse<null>> {
+    return apiClient(`/member/bay-reservations/${id}/member-notes`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
     });
 }
 

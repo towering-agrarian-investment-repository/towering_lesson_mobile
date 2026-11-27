@@ -11,10 +11,10 @@ import {
     triggerNotificationHaptic,
     triggerSelectionHaptic,
 } from "@/design-system";
-import { useTheme } from "@/design-system/utils/theme";
+import { useTheme, type ThemeColors } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
-import { applyCalendarLocale } from "@/lib/calendar-locale";
+import { formatCalendarMonthTitle, getCalendarLocale, type CalendarLocaleData } from "@/lib/calendar-locale";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
@@ -24,17 +24,17 @@ import {
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
-import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/design-system/components/AppToast";
-import { isLessonSlotBookedByMember, isLessonSlotFull } from "@/utils/lesson-slot";
+import { isLessonSlotFull } from "@/utils/lesson-slot";
 import { getEffectiveTicketStatus } from "@/utils/status-tone";
-import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
+import { getTicketPausePeriods, isTicketDatePaused, type TicketPausePeriod } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateWeekday } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     AccessibilityInfo,
@@ -47,13 +47,14 @@ import {
     type FlatListProps,
     type ListRenderItemInfo,
 } from "react-native";
-import { Calendar, type DateData } from "react-native-calendars";
 import { useReducedMotion } from "react-native-reanimated";
 
 const LESSON_TICKET_TYPES = ["PRIVATE_LESSON", "GROUP_LESSON"];
 const CALENDAR_BASE_MIN_HEIGHT = 368;
 const MONTHS_PER_YEAR = 12;
+const DAYS_PER_WEEK = 7;
 const MONTH_VIEWABILITY = { itemVisiblePercentThreshold: 60 };
+const ARROW_HIT_SLOP = { top: 20, right: 20, bottom: 20, left: 20 };
 
 type VisibleMonth = { year: number; month: number };
 
@@ -71,6 +72,15 @@ function getMonthIndex({ year, month }: VisibleMonth) {
     return year * MONTHS_PER_YEAR + month - 1;
 }
 
+function offsetMonth({ year, month }: VisibleMonth, delta: number): VisibleMonth {
+    const total = getMonthIndex({ year, month }) + delta;
+
+    return {
+        year: Math.floor(total / MONTHS_PER_YEAR),
+        month: (total % MONTHS_PER_YEAR) + 1,
+    };
+}
+
 // Built from plain numbers so the device time zone never shifts the range.
 function getMonthRange({ year, month }: VisibleMonth) {
     const lastDay = new Date(year, month, 0).getDate();
@@ -81,13 +91,32 @@ function getMonthRange({ year, month }: VisibleMonth) {
     };
 }
 
+function buildMonthWeeks(year: number, month: number): (number | null)[][] {
+    const firstWeekday = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const weekCount = Math.ceil((firstWeekday + daysInMonth) / DAYS_PER_WEEK);
+    const weeks: (number | null)[][] = [];
+
+    for (let weekIndex = 0; weekIndex < weekCount; weekIndex++) {
+        const week: (number | null)[] = [];
+        for (let dayIndex = 0; dayIndex < DAYS_PER_WEEK; dayIndex++) {
+            const day = weekIndex * DAYS_PER_WEEK + dayIndex - firstWeekday + 1;
+            week.push(day >= 1 && day <= daysInMonth ? day : null);
+        }
+        weeks.push(week);
+    }
+
+    return weeks;
+}
+
 const monthKeyExtractor = (monthStart: string) => monthStart;
 
 type DayCellProps = {
     dateString: string;
     day: number;
     today: string;
-    dateFormatter: Intl.DateTimeFormat;
+    dateLabel: string;
+    colors: ThemeColors;
     isAvailabilityKnown: boolean;
     isAvailable: boolean;
     isPaused: boolean;
@@ -99,21 +128,20 @@ const DayCell = memo(function DayCell({
     dateString,
     day,
     today,
-    dateFormatter,
+    dateLabel,
+    colors,
     isAvailabilityKnown,
     isAvailable,
     isPaused,
     isSelected,
     onPress,
 }: DayCellProps) {
-    const { colors } = useTheme();
     const { t } = useTranslation();
 
     const isPast = dateString < today;
     const isToday = dateString === today;
     const isDisabled = isPast || isPaused || !isAvailabilityKnown;
     const isAvailableFuture = isAvailable && !isPast && !isPaused;
-    const dateLabel = dateFormatter.format(new Date(`${dateString}T12:00:00`));
     const statusLabel = isPaused
         ? `, ${t("booking.datePaused")}`
         : isAvailabilityKnown || isPast
@@ -145,8 +173,9 @@ const DayCell = memo(function DayCell({
             style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
         >
             <View
+                style={{ borderRadius: "50%" }}
                 className={cn(
-                    "h-11 w-11 items-center justify-center rounded-full",
+                    "h-11 w-11 items-center justify-center",
                     isPaused
                         ? "bg-warning/15"
                         : isSelected
@@ -185,21 +214,212 @@ const DayCell = memo(function DayCell({
     );
 });
 
+type CalendarMonthPageProps = {
+    monthStart: string;
+    index: number;
+    width: number;
+    minHeight: number;
+    locale: CalendarLocaleData;
+    today: string;
+    startDate: string;
+    endDate: string;
+    getDateLabel: (dateString: string) => string;
+    colors: ThemeColors;
+    isAvailabilityKnown: boolean;
+    availableDates: Set<string>;
+    pausePeriods: TicketPausePeriod[];
+    selectedDate: string | null;
+    onPressArrow: (targetIndex: number) => void;
+    onDayPress: (dateString: string) => void;
+};
+
+const CalendarMonthPage = memo(function CalendarMonthPage({
+    monthStart,
+    index,
+    width,
+    minHeight,
+    locale,
+    today,
+    startDate,
+    endDate,
+    getDateLabel,
+    colors,
+    isAvailabilityKnown,
+    availableDates,
+    pausePeriods,
+    selectedDate,
+    onPressArrow,
+    onDayPress,
+}: CalendarMonthPageProps) {
+    const current = parseMonth(monthStart);
+    const monthPrefix = `${current.year}-${pad(current.month)}-`;
+    const weeks = useMemo(() => buildMonthWeeks(current.year, current.month), [current.month, current.year]);
+    const monthTitle = formatCalendarMonthTitle(current.year, current.month, locale);
+    const prevMonth = offsetMonth(current, -1);
+    const nextMonth = offsetMonth(current, 1);
+    const disableArrowLeft = index === 0;
+
+    return (
+        <View
+            style={{
+                width,
+                minHeight,
+                paddingLeft: 5,
+                paddingRight: 5,
+                backgroundColor: colors.card,
+            }}
+        >
+            <View>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingLeft: 10,
+                        paddingRight: 10,
+                        marginTop: 6,
+                        alignItems: "center",
+                    }}
+                >
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={formatCalendarMonthTitle(prevMonth.year, prevMonth.month, locale)}
+                        accessibilityState={{ disabled: disableArrowLeft }}
+                        disabled={disableArrowLeft}
+                        hitSlop={ARROW_HIT_SLOP}
+                        onPress={() => onPressArrow(index - 1)}
+                        style={({ pressed }) => ({
+                            padding: 10,
+                            opacity: !disableArrowLeft && pressed ? 0.5 : 1,
+                        })}
+                    >
+                        <ChevronLeft size={20} color={disableArrowLeft ? colors.mutedForeground : colors.primary} />
+                    </Pressable>
+
+                    <AppText
+                        variant="subtitle"
+                        color="foreground"
+                        accessibilityRole="header"
+                        align="center"
+                        wrap={false}
+                        maxFontSizeMultiplier={1.35}
+                        style={{ margin: 10 }}
+                        textStyle={{ fontWeight: "700" }}
+                    >
+                        {monthTitle}
+                    </AppText>
+
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={formatCalendarMonthTitle(nextMonth.year, nextMonth.month, locale)}
+                        hitSlop={ARROW_HIT_SLOP}
+                        onPress={() => onPressArrow(index + 1)}
+                        style={({ pressed }) => ({
+                            padding: 10,
+                            opacity: pressed ? 0.5 : 1,
+                        })}
+                    >
+                        <ChevronRight size={20} color={colors.primary} />
+                    </Pressable>
+                </View>
+
+                <View
+                    importantForAccessibility="no-hide-descendants"
+                    style={{
+                        marginTop: 7,
+                        flexDirection: "row",
+                        justifyContent: "space-around",
+                    }}
+                >
+                    {locale.dayNamesShort.map((dayName, dayIndex) => (
+                        <AppText
+                            key={dayIndex}
+                            variant="subtext"
+                            color="mutedForeground"
+                            align="center"
+                            numberOfLines={1}
+                            maxFontSizeMultiplier={1.35}
+                            style={{
+                                marginTop: 2,
+                                marginBottom: 7,
+                                minWidth: 32,
+                            }}
+                            textStyle={{ fontWeight: "600" }}
+                        >
+                            {dayName}
+                        </AppText>
+                    ))}
+                </View>
+            </View>
+
+            <View style={{ backgroundColor: colors.card }}>
+                {weeks.map((week, weekIndex) => (
+                    <View
+                        key={weekIndex}
+                        style={{
+                            marginTop: 6,
+                            marginBottom: 6,
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                        }}
+                    >
+                        {week.map((day, dayIndex) => {
+                            if (day === null) {
+                                return <View key={dayIndex} style={{ flex: 1 }} />;
+                            }
+
+                            const dateString = `${monthPrefix}${pad(day)}`;
+                            const isPaused = isTicketDatePaused(pausePeriods, dateString);
+
+                            return (
+                                <View key={dayIndex} style={{ flex: 1, alignItems: "center" }}>
+                                    <DayCell
+                                        dateString={dateString}
+                                        day={day}
+                                        today={today}
+                                        dateLabel={getDateLabel(dateString)}
+                                        colors={colors}
+                                        isAvailabilityKnown={
+                                            isAvailabilityKnown && dateString >= startDate && dateString <= endDate
+                                        }
+                                        isAvailable={availableDates.has(dateString)}
+                                        isPaused={isPaused}
+                                        isSelected={!isPaused && selectedDate === dateString}
+                                        onPress={onDayPress}
+                                    />
+                                </View>
+                            );
+                        })}
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+});
+
+function createBookingDateLabelGetter(language: string) {
+    const formatter = new Intl.DateTimeFormat(language, {
+        month: "long",
+        day: "numeric",
+        weekday: "short",
+    });
+    const labels = new Map<string, string>();
+    return (dateString: string) => {
+        const cached = labels.get(dateString);
+        if (cached !== undefined) return cached;
+        const label = formatter.format(new Date(`${dateString}T12:00:00`));
+        labels.set(dateString, label);
+        return label;
+    };
+}
+
 export default function DateScreen() {
-    const { colors, resolvedScheme, primaryColorPreference } = useTheme();
+    const { colors } = useTheme();
     const { i18n, t } = useTranslation();
     const { fontScale } = useWindowDimensions();
     const reducedMotion = useReducedMotion();
     const language = i18n.resolvedLanguage ?? i18n.language;
-    const dateFormatter = useMemo(
-        () =>
-            new Intl.DateTimeFormat(language, {
-                month: "long",
-                day: "numeric",
-                weekday: "short",
-            }),
-        [language],
-    );
+    const calendarLocale = getCalendarLocale(language);
+    const getDateLabel = useMemo(() => createBookingDateLabelGetter(language), [language]);
 
     const {
         ticketId,
@@ -222,8 +442,6 @@ export default function DateScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { runWithNavigationLock } = useNavigationLock();
-    const { data: memberResponse } = useGetMemberProfile();
-    const memberId = memberResponse?.data.id;
 
     const today = formatDateForAPI(new Date());
     const currentMonth = parseMonth(today);
@@ -250,6 +468,8 @@ export default function DateScreen() {
             }),
         [currentMonthIndex, pageCount],
     );
+    const calendarGeometry = useRef({ width: 0, firstMonthIndex: currentMonthIndex });
+    const realigningCalendar = useRef(false);
 
     const ticketIdNumber = Number(ticketId);
     const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
@@ -311,7 +531,7 @@ export default function DateScreen() {
     const handleVisibleMonthChange = useCallback<NonNullable<FlatListProps<string>["onViewableItemsChanged"]>>(
         ({ viewableItems }) => {
             const monthStart = viewableItems[0]?.item;
-            if (!monthStart || monthStart === lastVisibleMonthStart.current) return;
+            if (!monthStart || realigningCalendar.current || monthStart === lastVisibleMonthStart.current) return;
 
             lastVisibleMonthStart.current = monthStart;
             triggerSelectionHaptic();
@@ -334,6 +554,24 @@ export default function DateScreen() {
         }),
         [calendarWidth],
     );
+
+    useLayoutEffect(() => {
+        const previous = calendarGeometry.current;
+        calendarGeometry.current = { width: calendarWidth, firstMonthIndex: currentMonthIndex };
+        if (!previous.width || !calendarWidth) return;
+        if (previous.width === calendarWidth && previous.firstMonthIndex === currentMonthIndex) return;
+
+        realigningCalendar.current = true;
+        lastVisibleMonthStart.current = monthPages[pageIndex];
+        calendarRef.current?.scrollToOffset({ offset: calendarWidth * pageIndex, animated: false });
+        const frame = requestAnimationFrame(() => {
+            realigningCalendar.current = false;
+        });
+        return () => {
+            cancelAnimationFrame(frame);
+            realigningCalendar.current = false;
+        };
+    }, [calendarWidth, currentMonthIndex, monthPages, pageIndex]);
 
     const scrollToMonth = useCallback(
         (index: number) => {
@@ -372,7 +610,7 @@ export default function DateScreen() {
 
         if (isLessonTicket) {
             for (const slot of lessonSlotData?.data ?? []) {
-                if (isLessonSlotFull(slot) || isLessonSlotBookedByMember(slot, memberId)) {
+                if (isLessonSlotFull(slot)) {
                     continue;
                 }
                 const date = formatDateForAPI(slot.startTime);
@@ -392,16 +630,7 @@ export default function DateScreen() {
         }
 
         return dates;
-    }, [
-        baySlotGroupData,
-        endDate,
-        isAvailabilityKnown,
-        isLessonTicket,
-        lessonSlotData,
-        memberId,
-        pausePeriods,
-        startDate,
-    ]);
+    }, [baySlotGroupData, endDate, isAvailabilityKnown, isLessonTicket, lessonSlotData, pausePeriods, startDate]);
 
     const handleDayPress = useCallback(
         (dateString: string) => {
@@ -502,99 +731,43 @@ export default function DateScreen() {
         ],
     );
 
-    const renderDay = useCallback(
-        ({ date }: { date?: DateData }) => {
-            if (!date) {
-                return null;
-            }
-
-            const isPaused = isTicketDatePaused(pausePeriods, date.dateString);
-            return (
-                <DayCell
-                    dateString={date.dateString}
-                    day={date.day}
-                    today={today}
-                    dateFormatter={dateFormatter}
-                    isAvailabilityKnown={
-                        isAvailabilityKnown && date.dateString >= startDate && date.dateString <= endDate
-                    }
-                    isAvailable={availableDates.has(date.dateString)}
-                    isPaused={isPaused}
-                    isSelected={!isPaused && selectedDate === date.dateString}
-                    onPress={handleDayPress}
-                />
-            );
-        },
-        [
-            availableDates,
-            dateFormatter,
-            endDate,
-            handleDayPress,
-            isAvailabilityKnown,
-            pausePeriods,
-            selectedDate,
-            startDate,
-            today,
-        ],
-    );
-
     const calendarMinHeight = Math.round(CALENDAR_BASE_MIN_HEIGHT * Math.min(Math.max(fontScale, 1), 1.4));
-
-    const calendarTheme = useMemo(
-        () => ({
-            calendarBackground: colors.card,
-            monthTextColor: colors.foreground,
-            textMonthFontWeight: "700" as const,
-            textSectionTitleColor: colors.mutedForeground,
-            textSectionTitleDisabledColor: colors.mutedForeground,
-            textDayHeaderFontWeight: "600" as const,
-            selectedDayBackgroundColor: colors.primary,
-            selectedDayTextColor: colors.primaryForeground,
-            todayTextColor: colors.primary,
-            textDisabledColor: colors.mutedForeground,
-            dayTextColor: colors.mutedForeground,
-            "stylesheet.calendar.main": {
-                week: {
-                    marginTop: 6,
-                    marginBottom: 6,
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                },
-            },
-        }),
-        [colors],
-    );
 
     const renderMonth = useCallback(
         ({ item, index }: ListRenderItemInfo<string>) => (
-            <Calendar
-                current={item}
-                style={{ width: calendarWidth, minHeight: calendarMinHeight }}
-                minDate={today}
-                disableMonthChange
-                hideExtraDays
-                disableArrowLeft={index === 0}
-                onPressArrowLeft={() => scrollToMonth(index - 1)}
-                onPressArrowRight={() => scrollToMonth(index + 1)}
-                dayComponent={renderDay}
-                renderArrow={(direction) =>
-                    direction === "left" ? (
-                        <ChevronLeft size={20} color={index === 0 ? colors.mutedForeground : colors.primary} />
-                    ) : (
-                        <ChevronRight size={20} color={colors.primary} />
-                    )
-                }
-                theme={calendarTheme}
+            <CalendarMonthPage
+                monthStart={item}
+                index={index}
+                width={calendarWidth}
+                minHeight={calendarMinHeight}
+                locale={calendarLocale}
+                today={today}
+                startDate={startDate}
+                endDate={endDate}
+                getDateLabel={getDateLabel}
+                colors={colors}
+                isAvailabilityKnown={isAvailabilityKnown}
+                availableDates={availableDates}
+                pausePeriods={pausePeriods}
+                selectedDate={selectedDate}
+                onPressArrow={scrollToMonth}
+                onDayPress={handleDayPress}
             />
         ),
         [
+            availableDates,
+            calendarLocale,
             calendarMinHeight,
-            calendarTheme,
             calendarWidth,
-            colors.mutedForeground,
-            colors.primary,
-            renderDay,
+            colors,
+            endDate,
+            getDateLabel,
+            handleDayPress,
+            isAvailabilityKnown,
+            pausePeriods,
             scrollToMonth,
+            selectedDate,
+            startDate,
             today,
         ],
     );
@@ -614,7 +787,6 @@ export default function DateScreen() {
         ticketTypeLabel && trimmedTicketName && trimmedTicketName !== ticketTypeLabel
             ? `${ticketTypeLabel} · ${trimmedTicketName}`
             : ticketTypeLabel || trimmedTicketName || t("common.noTicket");
-    const calendarLocale = applyCalendarLocale(i18n.resolvedLanguage);
 
     if (!canLoadAvailability) {
         return (
@@ -681,28 +853,30 @@ export default function DateScreen() {
                 <View
                     className="overflow-hidden rounded-2xl border border-border bg-card py-2"
                     style={{ minHeight: calendarMinHeight + 16 }}
-                    onLayout={(event) => setCalendarWidth(event.nativeEvent.layout.width)}
                 >
-                    {calendarWidth > 0 ? (
-                        <FlatList
-                            key={`${calendarWidth}-${currentMonthIndex}-${calendarLocale}-${resolvedScheme}-${primaryColorPreference}`}
-                            ref={calendarRef}
-                            data={monthPages}
-                            renderItem={renderMonth}
-                            keyExtractor={monthKeyExtractor}
-                            getItemLayout={getMonthLayout}
-                            initialScrollIndex={pageIndex}
-                            initialNumToRender={2}
-                            maxToRenderPerBatch={2}
-                            windowSize={3}
-                            viewabilityConfig={MONTH_VIEWABILITY}
-                            onViewableItemsChanged={handleVisibleMonthChange}
-                            showsHorizontalScrollIndicator={false}
-                            horizontal
-                            pagingEnabled
-                            nestedScrollEnabled
-                        />
-                    ) : null}
+                    {/* Match the paging viewport inside the card's border. */}
+                    <View onLayout={(event) => setCalendarWidth(event.nativeEvent.layout.width)}>
+                        {calendarWidth > 0 ? (
+                            <FlatList
+                                ref={calendarRef}
+                                data={monthPages}
+                                renderItem={renderMonth}
+                                extraData={calendarWidth}
+                                keyExtractor={monthKeyExtractor}
+                                getItemLayout={getMonthLayout}
+                                initialScrollIndex={pageIndex}
+                                initialNumToRender={2}
+                                maxToRenderPerBatch={2}
+                                windowSize={3}
+                                viewabilityConfig={MONTH_VIEWABILITY}
+                                onViewableItemsChanged={handleVisibleMonthChange}
+                                showsHorizontalScrollIndicator={false}
+                                horizontal
+                                pagingEnabled
+                                nestedScrollEnabled
+                            />
+                        ) : null}
+                    </View>
                 </View>
 
                 {hasLoadError ? (

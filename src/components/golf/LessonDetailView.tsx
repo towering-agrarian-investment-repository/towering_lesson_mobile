@@ -17,23 +17,21 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import type { MemberHomeworkSubmissionResponse, MemberHomeworkSummaryResponse } from "@/types/member-homework";
 import type { MemberLessonDetailResponse } from "@/types/member-lesson";
-import type { SessionInstanceResponse } from "@/types/member-session";
+import type { MemberLessonSessionResponse } from "@/types/member-session";
 import { formatType } from "@/utils/format-enum";
 import { getGroupName, getHomeworkTitle, getLessonName, getSessionTitle } from "@/utils/member-lesson";
 import { getHomeworkReviewTone, getHomeworkSubmissionTone, getLessonStatusTone } from "@/utils/status-tone";
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
-import {
-    Calendar,
-    Check,
-    ChevronRight,
-    ClipboardCheck,
-    Clock,
-    ExternalLink,
-    FileText,
-    UsersRound,
-} from "lucide-react-native";
+import Calendar from "lucide-react-native/icons/calendar";
+import Check from "lucide-react-native/icons/check";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import ClipboardCheck from "lucide-react-native/icons/clipboard-check";
+import Clock from "lucide-react-native/icons/clock";
+import ExternalLink from "lucide-react-native/icons/external-link";
+import FileText from "lucide-react-native/icons/file-text";
+import UsersRound from "lucide-react-native/icons/users-round";
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { openExternalUrl } from "@/utils/open-external-url";
@@ -312,7 +310,7 @@ export function LessonDetailView({
     );
 }
 
-function isSessionCompleted(session: SessionInstanceResponse) {
+function isSessionCompleted(session: MemberLessonSessionResponse) {
     return session.status === "COMPLETED" || !!session.completedAt;
 }
 
@@ -322,7 +320,7 @@ function SessionRow({
     disabled,
     onPress,
 }: {
-    session: SessionInstanceResponse;
+    session: MemberLessonSessionResponse;
     stepNumber: number;
     disabled: boolean;
     onPress: () => void;

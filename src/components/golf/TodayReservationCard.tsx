@@ -10,7 +10,7 @@ import { formatTimeRange } from "@/utils/time-helper";
 import { getReservationStatusColor, getReservationStatusLabel } from "@/utils/status-tone";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";

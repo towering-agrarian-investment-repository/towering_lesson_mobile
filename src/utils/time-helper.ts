@@ -1,7 +1,8 @@
 import { TZDate } from "@date-fns/tz";
-import { isValid, parse } from "date-fns";
+import { isValid } from "date-fns/isValid";
+import { parse } from "date-fns/parse";
 import i18n from "@/i18n";
-import { APP_TIME_ZONE, getAppTimeZoneDateParts, toAppTimeZoneDate } from "./timezone";
+import { APP_TIME_ZONE, getAppTimeZoneDateParts, toValidDate } from "./timezone";
 
 const NO_VALUE = "—";
 
@@ -61,14 +62,9 @@ function getTimeFormatter(locale?: string) {
     );
 }
 
-function coerceAppDate(value?: string | number | Date | null) {
-    if (value === null || value === undefined || value === "") return null;
-    return toAppTimeZoneDate(value);
-}
-
 function formatPreset(value: string | number | Date | null | undefined, preset: DatePreset, locale?: string) {
-    const date = value == null ? null : coerceAppDate(value);
-    if (!date || !isValid(date)) return null;
+    const date = value == null || value === "" ? null : toValidDate(value);
+    if (!date) return null;
     return getDateFormatter(preset, locale).format(date);
 }
 
@@ -94,14 +90,16 @@ export const getMonthKey = (value?: string | number | Date | null) => {
     return parts ? `${parts.year}-${parts.month}` : null;
 };
 
+// date-fns also accepts one-digit fields and punctuated English day periods.
+const CLOCK_VALUE = /^\d{1,2}:\d{1,2}(?::\d{1,2})?(?:\s*[a-z.][a-z.\s]*)?$/i;
+
 function parseClockValue(value: string) {
-    const trimmed = value.trim();
     const referenceDate = TZDate.tz(APP_TIME_ZONE);
 
     const patterns = ["HH:mm:ss", "HH:mm", "hh:mm a", "h:mm a"];
 
     for (const pattern of patterns) {
-        const parsed = parse(trimmed, pattern, referenceDate);
+        const parsed = parse(value, pattern, referenceDate);
         if (isValid(parsed)) return parsed;
     }
 
@@ -113,16 +111,10 @@ export const fmtDate = (value?: string | Date | null) => (value ? formatDateMedi
 export const fmtTime = (value?: string | Date | null) => {
     if (!value) return NO_VALUE;
 
-    if (typeof value === "string") {
-        const parsedClock = parseClockValue(value);
-
-        if (parsedClock) {
-            return getTimeFormatter().format(parsedClock);
-        }
-    }
-
-    const date = coerceAppDate(value);
-    return date && isValid(date) ? getTimeFormatter().format(date) : NO_VALUE;
+    const clock = typeof value === "string" ? value.trim() : "";
+    const parsedClock = CLOCK_VALUE.test(clock) ? parseClockValue(clock) : null;
+    const date = parsedClock ?? toValidDate(value);
+    return date ? getTimeFormatter().format(date) : NO_VALUE;
 };
 
 export const formatTimeRange = (start?: string | Date | null, end?: string | Date | null) =>

@@ -3,7 +3,7 @@ import { PendingBottomSheet } from "@/design-system/components/PendingBottomShee
 import { ActionButton, ListRow, useTheme } from "@/design-system";
 import { cn } from "@/design-system/utils/cn";
 import { RNHostView } from "@expo/ui";
-import { Check } from "lucide-react-native";
+import Check from "lucide-react-native/icons/check";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View, useWindowDimensions } from "react-native";
@@ -39,7 +39,6 @@ export function ProfilePreferenceRow<T extends string>({
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const { height } = useWindowDimensions();
     const [isPresented, setIsPresented] = useState(false);
     const [pendingValue, setPendingValue] = useState<T | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -101,10 +100,7 @@ export function ProfilePreferenceRow<T extends string>({
                                 {description}
                             </AppText>
                         </View>
-                        <ScrollView
-                            style={{ maxHeight: Math.max(96, height - 240) }}
-                            contentContainerStyle={{ gap: 12 }}
-                        >
+                        <PreferenceOptionsScrollView>
                             {options.map((option) => (
                                 <ListRow
                                     key={option.value}
@@ -141,7 +137,7 @@ export function ProfilePreferenceRow<T extends string>({
                                     }}
                                 />
                             ))}
-                        </ScrollView>
+                        </PreferenceOptionsScrollView>
                         {saveError ? (
                             <AppText variant="subtext" color="danger" align="center">
                                 {saveError}
@@ -158,5 +154,14 @@ export function ProfilePreferenceRow<T extends string>({
                 </RNHostView>
             </PendingBottomSheet>
         </>
+    );
+}
+
+function PreferenceOptionsScrollView({ children }: { children: ReactNode }) {
+    const { height } = useWindowDimensions();
+    return (
+        <ScrollView style={{ maxHeight: Math.max(96, height - 240) }} contentContainerStyle={{ gap: 12 }}>
+            {children}
+        </ScrollView>
     );
 }

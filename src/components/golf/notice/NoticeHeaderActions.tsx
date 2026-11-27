@@ -1,7 +1,7 @@
 import { cn } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { MenuView, type MenuAction } from "@expo/ui/community/menu";
-import { MoreVertical } from "lucide-react-native";
+import MoreVertical from "lucide-react-native/icons/ellipsis-vertical";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 

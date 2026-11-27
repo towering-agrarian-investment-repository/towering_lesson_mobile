@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
-import { X } from "lucide-react-native";
+import X from "lucide-react-native/icons/x";
 import { useTranslation } from "react-i18next";
 import { Modal, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";

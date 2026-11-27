@@ -15,12 +15,14 @@ import {
 import { FormTextInput } from "@/components/ui/form";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
+import { getBayNotesDraft, setBayNotesDraft } from "@/lib/booking/bay-notes-draft";
 import { canBookWithTicket, canRescheduleBayReservation } from "@/lib/booking/ticket-eligibility";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
     getMemberBaySlotGroupsQueryOptions,
+    getMemberReservationDetailQueryOptions,
     isReservationSlotUnavailable,
     useCreateMemberBayReservation,
     useMemberBaySlotGroups,
@@ -35,14 +37,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { RefreshControl } from "react-native";
 
 const BAY_REQUEST_MAX_LENGTH = 2000;
-
-// Keep a typed bay note when the native back gesture returns to Select Time.
-const bayNotesDraft = new Map<number, string>();
 
 type BayBookingFormValues = {
     memberNotes: string;
@@ -87,12 +86,11 @@ export default function BayBookingConfirmScreen() {
     const hasSlotGroupId = Number.isSafeInteger(slotGroupIdNumber) && slotGroupIdNumber > 0;
     const form = useForm<BayBookingFormValues>({
         defaultValues: {
-            memberNotes: (hasSlotGroupId ? bayNotesDraft.get(slotGroupIdNumber) : undefined) ?? initialNotes ?? "",
+            memberNotes: (hasSlotGroupId ? getBayNotesDraft(slotGroupIdNumber) : undefined) ?? initialNotes ?? "",
         },
         mode: "onTouched",
     });
     const { mutateAsync: createReservation, isPending: isCreating } = useCreateMemberBayReservation();
-    const memberNotes = useWatch({ control: form.control, name: "memberNotes" });
     const { mutateAsync: rescheduleReservation, isPending: isRescheduling } = useRescheduleMemberBayReservation();
     const {
         data: ticket,
@@ -112,8 +110,14 @@ export default function BayBookingConfirmScreen() {
 
     useEffect(() => {
         if (!hasSlotGroupId) return;
-        bayNotesDraft.set(slotGroupIdNumber, memberNotes ?? "");
-    }, [hasSlotGroupId, memberNotes, slotGroupIdNumber]);
+        setBayNotesDraft(slotGroupIdNumber, form.getValues("memberNotes"));
+        return form.subscribe({
+            name: "memberNotes",
+            exact: true,
+            formState: { values: true },
+            callback: ({ values }) => setBayNotesDraft(slotGroupIdNumber, values.memberNotes),
+        });
+    }, [form, hasSlotGroupId, slotGroupIdNumber]);
     const {
         data,
         isLoading: isSlotLoading,
@@ -231,7 +235,11 @@ export default function BayBookingConfirmScreen() {
                       memberNotes: values.memberNotes.trim() || null,
                   });
 
-            bayNotesDraft.delete(slotGroupIdNumber);
+            queryClient.setQueryData(
+                getMemberReservationDetailQueryOptions(response.data.id, "bay").queryKey,
+                response,
+            );
+            setBayNotesDraft(slotGroupIdNumber, "");
             handleBookingConfirmationSuccess(router, {
                 type: "bay",
                 mode: isRescheduleMode ? "reschedule" : "booking",

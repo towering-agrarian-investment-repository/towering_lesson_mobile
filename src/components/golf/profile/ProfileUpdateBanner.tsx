@@ -2,7 +2,7 @@ import { ListRow } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { openStore } from "@/lib/update/app-update";
 import { useAppUpdateContext } from "@/lib/update/update-context";
-import { Download } from "lucide-react-native";
+import Download from "lucide-react-native/icons/download";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";

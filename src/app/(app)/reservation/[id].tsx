@@ -1,3 +1,9 @@
+import {
+    BayReservationNoteFooter,
+    BayReservationNoteForm,
+    BayReservationNoteRow,
+    useBayReservationNoteEditor,
+} from "@/components/golf/reservation/BayReservationNoteEditor";
 import { ReservationContent } from "@/components/golf/reservation/ReservationSections";
 import { ReservationCancelSheet } from "@/components/golf/reservation/detail/ReservationCancelSheet";
 import { ReservationCoachAvatar } from "@/components/golf/reservation/detail/ReservationCoachAvatar";
@@ -54,10 +60,19 @@ export default function ReservationDetailScreen() {
     );
 
     const reservation = data?.data;
+    const bayReservationDetail =
+        reservation && !("isListPreview" in reservation) && isBayReservationDetail(reservation) ? reservation : null;
 
     const { mutate: cancelLessonReservation, isPending: isCancellingLesson } = useCancelMemberLessonReservation();
 
     const { mutate: cancelBayReservation, isPending: isCancellingBay } = useCancelMemberBayReservation();
+    const noteEditor = useBayReservationNoteEditor({
+        reservation: bayReservationDetail,
+        enabled: type === "bay",
+        isOnline,
+        disabled: isCancellingBay,
+        requireCanEditFlag: true,
+    });
 
     if (isLoading) {
         return (
@@ -130,8 +145,8 @@ export default function ReservationDetailScreen() {
     const canCancelReservation = reservation.reservationStatus === "RESERVED" && reservation.isCancellable;
     const canRescheduleReservation = isBayReservation && canRescheduleBayReservation(reservation);
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
-    const isCancelDisabled = !isOnline || !canCancelReservation || isCancelling;
-    const isRescheduleDisabled = !isOnline || isLocked;
+    const isCancelDisabled = !isOnline || !canCancelReservation || isCancelling || noteEditor.isSavingNote;
+    const isRescheduleDisabled = !isOnline || isLocked || noteEditor.isSavingNote;
 
     const title = getReservationTitle(reservation, t);
     const dateValue = formatDateForDisplay(reservation.startTime) || "-";
@@ -146,7 +161,7 @@ export default function ReservationDetailScreen() {
 
     const coachName = isBayReservation ? "-" : lessonReservation?.coach?.name?.trim() || "-";
 
-    const noteValue = reservation.memberNotes?.trim() || "-";
+    const noteValue = reservation.memberNotes?.trim();
 
     const reservationPolicies = getReservationPolicies(t);
     const policies = isBayReservation ? reservationPolicies.bay : reservationPolicies.lesson;
@@ -253,9 +268,17 @@ export default function ReservationDetailScreen() {
             />
             <Screen
                 contentClassName="grow"
+                keyboardAware={noteEditor.canEditNote}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />}
                 footer={
-                    canCancelReservation ? (
+                    noteEditor.isNoteEditorOpen ? (
+                        <BayReservationNoteFooter
+                            isSaving={noteEditor.isSavingNote}
+                            isSaveDisabled={noteEditor.isSaveNoteDisabled}
+                            onSave={noteEditor.submitNote}
+                            onCancel={noteEditor.closeNoteEditor}
+                        />
+                    ) : canCancelReservation ? (
                         <View className="gap-2">
                             {canRescheduleReservation ? (
                                 <ActionButton
@@ -297,6 +320,29 @@ export default function ReservationDetailScreen() {
                             <>
                                 <Divider className="bg-border" />
                                 <ReservationDetailRow label={t("reservations.bayLabel")} value={title} />
+                                {noteValue || noteEditor.canEditNote ? (
+                                    <>
+                                        <Divider className="bg-border" />
+                                        {noteEditor.isNoteEditorOpen ? (
+                                            <BayReservationNoteForm
+                                                control={noteEditor.control}
+                                                editable={!noteEditor.isSavingNote}
+                                                showDisclaimer
+                                            />
+                                        ) : noteEditor.canEditNote ? (
+                                            <BayReservationNoteRow
+                                                value={noteValue}
+                                                disabled={noteEditor.isEditTriggerDisabled}
+                                                onPress={noteEditor.openNoteEditor}
+                                            />
+                                        ) : (
+                                            <ReservationDetailRow
+                                                label={t("bookingConfirmation.noteLabel")}
+                                                value={noteValue || "-"}
+                                            />
+                                        )}
+                                    </>
+                                ) : null}
                             </>
                         ) : null}
 
@@ -382,8 +428,12 @@ export default function ReservationDetailScreen() {
                             </>
                         ) : null}
 
-                        <Divider className="bg-border" />
-                        <ReservationDetailRow label={t("reservations.notesLabel")} value={noteValue} />
+                        {!isBayReservation ? (
+                            <>
+                                <Divider className="bg-border" />
+                                <ReservationDetailRow label={t("reservations.notesLabel")} value={noteValue || "-"} />
+                            </>
+                        ) : null}
                     </ReservationContent>
                 </View>
             </Screen>

@@ -11,17 +11,15 @@ import { Divider } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import type { AppLanguage } from "@/i18n";
 import type { GenderEnum, MemberSelfResponse } from "@/types/member.type";
-import {
-    BookOpenText,
-    Building2,
-    ChartNoAxesColumn,
-    GraduationCap,
-    LockKeyhole,
-    Phone,
-    Ticket,
-    UserRound,
-    UsersRound,
-} from "lucide-react-native";
+import BookOpenText from "lucide-react-native/icons/book-open-text";
+import Building2 from "lucide-react-native/icons/building-2";
+import ChartNoAxesColumn from "lucide-react-native/icons/chart-no-axes-column";
+import GraduationCap from "lucide-react-native/icons/graduation-cap";
+import LockKeyhole from "lucide-react-native/icons/lock-keyhole";
+import Phone from "lucide-react-native/icons/phone";
+import Ticket from "lucide-react-native/icons/ticket";
+import UserRound from "lucide-react-native/icons/user-round";
+import UsersRound from "lucide-react-native/icons/users-round";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";

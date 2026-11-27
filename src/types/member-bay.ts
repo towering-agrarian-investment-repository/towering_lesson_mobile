@@ -11,29 +11,17 @@ type MemberBayReservationTicket = {
     remainingCount: number | null;
 };
 
+type MemberBayReservationSlot = {
+    id: number;
+    bayId: number | null;
+};
+
 type MemberBayReservationParticipant = {
     id: number;
     bayReservationId: number;
     memberId: number;
     memberName: string;
-    phoneNumber: string;
     image: string;
-    email: string;
-    notes: string | null;
-};
-
-type AttendanceStatus = "PENDING" | "PRESENT" | "ABSENT";
-
-type AttendanceReservationDomain = "LESSON" | "BAY";
-
-type MemberReservationAttendance = {
-    id: number;
-    reservationId: number;
-    reservationDomain: AttendanceReservationDomain;
-    checkedInAt: string | null;
-    checkedOutAt: string | null;
-    attendanceStatus: AttendanceStatus;
-    notes: string | null;
 };
 
 export type MemberBayReservationResponse = {
@@ -41,6 +29,7 @@ export type MemberBayReservationResponse = {
     id: number;
     reservationNumber: string;
     ticket: MemberBayReservationTicket;
+    baySlot: MemberBayReservationSlot | null;
     bayName: string | null;
     bookedAt: string | null;
     startTime: string;
@@ -51,37 +40,17 @@ export type MemberBayReservationResponse = {
     reservationStatus: string;
     cancelledAt: string | null;
     memberNotes: string | null;
-    adminNotes: string | null;
     participants: MemberBayReservationParticipant[];
-    attendance: MemberReservationAttendance | null;
     isCancellable: boolean;
+    canEditMemberNotes: boolean;
 };
 
-type BaySlotScheduleResponse = {
-    id: number;
-    ruleId: number | null;
-    ruleName: string | null;
-    bayId: number;
-    bayNumber: number;
-    bayName: string;
-    slotStatus: string;
-    notes: string | null;
-    reservations: MemberBayReservationResponse[];
-};
-
-export type BaySlotGroupScheduleResponse = {
+export type MemberBaySlotGroupResponse = {
     id: number;
     name: string;
-    branchId: number;
-    isActive: boolean;
-    memo: string | null;
     startDateTime: string;
     endDateTime: string;
-    totalBaySlots: number;
     totalReservableBaySlots: number;
-    totalDisplayCapacity: number;
-    totalReservations: number;
-    baySlots: BaySlotScheduleResponse[];
 };
 
 export type CreateBayReservationRequest = {
@@ -92,4 +61,8 @@ export type CreateBayReservationRequest = {
 
 export type RescheduleBayReservationRequest = {
     baySlotGroupId: number;
+};
+
+export type UpdateBayReservationNotesRequest = {
+    memberNotes: string | null;
 };

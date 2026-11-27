@@ -9,7 +9,8 @@ import { RESOURCE_IMAGE_EXTENSIONS, isAllowedExtension, isAllowedMimeType } from
 import { openExternalUrl } from "@/utils/open-external-url";
 import { getHomeworkSubmissionTone } from "@/utils/status-tone";
 import { fmtDateTime } from "@/utils/time-helper";
-import { ExternalLink, FileCheck } from "lucide-react-native";
+import ExternalLink from "lucide-react-native/icons/external-link";
+import FileCheck from "lucide-react-native/icons/file-check";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -23,16 +24,15 @@ export const HomeworkSubmissionRow = memo(function HomeworkSubmissionRow({
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const url = submission.fileUrl?.trim() || submission.externalUrl?.trim();
+    const url = submission.fileUrl?.trim();
     const title =
-        submission.originalFileName?.trim() ||
         submission.fileUrl?.split("/").pop() ||
         submission.submittedByName?.trim() ||
         t("homework.submissionWithId", { id: submission.id });
     const isImageSubmission =
         Boolean(url) &&
         (isAllowedMimeType(submission.mediaType, ["image/jpeg", "image/png", "image/webp"]) ||
-            isAllowedExtension(submission.originalFileName || url, RESOURCE_IMAGE_EXTENSIONS));
+            isAllowedExtension(url, RESOURCE_IMAGE_EXTENSIONS));
     const metaParts = [
         submission.submittedAt ? fmtDateTime(submission.submittedAt) : null,
         formatFileSize(submission.fileSizeBytes),

@@ -1,6 +1,7 @@
 import { AnimatedPressable, useTheme } from "@/design-system";
 import { typography } from "@/design-system/utils/typography";
-import { Eye, EyeOff } from "lucide-react-native";
+import Eye from "lucide-react-native/icons/eye";
+import EyeOff from "lucide-react-native/icons/eye-off";
 import { useState } from "react";
 import { useController, type FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";

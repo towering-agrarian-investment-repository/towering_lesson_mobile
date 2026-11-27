@@ -2,7 +2,7 @@ import { HomeworkDetailHeader } from "@/components/golf/homework/HomeworkDetailH
 import { HomeworkDetailSkeleton } from "@/components/golf/homework/HomeworkDetailSkeleton";
 import { HomeworkReviewCard } from "@/components/golf/homework/HomeworkReviewCard";
 import { HomeworkSourceSheet } from "@/components/golf/homework/HomeworkSourceSheet";
-import { HomeworkSubmissionComposer } from "@/components/golf/homework/HomeworkSubmissionComposer";
+import { HomeworkDraftGuard, HomeworkSubmissionComposer } from "@/components/golf/homework/HomeworkSubmissionComposer";
 import { HomeworkSubmissionRow } from "@/components/golf/homework/HomeworkSubmissionRow";
 import {
     createFileFromDocument,
@@ -33,12 +33,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams, usePreventRemove } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
     Alert,
+    AppState,
     FlatList,
     Keyboard,
     Linking,
@@ -56,6 +57,8 @@ type HomeworkParams = {
 type HomeworkMemoFormValues = {
     memo: string;
 };
+
+const DRAFT_AUTOSAVE_DELAY_MS = 450;
 
 const submissionKeyExtractor = (submission: MemberHomeworkSubmissionResponse) => `submission-${submission.id}`;
 const SUBMISSION_LIST_CONTENT_STYLE = {
@@ -101,8 +104,8 @@ export default function HomeworkDetailScreen() {
         defaultValues: { memo: "" },
         mode: "onTouched",
     });
-    const memoValue = useWatch({ control: memoForm.control, name: "memo" });
     const referenceTime = useDayClock();
+    const scheduledDraftWrite = useRef<{ timer: ReturnType<typeof setTimeout>; write: () => void } | null>(null);
     const pendingDraftWrite = useRef<Promise<void> | null>(null);
     const discardingDraft = useRef(false);
     const submitting = useRef(false);
@@ -156,15 +159,52 @@ export default function HomeworkDetailScreen() {
         };
     }, [draftKey, memoForm]);
 
+    const flushDraftAutosave = useCallback(() => {
+        const pending = scheduledDraftWrite.current;
+        if (!pending) return;
+        scheduledDraftWrite.current = null;
+        clearTimeout(pending.timer);
+        pending.write();
+    }, []);
+
     useEffect(() => {
-        if (!isDraftLoaded || isDiscardingDraft || discardingDraft.current) {
-            return;
-        }
-        void queueDraftWrite(createHomeworkDraft(memoValue, selectedFile));
-    }, [isDiscardingDraft, isDraftLoaded, memoValue, queueDraftWrite, selectedFile]);
+        if (!isDraftLoaded || isDiscardingDraft) return;
+
+        const scheduleAutosave = (memo: string) => {
+            if (discardingDraft.current) return;
+            clearTimeout(scheduledDraftWrite.current?.timer);
+            scheduledDraftWrite.current = {
+                timer: setTimeout(flushDraftAutosave, DRAFT_AUTOSAVE_DELAY_MS),
+                write: () => {
+                    void queueDraftWrite(createHomeworkDraft(memo, selectedFile));
+                },
+            };
+        };
+
+        scheduleAutosave(memoForm.getValues("memo"));
+        return memoForm.subscribe({
+            name: "memo",
+            exact: true,
+            formState: { values: true },
+            callback: ({ values }) => scheduleAutosave(values.memo),
+        });
+    }, [flushDraftAutosave, isDiscardingDraft, isDraftLoaded, memoForm, queueDraftWrite, selectedFile]);
+
+    useFocusEffect(useCallback(() => flushDraftAutosave, [flushDraftAutosave]));
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state !== "active") flushDraftAutosave();
+        });
+        return () => {
+            subscription.remove();
+            flushDraftAutosave();
+        };
+    }, [flushDraftAutosave]);
 
     const discardDraft = async (repeat: () => void) => {
         if (discardingDraft.current) return;
+        flushDraftAutosave();
         discardingDraft.current = true;
         setIsDiscardingDraft(true);
 
@@ -181,8 +221,7 @@ export default function HomeworkDetailScreen() {
         }
     };
 
-    const hasDraft = Boolean(selectedFile) || Boolean(memoValue?.trim());
-    usePreventRemove(hasDraft && !isSubmitting, ({ repeat }) => {
+    const onPreventRemove = (repeat: () => void) => {
         if (discardingDraft.current) return;
         Alert.alert(t("homework.discardDraftTitle"), t("homework.discardDraftMessage"), [
             { text: t("common.cancel"), style: "cancel" },
@@ -194,7 +233,8 @@ export default function HomeworkDetailScreen() {
                 },
             },
         ]);
-    });
+    };
+    const draftGuardProps = { control: memoForm.control, selectedFile, isSubmitting, onPreventRemove };
 
     const homeworkDetail = data?.data;
     const homework = homeworkDetail?.homework;
@@ -357,6 +397,8 @@ export default function HomeworkDetailScreen() {
             {
                 onSuccess: () => {
                     triggerSuccessHaptic();
+                    clearTimeout(scheduledDraftWrite.current?.timer);
+                    scheduledDraftWrite.current = null;
                     void queueDraftWrite(null);
                     setSelectedFile(null);
                     memoForm.reset({ memo: "" });
@@ -371,6 +413,7 @@ export default function HomeworkDetailScreen() {
     if (isLoading) {
         return (
             <Screen contentClassName="gap-6">
+                <HomeworkDraftGuard {...draftGuardProps} />
                 <HomeworkDetailSkeleton />
             </Screen>
         );
@@ -379,6 +422,7 @@ export default function HomeworkDetailScreen() {
     if (isError && !data) {
         return (
             <Screen contentClassName="grow" refreshControl={refreshControl}>
+                <HomeworkDraftGuard {...draftGuardProps} />
                 <ErrorState
                     title={t("homework.failedTitle")}
                     message={t("common.pullToRefreshAndTryAgain")}
@@ -395,6 +439,7 @@ export default function HomeworkDetailScreen() {
     if (!homework) {
         return (
             <Screen contentClassName="gap-6" refreshControl={refreshControl}>
+                <HomeworkDraftGuard {...draftGuardProps} />
                 <CompactEmptyState title={t("homework.notAvailableTitle")} message={t("homework.notFoundMessage")} />
             </Screen>
         );
@@ -457,8 +502,7 @@ export default function HomeworkDetailScreen() {
                             <Divider className="bg-border/70" />
 
                             <HomeworkSubmissionComposer
-                                control={memoForm.control}
-                                selectedFile={selectedFile}
+                                {...draftGuardProps}
                                 isEditingDisabled={isDraftEditingDisabled}
                                 isPicking={isPicking}
                                 onOpenSource={openSourceSheet}

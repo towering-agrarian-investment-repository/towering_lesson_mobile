@@ -11,7 +11,7 @@ type NotificationPayload = {
 
 const NUMERIC_REFERENCE_ID_PATTERN = /^\d+$/;
 
-export const usePushNotification = (isLoggedIn: boolean) => {
+export const usePushNotification = (userId: string | null) => {
     const router = useRouter();
     const lastHandledNotificationId = useRef<string | null>(null);
 
@@ -89,18 +89,23 @@ export const usePushNotification = (isLoggedIn: boolean) => {
     );
 
     useEffect(() => {
-        if (!isLoggedIn) {
+        if (!userId) {
             return;
         }
 
-        const registerPushToken = async (devicePushToken?: Notifications.DevicePushToken) => {
-            try {
-                await registerForPushNotifications(devicePushToken);
-            } catch (error) {
-                if (__DEV__) {
-                    console.error("[push] Registration failed", error);
-                }
-            }
+        const controller = new AbortController();
+        let registrations = Promise.resolve();
+        const registerPushToken = (devicePushToken?: Notifications.DevicePushToken) => {
+            // Preserve token event order if Expo is still resolving the cold-start token.
+            registrations = registrations
+                .then(async () => {
+                    await registerForPushNotifications(userId, controller.signal, devicePushToken);
+                })
+                .catch((error) => {
+                    if (__DEV__) {
+                        console.error("[push] Registration failed", error);
+                    }
+                });
         };
 
         void registerPushToken();
@@ -116,8 +121,9 @@ export const usePushNotification = (isLoggedIn: boolean) => {
         handleNotificationNavigation(Notifications.getLastNotificationResponse());
 
         return () => {
+            controller.abort();
             pushTokenSubscription.remove();
             responseSubscription.remove();
         };
-    }, [handleNotificationNavigation, isLoggedIn]);
+    }, [handleNotificationNavigation, userId]);
 };

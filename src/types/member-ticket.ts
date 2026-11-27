@@ -1,23 +1,17 @@
-import type { MemberReservationResponse } from "./member-reservation";
+import type { MemberReservationSummaryResponse } from "./member-reservation";
 
-export type TicketPauseResponse = {
+export type MemberTicketPauseResponse = {
     id: number;
     ticketId: number;
     pausedStartDate: string;
     pausedEndDate: string;
-    cancelledAt: string | null;
-    notes: string | null;
 };
 
-export type TicketListItemResponse = {
+export type MemberTicketSummaryResponse = {
     id: number;
-    transactionId: number;
     coachName: string | null;
     name: string;
     type: string;
-    originalPrice: number;
-    discountAmount: number;
-    price: number;
     period: number | null;
     totalCount: number | null;
     isUnlimited: boolean;
@@ -28,11 +22,9 @@ export type TicketListItemResponse = {
     startDate: string | null;
     endDate: string | null;
     status: string;
-    pauses: TicketPauseResponse[];
-    reservationCount: number;
-    bayReservationCount: number;
+    pauses: MemberTicketPauseResponse[];
 };
 
-export type TicketDetailResponse = TicketListItemResponse & {
-    reservations?: MemberReservationResponse[];
+export type MemberTicketDetailResponse = MemberTicketSummaryResponse & {
+    reservations?: MemberReservationSummaryResponse[];
 };

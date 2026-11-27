@@ -1,6 +1,6 @@
 import type { NotificationResponse } from "@/service/shared/notification-service";
 import { toAppTimeZoneDate } from "@/utils/timezone";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 
 type NotificationSectionKey = "today" | "yesterday" | "thisWeek" | "earlier";
 export type NotificationListEntry =
@@ -12,9 +12,11 @@ export const notificationKeyExtractor = (entry: NotificationListEntry) =>
 export const getNotificationItemType = (entry: NotificationListEntry) =>
     entry.kind === "header" ? "header" : entry.item.isRead ? "read" : "unread";
 
-function getNotificationSectionKey(createdAt: string, referenceTime: number): NotificationSectionKey | null {
+function getNotificationSectionKey(
+    createdAt: string,
+    reference: ReturnType<typeof toAppTimeZoneDate>,
+): NotificationSectionKey | null {
     const created = toAppTimeZoneDate(createdAt);
-    const reference = toAppTimeZoneDate(referenceTime);
     if (!created || !reference) return null;
 
     const daysAgo = differenceInCalendarDays(reference, created);
@@ -33,8 +35,10 @@ export function buildNotificationEntries(
     const stickyHeaderIndices: number[] = [];
     let currentKey: NotificationSectionKey | null = null;
 
+    const reference = toAppTimeZoneDate(referenceTime);
+
     for (const notification of notifications) {
-        const key = getNotificationSectionKey(notification.createdAt, referenceTime);
+        const key = getNotificationSectionKey(notification.createdAt, reference);
         if (key && key !== currentKey) {
             stickyHeaderIndices.push(entries.length);
             entries.push({

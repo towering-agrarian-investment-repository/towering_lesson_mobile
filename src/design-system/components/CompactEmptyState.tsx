@@ -1,6 +1,7 @@
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { CircleAlert, Inbox } from "lucide-react-native";
+import CircleAlert from "lucide-react-native/icons/circle-alert";
+import Inbox from "lucide-react-native/icons/inbox";
 import { View } from "react-native";
 import { cn } from "../utils/cn";
 import { AnimatedPressable } from "./AnimatedPressable";

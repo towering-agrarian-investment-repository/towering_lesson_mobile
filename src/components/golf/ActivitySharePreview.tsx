@@ -1,10 +1,17 @@
 import { AnimatedPressable, useTheme } from "@/design-system";
 import type { ActivityHeatmapValue } from "@/design-system/components/charts/activity-chart-data";
 import { Stack } from "expo-router";
-import { Share, Share2 } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import Share from "lucide-react-native/icons/share";
+import Share2 from "lucide-react-native/icons/share-2";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivitySharePreviewModal, type ActivityShareCardProps } from "./share/ActivitySharePreviewModal";
+import type { ActivityShareCardProps } from "./share/ActivitySharePreviewModal";
+
+const ActivitySharePreviewModal = lazy(() =>
+    import("./share/ActivitySharePreviewModal").then((module) => ({
+        default: module.ActivitySharePreviewModal,
+    })),
+);
 
 type ActivitySharePreviewProps = {
     isAvailable: boolean;
@@ -17,7 +24,7 @@ type ActivitySharePreviewProps = {
 };
 
 // Split the header trigger from the heavy studio modal so hidden tabs do not
-// instantiate capture, date-formatter, or activity hooks until opened.
+// evaluate or instantiate capture, date-formatter, or activity hooks until opened.
 export function ActivitySharePreview({
     isAvailable,
     cardProps,
@@ -70,14 +77,16 @@ export function ActivitySharePreview({
         <>
             <Stack.Screen options={previewOptions} />
             {showShareCard ? (
-                <ActivitySharePreviewModal
-                    isAvailable={isAvailable}
-                    cardProps={cardProps}
-                    initialDailyValues={initialDailyValues}
-                    availableYears={availableYears}
-                    selectedYear={selectedYear}
-                    onClose={() => setShowShareCard(false)}
-                />
+                <Suspense fallback={null}>
+                    <ActivitySharePreviewModal
+                        isAvailable={isAvailable}
+                        cardProps={cardProps}
+                        initialDailyValues={initialDailyValues}
+                        availableYears={availableYears}
+                        selectedYear={selectedYear}
+                        onClose={() => setShowShareCard(false)}
+                    />
+                </Suspense>
             ) : null}
         </>
     );

@@ -14,7 +14,7 @@ import {
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberTicketByIdQueryOptions, useMemberTickets } from "@/lib/hook/useTicket";
-import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getTicketStatusGroup } from "@/utils/status-tone";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,13 +35,22 @@ const TICKET_HISTORY_GROUP_TITLES = {
     past: "tickets.historyFilters.past",
     other: "tickets.types.other",
 } as const;
-const ticketHistoryKeyExtractor = (item: TicketListItemResponse) => String(item.id);
+type TicketHistoryGroup = keyof typeof TICKET_HISTORY_GROUP_TITLES;
+type TicketItemEntry = { type: "item"; ticket: MemberTicketSummaryResponse };
+type TicketHistoryEntry =
+    { type: "header"; group: TicketHistoryGroup; count: number; isFirst: boolean } | TicketItemEntry;
+
+const ticketItemEntries = new WeakMap<MemberTicketSummaryResponse, TicketItemEntry>();
+const ticketHistoryKeyExtractor = (entry: TicketHistoryEntry) =>
+    entry.type === "header" ? `group:${entry.group}` : String(entry.ticket.id);
+const getTicketHistoryItemType = (entry: TicketHistoryEntry) => entry.type;
 const TICKET_HISTORY_LIST_CONTENT_STYLE = {
     paddingTop: 12,
     paddingBottom: 40,
 } as const;
 
-function TicketHistorySeparator() {
+function TicketHistorySeparator({ leadingItem }: { leadingItem: TicketHistoryEntry }) {
+    if (leadingItem.type === "header") return null;
     return <View className="h-3" />;
 }
 
@@ -144,33 +153,41 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         refetch({ cancelRefetch: false }),
     );
 
-    const { displayedTickets, sectionHeaders } = useMemo(() => {
-        const groups: Record<ReturnType<typeof getTicketStatusGroup>, TicketListItemResponse[]> = {
+    const entries = useMemo(() => {
+        const groups: Record<TicketHistoryGroup, TicketItemEntry[]> = {
             active: [],
             past: [],
             other: [],
         };
         for (const ticket of data?.items ?? []) {
-            groups[getTicketStatusGroup(ticket.status, ticket.fullyUsed)].push(ticket);
+            const group = getTicketStatusGroup(ticket.status, ticket.fullyUsed);
+            if (filter !== "all" && group !== filter) continue;
+            let entry = ticketItemEntries.get(ticket);
+            if (!entry) {
+                entry = { type: "item", ticket };
+                ticketItemEntries.set(ticket, entry);
+            }
+            groups[group].push(entry);
         }
 
-        const sectionHeaders = new Map<number, { title: string; count: number }>();
         if (filter !== "all") {
-            return { displayedTickets: groups[filter], sectionHeaders };
+            return groups[filter];
         }
 
-        const displayedTickets: TicketListItemResponse[] = [];
+        const entries: TicketHistoryEntry[] = [];
         for (const group of ["active", "past", "other"] as const) {
             const tickets = groups[group];
             if (tickets.length === 0) continue;
 
-            sectionHeaders.set(displayedTickets.length, {
-                title: TICKET_HISTORY_GROUP_TITLES[group],
+            entries.push({
+                type: "header",
+                group,
                 count: tickets.length,
+                isFirst: entries.length === 0,
             });
-            displayedTickets.push(...tickets);
+            entries.push(...tickets);
         }
-        return { displayedTickets, sectionHeaders };
+        return entries;
     }, [data?.items, filter]);
 
     const handleFetchNextPage = useCallback(() => {
@@ -186,13 +203,13 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
     }, [handleFetchNextPage, isActive, isFetchNextPageError]);
 
     useEffect(() => {
-        if (isActive && filter !== "all" && displayedTickets.length === 0 && hasNextPage && !isFetchNextPageError) {
+        if (isActive && filter !== "all" && entries.length === 0 && hasNextPage && !isFetchNextPageError) {
             handleFetchNextPage();
         }
-    }, [isActive, filter, displayedTickets.length, handleFetchNextPage, hasNextPage, isFetchNextPageError]);
+    }, [isActive, filter, entries.length, handleFetchNextPage, hasNextPage, isFetchNextPageError]);
 
     const handleTicketPress = useCallback(
-        (item: TicketListItemResponse) => {
+        (item: MemberTicketSummaryResponse) => {
             void queryClient.prefetchQuery(getMemberTicketByIdQueryOptions(item.id));
             runWithNavigationLock(() => {
                 router.push({
@@ -204,28 +221,14 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         [queryClient, router, runWithNavigationLock],
     );
 
-    const renderTicket: ListRenderItem<TicketListItemResponse> = useCallback(
-        ({ item, index }) => {
-            const section = sectionHeaders.get(index);
-            const card = <TicketHistoryCard item={item} disabled={isLocked} onPress={handleTicketPress} />;
-
-            if (!section) {
-                return card;
-            }
-
-            return (
-                <View className="gap-2.5">
-                    <TicketSectionHeader title={t(section.title)} count={section.count} isFirst={index === 0} />
-                    {card}
-                </View>
-            );
-        },
-        [handleTicketPress, isLocked, sectionHeaders, t],
-    );
-
-    const getTicketHistoryItemType = useCallback(
-        (_item: TicketListItemResponse, index: number) => (sectionHeaders.has(index) ? "header-card" : "card"),
-        [sectionHeaders],
+    const renderTicket: ListRenderItem<TicketHistoryEntry> = useCallback(
+        ({ item }) =>
+            item.type === "header" ? (
+                <TicketSectionHeader group={item.group} count={item.count} isFirst={item.isFirst} />
+            ) : (
+                <TicketHistoryCard item={item.ticket} disabled={isLocked} onPress={handleTicketPress} />
+            ),
+        [handleTicketPress, isLocked],
     );
 
     const emptyCopy =
@@ -262,7 +265,7 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         );
     }
 
-    if (displayedTickets.length === 0 && isFetchNextPageError) {
+    if (entries.length === 0 && isFetchNextPageError) {
         return (
             <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
                 <ErrorState
@@ -276,11 +279,11 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         );
     }
 
-    if (displayedTickets.length === 0 && hasNextPage) {
+    if (entries.length === 0 && hasNextPage) {
         return <TicketHistorySkeletonList grouped={filter === "all"} />;
     }
 
-    if (displayedTickets.length === 0) {
+    if (entries.length === 0) {
         return (
             <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
                 <EmptyState
@@ -296,7 +299,7 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
 
     return (
         <FlashList
-            data={displayedTickets}
+            data={entries}
             extraData={isLocked}
             keyExtractor={ticketHistoryKeyExtractor}
             getItemType={getTicketHistoryItemType}
@@ -324,15 +327,23 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
     );
 });
 
-function TicketSectionHeader({ title, count, isFirst = false }: { title: string; count: number; isFirst?: boolean }) {
+function TicketSectionHeader({
+    group,
+    count,
+    isFirst,
+}: {
+    group: TicketHistoryGroup;
+    count: number;
+    isFirst: boolean;
+}) {
     const { t } = useTranslation();
 
     return (
         <View
             className={
                 isFirst
-                    ? "flex-row items-baseline justify-between gap-2 px-0.5 pt-1"
-                    : "flex-row items-baseline justify-between gap-2 px-0.5 pt-3.5"
+                    ? "flex-row items-baseline justify-between gap-2 px-0.5 pb-2.5 pt-1"
+                    : "flex-row items-baseline justify-between gap-2 px-0.5 pb-2.5 pt-3.5"
             }
         >
             <AppText
@@ -341,7 +352,7 @@ function TicketSectionHeader({ title, count, isFirst = false }: { title: string;
                 style={{ flex: 1, minWidth: 0 }}
                 textStyle={{ fontWeight: "700" }}
             >
-                {title}
+                {t(TICKET_HISTORY_GROUP_TITLES[group])}
             </AppText>
             <AppText variant="caption" color="mutedForeground" wrap={false} numberOfLines={1} tabular>
                 {t("tickets.count", { count })}

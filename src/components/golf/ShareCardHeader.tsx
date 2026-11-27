@@ -1,7 +1,7 @@
 import { Skeleton } from "@/design-system/components/Skeleton";
 import { colorWithOpacity } from "@/design-system/utils/color";
 import { getThemeColors, useTheme } from "@/design-system/utils/theme";
-import { Clock } from "lucide-react-native";
+import Clock from "lucide-react-native/icons/clock";
 import { useTranslation } from "react-i18next";
 import { Text, View, type TextStyle } from "react-native";
 import layout from "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json";

@@ -1,37 +1,26 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LANGUAGE_STORAGE_KEY, loadStartupPreferences } from "@/lib/startup-preferences";
 import { getLocales } from "expo-localization";
 import { createInstance } from "i18next";
 import { initReactI18next } from "react-i18next";
-import en from "./resources/en";
-import ja from "./resources/ja";
-import km from "./resources/km";
-import ko from "./resources/ko";
-import zh from "./resources/zh";
+import en, { type TranslationResource } from "./resources/en";
 
-const resources = {
-    en: {
-        translation: en,
-    },
-    ko: {
-        translation: ko,
-    },
-    ja: {
-        translation: ja,
-    },
-    zh: {
-        translation: zh,
-    },
-    km: {
-        translation: km,
-    },
-} as const;
+const SUPPORTED_LANGUAGES = ["en", "ko", "ja", "zh", "km"] as const;
 
-const LANGUAGE_STORAGE_KEY = "app-language";
+export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+type AppTranslation = TranslationResource<typeof en>;
+
+const localeLoaders: Record<Exclude<AppLanguage, "en">, () => Promise<{ default: AppTranslation }>> = {
+    ko: () => import("./resources/ko"),
+    ja: () => import("./resources/ja"),
+    zh: () => import("./resources/zh"),
+    km: () => import("./resources/km"),
+};
+
 const i18n = createInstance();
 
-export type AppLanguage = keyof typeof resources;
-
-function detectLanguage() {
+function detectLanguage(): AppLanguage {
     const locale = getLocales()[0];
     return resolveLanguage(locale?.languageCode);
 }
@@ -58,14 +47,44 @@ export function resolveLanguage(languageCode?: string | null): AppLanguage {
     return "en";
 }
 
+const pendingLanguageLoads = new Map<AppLanguage, Promise<void>>();
+
+async function ensureLanguageLoaded(language: AppLanguage): Promise<void> {
+    if (language === "en" || i18n.hasResourceBundle(language, "translation")) {
+        return;
+    }
+
+    const existingLoad = pendingLanguageLoads.get(language);
+    if (existingLoad) {
+        return existingLoad;
+    }
+
+    const loadPromise = localeLoaders[language]()
+        .then((module) => {
+            i18n.addResourceBundle(language, "translation", module.default, true, true);
+        })
+        .finally(() => {
+            pendingLanguageLoads.delete(language);
+        });
+
+    pendingLanguageLoads.set(language, loadPromise);
+    return loadPromise;
+}
+
+const initialLanguage = detectLanguage();
+
 const initPromise = !i18n.isInitialized
     ? i18n.use(initReactI18next).init({
           compatibilityJSON: "v4",
-          resources,
+          resources: {
+              en: {
+                  translation: en,
+              },
+          },
           defaultNS: "translation",
-          lng: detectLanguage(),
+          lng: initialLanguage,
           fallbackLng: "en",
-          supportedLngs: Object.keys(resources),
+          supportedLngs: SUPPORTED_LANGUAGES,
           interpolation: {
               escapeValue: false,
           },
@@ -79,19 +98,28 @@ let hasExplicitLanguageSelection = false;
 export const i18nReady: Promise<void> = (async () => {
     try {
         await initPromise;
-        const storedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+        let storedLanguage: string | null | undefined;
+        try {
+            storedLanguage = (await loadStartupPreferences()).get(LANGUAGE_STORAGE_KEY);
+        } catch {
+            storedLanguage = null;
+        }
 
-        if (!storedLanguage || hasExplicitLanguageSelection) {
+        if (hasExplicitLanguageSelection) {
             return;
         }
 
-        const nextLanguage = resolveLanguage(storedLanguage);
+        const nextLanguage = storedLanguage ? resolveLanguage(storedLanguage) : initialLanguage;
+        await ensureLanguageLoaded(nextLanguage);
 
-        if (i18n.language !== nextLanguage) {
+        if (
+            !hasExplicitLanguageSelection &&
+            (i18n.language !== nextLanguage || i18n.resolvedLanguage !== nextLanguage)
+        ) {
             await i18n.changeLanguage(nextLanguage);
         }
     } catch {
-        // Keep the detected language if persisted preference cannot be restored.
+        // Keep the fallback language if persisted or detected locale cannot be loaded.
     } finally {
         isLanguageHydrated = true;
     }
@@ -105,6 +133,8 @@ export async function setAppLanguage(language: AppLanguage) {
     hasExplicitLanguageSelection = true;
     const nextLanguage = resolveLanguage(language);
 
+    await initPromise;
+    await ensureLanguageLoaded(nextLanguage);
     await i18n.changeLanguage(nextLanguage);
     await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
 }

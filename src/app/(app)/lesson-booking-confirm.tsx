@@ -19,13 +19,12 @@ import {
     useMemberTicketLessonSlots,
 } from "@/lib/hook/useReservation";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
-import { useGetMemberProfile } from "@/lib/hook/useUser";
 import { showAppToast } from "@/design-system/components/AppToast";
 import {
     getLessonSlotDisplayName,
     isGroupLessonSlot,
-    isLessonSlotBookedByMember,
     isLessonSlotBookable,
+    isLessonSlotBookedByCurrentMember,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { getEffectiveTicketStatus } from "@/utils/status-tone";
@@ -69,7 +68,6 @@ export default function LessonBookingConfirmScreen() {
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const notes = initialNotes?.trim() || null;
     const { mutate: createReservation, isPending: isCreating } = useCreateMemberLessonReservation();
-    const { data: memberResponse } = useGetMemberProfile();
     const selectedDate = new Date(`${date}T12:00:00`);
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
@@ -125,9 +123,8 @@ export default function LessonBookingConfirmScreen() {
     );
     const isSelectedSlotBookable = selectedSlot ? isLessonSlotBookable(selectedSlot) : false;
     const isSelectedSlotFull = selectedSlot ? isLessonSlotFull(selectedSlot) : false;
+    const isSelectedSlotAlreadyBooked = selectedSlot ? isLessonSlotBookedByCurrentMember(selectedSlot) : false;
     const isGroupSelection = selectedSlot ? isGroupLessonSlot(selectedSlot) : isGroupTicket;
-    const isSelectedSlotAlreadyBooked =
-        isGroupSelection && selectedSlot ? isLessonSlotBookedByMember(selectedSlot, memberResponse?.data.id) : false;
     const isMissingRequiredData = !ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot;
 
     const handleSlotUnavailable = async (error: unknown) => {

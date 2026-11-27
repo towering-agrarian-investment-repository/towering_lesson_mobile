@@ -1,7 +1,8 @@
 import { AnimatedPressable, AppText, cn } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import type { ShareCardAction } from "@/lib/hook/useShareCardExport";
-import { Download, Share } from "lucide-react-native";
+import Download from "lucide-react-native/icons/download";
+import Share from "lucide-react-native/icons/share";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
 

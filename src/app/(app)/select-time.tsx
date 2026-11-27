@@ -6,7 +6,7 @@ import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
-import type { BaySlotGroupScheduleResponse } from "@/types/member-bay";
+import type { MemberBaySlotGroupResponse } from "@/types/member-bay";
 import { formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
 
 type TimeSlotItem = {
-    group: BaySlotGroupScheduleResponse;
+    group: MemberBaySlotGroupResponse;
     availableBayCount: number;
 };
 
@@ -22,7 +22,7 @@ function ItemSeparator() {
     return <View className="h-3" />;
 }
 
-const slotGroupKeyExtractor = ({ group }: { group: BaySlotGroupScheduleResponse }) => String(group.id);
+const slotGroupKeyExtractor = ({ group }: { group: MemberBaySlotGroupResponse }) => String(group.id);
 const SLOT_LIST_CONTENT_STYLE = { paddingBottom: 24 } as const;
 
 export default function TimeScreen() {
@@ -74,7 +74,7 @@ export default function TimeScreen() {
     const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
 
     const handleSelect = useCallback(
-        (group: BaySlotGroupScheduleResponse) => {
+        (group: MemberBaySlotGroupResponse) => {
             runWithNavigationLock(() => {
                 setDismissedConflictId(conflictId);
                 router.push({
@@ -206,10 +206,10 @@ export default function TimeScreen() {
 }
 
 type TimeSlotCardProps = {
-    group: BaySlotGroupScheduleResponse;
+    group: MemberBaySlotGroupResponse;
     availableBayCount: number;
     isLocked: boolean;
-    onSelect: (group: BaySlotGroupScheduleResponse) => void;
+    onSelect: (group: MemberBaySlotGroupResponse) => void;
 };
 
 const TimeSlotCard = memo(function TimeSlotCard({ group, availableBayCount, isLocked, onSelect }: TimeSlotCardProps) {

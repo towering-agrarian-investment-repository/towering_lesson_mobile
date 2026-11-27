@@ -1,9 +1,9 @@
 import { getPublishedBanners } from "@/service/banner";
-import type { PublishedBanner } from "@/types/banner";
+import type { PublishedBannerResponse } from "@/types/banner";
 import { useQuery } from "@tanstack/react-query";
 
 export function usePublishedBanners() {
-    return useQuery<PublishedBanner[], Error>({
+    return useQuery<PublishedBannerResponse[], Error>({
         queryKey: ["banners", "published"],
         queryFn: async ({ signal }) => {
             const response = await getPublishedBanners(signal);

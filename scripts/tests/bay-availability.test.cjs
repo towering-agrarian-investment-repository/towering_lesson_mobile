@@ -151,7 +151,8 @@ test("package and day prefetch send the selected ticket and refresh seeded avail
         "@/lib/hook/useReservation": hooks,
         "@/utils/time-helper": { formatDateForAPI: (date) => date.toISOString().slice(0, 10) },
         "@/utils/timezone": { toAppTimeZoneDate: (date) => date },
-        "date-fns": require("date-fns"),
+        "date-fns/endOfMonth": require("date-fns/endOfMonth"),
+        "date-fns/startOfMonth": require("date-fns/startOfMonth"),
     });
     const client = new query.QueryClient();
     try {

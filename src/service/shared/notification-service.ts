@@ -21,8 +21,6 @@ export interface NotificationResponse {
     referenceId: string | null;
     referenceType: NotificationReferenceType | null;
     isRead: boolean;
-    sentPush: boolean;
-    pushSentAt: string | null;
     readAt: string | null;
     createdAt: string;
 }

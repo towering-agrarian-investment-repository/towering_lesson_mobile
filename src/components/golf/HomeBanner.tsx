@@ -2,7 +2,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { showAppToast } from "@/design-system/components/AppToast";
 import { Skeleton } from "@/design-system/components/Skeleton";
 import { useThemeColors } from "@/design-system/utils/theme";
-import type { PublishedBanner } from "@/types/banner";
+import type { PublishedBannerResponse } from "@/types/banner";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { Image } from "expo-image";
 import { Href, useFocusEffect, useRouter } from "expo-router";
@@ -14,8 +14,8 @@ import { useReducedMotion } from "react-native-reanimated";
 const BANNER_FRAME_STYLE = { aspectRatio: 993 / 250 };
 const BANNER_CORNER_STYLE = { borderRadius: 16, borderCurve: "continuous" } as const;
 const AUTO_ROTATE_MS = 5000;
-const EMPTY_BANNERS: PublishedBanner[] = [];
-const bannerKeyExtractor = (banner: PublishedBanner) => String(banner.id);
+const EMPTY_BANNERS: PublishedBannerResponse[] = [];
+const bannerKeyExtractor = (banner: PublishedBannerResponse) => String(banner.id);
 
 const BannerSlide = memo(function BannerSlide({
     banner,
@@ -25,14 +25,14 @@ const BannerSlide = memo(function BannerSlide({
     onOpen,
     onImageError,
 }: {
-    banner: PublishedBanner;
+    banner: PublishedBannerResponse;
     width: number;
     disabled: boolean;
     reducedMotion: boolean;
     onOpen: (targetUrl: string | null) => void;
     onImageError: (imageUrl: string) => void;
 }) {
-    const imageUrl = banner.imageUrl || banner.imageExternalUrl;
+    const imageUrl = banner.imageUrl;
     if (!imageUrl) return null;
 
     const image = (
@@ -77,13 +77,13 @@ export function HomeBannerSkeleton() {
     return <Skeleton className="self-stretch" style={[BANNER_FRAME_STYLE, BANNER_CORNER_STYLE]} />;
 }
 
-export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBanner[] }) {
+export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBannerResponse[] }) {
     const { t } = useTranslation();
     const colors = useThemeColors();
     const reducedMotion = useReducedMotion();
     const router = useRouter();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
-    const listRef = useRef<FlatList<PublishedBanner>>(null);
+    const listRef = useRef<FlatList<PublishedBannerResponse>>(null);
     const [width, setWidth] = useState(0);
     const [failedImageUrls, setFailedImageUrls] = useState<string[]>([]);
     const indexRef = useRef(0);
@@ -94,7 +94,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
         () =>
             [...banners]
                 .filter((banner) => {
-                    const imageUrl = banner.imageUrl || banner.imageExternalUrl;
+                    const imageUrl = banner.imageUrl;
                     return imageUrl ? !failedImageUrls.includes(imageUrl) : false;
                 })
                 .sort((a, b) => a.displayOrder - b.displayOrder),
@@ -168,7 +168,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     }, []);
 
     const getItemLayout = useCallback(
-        (_: ArrayLike<PublishedBanner> | null | undefined, itemIndex: number) => ({
+        (_: ArrayLike<PublishedBannerResponse> | null | undefined, itemIndex: number) => ({
             length: width,
             offset: width * itemIndex,
             index: itemIndex,
@@ -177,7 +177,7 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     );
 
     const renderBannerItem = useCallback(
-        ({ item }: { item: PublishedBanner }) => (
+        ({ item }: { item: PublishedBannerResponse }) => (
             <BannerSlide
                 banner={item}
                 width={width}

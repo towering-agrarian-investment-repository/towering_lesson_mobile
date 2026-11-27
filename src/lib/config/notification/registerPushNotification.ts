@@ -1,5 +1,8 @@
-import { getInstallationId } from "@/lib/config/notification/pushRegistrationStorage";
-import { savePushToken } from "@/service/shared/push-token-service";
+import {
+    confirmPushRegistration,
+    getInstallationId,
+    getPushRegistrationGeneration,
+} from "@/lib/config/notification/pushRegistrationStorage";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -16,8 +19,13 @@ Notifications.setNotificationHandler({
 });
 
 export const registerForPushNotifications = async (
+    userId: string,
+    signal: AbortSignal,
     devicePushToken?: Notifications.DevicePushToken,
 ): Promise<string | null> => {
+    const generation = getPushRegistrationGeneration();
+    if (generation === null || signal.aborted) return null;
+
     if (!Device.isDevice) {
         if (__DEV__) {
             console.warn("[push] Push notifications require a physical device");
@@ -64,15 +72,7 @@ export const registerForPushNotifications = async (
     const expoPushToken = tokenResponse.data;
     const installationId = await getInstallationId();
 
-    await savePushToken({
-        deviceId: installationId,
-        pushToken: expoPushToken,
-        platform: "EXPO",
-    });
-
-    if (__DEV__) {
-        console.info("[push] Expo push token registered with the backend");
-    }
+    await confirmPushRegistration({ userId, installationId, token: expoPushToken }, generation, signal);
 
     return expoPushToken;
 };

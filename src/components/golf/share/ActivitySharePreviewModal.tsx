@@ -19,7 +19,7 @@ import { useShareCardExport } from "@/lib/hook/useShareCardExport";
 import { useShareMonth } from "@/lib/hook/useShareMonth";
 import { BottomSheet } from "@expo/ui";
 import { StatusBar } from "expo-status-bar";
-import { X } from "lucide-react-native";
+import X from "lucide-react-native/icons/x";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ElementRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, View } from "react-native";
@@ -324,6 +324,8 @@ export function ActivitySharePreviewModal({
                     >
                         {stageWidth > 0 ? (
                             <TabView
+                                lazy
+                                renderLazyPlaceholder={() => <View className="flex-1 bg-muted/30" />}
                                 animationEnabled={!reducedMotion}
                                 swipeEnabled={!isBusy}
                                 navigationState={{

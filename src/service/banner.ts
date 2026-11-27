@@ -1,9 +1,9 @@
 import { apiClient } from "@/lib/client/api-client";
 import type { ApiResponse } from "@/lib/api-response/api-response";
-import type { PublishedBanner } from "@/types/banner";
+import type { PublishedBannerResponse } from "@/types/banner";
 
 export function getPublishedBanners(signal?: AbortSignal) {
-    return apiClient<ApiResponse<PublishedBanner[]>>("/banner/published", {
+    return apiClient<ApiResponse<PublishedBannerResponse[]>>("/banner/published", {
         method: "GET",
         signal,
     });

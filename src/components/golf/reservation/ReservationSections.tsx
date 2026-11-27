@@ -1,10 +1,6 @@
 import { AppText } from "@/design-system/components/AppText";
 import { Divider } from "@/design-system";
-import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import { frame, textSelection } from "@expo/ui/swift-ui/modifiers";
 import { useTheme } from "@/design-system/utils/theme";
-import { typography } from "@/design-system/utils/typography";
-import { Host, Text } from "@expo/ui";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -38,7 +34,14 @@ export function ReservationDetailField({
                 {leftElement ? leftElement : null}
 
                 <View className="min-w-0 flex-1 flex-col gap-1">
-                    <ReservationFieldValue selectable={selectable}>{value}</ReservationFieldValue>
+                    <AppText
+                        variant="label"
+                        selectable={selectable}
+                        maxFontSizeMultiplier={process.env.EXPO_OS === "android" ? 0 : 1.5}
+                        textStyle={{ includeFontPadding: false }}
+                    >
+                        {value}
+                    </AppText>
 
                     {description ? (
                         <AppText variant="subtext" textStyle={{ color: uiColors.mutedForeground }}>
@@ -82,43 +85,6 @@ export function ReservationFieldLabel({ children, className }: { children: strin
             <AppText variant="subtext" color="mutedForeground">
                 {children}
             </AppText>
-        </View>
-    );
-}
-
-function ReservationFieldValue({
-    children,
-    className,
-    selectable = false,
-}: {
-    children: string;
-    className?: string;
-    selectable?: boolean;
-}) {
-    const { colors: uiColors, fontScale: uiFontScale } = useTheme();
-    return (
-        <View className={className}>
-            <Host matchContents={{ vertical: true }} ignoreSafeArea="all" style={{ width: "100%" }}>
-                <Text
-                    modifiers={
-                        process.env.EXPO_OS === "ios"
-                            ? [
-                                  frame({ maxWidth: Infinity, alignment: "leading" }),
-                                  ...(selectable ? [textSelection(true)] : []),
-                              ]
-                            : [fillMaxWidth()]
-                    }
-                    textStyle={{
-                        ...typography.body,
-                        lineHeight: typography.body.lineHeight * uiFontScale,
-                        fontWeight: "600",
-                        color: uiColors.foreground,
-                        fontSize: typography.body.fontSize * uiFontScale,
-                    }}
-                >
-                    {children}
-                </Text>
-            </Host>
         </View>
     );
 }

@@ -20,14 +20,14 @@ import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
-import type { MemberReservationResponse } from "@/types/member-reservation";
-import type { TicketDetailResponse, TicketPauseResponse } from "@/types/member-ticket";
+import type { MemberReservationSummaryResponse } from "@/types/member-reservation";
+import type { MemberTicketDetailResponse, MemberTicketPauseResponse } from "@/types/member-ticket";
 import { getTicketStatusGroup, getTicketStatusLabel, getTicketStatusTone } from "@/utils/status-tone";
 import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateForDisplay, formatDateWeekdayYear } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { useQueryClient } from "@tanstack/react-query";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -39,7 +39,7 @@ import { motionCssEase, motionDuration } from "@/design-system/utils/motion";
 
 const PROGRESS_EASING = motionCssEase;
 
-const reservationKeyExtractor = (item: MemberReservationResponse) => `${item.reservationType}:${item.id}`;
+const reservationKeyExtractor = (item: MemberReservationSummaryResponse) => `${item.reservationType}:${item.id}`;
 const RESERVATION_LIST_CONTENT_STYLE = {
     flexGrow: 1,
     paddingBottom: 32,
@@ -94,7 +94,7 @@ export default function TicketDetailScreen() {
     }, [reservations]);
 
     const handleReservationPress = useCallback(
-        (reservation: MemberReservationResponse) => {
+        (reservation: MemberReservationSummaryResponse) => {
             void queryClient.prefetchQuery(
                 getMemberReservationDetailQueryOptions(reservation.id, reservation.reservationType),
             );
@@ -127,7 +127,7 @@ export default function TicketDetailScreen() {
     }, [canBook, isLocked, queryClient, router, runWithNavigationLock, ticket]);
 
     const renderReservationItem = useCallback(
-        ({ item, index }: { item: MemberReservationResponse; index: number }) => (
+        ({ item, index }: { item: MemberReservationSummaryResponse; index: number }) => (
             <View className="gap-2.5">
                 {index === 0 || reservations[index - 1].reservationDate !== item.reservationDate ? (
                     <ReservationDateHeader
@@ -236,9 +236,7 @@ export default function TicketDetailScreen() {
     }
 
     const hasReservationHistory = ticket.type !== "LOCKER_SERVICE";
-    const reservationsCount = hasReservationHistory
-        ? (ticket.reservations?.length ?? (ticket.reservationCount ?? 0) + (ticket.bayReservationCount ?? 0))
-        : null;
+    const reservationsCount = hasReservationHistory ? (ticket.reservations?.length ?? 0) : null;
     const footer = canBook ? (
         <ActionButton
             label={t("tickets.bookWithTicket")}
@@ -290,7 +288,7 @@ function TicketDetailHeader({
     referenceTime,
     reservationsCount,
 }: {
-    ticket: TicketDetailResponse;
+    ticket: MemberTicketDetailResponse;
     referenceTime: number;
     reservationsCount: number | null;
 }) {
@@ -564,33 +562,20 @@ function MetadataRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-function PauseItem({ pause, isActive }: { pause: TicketPauseResponse; isActive: boolean }) {
-    const { t } = useTranslation();
+function PauseItem({ pause, isActive }: { pause: MemberTicketPauseResponse; isActive: boolean }) {
     const range = `${formatDateForDisplay(pause.pausedStartDate) || "-"} ~ ${formatDateForDisplay(pause.pausedEndDate) || "-"}`;
 
     return (
         <View className="gap-1 py-3">
-            <View className="flex-row items-center justify-between gap-2">
-                <AppText
-                    variant="subtext"
-                    color={isActive ? "warningText" : "foreground"}
-                    tabular
-                    textStyle={{ fontWeight: "600" }}
-                    style={{ flex: 1, minWidth: 0 }}
-                >
-                    {range}
-                </AppText>
-                {pause.cancelledAt ? (
-                    <AppText variant="badge" color="mutedForeground" wrap={false}>
-                        {t("tickets.statuses.cancelled")}
-                    </AppText>
-                ) : null}
-            </View>
-            {pause.notes ? (
-                <AppText variant="caption" color="mutedForeground">
-                    {pause.notes}
-                </AppText>
-            ) : null}
+            <AppText
+                variant="subtext"
+                color={isActive ? "warningText" : "foreground"}
+                tabular
+                textStyle={{ fontWeight: "600" }}
+                style={{ flex: 1, minWidth: 0 }}
+            >
+                {range}
+            </AppText>
         </View>
     );
 }

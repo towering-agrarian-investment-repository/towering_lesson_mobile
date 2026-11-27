@@ -517,7 +517,6 @@ const ja: TranslationResource<typeof en> = {
         noDescription: "セッションの説明はまだありません。",
         score: "スコア {{value}}",
         scoreEmpty: "スコア -",
-        coachNote: "コーチメモ",
     },
     sessionResources: {
         videoFailedToLoad: "動画を読み込めませんでした。",
@@ -589,8 +588,6 @@ const ja: TranslationResource<typeof en> = {
         usageLabel: "利用状況",
         dailyLimitLabel: "1日の利用上限",
         reservationsTitle: "予約履歴",
-        reservationCount: "予約 {{count}}件",
-        reservationCount_one: "予約 {{count}}件",
         loadingReservations: "読み込み中...",
         noReservationsYet: "予約はまだありません",
         pausesTitle: "一時停止履歴",
@@ -688,10 +685,11 @@ const ja: TranslationResource<typeof en> = {
         startsInDays_other: "あと{{count}}日で開始",
     },
     bookingConfirmation: {
+        noteLabel: "メモ",
         ticketBalanceDelta: "予約後 {{before}} → {{after}}回",
         bayRequestLabel: "メモ・打席のリクエスト",
         bayRequestOptionalLabel: "メモ・打席のリクエスト（任意）",
-        bayRequestPlaceholder: "可能であれば、3番打席を希望します。",
+        bayRequestPlaceholder: "Bay 5",
         bayRequestTooLong: "打席のリクエストは{{count}}文字以内で入力してください。",
         bayRequestDisclaimer:
             "打席のリクエストは確約ではありません。実際の空き状況により、割り当てられた打席が変更される場合があります。",

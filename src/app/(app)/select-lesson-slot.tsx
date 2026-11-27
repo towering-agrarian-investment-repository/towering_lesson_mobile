@@ -8,20 +8,19 @@ import { useMinuteClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
-import { useGetMemberProfile } from "@/lib/hook/useUser";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
 import {
     getLessonSlotDisplayName,
     getLessonSpotsLeft,
     isGroupLessonSlot,
-    isLessonSlotBookedByMember,
     isLessonSlotBookable,
+    isLessonSlotBookedByCurrentMember,
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { formatDateForAPI, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
-import { UserRound } from "lucide-react-native";
+import UserRound from "lucide-react-native/icons/user-round";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
@@ -59,8 +58,6 @@ export default function SelectLessonSlotScreen() {
 
     const router = useRouter();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const { data: memberResponse } = useGetMemberProfile();
-    const memberId = memberResponse?.data.id;
     const now = useMinuteClock();
     const [dismissedConflictId, setDismissedConflictId] = useState<string>();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
@@ -114,7 +111,6 @@ export default function SelectLessonSlotScreen() {
         ({ item: slot }: { item: MemberLessonSlotResponse }) => (
             <LessonSlotCard
                 slot={slot}
-                memberId={memberId}
                 now={now}
                 isGroupTicket={isGroupTicket}
                 wasJustBooked={Boolean(visibleConflictMessage && conflictSlotId === String(slot.id))}
@@ -122,7 +118,7 @@ export default function SelectLessonSlotScreen() {
                 onSelect={handleSelect}
             />
         ),
-        [conflictSlotId, handleSelect, isGroupTicket, isLocked, memberId, now, visibleConflictMessage],
+        [conflictSlotId, handleSelect, isGroupTicket, isLocked, now, visibleConflictMessage],
     );
 
     const screenOptions = useMemo(
@@ -224,7 +220,6 @@ export default function SelectLessonSlotScreen() {
 
 type LessonSlotCardProps = {
     slot: MemberLessonSlotResponse;
-    memberId?: number;
     now: number;
     isGroupTicket: boolean;
     wasJustBooked: boolean;
@@ -234,7 +229,6 @@ type LessonSlotCardProps = {
 
 const LessonSlotCard = memo(function LessonSlotCard({
     slot,
-    memberId,
     now,
     isGroupTicket,
     wasJustBooked,
@@ -246,7 +240,7 @@ const LessonSlotCard = memo(function LessonSlotCard({
 
     const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
     const isBookable = isLessonSlotBookable(slot);
-    const alreadyBooked = isGroupSlot && isLessonSlotBookedByMember(slot, memberId);
+    const alreadyBooked = !wasJustBooked && isLessonSlotBookedByCurrentMember(slot);
     const isPast = !wasJustBooked && !alreadyBooked && new Date(slot.startTime).getTime() <= now;
     const disabled = wasJustBooked || alreadyBooked || isPast || isLessonSlotFull(slot);
     const minutesUntilStart = disabled ? null : getMinutesUntilStart(slot, now);

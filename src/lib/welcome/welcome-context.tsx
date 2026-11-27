@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { WELCOME_COMPLETED_STORAGE_KEY, loadStartupPreferences } from "@/lib/startup-preferences";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-
-const WELCOME_COMPLETED_STORAGE_KEY = "happy-golf.welcome-completed.v1";
 
 type WelcomeContextValue = {
     isReady: boolean;
@@ -18,10 +17,10 @@ export function WelcomeProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         let isMounted = true;
 
-        void AsyncStorage.getItem(WELCOME_COMPLETED_STORAGE_KEY)
-            .then((value) => {
+        void loadStartupPreferences()
+            .then((preferences) => {
                 if (isMounted) {
-                    setHasCompletedWelcome(value === "true");
+                    setHasCompletedWelcome(preferences.get(WELCOME_COMPLETED_STORAGE_KEY) === "true");
                 }
             })
             .catch(() => {

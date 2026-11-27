@@ -85,6 +85,8 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
     const slots = { data: { data: [{ id: 2, totalReservableBaySlots: 1 }] } };
     let created = 0;
     let rescheduled = 0;
+    const rescheduledResponse = { data: { ...reservation, id: 3, memberNotes: "Bay 7, please" } };
+    const cachedDetails = [];
     const mocks = {
         react: h.react,
         "@/components/golf/booking/BookingStepHeader": { BookingStepHeader: "BookingStepHeader" },
@@ -107,11 +109,15 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         "@/design-system/components/AppToast": {},
         "@/design-system/utils/ticket-type": ticketType,
         "@/lib/api-response/api-response": {},
+        "@/lib/booking/bay-notes-draft": load("src/lib/booking/bay-notes-draft.ts", {}),
         "@/lib/booking/ticket-eligibility": eligibility,
         "@/lib/hook/useIsOnline": { useIsOnline: () => true },
         "@/lib/hook/useNavigationLock": { useNavigationLock: () => ({ isLocked: false }) },
         "@/lib/hook/usePullToRefresh": { usePullToRefresh: () => ({ refreshing: false }) },
         "@/lib/hook/useReservation": {
+            getMemberReservationDetailQueryOptions: (id, domain) => ({
+                queryKey: ["member", "reservations", "detail", domain, id],
+            }),
             useMemberBaySlotGroups: () => slots,
             useMemberTicketLessonSlots: () => slots,
             useMemberReservationById: () => ({ data: { data: reservation } }),
@@ -129,7 +135,7 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
             useRescheduleMemberBayReservation: () => ({
                 mutateAsync: async () => {
                     rescheduled++;
-                    return { data: {} };
+                    return rescheduledResponse;
                 },
             }),
         },
@@ -138,6 +144,7 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         "@/utils/lesson-slot": {
             isGroupLessonSlot: () => false,
             isLessonSlotBookable: () => true,
+            isLessonSlotBookedByCurrentMember: () => false,
             isLessonSlotFull: () => false,
         },
         "@/utils/status-tone": status,
@@ -148,13 +155,15 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
             formatDateShort: () => params.date,
             formatTimeRange: () => "10:00–11:00",
         },
-        "@tanstack/react-query": { useQueryClient: () => ({}) },
+        "@tanstack/react-query": { useQueryClient: () => ({ setQueryData: (...args) => cachedDetails.push(args) }) },
         "expo-haptics": {},
         "expo-router": { Stack: { Screen: "StackScreen" }, useLocalSearchParams: () => params, useRouter: () => ({}) },
         "expo-router/stack": { Stack: { Screen: "StackScreen" } },
         "react-hook-form": {
             useForm: () => ({
                 formState: { isValid: true },
+                getValues: () => "",
+                subscribe: () => () => {},
                 handleSubmit: (submit) => () => submit({ memberNotes: "" }),
             }),
             useWatch: () => "",
@@ -189,6 +198,7 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
     footer(bay).onPress();
     await flush();
     assert.equal(rescheduled, 1);
+    assert.deepEqual(cachedDetails, [[["member", "reservations", "detail", "bay", 3], rescheduledResponse]]);
 
     reservation.isCancellable = false;
     assert.equal(footer(bay).disabled, true);
@@ -381,7 +391,7 @@ for (const file of ["src/app/(app)/select-time.tsx", "src/app/(app)/select-lesso
                 useLocalSearchParams: () => ({ date: "2026-01-05", ticketId: "1" }),
             },
             "expo-router/stack": { Stack: { Screen: "StackScreen" } },
-            "lucide-react-native": {},
+            "lucide-react-native/icons/user-round": { __esModule: true, default: "UserRound" },
             "react-i18next": { useTranslation: () => ({ t: (key) => key }) },
             "react-native": { View: "View", FlatList: "FlatList", RefreshControl: "RefreshControl" },
         });
@@ -417,7 +427,7 @@ for (const file of ["src/app/(app)/select-time.tsx", "src/app/(app)/select-lesso
 
 test("storage failures allow onboarding and theme bootstrap to finish", async () => {
     const storage = {
-        getItem: async () => {
+        multiGet: async () => {
             throw new Error("storage unavailable");
         },
     };
@@ -426,13 +436,16 @@ test("storage failures allow onboarding and theme bootstrap to finish", async ()
         [
             "src/design-system/utils/theme.ts",
             "ThemeProvider",
-            2,
+            3,
             {
                 "expo-system-ui": { setBackgroundColorAsync: async () => {} },
                 "react-native": {
                     Appearance: { setColorScheme() {} },
                     useColorScheme: () => "light",
-                    useWindowDimensions: () => ({ fontScale: 1 }),
+                    Dimensions: {
+                        get: () => ({ fontScale: 1 }),
+                        addEventListener: () => ({ remove() {} }),
+                    },
                 },
             },
         ],
@@ -440,13 +453,89 @@ test("storage failures allow onboarding and theme bootstrap to finish", async ()
         const h = hooks();
         load(
             file,
-            { react: h.react, "@react-native-async-storage/async-storage": storage, ...extraMocks },
+            {
+                react: h.react,
+                "@react-native-async-storage/async-storage": storage,
+                "@/lib/startup-preferences": load("src/lib/startup-preferences.ts", {
+                    "@react-native-async-storage/async-storage": storage,
+                }),
+                ...extraMocks,
+            },
             { process: { env: { EXPO_OS: "ios" } } },
         )[provider]({ children: null });
         h.effects.forEach((effect) => effect());
         await flush();
         assert.equal(h.states[readyIndex], true, provider);
     }
+});
+
+test("startup preferences share one read and preserve all four stored values", async () => {
+    const keys = [
+        "app-language",
+        "app-theme-preference",
+        "app-primary-color-preference",
+        "happy-golf.welcome-completed.v1",
+    ];
+    const values = ["ja", "dark", "green", "true"];
+    let reads = 0;
+    const { loadStartupPreferences } = load("src/lib/startup-preferences.ts", {
+        "@react-native-async-storage/async-storage": {
+            async multiGet(requested) {
+                reads++;
+                assert.deepEqual(Array.from(requested), keys);
+                return keys.map((key, index) => [key, values[index]]);
+            },
+        },
+    });
+    const preferences = loadStartupPreferences();
+    assert.equal(loadStartupPreferences(), preferences);
+    assert.deepEqual(Array.from((await preferences).values()), values);
+    assert.equal(reads, 1);
+});
+
+test("push registration skips a confirmed cold start and rewrites on token change or after sign-out", async () => {
+    const secureStore = new Map();
+    const writes = [];
+    const mocks = {
+        "expo-crypto": { randomUUID: () => "installation" },
+        "expo-secure-store": {
+            getItemAsync: async (key) => secureStore.get(key) ?? null,
+            setItemAsync: async (key, value) => secureStore.set(key, value),
+            deleteItemAsync: async (key) => secureStore.delete(key),
+        },
+        "@/service/shared/push-token-service": {
+            async savePushToken(data) {
+                writes.push(data.pushToken);
+            },
+            async deactivatePushInstallation(installationId) {
+                assert.equal(installationId, "installation");
+                writes.push("delete");
+            },
+        },
+    };
+    const loadRegistration = () =>
+        load("src/lib/config/notification/pushRegistrationStorage.ts", mocks, { __DEV__: false });
+    let registration = loadRegistration();
+    const { signal } = new AbortController();
+    const identity = { userId: "user", installationId: await registration.getInstallationId(), token: "token-1" };
+    await registration.confirmPushRegistration(identity, registration.getPushRegistrationGeneration(), signal);
+
+    registration = loadRegistration();
+    const generation = registration.getPushRegistrationGeneration();
+    await registration.confirmPushRegistration(identity, generation, signal);
+    assert.deepEqual(writes, ["token-1"]);
+
+    identity.token = "token-2";
+    await registration.confirmPushRegistration(identity, generation, signal);
+    const finishSignOut = registration.beginPushRegistrationSignOut();
+    await registration.deactivateCurrentPushInstallation(signal);
+    finishSignOut();
+    await registration.confirmPushRegistration(identity, generation, signal);
+    assert.deepEqual(writes, ["token-1", "token-2", "delete"]);
+
+    registration = loadRegistration();
+    await registration.confirmPushRegistration(identity, registration.getPushRegistrationGeneration(), signal);
+    assert.deepEqual(writes, ["token-1", "token-2", "delete", "token-2"]);
 });
 
 function loadAuthenticatedLayout(h, toasts = []) {
@@ -660,7 +749,7 @@ test("preference sheets block duplicate saves and dismissal, and stay open when 
                 },
                 "@/design-system/utils/cn": { cn: (...values) => values.join(" ") },
                 "@expo/ui": { RNHostView: "RNHostView" },
-                "lucide-react-native": { Check: "Check" },
+                "lucide-react-native/icons/check": { __esModule: true, default: "Check" },
                 "react-i18next": { useTranslation: () => ({ t: (key) => key }) },
                 "react-native": {
                     ActivityIndicator: "ActivityIndicator",
@@ -720,7 +809,8 @@ test("activity keeps one initial skeleton and loads day details within the overv
         "react-i18next": { useTranslation: () => ({ t: (key) => key, i18n: { language: "en" } }) },
         "react-native": { RefreshControl: "RefreshControl", ScrollView: "ScrollView", View: "View" },
         "expo-router": { useIsFocused: () => true, useRouter: () => ({}), useScrollToTop() {} },
-        "lucide-react-native": { ChevronRight: "ChevronRight", Sparkles: "Sparkles" },
+        "lucide-react-native/icons/chevron-right": { __esModule: true, default: "ChevronRight" },
+        "lucide-react-native/icons/sparkles": { __esModule: true, default: "Sparkles" },
         "@tanstack/react-query": { useQueryClient: () => ({}) },
         "@/design-system": {
             ActivityHeatmap: "ActivityHeatmap",
@@ -924,7 +1014,7 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
                           "src/components/golf/notice/notice-list-entries.ts",
                           {
                               "@/utils/timezone": { toAppTimeZoneDate: (value) => new Date(value) },
-                              "date-fns": require("date-fns"),
+                              "date-fns/differenceInCalendarDays": require("date-fns/differenceInCalendarDays"),
                           },
                       ),
                       "@/design-system": {
@@ -958,7 +1048,9 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
 
         function findSceneElement(type) {
             cursor = 0;
-            const tree = reservationType ? scene.ReservationTabScene({ type: reservationType }) : scene.default();
+            const tree = reservationType
+                ? scene.ReservationTabScene({ type: reservationType, isActive: true })
+                : scene.default();
             return findElement(tree, (element) => element.type === type);
         }
 

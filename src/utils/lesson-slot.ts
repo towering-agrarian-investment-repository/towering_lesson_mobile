@@ -13,13 +13,8 @@ export function isLessonSlotFull(slot: MemberLessonSlotResponse) {
     return getLessonSpotsLeft(slot) === 0 || !isLessonSlotBookable(slot);
 }
 
-export function isLessonSlotBookedByMember(slot: MemberLessonSlotResponse, memberId?: number) {
-    return (
-        memberId != null &&
-        slot.reservations?.some(
-            (reservation) => reservation.memberId === memberId && reservation.reservationStatus !== "CANCELLED",
-        ) === true
-    );
+export function isLessonSlotBookedByCurrentMember(slot: MemberLessonSlotResponse) {
+    return slot.bookedByCurrentMember === true;
 }
 
 export function isGroupLessonSlot(slot: MemberLessonSlotResponse) {

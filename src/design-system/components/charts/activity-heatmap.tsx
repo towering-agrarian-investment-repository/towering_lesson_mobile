@@ -166,6 +166,24 @@ type ActivityHeatmapProps = Omit<ViewProps, "children"> & {
 
 const WEEKDAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
 
+function createHeatmapDateLabelGetter(language: string) {
+    const formatter = new Intl.DateTimeFormat(language, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+    const labels = new Map<number, string>();
+    return (date: Date) => {
+        const timestamp = date.getTime();
+        const cached = labels.get(timestamp);
+        if (cached !== undefined) return cached;
+
+        const label = formatter.format(date);
+        labels.set(timestamp, label);
+        return label;
+    };
+}
+
 export function ActivityHeatmap({
     values,
     endDate,
@@ -221,15 +239,7 @@ export function ActivityHeatmap({
         });
         return WEEKDAY_OFFSETS.map((offset) => formatter.format(new Date(2024, 0, 1 + offset)));
     }, [language, useShortWeekdays]);
-    const dateFormatter = useMemo(
-        () =>
-            new Intl.DateTimeFormat(language, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-            }),
-        [language],
-    );
+    const getDateLabel = useMemo(() => createHeatmapDateLabelGetter(language), [language]);
     const focusMonthWeekIndex = useMemo(
         () => getFocusMonthWeekIndex(weeks, endDateKey, todayKey),
         [weeks, endDateKey, todayKey],
@@ -241,7 +251,8 @@ export function ActivityHeatmap({
     );
     // Exactly 12 whole weeks fit the width, so no column is cut off at the right edge.
     // The shared layout also sizes the loading grid to these columns.
-    const visibleWeeks = Math.max(1, Math.ceil(availableWidth / (cellSize + CELL_GAP)) + 1);
+    const viewportWeeks = Math.max(1, Math.ceil(availableWidth / (cellSize + CELL_GAP)));
+    const visibleWeeks = viewportWeeks + 1;
     const initialWeekIndex =
         todayWeekIndex >= 0 ? Math.max(0, todayWeekIndex - Math.floor(visibleWeeks / 2)) : focusMonthWeekIndex;
     const maxScrollOffset = Math.max(0, weeks.length * (cellSize + CELL_GAP) - availableWidth);
@@ -311,7 +322,7 @@ export function ActivityHeatmap({
                 }
                 disabled={disabled}
                 colors={colors}
-                dateFormatter={dateFormatter}
+                getDateLabel={getDateLabel}
                 onSelectDay={handleSelectDay}
             />
         ),
@@ -323,7 +334,7 @@ export function ActivityHeatmap({
             selectedDay,
             disabled,
             colors,
-            dateFormatter,
+            getDateLabel,
             handleSelectDay,
         ],
     );
@@ -366,9 +377,9 @@ export function ActivityHeatmap({
                             renderItem={renderWeek}
                             extraData={selectedDay}
                             initialScrollIndex={weeks.length ? initialWeekIndex : undefined}
-                            initialNumToRender={visibleWeeks}
-                            maxToRenderPerBatch={visibleWeeks}
-                            windowSize={5}
+                            initialNumToRender={Math.min(visibleWeeks, Math.max(1, weeks.length - initialWeekIndex))}
+                            maxToRenderPerBatch={viewportWeeks}
+                            windowSize={3}
                             keyExtractor={weekKeyExtractor}
                             getItemLayout={getWeekItemLayout}
                             horizontal
@@ -513,7 +524,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     selectedDay,
     disabled,
     colors,
-    dateFormatter,
+    getDateLabel,
     onSelectDay,
 }: {
     week: ActivityHeatmapWeek;
@@ -524,7 +535,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     selectedDay: string | null;
     disabled?: boolean;
     colors: ThemeColors;
-    dateFormatter: Intl.DateTimeFormat;
+    getDateLabel: (date: Date) => string;
     onSelectDay: (dateKey: string, date: Date, count: number) => void;
 }) {
     const { t } = useTranslation();
@@ -573,7 +584,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
                             selected: isSelected,
                             disabled: Boolean(disabled),
                         }}
-                        accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: dateFormatter.format(day.date) })}${statusLabel ? ` · ${statusLabel}` : ""}${isToday ? ` (${t("activity.today")})` : ""}`}
+                        accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: getDateLabel(day.date) })}${statusLabel ? ` · ${statusLabel}` : ""}${isToday ? ` (${t("activity.today")})` : ""}`}
                         disabled={disabled}
                         hitSlop={CELL_GAP / 2}
                         style={({ pressed }) => ({

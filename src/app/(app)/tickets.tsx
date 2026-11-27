@@ -9,7 +9,7 @@ import {
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { Stack, useRouter } from "expo-router";
-import { History } from "lucide-react-native";
+import History from "lucide-react-native/icons/rotate-ccw-clock";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "react-native-reanimated";

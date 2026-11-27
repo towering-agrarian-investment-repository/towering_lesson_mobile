@@ -2,26 +2,24 @@ export type GenderEnum = "MALE" | "FEMALE" | "OTHER";
 
 export type MemberSelfResponse = {
     id: number;
-    authUserId: string;
     name: string;
     nickname?: string | null;
     phoneNumber: string;
     profileImage: string | null;
     gender: GenderEnum | null;
-    checkinNumber: string;
-    isActive: boolean;
+    checkinNumber: string | null;
+    membershipActive: boolean;
     grade: MemberGradeResponse | null;
-    latestTicket: TicketResponse | null;
+    latestTicket: MemberLatestTicketResponse | null;
     parents: ParentSummaryResponse[];
 };
 
 type ParentSummaryResponse = {
     id: number;
     name: string;
+    role: string;
     phoneNumber: string | null;
     profileImage: string | null;
-    gender: GenderEnum;
-    role?: string | null;
 };
 
 type MemberGradeResponse = {
@@ -33,22 +31,19 @@ type MemberGradeResponse = {
     schoolCode: string;
 };
 
-type TicketResponse = {
+type MemberLatestTicketResponse = {
     id: number;
-    transactionId: number;
     name: string;
     type: TicketType;
-    originalPrice: number; // BigDecimal
-    discountAmount: number; // BigDecimal
-    price: number; // BigDecimal
     period: number | null;
     totalCount: number | null;
     isUnlimited: boolean;
     onlyOnePerDay: boolean;
-    usage: number;
-    remaining: number;
-    startDate: string; // OffsetDateTime -> ISO string
-    endDate: string; // OffsetDateTime -> ISO string
+    usedCount: number;
+    remainingCount: number;
+    fullyUsed: boolean;
+    startDate: string | null;
+    endDate: string | null;
     status: TicketStatus;
 };
 export type TicketStatus = "ACTIVE" | "EXPIRED" | "IN_USE" | "FULLY_USED" | "CANCELLED" | "REFUNDED";

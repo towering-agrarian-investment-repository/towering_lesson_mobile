@@ -4,7 +4,7 @@ import {
     MEMBER_TICKET_PAGE_SIZE,
     type MemberTicketFilters,
 } from "@/service/ticket-service";
-import type { TicketDetailResponse, TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketDetailResponse, MemberTicketSummaryResponse } from "@/types/member-ticket";
 import type { TicketType } from "@/types/member.type";
 import {
     type InfiniteData,
@@ -47,7 +47,7 @@ export function getMemberTicketsQueryOptions({
                 },
                 signal,
             ),
-        getNextPageParam: (lastPage: ApiResponse<CursorPageResponse<TicketListItemResponse>>) =>
+        getNextPageParam: (lastPage: ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>) =>
             lastPage.data.hasMore ? (lastPage.data.nextCursor ?? undefined) : undefined,
         staleTime: 60_000,
     };
@@ -58,9 +58,9 @@ export function useMemberTickets(filters?: MemberTicketFilters) {
     const [, , , limit, types] = options.queryKey;
 
     return useInfiniteQuery<
-        ApiResponse<CursorPageResponse<TicketListItemResponse>>,
+        ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>,
         Error,
-        { items: TicketListItemResponse[] },
+        { items: MemberTicketSummaryResponse[] },
         ReturnType<typeof getMemberTicketsQueryOptions>["queryKey"],
         string | null
     >({
@@ -86,8 +86,10 @@ export function getMemberTicketByIdQueryOptions(ticketId?: number) {
 function findCachedMemberTicket(
     queryClient: QueryClient,
     ticketId: number,
-): ApiResponse<TicketDetailResponse> | undefined {
-    const lists = queryClient.getQueriesData<InfiniteData<ApiResponse<CursorPageResponse<TicketListItemResponse>>>>({
+): ApiResponse<MemberTicketDetailResponse> | undefined {
+    const lists = queryClient.getQueriesData<
+        InfiniteData<ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>>
+    >({
         queryKey: ["member", "tickets"],
         predicate: (query) => query.queryKey[2] !== "by-id",
     });

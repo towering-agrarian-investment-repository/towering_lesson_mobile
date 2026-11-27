@@ -17,7 +17,9 @@ import { formatDateForDisplay, formatMonthYear, getMonthKey } from "@/utils/time
 import { FlashList } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { BookOpenText, ChevronRight, Video } from "lucide-react-native";
+import BookOpenText from "lucide-react-native/icons/book-open-text";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import Video from "lucide-react-native/icons/video";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";

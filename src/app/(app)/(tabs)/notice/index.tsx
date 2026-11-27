@@ -186,10 +186,12 @@ function NoticeScreen() {
         setIsDeleteAllConfirmationOpen(true);
     }, [isNotificationActionPending]);
 
+    const hasNotifications = notifications.length > 0;
+
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () =>
-                notifications.length > 0 ? (
+                hasNotifications ? (
                     <NoticeHeaderActions
                         hasUnread={hasUnread}
                         isMarkingAllAsRead={isMarkingAllAsRead}
@@ -203,12 +205,12 @@ function NoticeScreen() {
     }, [
         handleDeleteAllRequest,
         handleMarkAllRead,
+        hasNotifications,
         hasUnread,
         isDeletingAllNotifications,
         isMarkingAllAsRead,
         isNotificationActionPending,
         navigation,
-        notifications.length,
     ]);
 
     const navigateFromNotification = useCallback(

@@ -3,7 +3,7 @@ import { useTheme } from "@/design-system/utils/theme";
 import { Button, Host, RNHostView, Row, Spacer, Text } from "@expo/ui";
 import { defaultMinSize, fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
-import { LogOut } from "lucide-react-native";
+import LogOut from "lucide-react-native/icons/log-out";
 import { useTranslation } from "react-i18next";
 
 const isIOS = process.env.EXPO_OS === "ios";

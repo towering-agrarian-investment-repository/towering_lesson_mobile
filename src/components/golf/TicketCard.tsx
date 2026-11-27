@@ -3,21 +3,21 @@ import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, getTicketTypeTone, isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
-import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getEffectiveTicketStatus, getTicketStatusGroup } from "@/utils/status-tone";
 import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
 import { formatDateForAPI } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
-import { ChevronRight } from "lucide-react-native";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { TicketPausePeriods } from "./TicketPausePeriods";
 
 type Props = {
-    item: TicketListItemResponse;
+    item: MemberTicketSummaryResponse;
     disabled?: boolean;
-    onPress?: (item: TicketListItemResponse) => void;
+    onPress?: (item: MemberTicketSummaryResponse) => void;
     fullWidth?: boolean;
 };
 
@@ -34,7 +34,10 @@ function formatTicketDate(date?: string | null) {
     return `${yy}.${mm}.${dd}`;
 }
 
-function getUsageNote(item: TicketListItemResponse, t: (key: string, options?: Record<string, unknown>) => string) {
+function getUsageNote(
+    item: MemberTicketSummaryResponse,
+    t: (key: string, options?: Record<string, unknown>) => string,
+) {
     if (item.isUnlimited) {
         return t("tickets.unlimitedUsage");
     }

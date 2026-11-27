@@ -1,6 +1,6 @@
 import { ApiResponse, CursorPageResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
-import type { TicketDetailResponse, TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketDetailResponse, MemberTicketSummaryResponse } from "@/types/member-ticket";
 import type { TicketType } from "@/types/member.type";
 
 export const MEMBER_TICKET_PAGE_SIZE = 20;
@@ -14,7 +14,7 @@ export type MemberTicketFilters = {
 export const getMemberTickets = async (
     params: MemberTicketFilters & { cursor?: string } = {},
     signal?: AbortSignal,
-): Promise<ApiResponse<CursorPageResponse<TicketListItemResponse>>> => {
+): Promise<ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>> => {
     const searchParams = new URLSearchParams({
         limit: String(params.limit ?? MEMBER_TICKET_PAGE_SIZE),
     });
@@ -29,7 +29,7 @@ export const getMemberTickets = async (
 
     if (params.cursor) searchParams.set("cursor", params.cursor);
 
-    return apiClient<ApiResponse<CursorPageResponse<TicketListItemResponse>>>(
+    return apiClient<ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>>(
         `/member/tickets?${searchParams.toString()}`,
         { method: "GET", signal },
     );
@@ -38,8 +38,8 @@ export const getMemberTickets = async (
 export const getMemberTicketById = async (
     ticketId: number,
     signal?: AbortSignal,
-): Promise<ApiResponse<TicketDetailResponse>> => {
-    return apiClient<ApiResponse<TicketDetailResponse>>(`/member/tickets/${ticketId}`, {
+): Promise<ApiResponse<MemberTicketDetailResponse>> => {
+    return apiClient<ApiResponse<MemberTicketDetailResponse>>(`/member/tickets/${ticketId}`, {
         method: "GET",
         signal,
     });

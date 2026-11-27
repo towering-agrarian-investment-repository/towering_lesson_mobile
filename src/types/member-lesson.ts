@@ -2,12 +2,10 @@ import type { MemberGroupSummaryResponse } from "./member-group";
 import type { MemberHomeworkSubmissionResponse, MemberHomeworkSummaryResponse } from "./member-homework";
 import type { MemberLessonLogResponse as MemberLessonLogSummaryResponse } from "./member-lesson-log";
 import type { MemberReservationDomain } from "./member-reservation";
-import type { SessionInstanceResponse } from "./member-session";
+import type { MemberLessonSessionResponse } from "./member-session";
 import type { TicketStatus, TicketType } from "./member.type";
 
 type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
-
-type LessonSlotStatus = "AVAILABLE" | "BLOCKED" | "CANCELLED";
 
 export type LessonReservationStatus = "RESERVED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
@@ -19,19 +17,18 @@ export type MemberLessonSummaryResponse = {
     description: string | null;
     objectives: string[];
     homeworkSnapshot: string | null;
-    orderIndex: number;
+    orderIndex: number | null;
     lessonStatus: string;
     startTime: string | null;
     endTime: string | null;
     reservationStatus: LessonReservationStatus | null;
 };
 
-type LessonMediaResponse = {
+type MemberLessonMediaResponse = {
     id: number;
     lessonInstanceId: number;
     memberId: number | null;
     memberName: string | null;
-    uploadedByAuthUserId: string | null;
     uploadedByName: string | null;
     fileUrl: string | null;
     description: string | null;
@@ -39,44 +36,44 @@ type LessonMediaResponse = {
     fileSizeBytes: number | null;
     tags: string[];
     createdAt: string;
-    updatedAt: string;
 };
 
 export type MemberLessonDetailResponse = {
     lesson: MemberLessonSummaryResponse;
     group: MemberGroupSummaryResponse | null;
     lessonLog: MemberLessonLogSummaryResponse | null;
-    sessions: SessionInstanceResponse[];
+    sessions: MemberLessonSessionResponse[];
     homeworks: MemberHomeworkSummaryResponse[];
-    media: LessonMediaResponse[];
+    media: MemberLessonMediaResponse[];
     currentHomeworkSubmissions: MemberHomeworkSubmissionResponse[];
 };
 
-type MemberLessonAvailabilityReservationSummary = {
+export type MemberLessonAvailabilityInstance = {
     id: number;
-    memberId?: number | null;
-    reservationStatus?: LessonReservationStatus | null;
+    lessonProgramGroupId: number | null;
+    lessonAvailabilityId: number | null;
+    titleSnapshot: string | null;
+    descriptionSnapshot: string | null;
+    objectivesSnapshot: string[];
+    homeworkSnapshot: string | null;
+    orderIndex: number | null;
+    status: string | null;
+    completedAt: string | null;
 };
 
 export type MemberLessonSlotResponse = {
     id: number;
-    branchId?: number | null;
-    instructorId?: number | null;
-    lessonId?: number | null;
-    name?: string | null;
-    coachName?: string | null;
-    lessonType: LessonType;
+    instructorId: number | null;
+    coachName: string | null;
+    name: string | null;
     startTime: string;
     endTime: string;
-    coachBlockedUntil?: string | null;
+    lessonType: LessonType;
     capacity: number;
     bookedCount: number;
-    bookable?: boolean;
-    remainingSessionsFromSelectedStart?: number | null;
-    slotStatus?: LessonSlotStatus | null;
-    notes?: string | null;
-    lessonInstances?: unknown[];
-    reservations?: MemberLessonAvailabilityReservationSummary[];
+    bookable?: boolean | null;
+    bookedByCurrentMember?: boolean | null;
+    lessonInstances: MemberLessonAvailabilityInstance[];
 };
 
 export type CreateLessonReservationRequest = {
@@ -111,7 +108,6 @@ type MemberLessonReservationRelatedLessonAvailability = {
     capacity: number | null;
     bookedCount: number | null;
     lessonType: LessonType | null;
-    slotStatus: LessonSlotStatus | null;
 };
 
 type MemberLessonReservationRelatedLessonLog = {
@@ -120,7 +116,7 @@ type MemberLessonReservationRelatedLessonLog = {
 };
 
 export type MemberLessonReservationResponse = {
-    reservationType: MemberReservationDomain;
+    reservationType: Extract<MemberReservationDomain, "lesson">;
     id: number;
     reservationNumber: string;
     lessonProgramEnrollmentId: number | null;
@@ -139,7 +135,6 @@ export type MemberLessonReservationResponse = {
     reservationDate: string | null;
     durationMinutes: number | null;
     reservationStatus: LessonReservationStatus | null;
-    cancelledAt: string | null;
     memberNotes: string | null;
     isCancellable: boolean;
 };

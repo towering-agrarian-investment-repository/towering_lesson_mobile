@@ -1,13 +1,14 @@
 import { getMemberBaySlotGroupsQueryOptions, getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
-import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { formatDateForAPI } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import type { QueryClient } from "@tanstack/react-query";
-import { endOfMonth, startOfMonth } from "date-fns";
+import { endOfMonth } from "date-fns/endOfMonth";
+import { startOfMonth } from "date-fns/startOfMonth";
 
 export function prefetchTicketAvailability(
     queryClient: QueryClient,
-    ticket: Pick<TicketListItemResponse, "id" | "type">,
+    ticket: Pick<MemberTicketSummaryResponse, "id" | "type">,
 ) {
     const today = toAppTimeZoneDate(new Date()) ?? new Date();
 

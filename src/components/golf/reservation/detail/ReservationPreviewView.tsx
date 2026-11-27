@@ -23,6 +23,7 @@ export function ReservationPreviewView({ preview }: { preview: MemberReservation
         ? ""
         : [reservation.lessonProgramName, reservation.lessonProgramGroupName].filter(Boolean).join(" / ");
     const policies = getReservationPolicies(t);
+    const noteValue = reservation.memberNotes?.trim();
 
     return (
         <Screen contentClassName="grow">
@@ -46,6 +47,15 @@ export function ReservationPreviewView({ preview }: { preview: MemberReservation
                         <>
                             <Divider className="bg-border" />
                             <ReservationDetailRow label={t("reservations.bayLabel")} value={title} />
+                            {noteValue ? (
+                                <>
+                                    <Divider className="bg-border" />
+                                    <ReservationDetailRow
+                                        label={t("bookingConfirmation.noteLabel")}
+                                        value={noteValue}
+                                    />
+                                </>
+                            ) : null}
                         </>
                     ) : null}
                     {programValue ? (
@@ -54,11 +64,12 @@ export function ReservationPreviewView({ preview }: { preview: MemberReservation
                             <ReservationDetailRow label={t("reservations.programLabel")} value={programValue} />
                         </>
                     ) : null}
-                    <Divider className="bg-border" />
-                    <ReservationDetailRow
-                        label={t("reservations.notesLabel")}
-                        value={reservation.memberNotes?.trim() || "-"}
-                    />
+                    {!isBayReservation ? (
+                        <>
+                            <Divider className="bg-border" />
+                            <ReservationDetailRow label={t("reservations.notesLabel")} value={noteValue || "-"} />
+                        </>
+                    ) : null}
                     <View
                         className="gap-3 py-2"
                         accessibilityLiveRegion="polite"

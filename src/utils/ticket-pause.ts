@@ -1,4 +1,4 @@
-import type { TicketPauseResponse } from "@/types/member-ticket";
+import type { MemberTicketPauseResponse } from "@/types/member-ticket";
 import type { TFunction } from "i18next";
 import { formatDateForAPI, formatDateForDisplay } from "./time-helper";
 
@@ -8,12 +8,10 @@ export type TicketPausePeriod = {
     endDate: string;
 };
 
-export function getTicketPausePeriods(pauses?: readonly TicketPauseResponse[] | null): TicketPausePeriod[] {
+export function getTicketPausePeriods(pauses?: readonly MemberTicketPauseResponse[] | null): TicketPausePeriod[] {
     const periods: TicketPausePeriod[] = [];
 
     for (const pause of pauses ?? []) {
-        if (pause.cancelledAt) continue;
-
         const startDate = formatDateForAPI(pause.pausedStartDate);
         const endDate = formatDateForAPI(pause.pausedEndDate);
         if (startDate && endDate && startDate <= endDate) {

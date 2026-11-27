@@ -3,13 +3,13 @@ import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
-import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getTicketStatusGroup, getTicketStatusLabel, getTicketStatusTone } from "@/utils/status-tone";
 import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateForDisplay } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
-import { differenceInCalendarDays } from "date-fns";
-import { ChevronRight } from "lucide-react-native";
+import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -17,11 +17,11 @@ import { TicketPausePeriods } from "./TicketPausePeriods";
 import { TicketTypeIcon } from "./TicketTypeIcon";
 
 type Props = {
-    item: TicketListItemResponse;
+    item: MemberTicketSummaryResponse;
     disabled?: boolean;
     showBookAction?: boolean;
-    onPress?: (item: TicketListItemResponse) => void;
-    onBookPress?: (item: TicketListItemResponse) => void;
+    onPress?: (item: MemberTicketSummaryResponse) => void;
+    onBookPress?: (item: MemberTicketSummaryResponse) => void;
 };
 
 function TicketHistoryCard({ item, disabled = false, showBookAction = false, onPress, onBookPress }: Props) {
@@ -33,7 +33,6 @@ function TicketHistoryCard({ item, disabled = false, showBookAction = false, onP
     const statusTone = getTicketStatusTone(item.status, item.fullyUsed);
     const statusLabel = getTicketStatusLabel(item.status, item.fullyUsed, t);
     const dateRange = `${formatDateForDisplay(item.startDate) || "-"} ~ ${formatDateForDisplay(item.endDate) || "-"}`;
-    const totalReservations = (item.reservationCount ?? 0) + (item.bayReservationCount ?? 0);
     const hasCountLimit = !item.isUnlimited && item.totalCount != null && item.totalCount > 0;
     const remainingCount = Math.max(0, item.remainingCount ?? 0);
     const remainingRatio = hasCountLimit ? Math.min(1, Math.max(0, remainingCount / item.totalCount!)) : 0;
@@ -220,13 +219,6 @@ function TicketHistoryCard({ item, disabled = false, showBookAction = false, onP
                         </View>
                     ) : (
                         <View className="shrink-0 flex-row items-center gap-1">
-                            {item.type !== "LOCKER_SERVICE" ? (
-                                <AppText variant="caption" color="mutedForeground" wrap={false}>
-                                    {t("tickets.reservationCount", {
-                                        count: totalReservations,
-                                    })}
-                                </AppText>
-                            ) : null}
                             <ChevronRight size={15} color={colors.mutedForeground} strokeWidth={2.2} />
                         </View>
                     )}

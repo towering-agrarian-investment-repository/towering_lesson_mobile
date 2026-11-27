@@ -1,4 +1,5 @@
-import { AlertCircle, Inbox } from "lucide-react-native";
+import AlertCircle from "lucide-react-native/icons/circle-alert";
+import Inbox from "lucide-react-native/icons/inbox";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView, type StyleProp, View, type ViewStyle } from "react-native";

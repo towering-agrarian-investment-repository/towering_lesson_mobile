@@ -1,7 +1,12 @@
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
-import { CircleCheck, CircleX, Info, TriangleAlert, X, type LucideIcon } from "lucide-react-native";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import CircleX from "lucide-react-native/icons/circle-x";
+import Info from "lucide-react-native/icons/info";
+import TriangleAlert from "lucide-react-native/icons/triangle-alert";
+import X from "lucide-react-native/icons/x";
+import type { LucideIcon } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View, type ViewStyle } from "react-native";

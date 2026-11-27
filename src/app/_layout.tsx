@@ -22,7 +22,7 @@ import {
 } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -61,22 +61,8 @@ function RootLayout() {
 
     const hasUnauthorizedSession = !!session && signedInRole !== ALLOWED_APP_ROLE;
 
-    const pathname = usePathname();
-    const globalParams = useGlobalSearchParams();
     const authorizedHrefRef = useRef<string | null>(null);
     const wasAuthorizedRef = useRef(hasAuthorizedSession);
-
-    useEffect(() => {
-        if (!hasAuthorizedSession || !pathname) return;
-        if (pathname.startsWith("/login") || pathname.startsWith("/welcome")) return;
-
-        const query = Object.entries(globalParams)
-            .filter(([key, value]) => key !== "screen" && typeof value === "string")
-            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`)
-            .join("&");
-
-        authorizedHrefRef.current = query ? `${pathname}?${query}` : pathname;
-    }, [globalParams, hasAuthorizedSession, pathname]);
 
     useEffect(() => {
         if (wasAuthorizedRef.current && !hasAuthorizedSession) {
@@ -100,9 +86,14 @@ function RootLayout() {
                     <ThemeProvider>
                         <WelcomeProvider>
                             <AppUpdateProvider value={update}>
+                                <AuthorizedHrefObserver
+                                    authorizedHrefRef={authorizedHrefRef}
+                                    hasAuthorizedSession={hasAuthorizedSession}
+                                />
                                 <ThemedRoot
                                     isAuthPending={isAuthPending}
                                     hasAuthorizedSession={hasAuthorizedSession}
+                                    userId={authSession?.user.id ?? null}
                                     update={update}
                                 />
                             </AppUpdateProvider>
@@ -114,13 +105,39 @@ function RootLayout() {
     );
 }
 
+function AuthorizedHrefObserver({
+    authorizedHrefRef,
+    hasAuthorizedSession,
+}: {
+    authorizedHrefRef: RefObject<string | null>;
+    hasAuthorizedSession: boolean;
+}) {
+    const pathname = usePathname();
+    const globalParams = useGlobalSearchParams();
+    useEffect(() => {
+        if (!hasAuthorizedSession || !pathname) return;
+        if (pathname.startsWith("/login") || pathname.startsWith("/welcome")) return;
+
+        const query = Object.entries(globalParams)
+            .filter(([key, value]) => key !== "screen" && typeof value === "string")
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`)
+            .join("&");
+
+        authorizedHrefRef.current = query ? `${pathname}?${query}` : pathname;
+    }, [authorizedHrefRef, globalParams, hasAuthorizedSession, pathname]);
+
+    return null;
+}
+
 function ThemedRoot({
     isAuthPending,
     hasAuthorizedSession,
+    userId,
     update,
 }: {
     isAuthPending: boolean;
     hasAuthorizedSession: boolean;
+    userId: string | null;
     update: ReturnType<typeof useAppUpdate>;
 }) {
     const { colors, resolvedScheme, isReady: isThemeReady, primaryColorPreference } = useTheme();
@@ -152,7 +169,9 @@ function ThemedRoot({
         }
     }, [isAppReady]);
 
-    usePushNotification(hasAuthorizedSession && isAppReady && hasCompletedWelcome && !update.isForceUpdateRequired);
+    usePushNotification(
+        hasAuthorizedSession && isAppReady && hasCompletedWelcome && !update.isForceUpdateRequired ? userId : null,
+    );
 
     const primaryVariableOverrides = useMemo(
         () =>

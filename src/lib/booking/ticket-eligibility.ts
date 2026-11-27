@@ -1,9 +1,12 @@
 import { isBookableTicketType } from "@/design-system/utils/ticket-type";
 import type { MemberBayReservationResponse } from "@/types/member-bay";
-import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getEffectiveTicketStatus, getTicketStatusGroup } from "@/utils/status-tone";
 
-type BookingTicket = Pick<TicketListItemResponse, "status" | "type" | "fullyUsed" | "isUnlimited" | "remainingCount">;
+type BookingTicket = Pick<
+    MemberTicketSummaryResponse,
+    "status" | "type" | "fullyUsed" | "isUnlimited" | "remainingCount"
+>;
 
 export function canBookWithTicket(ticket?: BookingTicket | null): boolean {
     return (

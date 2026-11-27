@@ -5,7 +5,7 @@ import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberTicketByIdQueryOptions, MY_TICKET_TYPES, useMemberTickets } from "@/lib/hook/useTicket";
-import type { TicketListItemResponse } from "@/types/member-ticket";
+import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import type { TicketType } from "@/types/member.type";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,7 +23,7 @@ const TICKET_TYPES_BY_TAB: Record<TicketTabType, readonly TicketType[]> = {
     lesson: ["PRIVATE_LESSON", "GROUP_LESSON"],
 };
 
-const ticketKeyExtractor = (item: TicketListItemResponse) => String(item.id);
+const ticketKeyExtractor = (item: MemberTicketSummaryResponse) => String(item.id);
 const TICKET_LIST_CONTENT_STYLE = {
     paddingTop: 16,
     paddingBottom: 40,
@@ -76,7 +76,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     }, [tickets.length, handleFetchNextPage, hasNextPage, isActive, isFetchNextPageError]);
 
     const handleTicketPress = useCallback(
-        (item: TicketListItemResponse) => {
+        (item: MemberTicketSummaryResponse) => {
             void queryClient.prefetchQuery(getMemberTicketByIdQueryOptions(item.id));
             runWithNavigationLock(() => {
                 router.push({
@@ -89,7 +89,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     );
 
     const handleBookPress = useCallback(
-        (item: TicketListItemResponse) => {
+        (item: MemberTicketSummaryResponse) => {
             if (!canBookWithTicket(item)) return;
 
             prefetchTicketAvailability(queryClient, item);
@@ -107,7 +107,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         [queryClient, router, runWithNavigationLock],
     );
 
-    const renderTicket: ListRenderItem<TicketListItemResponse> = useCallback(
+    const renderTicket: ListRenderItem<MemberTicketSummaryResponse> = useCallback(
         ({ item }) => (
             <TicketHistoryCard
                 item={item}
