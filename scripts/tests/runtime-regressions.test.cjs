@@ -90,6 +90,7 @@ test("resource video survives parent rerenders and saves its position when focus
     };
     const player = {
         currentTime: 0,
+        duration: 30,
         status: "readyToPlay",
         play: () => playCalls++,
         pause: () => pauseCalls++,
@@ -169,6 +170,14 @@ test("resource video survives parent rerenders and saves its position when focus
     function requestPlay() {
         findElement(renderItem(), (element) => element.type === "AnimatedPressable").props.onPress();
     }
+    function leaveAndReplay() {
+        focusCleanup();
+        assert.ok(findElement(renderItem(), (element) => element.type === "AnimatedPressable"));
+        components.delete(video.Component);
+        player.currentTime = 0;
+        requestPlay();
+        renderVideo();
+    }
 
     requestPlay();
     const video = renderVideo();
@@ -178,26 +187,101 @@ test("resource video survives parent rerenders and saves its position when focus
     assert.equal(playCalls, 1, "A parent rerender must not restart the player");
     assert.ok(findElement(renderItem(), (element) => element.type === video.Component));
 
-    focusCleanup();
+    leaveAndReplay();
     assert.equal(pauseCalls, 1, "Leaving the screen pauses playback");
-    assert.ok(findElement(renderItem(), (element) => element.type === "AnimatedPressable"));
-    components.delete(video.Component);
-    player.currentTime = 0;
-    requestPlay();
-    renderVideo();
     assert.equal(player.currentTime, 12, "Replaying restores the saved position");
     assert.equal(playCalls, 2);
+
+    player.currentTime = 0;
+    leaveAndReplay();
+    assert.equal(player.currentTime, 0, "Rewinding replaces the previous saved position");
+
+    player.currentTime = player.duration;
+    leaveAndReplay();
+    assert.equal(player.currentTime, 0, "Replaying a finished video starts at the beginning");
 });
 
-test("direct confirmation blocks inactive tickets and uses the existing reservation for bay reschedules", async () => {
+test("monthly and yearly share cards report readiness again after artwork recovers", () => {
+    const layout = require("../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json");
+    const cardLayout = load("src/components/golf/monthly-share-card-layout.ts", {
+        "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json": layout,
+    });
+    const files = [
+        ["MonthlyGolfShareCard", { month: 0, hoursOnCourse: 0 }],
+        ["YearlyShareCard", { totalReservations: 0, hoursPlayed: 0 }],
+    ];
+    const translate = (key) => key;
+
+    for (const [name, periodProps] of files) {
+        const states = [];
+        let cursor = 0;
+        let ready;
+        const { [name]: ShareCard } = load(`src/components/golf/${name}.tsx`, {
+            react: {
+                memo: (component) => component,
+                forwardRef: (component) => component,
+                useState(initial) {
+                    const index = cursor++;
+                    states[index] ??= initial;
+                    return [states[index], (value) => (states[index] = value)];
+                },
+                useEffect: (effect) => effect(),
+            },
+            "@/components/golf/HappyLogo": { HappyGolfLogo: "HappyGolfLogo" },
+            "@/design-system/components/charts/activity-chart-data": { getActivityStatusColor: () => "#000" },
+            "@/design-system/utils/color": { colorWithOpacity: () => "transparent" },
+            "@/design-system/utils/theme": {
+                getThemeColors: () => ({}),
+                useTheme: () => ({ resolvedScheme: "dark" }),
+            },
+            "expo-linear-gradient": { LinearGradient: "LinearGradient" },
+            "react-i18next": {
+                useTranslation: () => ({ t: translate, i18n: { language: "en", getFixedT: () => translate } }),
+            },
+            "react-native": { Image: "Image", Text: "Text", View: "View" },
+            "react-native-svg": { __esModule: true, default: "Svg", Defs: "Defs", Ellipse: "Ellipse", Path: "Path" },
+            "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json": layout,
+            "../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4.png": 1,
+            "../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4_dark_clear.png": 2,
+            "./ShareCardHeader": { ShareCardHeader: "ShareCardHeader" },
+            "./monthly-share-card-layout": cardLayout,
+        });
+        function render() {
+            cursor = 0;
+            return ShareCard({
+                year: 2026,
+                width: 320,
+                dailyValues: [],
+                memberImage: "https://example.invalid/avatar.jpg",
+                ...periodProps,
+                onReadyChange: (value) => (ready = value),
+            });
+        }
+
+        const tree = render();
+        tree.props.onLayout();
+        const artwork = findElement(tree, (element) => element.type === "Image" && element.props.source === 2);
+        const avatar = findElement(tree, (element) => element.type === "Image" && element.props.source?.uri);
+        artwork.props.onLoad();
+        render();
+        assert.equal(ready, false, `${name} waits for the avatar`);
+        avatar.props.onError();
+        render();
+        assert.equal(ready, true, `${name} is ready with the avatar fallback`);
+        artwork.props.onError();
+        render();
+        assert.equal(ready, false, `${name} blocks export after the artwork fails`);
+        artwork.props.onLoad();
+        render();
+        assert.equal(ready, true, `${name} is ready when the artwork loads again`);
+    }
+});
+
+test("confirmation honors server booking eligibility and uses the original reservation for bay reschedules", async () => {
     const status = load("src/utils/status-tone.ts", {
         "./format-enum": load("src/utils/format-enum.ts", {}),
     });
     const ticketType = load("src/design-system/utils/ticket-type.ts", {});
-    const eligibility = load("src/lib/booking/ticket-eligibility.ts", {
-        "@/design-system/utils/ticket-type": ticketType,
-        "@/utils/status-tone": status,
-    });
     const h = hooks();
     const params = {
         date: "2026-11-27",
@@ -207,9 +291,16 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         slotGroupId: "2",
         lessonAvailabilityId: "2",
     };
-    const ticket = { id: 1, type: "BAY_USAGE", status: "EXPIRED", fullyUsed: false, remainingCount: 1 };
-    const reservation = { reservationType: "bay", reservationStatus: "RESERVED", isCancellable: true, ticket };
-    const slots = { data: { data: [{ id: 2, totalReservableBaySlots: 1 }] } };
+    const ticket = { id: 1, type: "BAY_USAGE", effectiveStatus: "ACTIVE", canStartBooking: false, remainingCount: 1 };
+    const reservation = {
+        reservationType: "bay",
+        reservationStatus: "RESERVED",
+        isCancellable: true,
+        canReschedule: true,
+        ticket: { id: 1 },
+    };
+    const slot = { id: 2, totalReservableBaySlots: 1, capacity: 1, bookedCount: 0, bookable: true };
+    const slots = { data: { data: [slot] } };
     let created = 0;
     let rescheduled = 0;
     const rescheduledResponse = { data: { ...reservation, id: 3, memberNotes: "Bay 7, please" } };
@@ -237,7 +328,6 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         "@/design-system/utils/ticket-type": ticketType,
         "@/lib/api-response/api-response": {},
         "@/lib/booking/bay-notes-draft": load("src/lib/booking/bay-notes-draft.ts", {}),
-        "@/lib/booking/ticket-eligibility": eligibility,
         "@/lib/hook/useIsOnline": { useIsOnline: () => true },
         "@/lib/hook/useNavigationLock": {
             useNavigationLock: () => ({ isLocked: false, runWithNavigationLock: (fn) => fn() }),
@@ -272,9 +362,7 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         "@/lib/hook/useUser": { useGetMemberProfile: () => ({}) },
         "@/utils/lesson-slot": {
             isGroupLessonSlot: () => false,
-            isLessonSlotBookable: () => true,
-            isLessonSlotBookedByCurrentMember: () => false,
-            isLessonSlotFull: () => false,
+            getLessonSpotsLeft: () => 1,
         },
         "@/utils/status-tone": status,
         "@/utils/ticket-pause": { getTicketPausePeriods: () => [], isTicketDatePaused: () => false },
@@ -314,17 +402,23 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         [lesson, "PRIVATE_LESSON"],
     ]) {
         ticket.type = params.ticketType = type;
-        ticket.status = "EXPIRED";
+        ticket.canStartBooking = false;
         assert.equal(footer(screen).disabled, true);
         footer(screen).onPress();
         assert.equal(created, 0);
-        ticket.status = "ACTIVE";
+        ticket.canStartBooking = true;
         assert.equal(footer(screen).disabled, false);
     }
 
+    slot.bookable = false;
+    assert.equal(footer(lesson).disabled, true);
+    slot.bookable = true;
+    slot.bookedByCurrentMember = true;
+    assert.equal(footer(lesson).disabled, true);
+
     ticket.type = params.ticketType = "BAY_USAGE";
-    ticket.status = "FULLY_USED";
-    ticket.fullyUsed = true;
+    ticket.effectiveStatus = "FULLY_USED";
+    ticket.canStartBooking = false;
     ticket.remainingCount = 0;
     params.mode = "reschedule";
     params.reservationId = "3";
@@ -334,7 +428,7 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
     assert.equal(rescheduled, 1);
     assert.deepEqual(cachedDetails, [[["member", "reservations", "detail", "bay", 3], rescheduledResponse]]);
 
-    reservation.isCancellable = false;
+    reservation.canReschedule = false;
     assert.equal(footer(bay).disabled, true);
     footer(bay).onPress();
     assert.equal(rescheduled, 1);

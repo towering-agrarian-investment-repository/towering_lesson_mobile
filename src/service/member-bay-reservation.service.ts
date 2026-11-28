@@ -2,6 +2,7 @@ import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 import {
     MemberBaySlotGroupResponse,
+    MemberBayReservationNotesResponse,
     MemberBayReservationResponse,
     CreateBayReservationRequest,
     RescheduleBayReservationRequest,
@@ -32,18 +33,17 @@ export async function getMemberBaySlotGroups(
     startDate: string,
     endDate: string,
     signal?: AbortSignal,
+    rescheduleReservationId?: number,
 ): Promise<ApiResponse<MemberBaySlotGroupResponse[]>> {
     if (!Number.isSafeInteger(ticketId) || ticketId <= 0) {
         throw new Error("A positive ticketId is required for bay availability.");
     }
 
-    return apiClient(
-        `/member/bay-slot-groups?ticketId=${ticketId}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
-        {
-            method: "GET",
-            signal,
-        },
-    );
+    const params = new URLSearchParams({ ticketId: String(ticketId), startDate, endDate });
+    if (rescheduleReservationId !== undefined) {
+        params.set("rescheduleReservationId", String(rescheduleReservationId));
+    }
+    return apiClient(`/member/bay-slot-groups?${params.toString()}`, { method: "GET", signal });
 }
 
 export async function cancelBayReservationById(id: number): Promise<ApiResponse<null>> {
@@ -55,7 +55,7 @@ export async function cancelBayReservationById(id: number): Promise<ApiResponse<
 export async function updateBayReservationMemberNotes(
     id: number,
     data: UpdateBayReservationNotesRequest,
-): Promise<ApiResponse<null>> {
+): Promise<ApiResponse<MemberBayReservationNotesResponse>> {
     return apiClient(`/member/bay-reservations/${id}/member-notes`, {
         method: "PATCH",
         body: JSON.stringify(data),

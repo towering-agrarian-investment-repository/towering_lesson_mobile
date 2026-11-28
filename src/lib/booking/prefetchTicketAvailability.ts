@@ -10,6 +10,7 @@ import { startOfMonth } from "date-fns/startOfMonth";
 export function prefetchTicketAvailability(
     queryClient: QueryClient,
     ticket: Pick<MemberTicketSummaryResponse, "id" | "type">,
+    rescheduleReservationId?: number,
 ) {
     if (Number.isSafeInteger(ticket.id) && ticket.id > 0) {
         void queryClient.prefetchQuery(getMemberTicketByIdQueryOptions(ticket.id));
@@ -30,6 +31,7 @@ export function prefetchTicketAvailability(
                 ticket.id,
                 formatDateForAPI(startOfMonth(today)),
                 formatDateForAPI(endOfMonth(today)),
+                rescheduleReservationId,
             ),
         );
     }

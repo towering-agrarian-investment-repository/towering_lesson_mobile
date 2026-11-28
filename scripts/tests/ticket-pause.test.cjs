@@ -25,7 +25,7 @@ const timeHelper = load("time-helper.ts", {
 const { getTicketPausePeriods, isTicketDatePaused } = load("ticket-pause.ts", { "./time-helper": timeHelper });
 
 function pause(id, pausedStartDate, pausedEndDate) {
-    return { id, ticketId: 1088, pausedStartDate, pausedEndDate };
+    return { id, pausedStartDate, pausedEndDate };
 }
 
 test("pause start and end dates are blocked and adjacent dates remain selectable", () => {

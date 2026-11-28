@@ -17,8 +17,6 @@ import {
 } from "@tanstack/react-query";
 import { ApiResponse, CursorPageResponse } from "../api-response/api-response";
 
-const DEFAULT_TICKET_STATUSES = ["ACTIVE", "IN_USE"];
-
 export const MY_TICKET_TYPES: readonly TicketType[] = [
     "BAY_USAGE",
     "PRIVATE_LESSON",
@@ -28,19 +26,19 @@ export const MY_TICKET_TYPES: readonly TicketType[] = [
 ];
 
 export function getMemberTicketsQueryOptions({
-    statuses = DEFAULT_TICKET_STATUSES,
+    history,
     types,
     limit = MEMBER_TICKET_PAGE_SIZE,
 }: MemberTicketFilters = {}) {
     const ticketTypes = types?.length ? types : undefined;
 
     return {
-        queryKey: ["member", "tickets", statuses, limit, ticketTypes] as const,
+        queryKey: ["member", "tickets", history, limit, ticketTypes] as const,
         initialPageParam: null as string | null,
         queryFn: ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) =>
             getMemberTickets(
                 {
-                    statuses,
+                    history,
                     types: ticketTypes,
                     cursor: pageParam ?? undefined,
                     limit,
@@ -55,25 +53,16 @@ export function getMemberTicketsQueryOptions({
 
 export function useMemberTickets(filters?: MemberTicketFilters, enabled = true) {
     const options = getMemberTicketsQueryOptions(filters);
-    const [, , , limit, types] = options.queryKey;
-
     return useInfiniteQuery<
         ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>,
         Error,
-        { items: MemberTicketSummaryResponse[]; pageCount: number },
+        { items: MemberTicketSummaryResponse[] },
         ReturnType<typeof getMemberTicketsQueryOptions>["queryKey"],
         string | null
     >({
         ...options,
         enabled,
-        placeholderData: (previousData, previousQuery) =>
-            previousQuery?.queryKey[3] === limit && previousQuery.queryKey[4]?.join(",") === types?.join(",")
-                ? previousData
-                : undefined,
-        select: (data) => ({
-            items: data.pages.flatMap((page) => page.data.items),
-            pageCount: data.pages.length,
-        }),
+        select: (data) => ({ items: data.pages.flatMap((page) => page.data.items) }),
     });
 }
 

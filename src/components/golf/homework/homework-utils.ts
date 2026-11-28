@@ -32,12 +32,11 @@ const DUE_SOON_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export function getHomeworkDisplayState(
     homework: MemberHomeworkSummaryResponse,
-    submissions: MemberHomeworkSubmissionResponse[],
+    currentSubmission: MemberHomeworkSubmissionResponse | null,
     now: number,
 ): HomeworkDisplayState {
-    const latestReview = submissions.find((submission) => submission.review)?.review;
-    const reviewStatus = latestReview?.status ?? homework.currentReviewStatus;
-    const submissionStatus = homework.currentSubmissionStatus;
+    const reviewStatus = currentSubmission?.review?.status;
+    const submissionStatus = currentSubmission?.status;
 
     if (reviewStatus === "CONFIRMED" || submissionStatus === "REVIEWED" || homework.homeworkStatus === "COMPLETED") {
         return "approved";
@@ -45,11 +44,7 @@ export function getHomeworkDisplayState(
     if (reviewStatus === "RETURNED" || homework.homeworkStatus === "REJECTED") {
         return "needsRevision";
     }
-    if (
-        submissionStatus === "SUBMITTED" ||
-        reviewStatus === "PENDING" ||
-        (Boolean(homework.submittedAt) && !reviewStatus)
-    ) {
+    if (currentSubmission && (submissionStatus === "SUBMITTED" || reviewStatus === "PENDING" || !reviewStatus)) {
         return "awaitingReview";
     }
 

@@ -9,20 +9,15 @@ import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { MemberBaySlotGroupResponse } from "@/types/member-bay";
 import { formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
-
-type TimeSlotItem = {
-    group: MemberBaySlotGroupResponse;
-    availableBayCount: number;
-};
 
 function ItemSeparator() {
     return <View className="h-3" />;
 }
 
-const slotGroupKeyExtractor = ({ group }: { group: MemberBaySlotGroupResponse }) => String(group.id);
+const slotGroupKeyExtractor = (group: MemberBaySlotGroupResponse) => String(group.id);
 const SLOT_LIST_CONTENT_STYLE = { paddingBottom: 24 } as const;
 
 export default function TimeScreen() {
@@ -46,33 +41,29 @@ export default function TimeScreen() {
     const [dismissedConflictId, setDismissedConflictId] = useState<string>();
     const ticketIdNumber = Number(ticketId);
     const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
+    const originalReservationId = Number(reservationId);
+    const hasRescheduleContext = Number.isSafeInteger(originalReservationId) && originalReservationId > 0;
+    const isRescheduleMode = mode === "reschedule";
 
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberBaySlotGroups(
-        ticketIdNumber,
-        date,
-        date,
-        Boolean(date),
-        isFocused,
-    );
+    const {
+        data,
+        isLoading: isSlotLoading,
+        isPlaceholderData,
+        isError,
+        refetch,
+        isRefetching,
+    } = useMemberBaySlotGroups(ticketIdNumber, date, date, {
+        enabled: Boolean(date) && (!isRescheduleMode || hasRescheduleContext),
+        refetchOnWindowFocus: isFocused,
+        rescheduleReservationId: isRescheduleMode && hasRescheduleContext ? originalReservationId : undefined,
+    });
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
     );
+    const isLoading = isSlotLoading || isPlaceholderData;
     const hasLoadError = isError && !data;
 
-    const allSlotGroups = useMemo<TimeSlotItem[]>(
-        () =>
-            (data?.data ?? []).map((group) => ({
-                group,
-                availableBayCount: group.totalReservableBaySlots,
-            })),
-        [data?.data],
-    );
-    const fullSlotCount = allSlotGroups.filter((item) => item.availableBayCount <= 0).length;
-    const [showFullTimes, setShowFullTimes] = useState(false);
-    const slotGroups = useMemo(
-        () => (showFullTimes ? allSlotGroups : allSlotGroups.filter((item) => item.availableBayCount > 0)),
-        [allSlotGroups, showFullTimes],
-    );
+    const slotGroups = data?.data ?? [];
     const bookingContext = formatTicketTypeLabel(ticketType, t) || ticketName;
 
     const handleSelect = useCallback(
@@ -100,17 +91,19 @@ export default function TimeScreen() {
     );
 
     const renderItem = useCallback(
-        ({ item }: { item: TimeSlotItem }) => (
-            <TimeSlotCard group={item.group} availableBayCount={item.availableBayCount} onSelect={handleSelect} />
-        ),
+        ({ item }: { item: MemberBaySlotGroupResponse }) => <TimeSlotCard group={item} onSelect={handleSelect} />,
         [handleSelect],
     );
 
-    if (!hasTicketId) {
+    if (!hasTicketId || (isRescheduleMode && !hasRescheduleContext)) {
         return (
             <Screen>
                 <EmptyState
-                    title={t("bookingConfirmation.ticketInfoMissing")}
+                    title={t(
+                        hasTicketId
+                            ? "bookingConfirmation.reservationInfoMissing"
+                            : "bookingConfirmation.ticketInfoMissing",
+                    )}
                     actionLabel={t("tickets.sectionTitle")}
                     onAction={() => runWithNavigationLock(() => router.dismissTo("/tickets"))}
                 />
@@ -147,7 +140,7 @@ export default function TimeScreen() {
                 />
             ) : null}
 
-            {!isLoading && !hasLoadError && slotGroups.length === 0 && fullSlotCount === 0 ? (
+            {!isLoading && !hasLoadError && slotGroups.length === 0 ? (
                 <EmptyState
                     title={t("booking.noAvailableTimesTitle")}
                     message={t("booking.noAvailableTimesMessage")}
@@ -171,21 +164,6 @@ export default function TimeScreen() {
                 />
             ) : null}
 
-            {!isLoading && !hasLoadError && fullSlotCount > 0 ? (
-                <AnimatedPressable
-                    accessibilityRole="button"
-                    accessibilityState={{ expanded: showFullTimes }}
-                    className="min-h-12 items-center justify-center rounded-xl bg-muted px-4"
-                    onPress={() => setShowFullTimes((current) => !current)}
-                >
-                    <AppText variant="label" color="primary" wrap={false}>
-                        {showFullTimes
-                            ? t("booking.hideFullTimes")
-                            : t("booking.showFullTimes", { count: fullSlotCount })}
-                    </AppText>
-                </AnimatedPressable>
-            ) : null}
-
             {!isLoading && !hasLoadError && slotGroups.length > 0 ? (
                 <FlatList
                     className="min-h-0 flex-1"
@@ -204,50 +182,33 @@ export default function TimeScreen() {
 
 type TimeSlotCardProps = {
     group: MemberBaySlotGroupResponse;
-    availableBayCount: number;
     onSelect: (group: MemberBaySlotGroupResponse) => void;
 };
 
-const TimeSlotCard = memo(function TimeSlotCard({ group, availableBayCount, onSelect }: TimeSlotCardProps) {
+const TimeSlotCard = memo(function TimeSlotCard({ group, onSelect }: TimeSlotCardProps) {
     const { t } = useTranslation();
     const timeRange = formatTimeRange(group.startDateTime, group.endDateTime);
-    const isFull = availableBayCount <= 0;
+    const availabilityLabel = t("booking.baysAvailable", { count: group.totalReservableBaySlots });
 
     return (
         <AnimatedPressable
             accessibilityRole="button"
-            accessibilityLabel={`${timeRange}, ${isFull ? t("booking.full") : t("booking.baysAvailable", { count: availableBayCount })}`}
-            accessibilityState={{ disabled: isFull }}
-            haptic={isFull ? false : "selection"}
-            className={
-                isFull
-                    ? "flex-row items-center justify-between rounded-2xl border border-muted bg-muted px-4 py-4 opacity-60"
-                    : "flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
-            }
+            accessibilityLabel={`${timeRange}, ${availabilityLabel}`}
+            haptic="selection"
+            className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
             onPress={() => onSelect(group)}
-            disabled={isFull}
         >
             <View className="min-w-0 flex-1 gap-1">
-                <AppText variant="h3" color={isFull ? "mutedForeground" : "foreground"}>
-                    {timeRange}
-                </AppText>
+                <AppText variant="h3">{timeRange}</AppText>
 
                 <AppText variant="subtext" color="mutedForeground">
-                    {t("booking.baysAvailable", {
-                        count: availableBayCount,
-                    })}
+                    {availabilityLabel}
                 </AppText>
             </View>
 
-            <View
-                className={
-                    isFull
-                        ? "rounded-full bg-muted-foreground/10 px-3 py-1.5"
-                        : "rounded-full bg-primary/10 px-3 py-1.5"
-                }
-            >
-                <AppText variant="badge" color={isFull ? "mutedForeground" : "primary"} wrap={false}>
-                    {isFull ? t("booking.full") : t("booking.select")}
+            <View className="rounded-full bg-primary/10 px-3 py-1.5">
+                <AppText variant="badge" color="primary" wrap={false}>
+                    {t("booking.select")}
                 </AppText>
             </View>
         </AnimatedPressable>

@@ -4,7 +4,6 @@ type MemberBayReservationTicket = {
     id: number;
     name: string;
     type: string;
-    status: string;
     isUnlimited: boolean;
     totalCount: number | null;
     usedCount: number;
@@ -42,6 +41,7 @@ export type MemberBayReservationResponse = {
     memberNotes: string | null;
     participants: MemberBayReservationParticipant[];
     isCancellable: boolean;
+    canReschedule: boolean;
     canEditMemberNotes: boolean;
 };
 
@@ -66,3 +66,5 @@ export type RescheduleBayReservationRequest = {
 export type UpdateBayReservationNotesRequest = {
     memberNotes: string | null;
 };
+
+export type MemberBayReservationNotesResponse = Pick<MemberBayReservationResponse, "memberNotes">;

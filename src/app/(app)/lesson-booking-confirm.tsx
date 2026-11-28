@@ -9,7 +9,6 @@ import {
 import { ReservationContent, ReservationDetailField } from "@/components/golf/reservation/ReservationSections";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { responseError } from "@/lib/api-response/api-response";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -21,14 +20,7 @@ import {
 } from "@/lib/hook/useReservation";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
 import { showAppToast } from "@/design-system/components/AppToast";
-import {
-    getLessonSlotDisplayName,
-    isGroupLessonSlot,
-    isLessonSlotBookable,
-    isLessonSlotBookedByCurrentMember,
-    isLessonSlotFull,
-} from "@/utils/lesson-slot";
-import { getEffectiveTicketStatus } from "@/utils/status-tone";
+import { getLessonSlotDisplayName, getLessonSpotsLeft, isGroupLessonSlot } from "@/utils/lesson-slot";
 import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
@@ -85,6 +77,7 @@ export default function LessonBookingConfirmScreen() {
     const {
         data,
         isLoading: isSlotLoading,
+        isPlaceholderData: isSlotPreview,
         isError,
         refetch,
         isRefetching,
@@ -115,18 +108,17 @@ export default function LessonBookingConfirmScreen() {
         },
     ] as const;
 
-    const isLoading = isSlotLoading || isTicketLoading || (isOnline && isTicketPreview);
+    const isLoading = isSlotLoading || isTicketLoading || (isOnline && (isTicketPreview || isSlotPreview));
     const hasLoadError = (isError && !data) || (isTicketError && !ticket);
     const selectedSlot = (data?.data ?? []).find((slot) => slot.id === lessonAvailabilityIdNumber);
-    const isRefundedTicket = getEffectiveTicketStatus(ticket?.status) === "REFUNDED";
-    const canUseTicket = canBookWithTicket(ticket);
-    const isBookingDatePaused = isTicketDatePaused(
-        getTicketPausePeriods(ticket?.pauses),
-        formatDateForAPI(selectedSlot?.startTime ?? date),
-    );
-    const isSelectedSlotBookable = selectedSlot ? isLessonSlotBookable(selectedSlot) : false;
-    const isSelectedSlotFull = selectedSlot ? isLessonSlotFull(selectedSlot) : false;
-    const isSelectedSlotAlreadyBooked = selectedSlot ? isLessonSlotBookedByCurrentMember(selectedSlot) : false;
+    const isRefundedTicket = ticket?.effectiveStatus === "REFUNDED";
+    const canUseTicket = ticket?.canStartBooking === true;
+    const isSelectedSlotUnavailable = selectedSlot != null && !selectedSlot.bookable;
+    const isBookingDatePaused =
+        (!selectedSlot || isSelectedSlotUnavailable) &&
+        isTicketDatePaused(getTicketPausePeriods(ticket?.pauses), formatDateForAPI(date));
+    const isSelectedSlotFull = selectedSlot != null && getLessonSpotsLeft(selectedSlot) === 0;
+    const isSelectedSlotAlreadyBooked = selectedSlot?.bookedByCurrentMember === true;
     const isGroupSelection = selectedSlot ? isGroupLessonSlot(selectedSlot) : isGroupTicket;
     const isMissingRequiredData = !ticketIdNumber || !lessonAvailabilityIdNumber || !selectedSlot;
 
@@ -166,7 +158,7 @@ export default function LessonBookingConfirmScreen() {
             hasLoadError ||
             !canUseTicket ||
             isTicketPreview ||
-            isBookingDatePaused ||
+            isSlotPreview ||
             !ticketIdNumber ||
             !lessonAvailabilityIdNumber ||
             !selectedSlot
@@ -174,11 +166,11 @@ export default function LessonBookingConfirmScreen() {
             return;
         }
 
-        if (isSelectedSlotFull || isSelectedSlotAlreadyBooked) {
+        if (isSelectedSlotUnavailable || isSelectedSlotAlreadyBooked) {
             showAppToast({
                 message: isSelectedSlotAlreadyBooked
                     ? t("booking.alreadyBooked")
-                    : isSelectedSlotBookable
+                    : isSelectedSlotFull
                       ? isGroupSelection
                           ? t("bookingConfirmation.selectedGroupUnavailable")
                           : t("bookingConfirmation.selectedLessonSlotUnavailable")
@@ -248,8 +240,8 @@ export default function LessonBookingConfirmScreen() {
         isCreating ||
         !canUseTicket ||
         isTicketPreview ||
-        isBookingDatePaused ||
-        isSelectedSlotFull ||
+        isSlotPreview ||
+        isSelectedSlotUnavailable ||
         isSelectedSlotAlreadyBooked;
     const disabledReason = isRefundedTicket
         ? t("tickets.statuses.refunded")
@@ -257,8 +249,8 @@ export default function LessonBookingConfirmScreen() {
           ? t("tickets.bookingUnavailable")
           : isSelectedSlotAlreadyBooked
             ? t("booking.alreadyBooked")
-            : isSelectedSlotFull
-              ? isSelectedSlotBookable
+            : isSelectedSlotUnavailable
+              ? isSelectedSlotFull
                   ? isGroupSelection
                       ? t("bookingConfirmation.selectedGroupNowFull")
                       : t("bookingConfirmation.selectedLessonSlotNowFull")

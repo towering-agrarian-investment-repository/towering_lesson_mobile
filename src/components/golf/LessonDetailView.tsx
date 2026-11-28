@@ -15,7 +15,7 @@ import { useTheme } from "@/design-system/utils/theme";
 import { getMemberHomeworkByIdQueryOptions } from "@/lib/hook/useMemberLessonFlow";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import type { MemberHomeworkSubmissionResponse, MemberHomeworkSummaryResponse } from "@/types/member-homework";
+import type { MemberHomeworkSummaryResponse } from "@/types/member-homework";
 import type { MemberLessonDetailResponse } from "@/types/member-lesson";
 import type { MemberLessonSessionResponse } from "@/types/member-session";
 import { formatType } from "@/utils/format-enum";
@@ -32,7 +32,7 @@ import Clock from "lucide-react-native/icons/clock";
 import ExternalLink from "lucide-react-native/icons/external-link";
 import FileText from "lucide-react-native/icons/file-text";
 import UsersRound from "lucide-react-native/icons/users-round";
-import { Fragment, useMemo } from "react";
+import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { RefreshControl, View } from "react-native";
@@ -66,15 +66,6 @@ export function LessonDetailView({
     const lesson = detail?.lesson;
     const sessions = detail?.sessions ?? [];
     const homeworks = detail?.homeworks ?? [];
-    const currentSubmissionByHomeworkId = useMemo(() => {
-        const map = new Map<number, MemberHomeworkSubmissionResponse>();
-        for (const submission of detail?.currentHomeworkSubmissions ?? []) {
-            if (submission.isCurrent && !map.has(submission.homeworkId)) {
-                map.set(submission.homeworkId, submission);
-            }
-        }
-        return map;
-    }, [detail?.currentHomeworkSubmissions]);
     const mediaItems = detail?.media ?? [];
     const lessonStatusTone = getLessonStatusTone(lesson?.lessonStatus);
     const completedSessionCount = sessions.filter(isSessionCompleted).length;
@@ -229,7 +220,6 @@ export function LessonDetailView({
                                 {index > 0 ? <Divider className="ml-[68px] bg-border/70" /> : null}
                                 <HomeworkRow
                                     homework={homework}
-                                    latestSubmission={currentSubmissionByHomeworkId.get(homework.homeworkId)}
                                     onPress={() => {
                                         void queryClient.prefetchQuery(
                                             getMemberHomeworkByIdQueryOptions(homework.homeworkId),
@@ -398,19 +388,10 @@ function SessionRow({
     );
 }
 
-function HomeworkRow({
-    homework,
-    latestSubmission,
-    onPress,
-}: {
-    homework: MemberHomeworkSummaryResponse;
-    latestSubmission?: MemberHomeworkSubmissionResponse;
-    onPress: () => void;
-}) {
+function HomeworkRow({ homework, onPress }: { homework: MemberHomeworkSummaryResponse; onPress: () => void }) {
     const { t } = useTranslation();
     const colors = useThemeColors();
-    const submissionStatus = latestSubmission?.status ?? homework.currentSubmissionStatus;
-    const reviewStatus = latestSubmission?.review?.status ?? homework.currentReviewStatus;
+    const { currentSubmissionStatus: submissionStatus, currentReviewStatus: reviewStatus } = homework;
     const statusLabel = reviewStatus
         ? formatType(reviewStatus, t)
         : submissionStatus

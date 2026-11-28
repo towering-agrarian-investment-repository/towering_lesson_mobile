@@ -41,7 +41,9 @@ export type MemberHomeworkSubmissionResponse = {
 export type MemberHomeworkDetailResponse = {
     homework: MemberHomeworkSummaryResponse;
     lesson: import("./member-lesson").MemberLessonSummaryResponse;
+    currentSubmission: MemberHomeworkSubmissionResponse | null;
     submissions: MemberHomeworkSubmissionResponse[];
+    canSubmit: boolean;
 };
 
 type GenerateHomeworkSubmissionUploadFileRequest = {

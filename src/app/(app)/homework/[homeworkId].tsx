@@ -129,7 +129,9 @@ export default function HomeworkDetailScreen() {
         refetch({ cancelRefetch: false }),
     );
     const { mutate: submitHomework, isPending: isSubmitting } = useSubmitMemberHomework();
-    const isDraftEditingDisabled = isSubmitting || isDiscardingDraft;
+    const homeworkDetail = data?.data;
+    const canSubmit = homeworkDetail?.canSubmit === true;
+    const isDraftEditingDisabled = !canSubmit || isSubmitting || isDiscardingDraft;
     const isSubmitDisabled = !selectedFile || isDraftEditingDisabled;
 
     const queueDraftWrite = useCallback(
@@ -253,11 +255,11 @@ export default function HomeworkDetailScreen() {
     };
     const draftGuardProps = { control: memoForm.control, selectedFile, isSubmitting, onPreventRemove };
 
-    const homeworkDetail = data?.data;
     const homework = homeworkDetail?.homework;
     const submissions = homeworkDetail?.submissions ?? [];
-    const latestReview = submissions.find((submission) => submission.review)?.review;
-    const displayState = homework ? getHomeworkDisplayState(homework, submissions, referenceTime) : "assigned";
+    const currentSubmission = homeworkDetail?.currentSubmission ?? null;
+    const currentReview = currentSubmission?.review;
+    const displayState = homework ? getHomeworkDisplayState(homework, currentSubmission, referenceTime) : "assigned";
 
     const refreshControl = <RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />;
 
@@ -289,7 +291,7 @@ export default function HomeworkDetailScreen() {
     };
 
     const handlePickFile = async () => {
-        if (isSubmitting || discardingDraft.current || picking.current) {
+        if (isDraftEditingDisabled || discardingDraft.current || picking.current) {
             return;
         }
 
@@ -325,7 +327,7 @@ export default function HomeworkDetailScreen() {
     };
 
     const handlePickFromLibrary = async () => {
-        if (isSubmitting || discardingDraft.current || picking.current) {
+        if (isDraftEditingDisabled || discardingDraft.current || picking.current) {
             return;
         }
 
@@ -368,7 +370,7 @@ export default function HomeworkDetailScreen() {
     };
 
     const handleRecordVideo = async () => {
-        if (isSubmitting || discardingDraft.current || picking.current) {
+        if (isDraftEditingDisabled || discardingDraft.current || picking.current) {
             return;
         }
 
@@ -417,7 +419,7 @@ export default function HomeworkDetailScreen() {
     };
 
     const handleSubmit = () => {
-        if (!homework || !selectedFile || isSubmitting || discardingDraft.current || submitting.current) {
+        if (!homework || !selectedFile || isDraftEditingDisabled || discardingDraft.current || submitting.current) {
             return;
         }
 
@@ -531,8 +533,8 @@ export default function HomeworkDetailScreen() {
                         <View className="gap-6 pb-3">
                             <HomeworkDetailHeader homework={homework} displayState={displayState} />
 
-                            {latestReview ? (
-                                <HomeworkReviewCard review={latestReview} displayState={displayState} />
+                            {currentReview ? (
+                                <HomeworkReviewCard review={currentReview} displayState={displayState} />
                             ) : null}
 
                             <Divider className="bg-border/70" />

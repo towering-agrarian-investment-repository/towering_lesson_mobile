@@ -4,7 +4,7 @@ import { YearlyShareCard } from "@/components/golf/YearlyShareCard";
 import { AnimatedPressable, AppText } from "@/design-system";
 import type { ActivityHeatmapValue } from "@/design-system/components/charts/activity-chart-data";
 import { useTranslation } from "react-i18next";
-import type { ComponentProps, ElementRef, Ref } from "react";
+import { useCallback, type ComponentProps, type ElementRef, type Ref } from "react";
 import { View } from "react-native";
 
 type ShareCardProps = Pick<ComponentProps<typeof MonthlyGolfShareCard>, "memberName" | "memberImage">;
@@ -27,8 +27,7 @@ type ShareCardSceneProps = {
     isRefetching: boolean;
     onRefetch: () => void;
     cardRef: Ref<ElementRef<typeof View>>;
-    onReadyChange: (ready: boolean) => void;
-    onAssetError: () => void;
+    onReadyChange: (period: "month" | "year", ready: boolean) => void;
 };
 
 export function ShareCardScene({
@@ -50,9 +49,9 @@ export function ShareCardScene({
     onRefetch,
     cardRef,
     onReadyChange,
-    onAssetError,
 }: ShareCardSceneProps) {
     const { t } = useTranslation();
+    const handleReadyChange = useCallback((ready: boolean) => onReadyChange(period, ready), [onReadyChange, period]);
 
     return (
         <View
@@ -77,8 +76,7 @@ export function ShareCardScene({
                             hoursOnCourse={hoursOnCourse}
                             loadingValues={loadingValues}
                             width={cardWidth}
-                            onReadyChange={onReadyChange}
-                            onAssetError={onAssetError}
+                            onReadyChange={handleReadyChange}
                         />
                     ) : (
                         <YearlyShareCard
@@ -91,8 +89,7 @@ export function ShareCardScene({
                             hoursPlayed={annualHours}
                             loadingValues={loadingValues}
                             width={cardWidth}
-                            onReadyChange={onReadyChange}
-                            onAssetError={onAssetError}
+                            onReadyChange={handleReadyChange}
                         />
                     )}
                 </View>

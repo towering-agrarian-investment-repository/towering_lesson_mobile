@@ -70,10 +70,16 @@ type RescheduleMemberBayReservationVariables = {
     data: RescheduleBayReservationRequest;
 };
 
-export function getMemberBaySlotGroupsQueryOptions(ticketId: number, startDate: string, endDate: string) {
+export function getMemberBaySlotGroupsQueryOptions(
+    ticketId: number,
+    startDate: string,
+    endDate: string,
+    rescheduleReservationId?: number,
+) {
     return {
-        queryKey: ["member", "bay-slot-groups", ticketId, startDate, endDate] as const,
-        queryFn: ({ signal }: { signal: AbortSignal }) => getMemberBaySlotGroups(ticketId, startDate, endDate, signal),
+        queryKey: ["member", "bay-slot-groups", ticketId, startDate, endDate, rescheduleReservationId] as const,
+        queryFn: ({ signal }: { signal: AbortSignal }) =>
+            getMemberBaySlotGroups(ticketId, startDate, endDate, signal, rescheduleReservationId),
         staleTime: 10_000,
     };
 }
@@ -303,16 +309,23 @@ export function useMemberBaySlotGroups(
     ticketId: number,
     startDate: string,
     endDate: string,
-    enabled = true,
-    refetchOnWindowFocus = true,
+    {
+        enabled = true,
+        refetchOnWindowFocus = true,
+        rescheduleReservationId,
+    }: { enabled?: boolean; refetchOnWindowFocus?: boolean; rescheduleReservationId?: number } = {},
 ) {
     return useQuery<ApiResponse<MemberBaySlotGroupResponse[]>>({
-        ...getMemberBaySlotGroupsQueryOptions(ticketId, startDate, endDate),
+        ...getMemberBaySlotGroupsQueryOptions(ticketId, startDate, endDate, rescheduleReservationId),
         enabled: enabled && Number.isSafeInteger(ticketId) && ticketId > 0 && Boolean(startDate) && Boolean(endDate),
         refetchOnWindowFocus,
-        // Keep date navigation smooth without displaying another ticket's schedule.
+        // Preserve month previews only within the same ticket and booking flow.
         placeholderData: (previousData, previousQuery) =>
-            previousQuery?.queryKey[2] === ticketId ? previousData : undefined,
+            previousQuery &&
+            previousQuery.queryKey[2] === ticketId &&
+            previousQuery.queryKey[5] === rescheduleReservationId
+                ? previousData
+                : undefined,
     });
 }
 
@@ -341,31 +354,35 @@ export function useCreateMemberBayReservation() {
 
 export function useUpdateMemberBayReservationNotes() {
     const queryClient = useQueryClient();
-    return useMutation<ApiResponse<null>, unknown, { reservationId: number; data: UpdateBayReservationNotesRequest }>({
-        mutationFn: ({ reservationId, data }) => updateBayReservationMemberNotes(reservationId, data),
-        onSuccess: (response, { reservationId, data }) => {
-            if (response?.status?.message) {
+    return useMutation({
+        mutationFn: ({ reservationId, data }: { reservationId: number; data: UpdateBayReservationNotesRequest }) =>
+            updateBayReservationMemberNotes(reservationId, data),
+        onSuccess: async (response, { reservationId }) => {
+            if (response.status.message) {
                 responseStatus(response);
             }
+            const queryKey = getMemberReservationDetailQueryOptions(reservationId, "bay").queryKey;
+            await queryClient.cancelQueries({ queryKey, exact: true });
             queryClient.setQueryData<ApiResponse<MemberReservationDetailResponse | MemberReservationDetailPreview>>(
-                getMemberReservationDetailQueryOptions(reservationId, "bay").queryKey,
+                queryKey,
                 (previous) => {
                     if (previous && !("isListPreview" in previous.data) && previous.data.reservationType === "bay") {
                         return {
-                            status: response?.status ?? previous.status,
+                            status: response.status,
                             data: {
                                 ...previous.data,
-                                memberNotes: data.memberNotes,
+                                memberNotes: response.data.memberNotes,
                             },
                         };
                     }
 
                     return previous;
                 },
-                { updatedAt: 0 },
             );
-            refreshMemberReservationDetail(queryClient, reservationId, "bay");
-            refreshMemberReservationLists(queryClient);
+            void queryClient.invalidateQueries({
+                queryKey: ["member", "reservations"],
+                predicate: (query) => query.queryKey[2] !== "detail",
+            });
         },
         onError: responseError,
     });

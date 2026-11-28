@@ -1,9 +1,9 @@
 import type { MemberGroupSummaryResponse } from "./member-group";
-import type { MemberHomeworkSubmissionResponse, MemberHomeworkSummaryResponse } from "./member-homework";
+import type { MemberHomeworkSummaryResponse } from "./member-homework";
 import type { MemberLessonLogResponse as MemberLessonLogSummaryResponse } from "./member-lesson-log";
 import type { MemberReservationDomain } from "./member-reservation";
 import type { MemberLessonSessionResponse } from "./member-session";
-import type { TicketStatus, TicketType } from "./member.type";
+import type { TicketType } from "./member.type";
 
 type LessonType = "PRIVATE_LESSON" | "GROUP_LESSON";
 
@@ -45,25 +45,10 @@ export type MemberLessonDetailResponse = {
     sessions: MemberLessonSessionResponse[];
     homeworks: MemberHomeworkSummaryResponse[];
     media: MemberLessonMediaResponse[];
-    currentHomeworkSubmissions: MemberHomeworkSubmissionResponse[];
-};
-
-export type MemberLessonAvailabilityInstance = {
-    id: number;
-    lessonProgramGroupId: number | null;
-    lessonAvailabilityId: number | null;
-    titleSnapshot: string | null;
-    descriptionSnapshot: string | null;
-    objectivesSnapshot: string[];
-    homeworkSnapshot: string | null;
-    orderIndex: number | null;
-    status: string | null;
-    completedAt: string | null;
 };
 
 export type MemberLessonSlotResponse = {
     id: number;
-    instructorId: number | null;
     coachName: string | null;
     name: string | null;
     startTime: string;
@@ -71,9 +56,8 @@ export type MemberLessonSlotResponse = {
     lessonType: LessonType;
     capacity: number;
     bookedCount: number;
-    bookable?: boolean | null;
-    bookedByCurrentMember?: boolean | null;
-    lessonInstances: MemberLessonAvailabilityInstance[];
+    bookable: boolean;
+    bookedByCurrentMember: boolean;
 };
 
 export type CreateLessonReservationRequest = {
@@ -93,7 +77,6 @@ type MemberLessonReservationRelatedTicket = {
     id: number;
     name: string;
     type: TicketType | null;
-    status: TicketStatus | null;
     isUnlimited: boolean;
     totalCount: number | null;
     usedCount: number;

@@ -42,10 +42,14 @@ export function useUpdateMemberProfileImage() {
             imageUri: string;
             contentType: ProfileImageContentType;
         }) => updateMemberProfileImage(memberId, imageUri, contentType),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ["member", "profile"],
-            });
+        onSuccess: async ({ data }, { memberId }) => {
+            const queryKey = ["member", "profile"];
+            await queryClient.cancelQueries({ queryKey, exact: true });
+            queryClient.setQueryData<ApiResponse<MemberSelfResponse>>(queryKey, (previous) =>
+                previous?.data.id === memberId
+                    ? { ...previous, data: { ...previous.data, profileImage: data.profileImage } }
+                    : previous,
+            );
         },
         onError: (err: unknown) => {
             responseError(err);

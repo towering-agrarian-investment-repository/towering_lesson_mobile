@@ -100,23 +100,14 @@ export function getHomeworkReviewTone(status?: string | null): Tone {
     return HOMEWORK_REVIEW_TONES[status ?? ""] ?? neutral;
 }
 
-export function getEffectiveTicketStatus(status?: string | null, fullyUsed?: boolean): string {
-    const normalized = status?.toUpperCase().replaceAll("-", "_") ?? "";
-    if (fullyUsed && (normalized === "ACTIVE" || normalized === "IN_USE")) {
-        return "FULLY_USED";
-    }
-    return normalized;
-}
-
-export function getTicketStatusGroup(status?: string | null, fullyUsed?: boolean): "active" | "past" | "other" {
-    switch (getEffectiveTicketStatus(status, fullyUsed)) {
+export function getTicketStatusGroup(status?: string | null): "active" | "past" | "other" {
+    switch (status) {
         case "ACTIVE":
         case "IN_USE":
             return "active";
         case "FULLY_USED":
         case "EXPIRED":
         case "CANCELLED":
-        case "CANCELED":
         case "TRANSFERRED":
         case "REFUNDED":
             return "past";
@@ -125,8 +116,8 @@ export function getTicketStatusGroup(status?: string | null, fullyUsed?: boolean
     }
 }
 
-export function getTicketStatusTone(status?: string | null, fullyUsed?: boolean): Tone {
-    switch (getEffectiveTicketStatus(status, fullyUsed)) {
+export function getTicketStatusTone(status?: string | null): Tone {
+    switch (status) {
         case "ACTIVE":
             return success;
         case "IN_USE":
@@ -134,7 +125,6 @@ export function getTicketStatusTone(status?: string | null, fullyUsed?: boolean)
         case "FULLY_USED":
             return warning;
         case "CANCELLED":
-        case "CANCELED":
             return danger;
         case "EXPIRED":
         case "TRANSFERRED":
@@ -144,12 +134,8 @@ export function getTicketStatusTone(status?: string | null, fullyUsed?: boolean)
     }
 }
 
-export function getTicketStatusLabel(
-    status: string | null | undefined,
-    fullyUsed: boolean | undefined,
-    t: TFunction,
-): string {
-    switch (getEffectiveTicketStatus(status, fullyUsed)) {
+export function getTicketStatusLabel(status: string | null | undefined, t: TFunction): string {
+    switch (status) {
         case "ACTIVE":
             return t("tickets.statuses.active");
         case "IN_USE":
@@ -159,7 +145,6 @@ export function getTicketStatusLabel(
         case "EXPIRED":
             return t("tickets.statuses.expired");
         case "CANCELLED":
-        case "CANCELED":
             return t("tickets.statuses.cancelled");
         case "TRANSFERRED":
             return t("tickets.statuses.transferred");

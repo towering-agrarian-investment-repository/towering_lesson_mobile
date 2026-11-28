@@ -1,7 +1,6 @@
 import TicketHistoryCard, { TicketHistoryCardSkeleton } from "@/components/golf/TicketHistoryCard";
 import { EmptyState, ErrorState, ListRetryFooter, StateList } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -58,7 +57,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         hasNextPage,
         isFetchingNextPage,
         isFetchNextPageError,
-    } = useMemberTickets({ types: TICKET_TYPES_BY_TAB[type] }, isActive);
+    } = useMemberTickets({ history: "active", types: TICKET_TYPES_BY_TAB[type] }, isActive);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
     );
@@ -94,7 +93,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
 
     const handleBookPress = useCallback(
         (item: MemberTicketSummaryResponse) => {
-            if (!canBookWithTicket(item)) return;
+            if (!item.canStartBooking) return;
 
             prefetchTicketAvailability(queryClient, item);
             runWithNavigationLock(() => {

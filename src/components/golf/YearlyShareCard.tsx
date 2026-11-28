@@ -32,7 +32,6 @@ type YearlyShareCardProps = {
     memberName?: string;
     memberImage?: string | null;
     onReadyChange: (ready: boolean) => void;
-    onAssetError: () => void;
 };
 
 const dayDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4.png");
@@ -87,7 +86,6 @@ export const YearlyShareCard = memo(
             memberName,
             memberImage,
             onReadyChange,
-            onAssetError,
         },
         ref,
     ) {
@@ -105,13 +103,10 @@ export const YearlyShareCard = memo(
         const mutedInk = dark ? colors.mutedForeground : layout.style.textMuted;
         const scale = width / SHARE_CARD_WIDTH;
         const artSource = dark ? darkDecoration : dayDecoration;
-        const [loadedArtSource, setLoadedArtSource] = useState<number | null>(null);
+        const [artReady, setArtReady] = useState(false);
         const [layoutReady, setLayoutReady] = useState(false);
-        const [loadedAvatarUri, setLoadedAvatarUri] = useState<string | null>(null);
-        const [failedAvatarUri, setFailedAvatarUri] = useState<string | null>(null);
-        const artReady = loadedArtSource === artSource;
-        const avatarFailed = Boolean(memberImage) && failedAvatarUri === memberImage;
-        const avatarReady = !memberImage || loadedAvatarUri === memberImage || avatarFailed;
+        const [avatarStatus, setAvatarStatus] = useState<"loading" | "loaded" | "failed">("loading");
+        const avatarReady = !memberImage || avatarStatus !== "loading";
         const ready = artReady && layoutReady && avatarReady;
 
         useEffect(() => {
@@ -228,8 +223,8 @@ export const YearlyShareCard = memo(
                     source={artSource}
                     resizeMode="stretch"
                     style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
-                    onLoad={() => setLoadedArtSource(artSource)}
-                    onError={onAssetError}
+                    onLoad={() => setArtReady(true)}
+                    onError={() => setArtReady(false)}
                 />
                 {!dark && (
                     <>
@@ -347,15 +342,13 @@ export const YearlyShareCard = memo(
                         backgroundColor: colors.primary,
                     }}
                 >
-                    {memberImage && !avatarFailed ? (
+                    {memberImage && avatarStatus !== "failed" ? (
                         <Image
                             source={{ uri: memberImage }}
                             resizeMode="cover"
                             style={{ width: "100%", height: "100%" }}
-                            onLoad={() => setLoadedAvatarUri(memberImage)}
-                            onError={() => {
-                                setFailedAvatarUri(memberImage);
-                            }}
+                            onLoad={() => setAvatarStatus("loaded")}
+                            onError={() => setAvatarStatus("failed")}
                         />
                     ) : (
                         <>

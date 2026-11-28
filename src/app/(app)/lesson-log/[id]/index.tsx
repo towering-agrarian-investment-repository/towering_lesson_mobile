@@ -40,7 +40,7 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
     const { t } = useTranslation();
 
     const handleDeactivate = useCallback((position: number) => {
-        if (Number.isFinite(position) && position > 0) {
+        if (Number.isFinite(position) && position >= 0) {
             savedPositionRef.current = position;
         }
         setPlayRequested(false);
@@ -94,9 +94,11 @@ function LessonVideoPlayer({
     useFocusEffect(
         useCallback(() => {
             return () => {
-                let currentTime = 0;
+                let currentTime = Number.NaN;
                 try {
                     currentTime = player.currentTime;
+                    const duration = player.duration;
+                    if (duration > 0 && currentTime >= duration) currentTime = 0;
                     player.pause();
                 } catch {
                     // Player may already be released on unmount.

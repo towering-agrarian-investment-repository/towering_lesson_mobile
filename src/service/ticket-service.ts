@@ -6,7 +6,7 @@ import type { TicketType } from "@/types/member.type";
 export const MEMBER_TICKET_PAGE_SIZE = 20;
 
 export type MemberTicketFilters = {
-    statuses?: readonly string[];
+    history?: "active" | "past";
     types?: readonly TicketType[];
     limit?: number;
 };
@@ -19,9 +19,7 @@ export const getMemberTickets = async (
         limit: String(params.limit ?? MEMBER_TICKET_PAGE_SIZE),
     });
 
-    for (const status of params.statuses ?? []) {
-        searchParams.append("statuses", status);
-    }
+    if (params.history) searchParams.set("history", params.history);
 
     for (const type of params.types ?? []) {
         searchParams.append("types", type);

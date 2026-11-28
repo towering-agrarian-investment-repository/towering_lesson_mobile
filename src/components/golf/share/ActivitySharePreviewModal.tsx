@@ -20,7 +20,16 @@ import { useShareMonth } from "@/lib/hook/useShareMonth";
 import { BottomSheet } from "@expo/ui";
 import { StatusBar } from "expo-status-bar";
 import X from "lucide-react-native/icons/x";
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ElementRef } from "react";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ComponentProps,
+    type ElementRef,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
@@ -66,11 +75,7 @@ export function ActivitySharePreviewModal({
         month: number;
     } | null>(null);
     const [stageWidth, setStageWidth] = useState(0);
-    const [readyByPeriod, setReadyByPeriod] = useState<{
-        month: boolean;
-        year: boolean;
-    }>({ month: false, year: false });
-    const [failedByPeriod, setFailedByPeriod] = useState<{
+    const [readyAssetByPeriod, setReadyAssetByPeriod] = useState<{
         month: string | null;
         year: string | null;
     }>({ month: null, year: null });
@@ -121,26 +126,24 @@ export function ActivitySharePreviewModal({
     const yearCardKey = `year|${sharedCardKey}|${annualReservations}|${annualHours}`;
     const cardKey = cardPeriod === "month" ? monthCardKey : yearCardKey;
     const assetKey = [posterScheme, cardProps.memberImage ?? ""].join("|");
-    const isActiveCardReady = readyByPeriod[cardPeriod] && failedByPeriod[cardPeriod] !== assetKey;
-    const canSave = canPreview && !isPlaceholderData && isActiveCardReady;
+    const showCard = (isAvailable || isLoading) && (!isError || Boolean(shareActivity)) && cardWidth > 0;
+    const canSave = showCard && canPreview && !isPlaceholderData && readyAssetByPeriod[cardPeriod] === assetKey;
     const loadingValues = !shareActivity || isPlaceholderData;
 
-    useEffect(() => {
-        captureReadyRef.current = isActiveCardReady;
-    }, [isActiveCardReady]);
+    useLayoutEffect(() => {
+        captureReadyRef.current = canSave;
+    }, [canSave]);
 
-    const handleMonthlyReadyChange = useCallback((ready: boolean) => {
-        setReadyByPeriod((current) => (current.month === ready ? current : { ...current, month: ready }));
-    }, []);
-    const handleYearlyReadyChange = useCallback((ready: boolean) => {
-        setReadyByPeriod((current) => (current.year === ready ? current : { ...current, year: ready }));
-    }, []);
-    const handleMonthlyAssetError = useCallback(() => {
-        setFailedByPeriod((current) => ({ ...current, month: assetKey }));
-    }, [assetKey]);
-    const handleYearlyAssetError = useCallback(() => {
-        setFailedByPeriod((current) => ({ ...current, year: assetKey }));
-    }, [assetKey]);
+    const handleCardReadyChange = useCallback(
+        (period: (typeof CARD_PERIODS)[number], ready: boolean) => {
+            setReadyAssetByPeriod((current) => {
+                if (!ready && current[period] !== assetKey) return current;
+                const nextAsset = ready ? assetKey : null;
+                return current[period] === nextAsset ? current : { ...current, [period]: nextAsset };
+            });
+        },
+        [assetKey],
+    );
     const handleRefetch = useCallback(() => {
         void refetch();
     }, [refetch]);
@@ -251,8 +254,6 @@ export function ActivitySharePreviewModal({
         [exportCard],
     );
 
-    const showCard = (isAvailable || isLoading) && (!isError || Boolean(shareActivity)) && cardWidth > 0;
-
     return (
         <Modal
             visible
@@ -330,6 +331,7 @@ export function ActivitySharePreviewModal({
                                     const isMonthScene = route.key === "month";
                                     return (
                                         <ShareCardScene
+                                            key={assetKey}
                                             period={isMonthScene ? "month" : "year"}
                                             stageHeight={stageHeight}
                                             showCard={showCard}
@@ -347,12 +349,7 @@ export function ActivitySharePreviewModal({
                                             isRefetching={isRefetching}
                                             onRefetch={handleRefetch}
                                             cardRef={isMonthScene ? monthlyCardRef : yearlyCardRef}
-                                            onReadyChange={
-                                                isMonthScene ? handleMonthlyReadyChange : handleYearlyReadyChange
-                                            }
-                                            onAssetError={
-                                                isMonthScene ? handleMonthlyAssetError : handleYearlyAssetError
-                                            }
+                                            onReadyChange={handleCardReadyChange}
                                         />
                                     );
                                 }}

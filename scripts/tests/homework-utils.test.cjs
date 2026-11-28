@@ -46,15 +46,15 @@ const {
 
 test("homework display handles all six states, review precedence and the due-soon boundary", () => {
     const now = Date.parse("2026-11-25T00:00:00Z");
-    const state = (homework, submissions = []) => getHomeworkDisplayState(homework, submissions, now);
+    const state = (homework, currentSubmission = null) => getHomeworkDisplayState(homework, currentSubmission, now);
     assert.equal(state({ dueAt: "2026-11-27T00:00:00.001Z" }), "assigned");
     assert.equal(state({ dueAt: "invalid" }), "assigned");
     assert.equal(state({ dueAt: "2026-11-27T00:00:00Z" }), "dueSoon");
     assert.equal(state({ dueAt: "2026-11-25T00:00:00Z" }), "dueSoon");
     assert.equal(state({ dueAt: "2026-11-24T23:59:59.999Z" }), "overdue");
-    assert.equal(state({ currentSubmissionStatus: "SUBMITTED", dueAt: "2026-11-24" }), "awaitingReview");
-    assert.equal(state({ currentReviewStatus: "PENDING" }, [{ review: { status: "RETURNED" } }]), "needsRevision");
-    assert.equal(state({ currentReviewStatus: "RETURNED" }, [{ review: { status: "CONFIRMED" } }]), "approved");
+    assert.equal(state({ dueAt: "2026-11-24" }, { status: "SUBMITTED", review: null }), "awaitingReview");
+    assert.equal(state({}, { review: { status: "RETURNED" } }), "needsRevision");
+    assert.equal(state({}, { review: { status: "CONFIRMED" } }), "approved");
     assert.equal(state({ homeworkStatus: "COMPLETED" }), "approved");
 });
 

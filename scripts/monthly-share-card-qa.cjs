@@ -150,7 +150,6 @@ if (process.argv.includes("--render")) {
                         hoursOnCourse: 6.7,
                         memberName: "Alexis DE",
                         onReadyChange() {},
-                        onAssetError() {},
                         ...cardVariant,
                     }),
                 ),

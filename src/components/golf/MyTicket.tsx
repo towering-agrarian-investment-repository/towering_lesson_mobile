@@ -3,7 +3,6 @@ import { AnimatedPressable, CompactEmptyState } from "@/design-system";
 import { isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
@@ -31,10 +30,10 @@ function MyTicket() {
     const dayClock = useDayClock();
     const todayKey = formatDateForAPI(dayClock);
     const { data, isLoading, isError, isFetching, errorUpdateCount, hasNextPage, refetch } = useMemberTickets({
+        history: "active",
         types: MY_TICKET_TYPES,
     });
-    const allTickets = data?.items ?? [];
-    const activeTickets = allTickets.filter((ticket) => !ticket.fullyUsed);
+    const activeTickets = data?.items ?? [];
     const tickets = activeTickets.slice(0, 3);
     const hasMoreTickets = hasNextPage || activeTickets.length > tickets.length;
     const showInitialLoading = isLoading && errorUpdateCount === 0;
@@ -52,7 +51,7 @@ function MyTicket() {
             }
 
             if (isBookableTicketType(item.type)) {
-                if (!canBookWithTicket(item)) return;
+                if (!item.canStartBooking) return;
 
                 prefetchTicketAvailability(queryClient, item);
                 runWithNavigationLock(() => {
@@ -98,6 +97,7 @@ function MyTicket() {
                         if (!isLocked) {
                             void queryClient.prefetchInfiniteQuery(
                                 getMemberTicketsQueryOptions({
+                                    history: "active",
                                     types: MY_TICKET_TYPES,
                                 }),
                             );

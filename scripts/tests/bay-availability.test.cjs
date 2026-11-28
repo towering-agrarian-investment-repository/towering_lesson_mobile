@@ -15,6 +15,7 @@ function load(relativePath, mocks) {
         }).outputText,
         {
             exports,
+            URLSearchParams,
             require(id) {
                 if (id in mocks) return mocks[id];
                 throw new Error(`Missing test dependency: ${id}`);
@@ -25,7 +26,7 @@ function load(relativePath, mocks) {
     return exports;
 }
 
-function availability(request) {
+function availability(request, hookMocks = {}) {
     const service = load("src/service/member-bay-reservation.service.ts", {
         "@/lib/client/api-client": { apiClient: request },
     });
@@ -33,7 +34,7 @@ function availability(request) {
         "@/service/member-bay-reservation.service": service,
         "@/service/member-lesson-reservation.service": {},
         "@/service/reservation.service": {},
-        "@tanstack/react-query": { ...query, useQuery: (options) => options },
+        "@tanstack/react-query": { ...query, useQuery: (options) => options, ...hookMocks },
         "../api-response/api-response": {},
     });
     return { service, hooks };
@@ -58,8 +59,52 @@ test("bay schedule requests include the owned ticket, date range, and cancellati
     assert.equal(url.searchParams.get("ticketId"), "123");
     assert.equal(url.searchParams.get("startDate"), startDate);
     assert.equal(url.searchParams.get("endDate"), endDate);
+    assert.equal(url.searchParams.has("rescheduleReservationId"), false);
     assert.equal(options.method, "GET");
     assert.equal(options.signal, signal);
+});
+
+test("bay rescheduling passes the original reservation and isolates availability from other flows", async () => {
+    const requests = [];
+    const { hooks } = availability(async (endpoint) => {
+        const reservationId = new URL(endpoint, "https://example.invalid").searchParams.get("rescheduleReservationId");
+        requests.push(reservationId);
+        return { data: [{ id: reservationId }] };
+    });
+    const booking = hooks.useMemberBaySlotGroups(123, startDate, endDate);
+    const firstMove = hooks.useMemberBaySlotGroups(123, startDate, endDate, { rescheduleReservationId: 41 });
+    const secondMove = hooks.useMemberBaySlotGroups(123, startDate, endDate, { rescheduleReservationId: 42 });
+    const client = new query.QueryClient();
+    try {
+        assert.equal(firstMove.placeholderData({}, { queryKey: booking.queryKey }), undefined);
+        assert.equal(secondMove.placeholderData({}, { queryKey: firstMove.queryKey }), undefined);
+        await Promise.all([booking, firstMove, secondMove].map((options) => client.fetchQuery(options)));
+        assert.deepEqual(requests, [null, "41", "42"]);
+        assert.equal(client.getQueryData(firstMove.queryKey).data[0].id, "41");
+        assert.equal(client.getQueryData(secondMove.queryKey).data[0].id, "42");
+    } finally {
+        client.clear();
+    }
+});
+
+test("saving a bay note updates the cached detail with the value returned by the API", async () => {
+    const client = new query.QueryClient();
+    const { hooks } = availability(async () => ({ data: { memberNotes: null }, status: {} }), {
+        useQueryClient: () => client,
+        useMutation: (options) => options,
+    });
+    const queryKey = hooks.getMemberReservationDetailQueryOptions(41, "bay").queryKey;
+    client.setQueryData(queryKey, { data: { id: 41, reservationType: "bay", memberNotes: "Previous note" } });
+    try {
+        const mutation = hooks.useUpdateMemberBayReservationNotes();
+        const variables = { reservationId: 41, data: { memberNotes: "   " } };
+        const response = await mutation.mutationFn(variables);
+        await mutation.onSuccess(response, variables);
+        assert.equal(client.getQueryData(queryKey).data.memberNotes, null);
+        assert.equal(client.getQueryState(queryKey).isInvalidated, false);
+    } finally {
+        client.clear();
+    }
 });
 
 test("invalid ticket IDs disable discovery and never send an unfiltered request", async () => {

@@ -19,7 +19,6 @@ import {
 } from "@/components/golf/reservation/detail/reservation-detail-utils";
 import { ActionButton, Divider, EmptyState, ErrorState, Screen, Skeleton, triggerSuccessHaptic } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
-import { canRescheduleBayReservation } from "@/lib/booking/ticket-eligibility";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
@@ -28,7 +27,6 @@ import {
     useMemberReservationById,
 } from "@/lib/hook/useReservation";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
-import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { Href, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -140,11 +138,10 @@ export default function ReservationDetailScreen() {
     const lessonReservation = isLessonReservationDetail(reservation) ? reservation : null;
     const isProgramReservation = lessonReservation?.lessonProgramEnrollmentId != null;
     const reservationTicket = reservation.ticket;
-    const isRefundedTicket = getEffectiveTicketStatus(reservationTicket?.status) === "REFUNDED";
-    const ticketDetailsId = isRefundedTicket ? undefined : reservationTicket?.id;
+    const ticketDetailsId = reservationTicket?.id;
 
     const canCancelReservation = reservation.reservationStatus === "RESERVED" && reservation.isCancellable;
-    const canRescheduleReservation = isBayReservation && canRescheduleBayReservation(reservation);
+    const canRescheduleReservation = isBayReservation && reservation.canReschedule;
     const isCancelling = isBayReservation ? isCancellingBay : isCancellingLesson;
     const isCancelDisabled = !isOnline || !canCancelReservation || isCancelling || noteEditor.isSavingNote;
     const isRescheduleDisabled = !isOnline || isLocked || noteEditor.isSavingNote;
@@ -203,7 +200,7 @@ export default function ReservationDetailScreen() {
             return;
         }
 
-        prefetchTicketAvailability(queryClient, reservation.ticket);
+        prefetchTicketAvailability(queryClient, reservation.ticket, reservation.id);
         runWithNavigationLock(() => {
             router.push({
                 pathname: "/select-date",
@@ -263,7 +260,7 @@ export default function ReservationDetailScreen() {
                 title={title}
                 dateValue={dateValue}
                 timeValue={timeValue}
-                showRefundNote={Boolean(ticketDetailsId)}
+                showRefundNote={Boolean(reservationTicket && !reservationTicket.isUnlimited)}
                 onConfirm={confirmCancelReservation}
                 onDismiss={closeCancelSheet}
             />

@@ -2,9 +2,8 @@ import { AnimatedPressable, cn, Skeleton } from "@/design-system";
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, getTicketTypeTone, isBookableTicketType } from "@/design-system/utils/ticket-type";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
-import { getEffectiveTicketStatus, getTicketStatusGroup } from "@/utils/status-tone";
+import { getTicketStatusGroup } from "@/utils/status-tone";
 import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
 import { getAppTimeZoneDateParts } from "@/utils/timezone";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
@@ -51,12 +50,12 @@ function getUsageNote(
 function TicketCard({ item, todayKey, disabled = false, onPress, fullWidth = false }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
-    const effectiveStatus = getEffectiveTicketStatus(item.status, item.fullyUsed);
+    const effectiveStatus = item.effectiveStatus;
     const isRefunded = effectiveStatus === "REFUNDED";
     const isFullyUsed = effectiveStatus === "FULLY_USED";
     const isInactive = getTicketStatusGroup(effectiveStatus) !== "active";
     const ticketTone = getTicketTypeTone(item.type);
-    const isPressDisabled = disabled || isInactive || (isBookableTicketType(item.type) && !canBookWithTicket(item));
+    const isPressDisabled = disabled || isInactive || (isBookableTicketType(item.type) && !item.canStartBooking);
 
     const badgeLabel = formatTicketTypeLabel(item.type, t) || "-";
     const usageNote = getUsageNote(item, t);

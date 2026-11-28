@@ -9,14 +9,7 @@ import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
 import type { MemberLessonSlotResponse } from "@/types/member-lesson";
-import {
-    getLessonSlotDisplayName,
-    getLessonSpotsLeft,
-    isGroupLessonSlot,
-    isLessonSlotBookable,
-    isLessonSlotBookedByCurrentMember,
-    isLessonSlotFull,
-} from "@/utils/lesson-slot";
+import { getLessonSlotDisplayName, getLessonSpotsLeft, isGroupLessonSlot } from "@/utils/lesson-slot";
 import { formatDateForAPI, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
@@ -71,16 +64,18 @@ export default function SelectLessonSlotScreen() {
     const month = selectedDate.getMonth() + 1;
     const ticketIdNumber = ticketId ? Number(ticketId) : null;
 
-    const { data, isLoading, isError, refetch, isRefetching } = useMemberTicketLessonSlots(
-        ticketIdNumber,
-        year,
-        month,
-        Boolean(ticketIdNumber),
-        isFocused,
-    );
+    const {
+        data,
+        isLoading: isSlotLoading,
+        isPlaceholderData,
+        isError,
+        refetch,
+        isRefetching,
+    } = useMemberTicketLessonSlots(ticketIdNumber, year, month, Boolean(ticketIdNumber), isFocused);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
     );
+    const isLoading = isSlotLoading || isPlaceholderData;
     const hasLoadError = isError && !data;
 
     const slots = useMemo(
@@ -240,10 +235,10 @@ const LessonSlotCard = memo(function LessonSlotCard({
     const { t } = useTranslation();
 
     const isGroupSlot = isGroupTicket || isGroupLessonSlot(slot);
-    const isBookable = isLessonSlotBookable(slot);
-    const alreadyBooked = !wasJustBooked && isLessonSlotBookedByCurrentMember(slot);
+    const spotsLeft = getLessonSpotsLeft(slot);
+    const alreadyBooked = !wasJustBooked && slot.bookedByCurrentMember;
     const isPast = !wasJustBooked && !alreadyBooked && new Date(slot.startTime).getTime() <= now;
-    const disabled = wasJustBooked || alreadyBooked || isPast || isLessonSlotFull(slot);
+    const disabled = wasJustBooked || alreadyBooked || isPast || !slot.bookable;
     const minutesUntilStart = disabled ? null : getMinutesUntilStart(slot, now);
     const startingSoon = minutesUntilStart != null && minutesUntilStart <= 60;
     const lessonTitle = getLessonSlotDisplayName(slot, t);
@@ -255,11 +250,11 @@ const LessonSlotCard = memo(function LessonSlotCard({
           : isPast
             ? t("booking.statusPassed")
             : disabled
-              ? isBookable
+              ? spotsLeft === 0
                   ? t("booking.full")
                   : t("booking.statusUnavailable")
               : isGroupSlot
-                ? t("booking.spotsLeft", { count: getLessonSpotsLeft(slot) })
+                ? t("booking.spotsLeft", { count: spotsLeft })
                 : t("booking.statusAvailable");
 
     const countdownLabel =

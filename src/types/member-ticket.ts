@@ -1,8 +1,8 @@
 import type { MemberReservationSummaryResponse } from "./member-reservation";
+import type { TicketStatus } from "./member.type";
 
 export type MemberTicketPauseResponse = {
     id: number;
-    ticketId: number;
     pausedStartDate: string;
     pausedEndDate: string;
 };
@@ -12,16 +12,15 @@ export type MemberTicketSummaryResponse = {
     coachName: string | null;
     name: string;
     type: string;
-    period: number | null;
     totalCount: number | null;
     isUnlimited: boolean;
     onlyOnePerDay: boolean;
     usedCount: number;
-    remainingCount: number;
-    fullyUsed: boolean;
+    remainingCount: number | null;
     startDate: string | null;
     endDate: string | null;
-    status: string;
+    effectiveStatus: TicketStatus | "TRANSFERRED";
+    canStartBooking: boolean;
     pauses: MemberTicketPauseResponse[];
 };
 

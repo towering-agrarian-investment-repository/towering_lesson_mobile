@@ -16,7 +16,6 @@ import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
@@ -78,7 +77,7 @@ export default function TicketDetailScreen() {
         refetch,
         isRefetching,
     } = useMemberTicketById(ticketId);
-    const canBook = canBookWithTicket(ticket);
+    const canBook = ticket?.canStartBooking === true;
 
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
@@ -298,9 +297,9 @@ function TicketDetailHeader({
     const reducedMotion = useReducedMotion();
     const ticketTone = getTicketTypeTone(ticket.type);
     const typeLabel = formatTicketTypeLabel(ticket.type, t);
-    const isActive = getTicketStatusGroup(ticket.status, ticket.fullyUsed) === "active";
-    const statusTone = getTicketStatusTone(ticket.status, ticket.fullyUsed);
-    const statusLabel = getTicketStatusLabel(ticket.status, ticket.fullyUsed, t);
+    const isActive = getTicketStatusGroup(ticket.effectiveStatus) === "active";
+    const statusTone = getTicketStatusTone(ticket.effectiveStatus);
+    const statusLabel = getTicketStatusLabel(ticket.effectiveStatus, t);
     const hasCountLimit = !ticket.isUnlimited && ticket.totalCount != null && ticket.totalCount > 0;
     const remainingCount = Math.max(0, ticket.remainingCount ?? 0);
     const remainingRatio = hasCountLimit ? Math.min(1, Math.max(0, remainingCount / ticket.totalCount!)) : 0;

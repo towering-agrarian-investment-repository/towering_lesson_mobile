@@ -16,7 +16,6 @@ import { FormTextInput } from "@/components/ui/form";
 import { Divider, EmptyState, ErrorState, Screen, triggerNotificationHaptic } from "@/design-system";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { getBayNotesDraft, setBayNotesDraft } from "@/lib/booking/bay-notes-draft";
-import { canBookWithTicket, canRescheduleBayReservation } from "@/lib/booking/ticket-eligibility";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
@@ -30,7 +29,6 @@ import {
     useRescheduleMemberBayReservation,
 } from "@/lib/hook/useReservation";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
-import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
@@ -83,6 +81,7 @@ export default function BayBookingConfirmScreen() {
     const ticketIdNumber = Number(ticketId);
     const slotGroupIdNumber = Number(slotGroupId);
     const hasReservationId = Number.isSafeInteger(reservationIdNumber) && reservationIdNumber > 0;
+    const rescheduleReservationId = isRescheduleMode && hasReservationId ? reservationIdNumber : undefined;
     const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
     const hasSlotGroupId = Number.isSafeInteger(slotGroupIdNumber) && slotGroupIdNumber > 0;
     const form = useForm<BayBookingFormValues>({
@@ -101,7 +100,7 @@ export default function BayBookingConfirmScreen() {
         isRefetching: isTicketRefetching,
         refetch: refetchTicket,
     } = useMemberTicketById(hasTicketId ? ticketIdNumber : undefined);
-    const shouldLoadReservation = isRescheduleMode && hasReservationId;
+    const shouldLoadReservation = rescheduleReservationId !== undefined;
     const reservationQuery = useMemberReservationById(reservationIdNumber, shouldLoadReservation ? "bay" : undefined);
     const reservationData = reservationQuery.data?.data;
     const rescheduleReservationData =
@@ -122,13 +121,17 @@ export default function BayBookingConfirmScreen() {
     const {
         data,
         isLoading: isSlotLoading,
+        isPlaceholderData: isSlotPreview,
         isError,
         refetch,
         isRefetching,
-    } = useMemberBaySlotGroups(ticketIdNumber, date, date, Boolean(date));
+    } = useMemberBaySlotGroups(ticketIdNumber, date, date, {
+        enabled: Boolean(date) && (!isRescheduleMode || shouldLoadReservation),
+        rescheduleReservationId,
+    });
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         Promise.all([
-            refetch({ cancelRefetch: false }),
+            !isRescheduleMode || shouldLoadReservation ? refetch({ cancelRefetch: false }) : undefined,
             refetchTicket({ cancelRefetch: false }),
             shouldLoadReservation ? reservationQuery.refetch({ cancelRefetch: false }) : undefined,
         ]),
@@ -147,25 +150,20 @@ export default function BayBookingConfirmScreen() {
     const isSubmitting = isCreating || isRescheduling || form.formState.isSubmitting;
     const isLoadingReservation =
         shouldLoadReservation && (reservationQuery.isLoading || (isOnline && reservationQuery.isPlaceholderData));
-    const isLoading = isSlotLoading || isTicketLoading || (isOnline && isTicketPreview) || isLoadingReservation;
+    const isLoading =
+        isSlotLoading || isTicketLoading || (isOnline && (isTicketPreview || isSlotPreview)) || isLoadingReservation;
     const hasLoadError =
         (isError && !data) ||
         (isTicketError && !ticket) ||
         (shouldLoadReservation && reservationQuery.isError && !rescheduleReservationData);
     const slotGroup = data?.data.find((group) => group.id === slotGroupIdNumber);
-    const isRefundedTicket = getEffectiveTicketStatus(ticket?.status) === "REFUNDED";
+    const isRefundedTicket = ticket?.effectiveStatus === "REFUNDED";
     const canReschedule =
-        !!rescheduleReservationData &&
-        canRescheduleBayReservation(rescheduleReservationData) &&
-        rescheduleReservationData.ticket.id === ticketIdNumber;
-    const canUseTicket = isRescheduleMode
-        ? Boolean(ticket) && canReschedule && !isRefundedTicket
-        : canBookWithTicket(ticket);
-    const isBookingDatePaused = isTicketDatePaused(
-        getTicketPausePeriods(ticket?.pauses),
-        formatDateForAPI(slotGroup?.startDateTime ?? date),
-    );
-    const isTimeUnavailable = !hasSlotGroupId || !slotGroup || slotGroup.totalReservableBaySlots <= 0;
+        rescheduleReservationData?.canReschedule === true && rescheduleReservationData.ticket?.id === ticketIdNumber;
+    const canUseTicket = isRescheduleMode ? canReschedule : ticket?.canStartBooking === true;
+    const isBookingDatePaused =
+        !slotGroup && isTicketDatePaused(getTicketPausePeriods(ticket?.pauses), formatDateForAPI(date));
+    const isTimeUnavailable = !hasSlotGroupId || !slotGroup;
     const isDisabled =
         !isOnline ||
         isSubmitting ||
@@ -173,7 +171,7 @@ export default function BayBookingConfirmScreen() {
         hasLoadError ||
         !canUseTicket ||
         isTicketPreview ||
-        isBookingDatePaused ||
+        isSlotPreview ||
         isTimeUnavailable ||
         (!isRescheduleMode && !form.formState.isValid);
     const disabledReason = isRefundedTicket
@@ -213,7 +211,7 @@ export default function BayBookingConfirmScreen() {
             refetchType: "none",
         });
         await queryClient.invalidateQueries({
-            queryKey: getMemberBaySlotGroupsQueryOptions(ticketIdNumber, date, date).queryKey,
+            queryKey: getMemberBaySlotGroupsQueryOptions(ticketIdNumber, date, date, rescheduleReservationId).queryKey,
             exact: true,
             refetchType: "all",
         });

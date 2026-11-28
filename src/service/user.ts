@@ -26,6 +26,8 @@ type StagedUpload = {
     expiresAt: string;
 };
 
+type ProfileImageResponse = Pick<MemberSelfResponse, "profileImage">;
+
 export const removeMemberProfileImage = async (memberId: number): Promise<void> => {
     await apiClient(`/member/${memberId}/profile-image`, {
         method: "DELETE",
@@ -36,7 +38,7 @@ export const updateMemberProfileImage = async (
     memberId: number,
     imageUri: string,
     contentType: ProfileImageContentType,
-): Promise<void> => {
+): Promise<ApiResponse<ProfileImageResponse>> => {
     const imageFile = new File(imageUri);
 
     if (!imageFile.exists || imageFile.size <= 0) {
@@ -85,7 +87,7 @@ export const updateMemberProfileImage = async (
         throw new Error(`Profile image upload failed: ${uploadResponse.status}`);
     }
 
-    await apiClient(`/member/${memberId}/profile-image`, {
+    return apiClient(`/member/${memberId}/profile-image`, {
         method: "PUT",
         body: JSON.stringify({ uploadKey: staged.key }),
     });

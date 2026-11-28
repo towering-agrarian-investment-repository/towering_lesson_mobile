@@ -2,7 +2,6 @@ import { AnimatedPressable, cn, Skeleton, triggerImpactHaptic, triggerSelectionH
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, getTicketTypeTone } from "@/design-system/utils/ticket-type";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getTicketStatusGroup, getTicketStatusLabel, getTicketStatusTone } from "@/utils/status-tone";
 import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
@@ -30,9 +29,9 @@ function TicketHistoryCard({ item, todayKey, disabled = false, showBookAction = 
     const { t } = useTranslation();
     const ticketTone = getTicketTypeTone(item.type);
     const typeLabel = formatTicketTypeLabel(item.type, t) || "-";
-    const isInactive = getTicketStatusGroup(item.status, item.fullyUsed) !== "active";
-    const statusTone = getTicketStatusTone(item.status, item.fullyUsed);
-    const statusLabel = getTicketStatusLabel(item.status, item.fullyUsed, t);
+    const isInactive = getTicketStatusGroup(item.effectiveStatus) !== "active";
+    const statusTone = getTicketStatusTone(item.effectiveStatus);
+    const statusLabel = getTicketStatusLabel(item.effectiveStatus, t);
     const dateRange = `${formatDateForDisplay(item.startDate) || "-"} ~ ${formatDateForDisplay(item.endDate) || "-"}`;
     const hasCountLimit = !item.isUnlimited && item.totalCount != null && item.totalCount > 0;
     const remainingCount = Math.max(0, item.remainingCount ?? 0);
@@ -41,7 +40,7 @@ function TicketHistoryCard({ item, todayKey, disabled = false, showBookAction = 
     const ticketEndDate = item.endDate ? toAppTimeZoneDate(item.endDate) : null;
     const pausePeriods = getTicketPausePeriods(item.pauses).filter(({ endDate }) => endDate >= todayKey);
     const daysLeft = ticketEndDate && today ? differenceInCalendarDays(ticketEndDate, today) : null;
-    const showExpiry = !isInactive && !item.fullyUsed && daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
+    const showExpiry = !isInactive && daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
     const expiryLabel = daysLeft === 0 ? t("tickets.expiresToday") : t("tickets.daysLeft", { count: daysLeft ?? 0 });
     const expiryIsUrgent = daysLeft !== null && daysLeft <= 3;
 
@@ -184,7 +183,7 @@ function TicketHistoryCard({ item, todayKey, disabled = false, showBookAction = 
                         {dateRange}
                     </AppText>
 
-                    {showBookAction && canBookWithTicket(item) && onBookPress ? (
+                    {showBookAction && item.canStartBooking && onBookPress ? (
                         <AnimatedPressable
                             accessibilityRole="button"
                             accessibilityLabel={`${t("tickets.bookWithTicket")} — ${item.name}`}

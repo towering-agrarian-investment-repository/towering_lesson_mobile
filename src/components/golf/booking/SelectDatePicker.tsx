@@ -15,7 +15,6 @@ import {
 } from "@/design-system";
 import { useTheme, type ThemeColors } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, isBookableTicketType } from "@/design-system/utils/ticket-type";
-import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { formatCalendarMonthTitle, getCalendarLocale, type CalendarLocaleData } from "@/lib/calendar-locale";
 import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
@@ -28,8 +27,6 @@ import {
 } from "@/lib/hook/useReservation";
 import { useMemberTicketById } from "@/lib/hook/useTicket";
 import { showAppToast } from "@/design-system/components/AppToast";
-import { isLessonSlotFull } from "@/utils/lesson-slot";
-import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { getTicketPausePeriods, isTicketDatePaused, type TicketPausePeriod } from "@/utils/ticket-pause";
 import { formatDateForAPI, formatDateWeekday, formatMonthYear } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
@@ -377,7 +374,8 @@ const CalendarMonthPage = memo(function CalendarMonthPage({
                             }
 
                             const dateString = `${monthPrefix}${pad(day)}`;
-                            const isPaused = isTicketDatePaused(pausePeriods, dateString);
+                            const isAvailable = availableDates.has(dateString);
+                            const isPaused = !isAvailable && isTicketDatePaused(pausePeriods, dateString);
 
                             return (
                                 <View key={dayIndex} style={{ flex: 1, alignItems: "center" }}>
@@ -389,7 +387,7 @@ const CalendarMonthPage = memo(function CalendarMonthPage({
                                         labels={dayCellLabels}
                                         colors={colors}
                                         isAvailabilityKnown={isAvailabilityKnown}
-                                        isAvailable={availableDates.has(dateString)}
+                                        isAvailable={isAvailable}
                                         isPaused={isPaused}
                                         isSelected={!isPaused && selectedDate === dateString}
                                         onPress={onDayPress}
@@ -506,9 +504,15 @@ export default function DateScreen() {
         refetch: refetchTicket,
     } = useMemberTicketById(hasTicketId && !isUnsupportedTicket ? ticketIdNumber : undefined);
     const isRescheduleMode = mode === "reschedule";
-    const isRefundedTicket = getEffectiveTicketStatus(ticket?.status) === "REFUNDED";
-    const isIneligibleTicket = ticket != null && (isRescheduleMode ? isRefundedTicket : !canBookWithTicket(ticket));
-    const canLoadAvailability = hasTicketId && !isUnsupportedTicket && !isIneligibleTicket;
+    const originalReservationId = Number(reservationId);
+    const rescheduleReservationId =
+        isRescheduleMode && Number.isSafeInteger(originalReservationId) && originalReservationId > 0
+            ? originalReservationId
+            : undefined;
+    const isRefundedTicket = ticket?.effectiveStatus === "REFUNDED";
+    const isIneligibleTicket = !isRescheduleMode && ticket != null && !ticket.canStartBooking;
+    const canLoadAvailability =
+        hasTicketId && !isUnsupportedTicket && !isIneligibleTicket && (!isRescheduleMode || !!rescheduleReservationId);
     const pausePeriods = useMemo(() => getTicketPausePeriods(ticket?.pauses), [ticket?.pauses]);
 
     const { startDate, endDate } = useMemo(() => getMonthRange(visibleMonth), [visibleMonth]);
@@ -524,7 +528,11 @@ export default function DateScreen() {
         isPlaceholderData: isPlaceholderBaySlotGroups,
         isRefetching: isRefetchingBaySlotGroups,
         isError: isErrorBaySlotGroups,
-    } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, canLoadAvailability && !isLessonTicket, isFocused);
+    } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, {
+        enabled: canLoadAvailability && !isLessonTicket,
+        refetchOnWindowFocus: isFocused,
+        rescheduleReservationId,
+    });
 
     const {
         data: lessonSlotData,
@@ -616,10 +624,23 @@ export default function DateScreen() {
         } else {
             const followingRange = getMonthRange(followingMonth);
             void queryClient.prefetchQuery(
-                getMemberBaySlotGroupsQueryOptions(ticketIdNumber, followingRange.startDate, followingRange.endDate),
+                getMemberBaySlotGroupsQueryOptions(
+                    ticketIdNumber,
+                    followingRange.startDate,
+                    followingRange.endDate,
+                    rescheduleReservationId,
+                ),
             );
         }
-    }, [canLoadAvailability, isLessonTicket, queryClient, ticketIdNumber, visibleMonth.month, visibleMonth.year]);
+    }, [
+        canLoadAvailability,
+        isLessonTicket,
+        queryClient,
+        rescheduleReservationId,
+        ticketIdNumber,
+        visibleMonth.month,
+        visibleMonth.year,
+    ]);
 
     const availableDates = useMemo(() => {
         const dates = new Set<string>();
@@ -627,37 +648,29 @@ export default function DateScreen() {
 
         if (isLessonTicket) {
             for (const slot of lessonSlotData?.data ?? []) {
-                if (isLessonSlotFull(slot)) {
+                if (!slot.bookable || slot.bookedByCurrentMember) {
                     continue;
                 }
                 const date = formatDateForAPI(slot.startTime);
-                if (date >= startDate && date <= endDate && !isTicketDatePaused(pausePeriods, date)) {
+                if (date >= startDate && date <= endDate) {
                     dates.add(date);
                 }
             }
         } else {
             for (const group of baySlotGroupData?.data ?? []) {
-                if (group.totalReservableBaySlots > 0) {
-                    const date = formatDateForAPI(group.startDateTime);
-                    if (date >= startDate && date <= endDate && !isTicketDatePaused(pausePeriods, date)) {
-                        dates.add(date);
-                    }
+                const date = formatDateForAPI(group.startDateTime);
+                if (date >= startDate && date <= endDate) {
+                    dates.add(date);
                 }
             }
         }
 
         return dates;
-    }, [baySlotGroupData, endDate, isAvailabilityKnown, isLessonTicket, lessonSlotData, pausePeriods, startDate]);
+    }, [baySlotGroupData, endDate, isAvailabilityKnown, isLessonTicket, lessonSlotData, startDate]);
 
     const handleDayPress = useCallback(
         (dateString: string) => {
-            if (
-                !isAvailabilityKnown ||
-                dateString < today ||
-                dateString < startDate ||
-                dateString > endDate ||
-                isTicketDatePaused(pausePeriods, dateString)
-            ) {
+            if (!isAvailabilityKnown || dateString < today || dateString < startDate || dateString > endDate) {
                 return;
             }
 
@@ -671,6 +684,7 @@ export default function DateScreen() {
                             ticketIdNumber,
                             dateString,
                             dateString,
+                            rescheduleReservationId,
                         );
 
                         if (!queryClient.getQueryData(dayQueryOptions.queryKey)) {
@@ -733,9 +747,9 @@ export default function DateScreen() {
             isLessonTicket,
             mode,
             notes,
-            pausePeriods,
             queryClient,
             reservationId,
+            rescheduleReservationId,
             router,
             runWithNavigationLock,
             startDate,

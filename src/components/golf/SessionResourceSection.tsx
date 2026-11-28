@@ -59,9 +59,11 @@ function ResourceVideo({
     useFocusEffect(
         useCallback(() => {
             return () => {
-                let currentTime = 0;
+                let currentTime = Number.NaN;
                 try {
                     currentTime = player.currentTime;
+                    const duration = player.duration;
+                    if (duration > 0 && currentTime >= duration) currentTime = 0;
                     player.pause();
                 } catch {
                     // Player may already be released on unmount.
@@ -121,7 +123,7 @@ export function SessionResourceSection({ resources }: SessionResourceSectionProp
     } | null>(null);
 
     const handleDeactivateVideo = useCallback((key: string, position: number) => {
-        if (Number.isFinite(position) && position > 0) {
+        if (Number.isFinite(position) && position >= 0) {
             savedVideoPositionsRef.current[key] = position;
         }
         setActiveVideoKey((current) => (current === key ? null : current));
