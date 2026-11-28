@@ -2,11 +2,13 @@ import TicketHistoryCard, { TicketHistoryCardSkeleton } from "@/components/golf/
 import { EmptyState, ErrorState, ListRetryFooter, StateList } from "@/design-system";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberTicketByIdQueryOptions, MY_TICKET_TYPES, useMemberTickets } from "@/lib/hook/useTicket";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import type { TicketType } from "@/types/member.type";
+import { formatDateForAPI } from "@/utils/time-helper";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -42,7 +44,9 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
+    const dayClock = useDayClock();
+    const todayKey = formatDateForAPI(dayClock);
     const {
         data,
         isLoading,
@@ -54,7 +58,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         hasNextPage,
         isFetchingNextPage,
         isFetchNextPageError,
-    } = useMemberTickets({ types: TICKET_TYPES_BY_TAB[type] });
+    } = useMemberTickets({ types: TICKET_TYPES_BY_TAB[type] }, isActive);
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
     );
@@ -111,13 +115,13 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
         ({ item }) => (
             <TicketHistoryCard
                 item={item}
+                todayKey={todayKey}
                 showBookAction
-                disabled={isLocked}
                 onPress={handleTicketPress}
                 onBookPress={handleBookPress}
             />
         ),
-        [handleBookPress, handleTicketPress, isLocked],
+        [handleBookPress, handleTicketPress, todayKey],
     );
 
     if (isLoading) {
@@ -184,7 +188,7 @@ function TicketTabSceneContent({ type, isActive }: TicketTabSceneProps) {
     return (
         <FlashList
             data={tickets}
-            extraData={isLocked}
+            extraData={todayKey}
             keyExtractor={ticketKeyExtractor}
             renderItem={renderTicket}
             ItemSeparatorComponent={TicketSeparator}

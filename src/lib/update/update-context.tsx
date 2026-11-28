@@ -5,7 +5,8 @@ type AppUpdateContextValue = ReturnType<typeof useAppUpdate>;
 
 const AppUpdateContext = createContext<AppUpdateContextValue | null>(null);
 
-export function AppUpdateProvider({ value, children }: { value: AppUpdateContextValue; children: ReactNode }) {
+export function AppUpdateProvider({ children }: { children: ReactNode }) {
+    const value = useAppUpdate();
     return <AppUpdateContext.Provider value={value}>{children}</AppUpdateContext.Provider>;
 }
 

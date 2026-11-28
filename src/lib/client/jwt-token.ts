@@ -1,4 +1,4 @@
-import { decodeJwt } from "jose";
+import { decodeJwt } from "jose/jwt/decode";
 import { authClient } from "../auth-client";
 
 const TOKEN_REFRESH_SKEW_MS = 30_000;
@@ -16,6 +16,10 @@ function getTokenExpiration(token: string): number | null {
     } catch {
         return null;
     }
+}
+
+export function isCurrentAuthGeneration(generation: number) {
+    return generation === authGeneration;
 }
 
 export function clearCachedJwtToken() {

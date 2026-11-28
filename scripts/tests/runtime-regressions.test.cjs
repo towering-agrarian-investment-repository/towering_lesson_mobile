@@ -62,6 +62,133 @@ function hooks() {
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
+test("resource video survives parent rerenders and saves its position when focus ends", () => {
+    const components = new Map();
+    let slots;
+    let cursor;
+    let focusCleanup;
+    let playCalls = 0;
+    let pauseCalls = 0;
+    const effects = [];
+    const sameDeps = (left, right) => left?.length === right.length && right.every((value, i) => value === left[i]);
+    const react = {
+        ...React,
+        useState(initial) {
+            const state = (slots[cursor++] ??= { value: initial });
+            return [state.value, (next) => (state.value = typeof next === "function" ? next(state.value) : next)];
+        },
+        useRef(initial) {
+            return (slots[cursor++] ??= { current: initial });
+        },
+        useCallback(callback, deps) {
+            const index = cursor++;
+            if (!slots[index] || !sameDeps(slots[index].deps, deps)) {
+                slots[index] = { callback, deps };
+            }
+            return slots[index].callback;
+        },
+    };
+    const player = {
+        currentTime: 0,
+        status: "readyToPlay",
+        play: () => playCalls++,
+        pause: () => pauseCalls++,
+    };
+    const { SessionResourceSection } = load("src/components/golf/SessionResourceSection.tsx", {
+        react,
+        "@/design-system": {
+            AnimatedPressable: "AnimatedPressable",
+            AppText: "AppText",
+            Badge: "Badge",
+            ImageViewerModal: "ImageViewerModal",
+        },
+        "@/design-system/components/AppToast": {},
+        "@/design-system/utils/theme": { useTheme: () => ({ colors: {} }) },
+        "@/design-system/utils/typography": {},
+        "@/utils/media": {
+            getFileExtension: () => "mp4",
+            isAllowedExtension: (_name, allowed) => allowed.includes("mp4"),
+            isAllowedMimeType: (mime, allowed) => allowed?.includes(mime) ?? false,
+            RESOURCE_FILE_EXTENSIONS: ["mp4"],
+            RESOURCE_IMAGE_EXTENSIONS: ["jpg"],
+            RESOURCE_VIDEO_EXTENSIONS: ["mp4"],
+        },
+        "@/utils/open-external-url": {},
+        expo: { useEvent: () => ({ status: player.status }) },
+        "expo-image": { Image: "Image" },
+        "expo-router": {
+            useFocusEffect(callback) {
+                const state = (slots[cursor++] ??= {});
+                if (state.callback !== callback) {
+                    effects.push(() => {
+                        state.cleanup?.();
+                        state.callback = callback;
+                        state.cleanup = callback();
+                        focusCleanup = state.cleanup;
+                    });
+                }
+            },
+        },
+        "expo-video": {
+            useVideoPlayer(_url, setup) {
+                const initialized = react.useRef(false);
+                if (!initialized.current) {
+                    setup(player);
+                    initialized.current = true;
+                }
+                return player;
+            },
+            VideoView: "VideoView",
+        },
+        "lucide-react-native/icons/external-link": { default: "ExternalLink" },
+        "lucide-react-native/icons/file-text": { default: "FileText" },
+        "lucide-react-native/icons/play": { default: "Play" },
+        "react-i18next": { useTranslation: () => ({ t: (key) => key }) },
+        "react-native": { View: "View" },
+        "react-native-reanimated": { useReducedMotion: () => false },
+    });
+    const resources = [{ id: 1, fileUrl: "https://example.invalid/video.mp4", mediaType: "video/mp4" }];
+    function render(Component, props) {
+        if (!components.has(Component)) components.set(Component, []);
+        slots = components.get(Component);
+        cursor = 0;
+        return Component(props);
+    }
+    function renderItem() {
+        const section = render(SessionResourceSection, { resources });
+        const item = findElement(section, (element) => typeof element.type === "function");
+        return render(item.type, item.props);
+    }
+    function renderVideo() {
+        const video = findElement(renderItem(), (element) => typeof element.type === "function");
+        assert.ok(video, "The active resource still renders its video player");
+        const tree = render(video.type, video.props);
+        effects.splice(0).forEach((effect) => effect());
+        return { Component: video.type, tree };
+    }
+    function requestPlay() {
+        findElement(renderItem(), (element) => element.type === "AnimatedPressable").props.onPress();
+    }
+
+    requestPlay();
+    const video = renderVideo();
+    player.currentTime = 12;
+    renderVideo();
+    assert.equal(pauseCalls, 0, "A parent rerender must not pause playback");
+    assert.equal(playCalls, 1, "A parent rerender must not restart the player");
+    assert.ok(findElement(renderItem(), (element) => element.type === video.Component));
+
+    focusCleanup();
+    assert.equal(pauseCalls, 1, "Leaving the screen pauses playback");
+    assert.ok(findElement(renderItem(), (element) => element.type === "AnimatedPressable"));
+    components.delete(video.Component);
+    player.currentTime = 0;
+    requestPlay();
+    renderVideo();
+    assert.equal(player.currentTime, 12, "Replaying restores the saved position");
+    assert.equal(playCalls, 2);
+});
+
 test("direct confirmation blocks inactive tickets and uses the existing reservation for bay reschedules", async () => {
     const status = load("src/utils/status-tone.ts", {
         "./format-enum": load("src/utils/format-enum.ts", {}),
@@ -112,7 +239,9 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         "@/lib/booking/bay-notes-draft": load("src/lib/booking/bay-notes-draft.ts", {}),
         "@/lib/booking/ticket-eligibility": eligibility,
         "@/lib/hook/useIsOnline": { useIsOnline: () => true },
-        "@/lib/hook/useNavigationLock": { useNavigationLock: () => ({ isLocked: false }) },
+        "@/lib/hook/useNavigationLock": {
+            useNavigationLock: () => ({ isLocked: false, runWithNavigationLock: (fn) => fn() }),
+        },
         "@/lib/hook/usePullToRefresh": { usePullToRefresh: () => ({ refreshing: false }) },
         "@/lib/hook/useReservation": {
             getMemberReservationDetailQueryOptions: (id, domain) => ({
@@ -157,7 +286,12 @@ test("direct confirmation blocks inactive tickets and uses the existing reservat
         },
         "@tanstack/react-query": { useQueryClient: () => ({ setQueryData: (...args) => cachedDetails.push(args) }) },
         "expo-haptics": {},
-        "expo-router": { Stack: { Screen: "StackScreen" }, useLocalSearchParams: () => params, useRouter: () => ({}) },
+        "expo-router": {
+            Stack: { Screen: "StackScreen" },
+            useLocalSearchParams: () => params,
+            useNavigation: () => ({}),
+            useRouter: () => ({}),
+        },
         "expo-router/stack": { Stack: { Screen: "StackScreen" } },
         "react-hook-form": {
             useForm: () => ({
@@ -359,7 +493,7 @@ for (const file of ["src/app/(app)/select-time.tsx", "src/app/(app)/select-lesso
         const { default: Screen } = load(file, {
             react: h.react,
             "@/lib/hook/usePullToRefresh": { usePullToRefresh: () => ({ refreshing: false, onRefresh() {} }) },
-            "@/lib/hook/useMinuteClock": { useMinuteClock: () => Date.now() },
+            "@/lib/hook/useMinuteClock": { useDayClock: () => Date.now(), useMinuteClock: () => Date.now() },
             "@/lib/hook/useUser": { useGetMemberProfile: () => ({ data: undefined }) },
             "@/design-system/components/AppText": { AppText: "AppText" },
             "@/components/golf/booking/BookingStepHeader": { BookingStepHeader: "BookingStepHeader" },
@@ -374,7 +508,9 @@ for (const file of ["src/app/(app)/select-time.tsx", "src/app/(app)/select-lesso
             },
             "@/design-system/utils/theme": { useTheme: () => ({ colors: {} }) },
             "@/design-system/utils/ticket-type": { formatTicketTypeLabel: () => "Lesson" },
-            "@/lib/hook/useNavigationLock": { useNavigationLock: () => ({ isLocked: false }) },
+            "@/lib/hook/useNavigationLock": {
+                useNavigationLock: () => ({ isLocked: false, runWithNavigationLock: (fn) => fn() }),
+            },
             "@/lib/hook/useReservation": {
                 useMemberBaySlotGroups: () => result,
                 useMemberTicketLessonSlots: () => result,
@@ -387,6 +523,7 @@ for (const file of ["src/app/(app)/select-time.tsx", "src/app/(app)/select-lesso
                 formatTimeRange: () => "10:00 - 11:00",
             },
             "expo-router": {
+                useIsFocused: () => true,
                 useRouter: () => ({}),
                 useLocalSearchParams: () => ({ date: "2026-01-05", ticketId: "1" }),
             },
@@ -542,7 +679,7 @@ function loadAuthenticatedLayout(h, toasts = []) {
     return load("src/app/(app)/_layout.tsx", {
         react: h.react,
         "@tanstack/react-query": query,
-        "@/design-system": { useThemeColors: () => ({}), getStackHeaderOptions: () => ({}) },
+        "@/design-system/utils/theme": { useThemeColors: () => ({}), getStackHeaderOptions: () => ({}) },
         "@/design-system/components/AppToast": { showAppToast: (toast) => toasts.push(toast) },
         "@/i18n": { t: (key) => key },
         "@/lib/auth-session": { takeInterruptedHref: () => null, verifyMemberSession: async () => true },
@@ -1101,3 +1238,273 @@ for (const reservationType of [null, "all", "bay", "private", "group", "program"
         assert.equal(findList().props.refreshControl.props.refreshing, false, "Pagination uses the footer spinner");
     });
 }
+
+test("booking confirmation success strips intermediate booking steps and duplicate reschedule detail", () => {
+    const { handleBookingConfirmationSuccess } = load("src/components/golf/booking/BookingConfirmationShared.tsx", {
+        "@/components/golf/reservation/ReservationSections": { ReservationDetailField: "ReservationDetailField" },
+        "@/design-system": {
+            ActionButton: "ActionButton",
+            Divider: "Divider",
+            Skeleton: "Skeleton",
+            triggerSuccessHaptic() {},
+        },
+        "react-i18next": { useTranslation: () => ({ t: (key) => key }) },
+        "react-native": { View: "View" },
+        "expo-router/react-navigation": { CommonActions: { reset: (payload) => ({ type: "RESET", payload }) } },
+    });
+
+    const dispatched = [];
+    const replaced = [];
+    const router = { replace: (arg) => replaced.push(arg) };
+
+    handleBookingConfirmationSuccess(
+        router,
+        { type: "bay", mode: "booking", reservationId: 42 },
+        {
+            getState: () => ({
+                type: "stack",
+                routeNames: [
+                    "(tabs)",
+                    "tickets",
+                    "tickets/[id]",
+                    "select-date",
+                    "select-time",
+                    "bay-booking-confirm",
+                    "booking-success",
+                ],
+                routes: [
+                    { key: "tabs", name: "(tabs)" },
+                    { key: "tickets", name: "tickets" },
+                    { key: "ticket-1", name: "tickets/[id]", params: { id: "1" } },
+                    { key: "date", name: "select-date" },
+                    { key: "time", name: "select-time" },
+                    { key: "confirm", name: "bay-booking-confirm" },
+                ],
+            }),
+            dispatch: (action) => dispatched.push(action),
+        },
+    );
+    assert.equal(replaced.length, 0);
+    assert.equal(dispatched.length, 1);
+    assert.deepEqual(
+        Array.from(dispatched[0].payload.routes, (r) => r.name),
+        ["(tabs)", "tickets", "tickets/[id]", "booking-success"],
+    );
+    assert.equal(dispatched[0].payload.index, 3);
+
+    handleBookingConfirmationSuccess(
+        router,
+        { type: "bay", mode: "reschedule", reservationId: 99 },
+        {
+            getState: () => ({
+                type: "stack",
+                routeNames: [
+                    "(tabs)",
+                    "reservation",
+                    "reservation/[id]",
+                    "select-date",
+                    "select-time",
+                    "bay-booking-confirm",
+                    "booking-success",
+                ],
+                routes: [
+                    { key: "tabs", name: "(tabs)" },
+                    { key: "list", name: "reservation" },
+                    { key: "detail", name: "reservation/[id]", params: { id: "99", type: "bay" } },
+                    { key: "date", name: "select-date" },
+                    { key: "time", name: "select-time" },
+                    { key: "confirm", name: "bay-booking-confirm" },
+                ],
+            }),
+            dispatch: (action) => dispatched.push(action),
+        },
+    );
+    assert.equal(dispatched.length, 2);
+    assert.deepEqual(
+        Array.from(dispatched[1].payload.routes, (r) => r.name),
+        ["(tabs)", "reservation", "booking-success"],
+    );
+    assert.equal(dispatched[1].payload.index, 2);
+});
+
+test("push registration checks the current token on startup and saves only changed registrations", async () => {
+    const secureStore = new Map();
+    const savedTokens = [];
+    const mocks = {
+        "expo-crypto": { randomUUID: () => "install-1" },
+        "expo-secure-store": {
+            getItemAsync: async (key) => secureStore.get(key) ?? null,
+            setItemAsync: async (key, value) => secureStore.set(key, value),
+            deleteItemAsync: async (key) => secureStore.delete(key),
+        },
+        "@/service/shared/push-token-service": {
+            async savePushToken({ pushToken }) {
+                savedTokens.push(pushToken);
+            },
+            async deactivatePushInstallation() {},
+        },
+    };
+    const registration = load("src/lib/config/notification/pushRegistrationStorage.ts", mocks, { __DEV__: false });
+    const { signal } = new AbortController();
+    let token = "expo-token-1";
+    let tokenChecks = 0;
+    const { registerForPushNotifications } = load("src/lib/config/notification/registerPushNotification.ts", {
+        "@/lib/config/notification/pushRegistrationStorage": registration,
+        "expo-constants": { __esModule: true, default: { easConfig: { projectId: "project-1" } } },
+        "expo-device": { isDevice: true },
+        "expo-notifications": {
+            setNotificationHandler() {},
+            getPermissionsAsync: async () => ({ status: "granted" }),
+            getExpoPushTokenAsync: async () => {
+                tokenChecks++;
+                return { data: token };
+            },
+        },
+        "react-native": { Platform: { OS: "ios" } },
+    });
+    await registerForPushNotifications("user-1", signal);
+    await registerForPushNotifications("user-1", signal);
+    token = "expo-token-2";
+    await registerForPushNotifications("user-1", signal);
+    assert.equal(tokenChecks, 3);
+    assert.deepEqual(savedTokens, ["expo-token-1", "expo-token-2"]);
+});
+
+test("successful notification deletion reconciles the active inbox with the server", async () => {
+    const client = new query.QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const key = ["notifications", undefined];
+    const page = (items) => ({ data: { items, hasMore: false, nextCursor: null } });
+    client.setQueryData(key, { pages: [page([{ id: 7, isRead: false }])], pageParams: [null] });
+    let refetches = 0;
+    const observer = new query.InfiniteQueryObserver(client, {
+        queryKey: key,
+        initialPageParam: null,
+        getNextPageParam: () => undefined,
+        staleTime: Infinity,
+        queryFn: async () => {
+            refetches++;
+            return page([{ id: 8, isRead: false }]);
+        },
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    const { useDeleteNotification } = load("src/lib/hook/shared/useNotification.ts", {
+        "@/lib/api-response/api-response": { responseError: assert.fail },
+        "@/service/shared/notification-service": { deleteNotification: async () => ({ data: null }) },
+        "@tanstack/react-query": {
+            ...query,
+            useQueryClient: () => client,
+            useMutation: (options) => client.getMutationCache().build(client, options),
+        },
+    });
+    try {
+        await useDeleteNotification().execute(7);
+        assert.equal(refetches, 1);
+        assert.equal(client.getQueryData(key).pages[0].data.items[0].id, 8);
+    } finally {
+        unsubscribe();
+        client.clear();
+    }
+});
+
+test("a queued draft discard removes the newest save after an older removal finishes", async () => {
+    const filename = path.resolve(__dirname, "../../src/app/(app)/homework/[homeworkId].tsx");
+    const source = ts.createSourceFile(filename, fs.readFileSync(filename, "utf8"), ts.ScriptTarget.Latest, true);
+    let queueCallback;
+    function findQueue(node) {
+        if (ts.isVariableDeclaration(node) && node.name.getText(source) === "queueDraftWrite") {
+            queueCallback = node.initializer.arguments[0].getText(source);
+        }
+        ts.forEachChild(node, findQueue);
+    }
+    findQueue(source);
+    assert.ok(queueCallback);
+    const stored = new Map([["draft", "old draft"]]);
+    let finishFirstRemoval;
+    let removals = 0;
+    const exports = {};
+    vm.runInNewContext(
+        ts.transpileModule(`exports.queue = ${queueCallback}`, { compilerOptions: { target: ts.ScriptTarget.ESNext } })
+            .outputText,
+        {
+            exports,
+            draftKey: "draft",
+            pendingDraftWrite: { current: null },
+            AsyncStorage: {
+                setItem: async (key, value) => stored.set(key, value),
+                removeItem: async (key) => {
+                    if (++removals === 1) {
+                        await new Promise((resolve) => (finishFirstRemoval = resolve));
+                    }
+                    stored.delete(key);
+                },
+            },
+        },
+    );
+    const firstRemoval = exports.queue(null);
+    await flush();
+    const newerSave = exports.queue({ memo: "new draft", file: null });
+    finishFirstRemoval();
+    await Promise.all([firstRemoval, newerSave]);
+    assert.equal(JSON.parse(stored.get("draft")).memo, "new draft");
+    await exports.queue(null);
+    assert.equal(removals, 2);
+    assert.equal(stored.has("draft"), false);
+});
+
+test("resizing a lesson session selector keeps the selected pill visible", () => {
+    const states = [];
+    const refs = [];
+    const effects = [];
+    let stateIndex;
+    let refIndex;
+    const { LessonSessionsView } = load("src/components/golf/LessonSessionsView.tsx", {
+        react: {
+            ...React,
+            useState(initial) {
+                const index = stateIndex++;
+                if (!(index in states)) states[index] = initial;
+                return [states[index], (value) => (states[index] = value)];
+            },
+            useRef: (initial) => (refs[refIndex++] ??= { current: initial }),
+            useLayoutEffect: (effect) => effects.push(effect),
+        },
+        "@/design-system": {},
+        "@/design-system/components/AppText": { AppText: "AppText" },
+        "@/design-system/utils/cn": {},
+        "@/design-system/utils/theme": {},
+        "@/utils/format-enum": {},
+        "@/utils/member-lesson": {},
+        "@/utils/status-tone": {},
+        "@/utils/time-helper": {},
+        "lucide-react-native/icons/award": {},
+        "lucide-react-native/icons/check": {},
+        "lucide-react-native/icons/circle-check": {},
+        "lucide-react-native/icons/clock": {},
+        "react-i18next": { useTranslation: () => ({ t: (key) => key }) },
+        "react-native": { View: "View" },
+        "react-native-reanimated": { useReducedMotion: () => true },
+        "./SessionResourceSection": { SessionResourceSection: "SessionResourceSection" },
+    });
+    const sessions = [
+        { id: 1, resources: [] },
+        { id: 2, resources: [] },
+    ];
+    const offsets = [];
+    function render() {
+        stateIndex = refIndex = 0;
+        const tree = LessonSessionsView({ sessions });
+        effects.splice(0).forEach((effect) => effect());
+        return findElement(tree, (element) => element.type.name === "SessionSwitcher").props;
+    }
+    let selector = render();
+    selector.scrollViewRef.current = { scrollToOffset: ({ offset }) => offsets.push(offset) };
+    selector.onItemLayout(1, { nativeEvent: { layout: { x: 500, width: 100 } } });
+    selector.onContentSizeChange(1000);
+    selector.onContainerLayout({ nativeEvent: { layout: { width: 300 } } });
+    selector = render();
+    assert.equal(offsets.at(-1), 400);
+    selector.onContainerLayout({ nativeEvent: { layout: { width: 100 } } });
+    selector = render();
+    assert.equal(offsets.at(-1), 500);
+    assert.equal(selector.selectedSessionId, 1);
+});

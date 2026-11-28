@@ -6,8 +6,7 @@ import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getEffectiveTicketStatus, getTicketStatusGroup } from "@/utils/status-tone";
 import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
-import { formatDateForAPI } from "@/utils/time-helper";
-import { toAppTimeZoneDate } from "@/utils/timezone";
+import { getAppTimeZoneDateParts } from "@/utils/timezone";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +15,7 @@ import { TicketPausePeriods } from "./TicketPausePeriods";
 
 type Props = {
     item: MemberTicketSummaryResponse;
+    todayKey: string;
     disabled?: boolean;
     onPress?: (item: MemberTicketSummaryResponse) => void;
     fullWidth?: boolean;
@@ -24,14 +24,10 @@ type Props = {
 function formatTicketDate(date?: string | null) {
     if (!date) return "-";
 
-    const value = toAppTimeZoneDate(date) ?? new Date(date);
-    if (Number.isNaN(value.getTime())) return "-";
+    const parts = getAppTimeZoneDateParts(date);
+    if (!parts) return "-";
 
-    const yy = String(value.getFullYear()).slice(2);
-    const mm = String(value.getMonth() + 1).padStart(2, "0");
-    const dd = String(value.getDate()).padStart(2, "0");
-
-    return `${yy}.${mm}.${dd}`;
+    return `${parts.year.slice(2)}.${parts.month}.${parts.day}`;
 }
 
 function getUsageNote(
@@ -52,7 +48,7 @@ function getUsageNote(
     return t("tickets.flexibleUsage");
 }
 
-function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Props) {
+function TicketCard({ item, todayKey, disabled = false, onPress, fullWidth = false }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const effectiveStatus = getEffectiveTicketStatus(item.status, item.fullyUsed);
@@ -64,8 +60,7 @@ function TicketCard({ item, disabled = false, onPress, fullWidth = false }: Prop
 
     const badgeLabel = formatTicketTypeLabel(item.type, t) || "-";
     const usageNote = getUsageNote(item, t);
-    const today = formatDateForAPI(new Date());
-    const pausePeriods = getTicketPausePeriods(item.pauses).filter(({ endDate }) => endDate >= today);
+    const pausePeriods = getTicketPausePeriods(item.pauses).filter(({ endDate }) => endDate >= todayKey);
     const inactiveBadgeLabel = isRefunded
         ? t("tickets.statuses.refunded")
         : isFullyUsed

@@ -1,5 +1,6 @@
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { showAppToast } from "@/design-system/components/AppToast";
+import { SCREEN_HORIZONTAL_PADDING, SCREEN_MAX_WIDTH } from "@/design-system/components/Screen";
 import { Skeleton } from "@/design-system/components/Skeleton";
 import { useThemeColors } from "@/design-system/utils/theme";
 import type { PublishedBannerResponse } from "@/types/banner";
@@ -8,7 +9,7 @@ import { Image } from "expo-image";
 import { Href, useFocusEffect, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, FlatList, Pressable, View } from "react-native";
+import { AppState, Dimensions, FlatList, Pressable, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
 const BANNER_FRAME_STYLE = { aspectRatio: 993 / 250 };
@@ -84,7 +85,9 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
     const router = useRouter();
     const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
     const listRef = useRef<FlatList<PublishedBannerResponse>>(null);
-    const [width, setWidth] = useState(0);
+    const [width, setWidth] = useState(() =>
+        Math.max(0, Math.min(SCREEN_MAX_WIDTH, Dimensions.get("window").width) - SCREEN_HORIZONTAL_PADDING * 2),
+    );
     const [failedImageUrls, setFailedImageUrls] = useState<string[]>([]);
     const indexRef = useRef(0);
     const pauseTimerRef = useRef<(() => void) | null>(null);
@@ -198,33 +201,42 @@ export function HomeBanner({ banners = EMPTY_BANNERS }: { banners?: PublishedBan
         <View
             className="self-stretch"
             style={BANNER_FRAME_STYLE}
-            onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+            onLayout={(event) => {
+                const nextWidth = event.nativeEvent.layout.width;
+                if (nextWidth > 0) {
+                    setWidth((previous) => (previous === nextWidth ? previous : nextWidth));
+                }
+            }}
         >
-            <FlatList
-                ref={listRef}
-                data={items}
-                style={{ flex: 1 }}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                scrollEventThrottle={16}
-                keyExtractor={bannerKeyExtractor}
-                extraData={extraData}
-                getItemLayout={getItemLayout}
-                renderItem={renderBannerItem}
-                onScrollBeginDrag={() => {
-                    pauseTimerRef.current?.();
-                }}
-                onScrollEndDrag={() => {
-                    resumeTimerRef.current?.();
-                }}
-                onMomentumScrollEnd={(event) => {
-                    if (width > 0) {
-                        indexRef.current = Math.round(event.nativeEvent.contentOffset.x / width);
-                    }
-                    resumeTimerRef.current?.();
-                }}
-            />
+            {width > 0 ? (
+                <FlatList
+                    ref={listRef}
+                    data={items}
+                    style={{ flex: 1 }}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    initialNumToRender={1}
+                    maxToRenderPerBatch={2}
+                    windowSize={3}
+                    keyExtractor={bannerKeyExtractor}
+                    extraData={extraData}
+                    getItemLayout={getItemLayout}
+                    renderItem={renderBannerItem}
+                    onScrollBeginDrag={() => {
+                        pauseTimerRef.current?.();
+                    }}
+                    onScrollEndDrag={() => {
+                        resumeTimerRef.current?.();
+                    }}
+                    onMomentumScrollEnd={(event) => {
+                        if (width > 0) {
+                            indexRef.current = Math.round(event.nativeEvent.contentOffset.x / width);
+                        }
+                        resumeTimerRef.current?.();
+                    }}
+                />
+            ) : null}
         </View>
     );
 }

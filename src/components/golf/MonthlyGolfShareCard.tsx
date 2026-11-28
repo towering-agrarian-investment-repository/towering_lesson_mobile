@@ -7,13 +7,15 @@ import {
 import { colorWithOpacity } from "@/design-system/utils/color";
 import { getThemeColors, useTheme } from "@/design-system/utils/theme";
 import { LinearGradient } from "expo-linear-gradient";
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Text, View, type TextStyle } from "react-native";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import layout from "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json";
 import { ShareCardHeader } from "./ShareCardHeader";
 import {
+    formatShareCardCount,
+    formatShareCardHours,
     formatShareCardMonth,
     getShareCardCalendar,
     getShareCardLocale,
@@ -42,8 +44,8 @@ const darkDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/de
 const { components: measured, style: palette } = layout;
 
 /** Dynamic text, dates, member details and the original app logo over one V4 art layer. */
-export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, MonthlyGolfShareCardProps>(
-    function MonthlyGolfShareCard(
+export const MonthlyGolfShareCard = memo(
+    forwardRef<React.ElementRef<typeof View>, MonthlyGolfShareCardProps>(function MonthlyGolfShareCard(
         {
             year,
             month,
@@ -73,16 +75,23 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
         const ink = dark ? colors.foreground : palette.textDark;
         const mutedInk = dark ? colors.mutedForeground : palette.textMuted;
         const canvas = colors.card;
-        const [artReady, setArtReady] = useState(false);
+        const artSource = dark ? darkDecoration : dayDecoration;
+        const [loadedArtSource, setLoadedArtSource] = useState<number | null>(null);
         const [layoutReady, setLayoutReady] = useState(false);
-        const [avatarReady, setAvatarReady] = useState(false);
-        const [avatarFailed, setAvatarFailed] = useState(false);
-        const ready = layoutReady && artReady && (!memberImage || avatarReady);
+        const [loadedAvatarUri, setLoadedAvatarUri] = useState<string | null>(null);
+        const [failedAvatarUri, setFailedAvatarUri] = useState<string | null>(null);
+        const artReady = loadedArtSource === artSource;
+        const avatarFailed = Boolean(memberImage) && failedAvatarUri === memberImage;
+        const avatarReady = !memberImage || loadedAvatarUri === memberImage || avatarFailed;
+        const ready = layoutReady && artReady && avatarReady;
 
         useEffect(() => {
             onReadyChange(ready);
-            return () => onReadyChange(false);
         }, [ready, onReadyChange]);
+
+        useEffect(() => {
+            return () => onReadyChange(false);
+        }, [onReadyChange]);
 
         const pos = (x: number, y: number, w: number, h: number) => ({
             position: "absolute" as const,
@@ -103,12 +112,9 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
         const values = dailyValues.filter((day) => toDateKey(day.date).startsWith(monthPrefix));
         const byDate = new Map(values.map((day) => [toDateKey(day.date), day]));
         const count = values.reduce((sum, day) => sum + day.count, 0);
-        const countLabel = new Intl.NumberFormat(language).format(count);
+        const countLabel = formatShareCardCount(count, language);
         const monthLabel = formatShareCardMonth(year, month, language);
-        const hoursLabel = new Intl.NumberFormat(language, {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
-        }).format(hoursOnCourse);
+        const hoursLabel = formatShareCardHours(hoursOnCourse, language);
         const hourUnit = copy("hourShort");
         const calendar = getShareCardCalendar(year, month, language);
         const name = memberName || t("activity.golfer");
@@ -147,10 +153,10 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
                     />
                 )}
                 <Image
-                    source={dark ? darkDecoration : dayDecoration}
+                    source={artSource}
                     resizeMode="stretch"
                     style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
-                    onLoad={() => setArtReady(true)}
+                    onLoad={() => setLoadedArtSource(artSource)}
                     onError={onAssetError}
                 />
                 {!dark && (
@@ -290,10 +296,9 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
                             source={{ uri: memberImage }}
                             resizeMode="cover"
                             style={{ width: "100%", height: "100%" }}
-                            onLoad={() => setAvatarReady(true)}
+                            onLoad={() => setLoadedAvatarUri(memberImage)}
                             onError={() => {
-                                setAvatarFailed(true);
-                                setAvatarReady(true);
+                                setFailedAvatarUri(memberImage);
                             }}
                         />
                     ) : (
@@ -357,5 +362,5 @@ export const MonthlyGolfShareCard = forwardRef<React.ElementRef<typeof View>, Mo
                 </View>
             </View>
         );
-    },
+    }),
 );

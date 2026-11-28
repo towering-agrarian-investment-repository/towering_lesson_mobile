@@ -5,7 +5,13 @@ import i18n from "../../i18n";
 import { API_ERROR_CODE, isApiError, isApiErrorResponse, UserFacingError } from "../api-response/api-response";
 import { notifyUpdateRequired } from "../update/app-update";
 import { getAppRequestHeaders } from "./app-request-headers";
-import { getJwtToken, invalidateRejectedJwtToken, recoverRejectedJwtToken, type JwtToken } from "./jwt-token";
+import {
+    getJwtToken,
+    invalidateRejectedJwtToken,
+    isCurrentAuthGeneration,
+    recoverRejectedJwtToken,
+    type JwtToken,
+} from "./jwt-token";
 
 const API_BASE_URL = env.apiBaseUrl;
 const API_REQUEST_TIMEOUT_MS = 15_000;
@@ -68,13 +74,30 @@ export async function apiClient<T = unknown>(
         let response = await withAbort(request(), controller.signal);
 
         if (response.status === 401 && (isGetRequest || isBearerTokenRejection(response))) {
-            const freshToken = await withAbort(recoverRejectedJwtToken(jwtToken), controller.signal);
+            let freshToken: JwtToken | null;
+            try {
+                freshToken = await withAbort(recoverRejectedJwtToken(jwtToken), controller.signal);
+            } catch (error) {
+                if (
+                    isCurrentAuthGeneration(jwtToken.generation) &&
+                    error &&
+                    typeof error === "object" &&
+                    "status" in error &&
+                    error.status === 401
+                ) {
+                    await withAbort(verifyMemberSession(), controller.signal);
+                }
+                throw error;
+            }
+
             if (freshToken) {
                 headers.set("Authorization", `Bearer ${freshToken.value}`);
                 response = await withAbort(request(), controller.signal);
                 if (isBearerTokenRejection(response)) {
                     invalidateRejectedJwtToken(freshToken);
                 }
+            } else if (isCurrentAuthGeneration(jwtToken.generation)) {
+                await withAbort(verifyMemberSession(), controller.signal);
             }
         }
 

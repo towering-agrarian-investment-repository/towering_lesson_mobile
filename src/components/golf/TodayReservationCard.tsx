@@ -24,9 +24,10 @@ const LIVE_PULSE_KEYFRAMES = {
 
 type Props = {
     reservation: MemberReservationSummaryResponse;
+    animate?: boolean;
 };
 
-function TodayReservationCard({ reservation }: Props) {
+function TodayReservationCard({ reservation, animate = true }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const queryClient = useQueryClient();
@@ -86,7 +87,7 @@ function TodayReservationCard({ reservation }: Props) {
                             {
                                 backgroundColor: colorWithOpacity(statusColor, 0.12),
                             },
-                            isCheckedIn && !reducedMotion
+                            isCheckedIn && animate && !reducedMotion
                                 ? {
                                       animationName: LIVE_PULSE_KEYFRAMES,
                                       animationDuration: "1600ms",

@@ -479,6 +479,7 @@ const ja: TranslationResource<typeof en> = {
         offlineMessage: "インターネット接続を確認して、もう一度お試しください。",
         requestTimeout: "リクエストがタイムアウトしました。接続を確認して、もう一度お試しください。",
         cancel: "キャンセル",
+        loadMore: "さらに読み込む",
         goBack: "戻る",
         closeTitle: "{{title}} を閉じる",
         selectOption: "選択してください",

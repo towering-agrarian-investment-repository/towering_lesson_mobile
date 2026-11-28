@@ -46,7 +46,7 @@ function ReservationTabSceneContent({ type, isActive, from, to, period, onPeriod
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
 
     const {
         data,
@@ -120,9 +120,9 @@ function ReservationTabSceneContent({ type, isActive, from, to, period, onPeriod
             item.type === "header" ? (
                 <ReservationDateHeader startTime={item.startTime} count={item.count} isFirst={item.isFirst} />
             ) : (
-                <ReservationCard reservation={item.reservation} disabled={isLocked} onPress={handleReservationPress} />
+                <ReservationCard reservation={item.reservation} animate={isActive} onPress={handleReservationPress} />
             ),
-        [handleReservationPress, isLocked],
+        [handleReservationPress, isActive],
     );
 
     const { refreshing: isPullRefreshing, onRefresh: handleRefetch } = usePullToRefresh(() =>
@@ -186,7 +186,7 @@ function ReservationTabSceneContent({ type, isActive, from, to, period, onPeriod
     return (
         <FlashList
             data={entries}
-            extraData={isLocked}
+            extraData={isActive}
             keyExtractor={reservationKeyExtractor}
             getItemType={getReservationItemType}
             renderItem={renderReservationItem}

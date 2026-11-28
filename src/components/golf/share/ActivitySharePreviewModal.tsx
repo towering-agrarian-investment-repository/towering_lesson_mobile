@@ -60,15 +60,16 @@ export function ActivitySharePreviewModal({
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const cardPeriod = CARD_PERIODS[activeTabIndex];
     const [posterScheme, setPosterScheme] = useState<"light" | "dark">(() => resolvedScheme);
+    const [hasOpenedPicker, setHasOpenedPicker] = useState(false);
     const [pickerSelection, setPickerSelection] = useState<{
         year: number;
         month: number;
     } | null>(null);
     const [stageWidth, setStageWidth] = useState(0);
     const [readyByPeriod, setReadyByPeriod] = useState<{
-        month: string | null;
-        year: string | null;
-    }>({ month: null, year: null });
+        month: boolean;
+        year: boolean;
+    }>({ month: false, year: false });
     const [failedByPeriod, setFailedByPeriod] = useState<{
         month: string | null;
         year: string | null;
@@ -108,23 +109,19 @@ export function ActivitySharePreviewModal({
     const annualHours = shareActivity?.totalReservationHours ?? 0;
 
     const canPreview = Boolean(shareActivity) && !isError;
-    const baseCardKey = [
+    const sharedCardKey = [
         posterScheme,
         shareYear,
-        shareMonth,
-        hoursOnCourse,
-        annualReservations,
-        annualHours,
         i18n.language,
         cardProps.memberImage ?? "",
         cardWidth,
         primaryColorPreference,
     ].join("|");
-    const monthCardKey = `month|${baseCardKey}`;
-    const yearCardKey = `year|${baseCardKey}`;
+    const monthCardKey = `month|${sharedCardKey}|${shareMonth}|${hoursOnCourse}`;
+    const yearCardKey = `year|${sharedCardKey}|${annualReservations}|${annualHours}`;
     const cardKey = cardPeriod === "month" ? monthCardKey : yearCardKey;
     const assetKey = [posterScheme, cardProps.memberImage ?? ""].join("|");
-    const isActiveCardReady = readyByPeriod[cardPeriod] === cardKey && failedByPeriod[cardPeriod] !== cardKey;
+    const isActiveCardReady = readyByPeriod[cardPeriod] && failedByPeriod[cardPeriod] !== assetKey;
     const canSave = canPreview && !isPlaceholderData && isActiveCardReady;
     const loadingValues = !shareActivity || isPlaceholderData;
 
@@ -132,30 +129,21 @@ export function ActivitySharePreviewModal({
         captureReadyRef.current = isActiveCardReady;
     }, [isActiveCardReady]);
 
-    const handleMonthlyReadyChange = useCallback(
-        (ready: boolean) => {
-            setReadyByPeriod((current) => ({
-                ...current,
-                month: ready ? monthCardKey : null,
-            }));
-        },
-        [monthCardKey],
-    );
-    const handleYearlyReadyChange = useCallback(
-        (ready: boolean) => {
-            setReadyByPeriod((current) => ({
-                ...current,
-                year: ready ? yearCardKey : null,
-            }));
-        },
-        [yearCardKey],
-    );
+    const handleMonthlyReadyChange = useCallback((ready: boolean) => {
+        setReadyByPeriod((current) => (current.month === ready ? current : { ...current, month: ready }));
+    }, []);
+    const handleYearlyReadyChange = useCallback((ready: boolean) => {
+        setReadyByPeriod((current) => (current.year === ready ? current : { ...current, year: ready }));
+    }, []);
     const handleMonthlyAssetError = useCallback(() => {
-        setFailedByPeriod((current) => ({ ...current, month: monthCardKey }));
-    }, [monthCardKey]);
+        setFailedByPeriod((current) => ({ ...current, month: assetKey }));
+    }, [assetKey]);
     const handleYearlyAssetError = useCallback(() => {
-        setFailedByPeriod((current) => ({ ...current, year: yearCardKey }));
-    }, [yearCardKey]);
+        setFailedByPeriod((current) => ({ ...current, year: assetKey }));
+    }, [assetKey]);
+    const handleRefetch = useCallback(() => {
+        void refetch();
+    }, [refetch]);
 
     const { pendingAction, isBusy, exportCard, savedPreviewUri, dismissSavedPreview, openSavedPhoto } =
         useShareCardExport({
@@ -346,7 +334,6 @@ export function ActivitySharePreviewModal({
                                             stageHeight={stageHeight}
                                             showCard={showCard}
                                             cardWidth={cardWidth}
-                                            assetKey={assetKey}
                                             scheme={posterScheme}
                                             cardProps={cardProps}
                                             dailyValues={shareDailyValues}
@@ -358,7 +345,7 @@ export function ActivitySharePreviewModal({
                                             loadingValues={loadingValues}
                                             isError={isError}
                                             isRefetching={isRefetching}
-                                            onRefetch={() => void refetch()}
+                                            onRefetch={handleRefetch}
                                             cardRef={isMonthScene ? monthlyCardRef : yearlyCardRef}
                                             onReadyChange={
                                                 isMonthScene ? handleMonthlyReadyChange : handleYearlyReadyChange
@@ -403,6 +390,7 @@ export function ActivitySharePreviewModal({
                             }}
                             onOpenPicker={() => {
                                 triggerSelectionHaptic();
+                                setHasOpenedPicker(true);
                                 setPickerSelection({
                                     year: shareYear,
                                     month: shareMonth,
@@ -412,29 +400,31 @@ export function ActivitySharePreviewModal({
                     </View>
                 </Screen>
 
-                <BottomSheet
-                    isPresented={pickerSelection !== null}
-                    onDismiss={() => setPickerSelection(null)}
-                    containerColor={colors.card}
-                    contentColor={colors.foreground}
-                    contentPadding={{
-                        top: 20,
-                        bottom: 24,
-                        left: 20,
-                        right: 20,
-                    }}
-                >
-                    <ShareMonthYearPicker
-                        year={pickerSelection?.year ?? shareYear}
-                        month={pickerSelection?.month ?? shareMonth}
-                        yearOnly={cardPeriod === "year"}
-                        years={years}
-                        onChange={(year, month) =>
-                            setPickerSelection((current) => (current ? { year, month } : current))
-                        }
-                        onConfirm={confirmMonth}
-                    />
-                </BottomSheet>
+                {hasOpenedPicker ? (
+                    <BottomSheet
+                        isPresented={pickerSelection !== null}
+                        onDismiss={() => setPickerSelection(null)}
+                        containerColor={colors.card}
+                        contentColor={colors.foreground}
+                        contentPadding={{
+                            top: 20,
+                            bottom: 24,
+                            left: 20,
+                            right: 20,
+                        }}
+                    >
+                        <ShareMonthYearPicker
+                            year={pickerSelection?.year ?? shareYear}
+                            month={pickerSelection?.month ?? shareMonth}
+                            yearOnly={cardPeriod === "year"}
+                            years={years}
+                            onChange={(year, month) =>
+                                setPickerSelection((current) => (current ? { year, month } : current))
+                            }
+                            onConfirm={confirmMonth}
+                        />
+                    </BottomSheet>
+                ) : null}
             </SafeAreaProvider>
         </Modal>
     );

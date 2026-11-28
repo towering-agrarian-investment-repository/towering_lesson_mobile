@@ -351,6 +351,7 @@ export function ActivityOverview() {
                                     <ActivityDayReservations
                                         query={dayReservationsQuery}
                                         expectedCount={selectedDayHeatmapCount}
+                                        isFocused={isFocused}
                                     />
                                 </View>
                             ) : null}
@@ -365,9 +366,11 @@ export function ActivityOverview() {
 function ActivityDayReservations({
     query,
     expectedCount,
+    isFocused,
 }: {
     query: ReturnType<typeof useMemberReservationsForDay>;
     expectedCount: number;
+    isFocused: boolean;
 }) {
     const { t } = useTranslation();
     const router = useRouter();
@@ -445,6 +448,7 @@ function ActivityDayReservations({
                     <ReservationCard
                         key={`${reservation.reservationType}:${reservation.id}`}
                         reservation={reservation}
+                        animate={isFocused}
                         disabled={isLocked}
                         onPress={handleReservationPress}
                     />

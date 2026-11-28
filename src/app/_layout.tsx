@@ -1,17 +1,19 @@
 import { AppUpdateGate } from "@/components/update/AppUpdateGate";
-import { AppToastProvider, ThemeProvider, useTheme } from "@/design-system";
+import { AppToastProvider } from "@/design-system/components/AppToast";
+import { ThemeProvider, useTheme } from "@/design-system/utils/theme";
 import { i18nReady, isI18nReady } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { setInterruptedHref } from "@/lib/auth-session";
 import { env } from "@/lib/config/env";
 import { usePushNotification } from "@/lib/hook/shared/usePushNotification";
 import { VariableContextProvider } from "@/lib/react-native-css-variable-context";
-import { AppUpdateProvider } from "@/lib/update/update-context";
-import { useAppUpdate } from "@/lib/update/use-app-update";
+import { AppUpdateProvider, useAppUpdateContext } from "@/lib/update/update-context";
 import { useWelcome, WelcomeProvider } from "@/lib/welcome/welcome-context";
 import { ALLOWED_APP_ROLE, type AuthSession } from "@/service/auth";
 
 import * as Sentry from "@sentry/react-native";
+import { onlineManager } from "@tanstack/react-query";
+import * as Network from "expo-network";
 import {
     DarkTheme,
     DefaultTheme,
@@ -44,7 +46,6 @@ Sentry.init({
 void SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
-    const update = useAppUpdate();
     const { data: session, isPending } = authClient.useSession();
     // Later auth refreshes must keep the navigator mounted during logout.
     const [hasBootstrappedAuth, setHasBootstrappedAuth] = useState(!isPending);
@@ -63,6 +64,32 @@ function RootLayout() {
 
     const authorizedHrefRef = useRef<string | null>(null);
     const wasAuthorizedRef = useRef(hasAuthorizedSession);
+
+    useEffect(() => {
+        onlineManager.setEventListener((setOnline) => {
+            let isCancelled = false;
+            void Network.getNetworkStateAsync()
+                .then((state) => {
+                    if (!isCancelled) {
+                        setOnline(state.isConnected !== false && state.isInternetReachable !== false);
+                    }
+                })
+                .catch(() => {});
+
+            const subscription = Network.addNetworkStateListener((state) => {
+                setOnline(state.isConnected !== false && state.isInternetReachable !== false);
+            });
+
+            return () => {
+                isCancelled = true;
+                subscription.remove();
+            };
+        });
+
+        return () => {
+            onlineManager.setEventListener(() => () => {});
+        };
+    }, []);
 
     useEffect(() => {
         if (wasAuthorizedRef.current && !hasAuthorizedSession) {
@@ -85,7 +112,7 @@ function RootLayout() {
                 <SafeAreaProvider>
                     <ThemeProvider>
                         <WelcomeProvider>
-                            <AppUpdateProvider value={update}>
+                            <AppUpdateProvider>
                                 <AuthorizedHrefObserver
                                     authorizedHrefRef={authorizedHrefRef}
                                     hasAuthorizedSession={hasAuthorizedSession}
@@ -94,7 +121,6 @@ function RootLayout() {
                                     isAuthPending={isAuthPending}
                                     hasAuthorizedSession={hasAuthorizedSession}
                                     userId={authSession?.user.id ?? null}
-                                    update={update}
                                 />
                             </AppUpdateProvider>
                         </WelcomeProvider>
@@ -133,13 +159,12 @@ function ThemedRoot({
     isAuthPending,
     hasAuthorizedSession,
     userId,
-    update,
 }: {
     isAuthPending: boolean;
     hasAuthorizedSession: boolean;
     userId: string | null;
-    update: ReturnType<typeof useAppUpdate>;
 }) {
+    const update = useAppUpdateContext();
     const { colors, resolvedScheme, isReady: isThemeReady, primaryColorPreference } = useTheme();
     const { isReady: isWelcomeReady, hasCompletedWelcome } = useWelcome();
     const [isLanguageReady, setIsLanguageReady] = useState(isI18nReady);

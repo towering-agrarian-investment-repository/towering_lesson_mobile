@@ -5,7 +5,13 @@ import Clock from "lucide-react-native/icons/clock";
 import { useTranslation } from "react-i18next";
 import { Text, View, type TextStyle } from "react-native";
 import layout from "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json";
-import { getShareCardLocale, SHARE_CARD_WIDTH, usesLatinShareCardText } from "./monthly-share-card-layout";
+import {
+    formatShareCardCount,
+    formatShareCardHours,
+    getShareCardLocale,
+    SHARE_CARD_WIDTH,
+    usesLatinShareCardText,
+} from "./monthly-share-card-layout";
 
 type ShareCardHeaderProps = {
     periodLabel: string;
@@ -51,14 +57,11 @@ export function ShareCardHeader({
         color,
         includeFontPadding: false,
     });
-    const countLabel = new Intl.NumberFormat(language).format(totalReservations);
+    const countLabel = formatShareCardCount(totalReservations, language);
     const countSize = countLabel.length <= 2 ? 260 : countLabel.length === 3 ? 210 : 165;
     const countHeight = Math.max(248, countSize + 16);
     const countOpticalOffset = totalReservations >= 10 && totalReservations <= 19 && totalReservations !== 11 ? -18 : 0;
-    const hoursLabel = new Intl.NumberFormat(language, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-    }).format(hoursPlayed);
+    const hoursLabel = formatShareCardHours(hoursPlayed, language);
     const hourUnit = copy("hourShort");
     const shortUnit = hourUnit.length === 1;
     const hoursFontSize = hoursLabel.length >= 7 ? 45 : hoursLabel.length >= 5 ? 60 : 78;

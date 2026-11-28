@@ -54,14 +54,16 @@ function getCountdownInfo(
 function LiveReservationCountdown({
     startTime,
     referenceTime,
+    isActive,
     livePulseStyle,
 }: {
     startTime: number;
     referenceTime?: number;
+    isActive: boolean;
     livePulseStyle?: Record<string, unknown>;
 }) {
     const { t } = useTranslation();
-    const liveNow = useMinuteClock(referenceTime == null);
+    const liveNow = useMinuteClock(isActive && referenceTime == null && Number.isFinite(startTime));
     const effectiveNow = referenceTime ?? liveNow;
     const info = getCountdownInfo(startTime, effectiveNow, t);
 
@@ -87,6 +89,7 @@ type ReservationCardItem = MemberReservationSummaryResponse & {
 type Props<T extends ReservationCardItem = MemberReservationSummaryResponse> = {
     reservation: T;
     referenceTime?: number;
+    animate?: boolean;
     disabled?: boolean;
     onPress?: (reservation: T) => void;
 };
@@ -94,6 +97,7 @@ type Props<T extends ReservationCardItem = MemberReservationSummaryResponse> = {
 function ReservationCard<T extends ReservationCardItem = MemberReservationSummaryResponse>({
     reservation,
     referenceTime,
+    animate = true,
     disabled = false,
     onPress,
 }: Props<T>) {
@@ -116,15 +120,16 @@ function ReservationCard<T extends ReservationCardItem = MemberReservationSummar
     const timeRange = formatTimeRange(reservation.startTime, reservation.endTime);
     const startTime = new Date(reservation.startTime).getTime();
     const endTime = new Date(reservation.endTime).getTime();
-    const livePulseStyle = !reducedMotion
-        ? {
-              animationName: LIVE_PULSE_KEYFRAMES,
-              animationDuration: "1600ms",
-              animationIterationCount: "infinite" as const,
-              animationDirection: "alternate" as const,
-              animationTimingFunction: "ease-in-out" as const,
-          }
-        : undefined;
+    const livePulseStyle =
+        animate && !reducedMotion
+            ? {
+                  animationName: LIVE_PULSE_KEYFRAMES,
+                  animationDuration: "1600ms",
+                  animationIterationCount: "infinite" as const,
+                  animationDirection: "alternate" as const,
+                  animationTimingFunction: "ease-in-out" as const,
+              }
+            : undefined;
     const staticCountdown =
         isReservedStatus && referenceTime != null
             ? (getCountdownInfo(startTime, referenceTime, t)?.label ?? null)
@@ -224,6 +229,7 @@ function ReservationCard<T extends ReservationCardItem = MemberReservationSummar
                     <LiveReservationCountdown
                         startTime={startTime}
                         referenceTime={referenceTime}
+                        isActive={animate}
                         livePulseStyle={livePulseStyle}
                     />
                 ) : null}

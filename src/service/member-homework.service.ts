@@ -8,8 +8,7 @@ import {
     SubmitHomeworkRequest,
 } from "@/types/member-homework";
 import { HOMEWORK_SUBMISSION_MAX_SIZE_BYTES, HOMEWORK_SUBMISSION_MIME_TYPES, isAllowedMimeType } from "@/utils/media";
-import { fetch as expoFetch } from "expo/fetch";
-import { File } from "expo-file-system";
+import { File, UploadType } from "expo-file-system";
 
 export type HomeworkSubmissionFile = {
     uri: string;
@@ -80,24 +79,24 @@ export async function uploadHomeworkSubmissionFile(uploadUrl: string, file: File
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 300_000);
-    let uploadResponse: Response;
+    let uploadResult: Awaited<ReturnType<File["upload"]>>;
     try {
-        uploadResponse = await expoFetch(uploadUrl, {
-            method: "PUT",
+        uploadResult = await file.upload(uploadUrl, {
+            httpMethod: "PUT",
+            uploadType: UploadType.BINARY_CONTENT,
             headers: {
                 "Content-Type": mediaType,
             },
-            body: file,
+            sessionType: "foreground",
             signal: controller.signal,
         });
     } finally {
         clearTimeout(timeout);
     }
 
-    if (!uploadResponse.ok) {
-        throw Object.assign(
-            new Error(`Storage upload failed: ${uploadResponse.status} ${await uploadResponse.text()}`),
-            { status: uploadResponse.status },
-        );
+    if (uploadResult.status < 200 || uploadResult.status >= 300) {
+        throw Object.assign(new Error(`Storage upload failed: ${uploadResult.status} ${uploadResult.body}`), {
+            status: uploadResult.status,
+        });
     }
 }

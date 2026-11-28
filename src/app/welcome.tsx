@@ -1,6 +1,7 @@
-import { AppText } from "@/design-system/components/AppText";
 import { HappyGolfLogo } from "@/components/golf/HappyLogo";
-import { AnimatedPressable, Screen } from "@/design-system";
+import { AnimatedPressable } from "@/design-system/components/AnimatedPressable";
+import { AppText } from "@/design-system/components/AppText";
+import { Screen } from "@/design-system/components/Screen";
 import { useTheme } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import { useWelcome } from "@/lib/welcome/welcome-context";

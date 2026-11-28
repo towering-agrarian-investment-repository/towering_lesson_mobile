@@ -9,6 +9,7 @@ import { env } from "./config/env";
 export const authClient = createAuthClient({
     baseURL: env.authBaseUrl,
     fetchOptions: {
+        timeout: 15_000,
         headers: {
             ...getAppRequestHeaders(),
             ...(Device.modelName ? { "X-Device-Model": Device.modelName } : {}),

@@ -8,7 +8,7 @@ import {
 } from "@/design-system";
 import { useTheme } from "@/design-system/utils/theme";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useIsFocused, useRouter } from "expo-router";
 import History from "lucide-react-native/icons/rotate-ccw-clock";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -49,14 +49,15 @@ export default function TicketsScreen() {
         [activeIndex],
     );
 
+    const isFocused = useIsFocused();
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
             <TicketTabScene
                 type={route.key as (typeof TICKET_TABS)[number]}
-                isActive={route.key === TICKET_TABS[activeIndex]}
+                isActive={isFocused && route.key === TICKET_TABS[activeIndex]}
             />
         ),
-        [activeIndex],
+        [activeIndex, isFocused],
     );
 
     const renderTabBar = useCallback(

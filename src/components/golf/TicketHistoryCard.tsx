@@ -6,7 +6,7 @@ import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getTicketStatusGroup, getTicketStatusLabel, getTicketStatusTone } from "@/utils/status-tone";
 import { formatTicketPausePeriod, getTicketPausePeriods } from "@/utils/ticket-pause";
-import { formatDateForAPI, formatDateForDisplay } from "@/utils/time-helper";
+import { formatDateForDisplay } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
@@ -18,13 +18,14 @@ import { TicketTypeIcon } from "./TicketTypeIcon";
 
 type Props = {
     item: MemberTicketSummaryResponse;
+    todayKey: string;
     disabled?: boolean;
     showBookAction?: boolean;
     onPress?: (item: MemberTicketSummaryResponse) => void;
     onBookPress?: (item: MemberTicketSummaryResponse) => void;
 };
 
-function TicketHistoryCard({ item, disabled = false, showBookAction = false, onPress, onBookPress }: Props) {
+function TicketHistoryCard({ item, todayKey, disabled = false, showBookAction = false, onPress, onBookPress }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const ticketTone = getTicketTypeTone(item.type);
@@ -36,10 +37,8 @@ function TicketHistoryCard({ item, disabled = false, showBookAction = false, onP
     const hasCountLimit = !item.isUnlimited && item.totalCount != null && item.totalCount > 0;
     const remainingCount = Math.max(0, item.remainingCount ?? 0);
     const remainingRatio = hasCountLimit ? Math.min(1, Math.max(0, remainingCount / item.totalCount!)) : 0;
+    const today = toAppTimeZoneDate(todayKey);
     const ticketEndDate = item.endDate ? toAppTimeZoneDate(item.endDate) : null;
-    const now = new Date();
-    const today = toAppTimeZoneDate(now);
-    const todayKey = formatDateForAPI(now);
     const pausePeriods = getTicketPausePeriods(item.pauses).filter(({ endDate }) => endDate >= todayKey);
     const daysLeft = ticketEndDate && today ? differenceInCalendarDays(ticketEndDate, today) : null;
     const showExpiry = !isInactive && !item.fullyUsed && daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;

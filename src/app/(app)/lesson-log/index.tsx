@@ -86,7 +86,7 @@ function LessonLogScreen() {
 
         return { data: entries, stickyHeaderIndices };
     }, [i18n.language, i18n.resolvedLanguage, lessonLogs]);
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
     const refreshControl = <RefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} />;
     const handleLessonLogPress = useCallback(
         (item: MemberLessonLogResponse) => {
@@ -117,9 +117,9 @@ function LessonLogScreen() {
                     </AppText>
                 </View>
             ) : (
-                <LessonLogRow item={item.item} disabled={isLocked} onPress={handleLessonLogPress} />
+                <LessonLogRow item={item.item} onPress={handleLessonLogPress} />
             ),
-        [handleLessonLogPress, isLocked],
+        [handleLessonLogPress],
     );
     const handleFetchNextPage = useCallback(() => {
         if (hasNextPage && !isFetching) {
@@ -157,7 +157,6 @@ function LessonLogScreen() {
             ) : (
                 <FlashList
                     data={groupedLessonLogs.data}
-                    extraData={isLocked}
                     keyExtractor={lessonLogKeyExtractor}
                     getItemType={getLessonLogItemType}
                     stickyHeaderIndices={groupedLessonLogs.stickyHeaderIndices}
@@ -193,15 +192,14 @@ export default LessonLogScreen;
 
 const LessonLogRow = memo(function LessonLogRow({
     item,
-    disabled,
     onPress,
 }: {
     item: MemberLessonLogResponse;
-    disabled: boolean;
     onPress: (item: MemberLessonLogResponse) => void;
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
+    const formattedLessonDate = formatDateForDisplay(item.lessonDate);
     const reservationName = item.reservation?.name?.trim();
     const hasSubmittedReview = Boolean(item.comment?.trim()) || (item.ratings ?? 0) > 0;
     const reviewLabel = hasSubmittedReview ? t("lessonLog.commentSubmitted") : t("lessonLog.leaveReview");
@@ -211,15 +209,10 @@ const LessonLogRow = memo(function LessonLogRow({
             accessibilityRole="button"
             accessibilityLabel={t("lessonLog.openLessonLog", {
                 coach: item.coachName ?? t("lessonLog.coachFallback"),
-                date: formatDateForDisplay(item.lessonDate),
+                date: formattedLessonDate,
             })}
-            disabled={disabled}
-            className="gap-3 rounded-2xl border border-border bg-card p-4 disabled:opacity-60"
+            className="gap-3 rounded-2xl border border-border bg-card p-4"
             onPress={() => {
-                if (disabled) {
-                    return;
-                }
-
                 onPress(item);
             }}
         >
@@ -231,7 +224,7 @@ const LessonLogRow = memo(function LessonLogRow({
                     style={{ flex: 1, minWidth: 0 }}
                     textStyle={{ fontWeight: "700" }}
                 >
-                    {formatDateForDisplay(item.lessonDate)}
+                    {formattedLessonDate}
                 </AppText>
 
                 <View

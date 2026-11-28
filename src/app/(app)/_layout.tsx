@@ -1,9 +1,8 @@
-import { getStackHeaderOptions, useThemeColors } from "@/design-system";
+import { showAppToast } from "@/design-system/components/AppToast";
+import { getStackHeaderOptions, useThemeColors } from "@/design-system/utils/theme";
 import i18n from "@/i18n";
 import { takeInterruptedHref, verifyMemberSession } from "@/lib/auth-session";
-import { showAppToast } from "@/design-system/components/AppToast";
 import { focusManager, onlineManager, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import * as Network from "expo-network";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
@@ -62,26 +61,6 @@ export default function AppLayout() {
     }, [router]);
 
     useEffect(() => {
-        onlineManager.setEventListener((setOnline) => {
-            let isCancelled = false;
-            void Network.getNetworkStateAsync()
-                .then((state) => {
-                    if (!isCancelled) {
-                        setOnline(state.isConnected !== false && state.isInternetReachable !== false);
-                    }
-                })
-                .catch(() => {});
-
-            const subscription = Network.addNetworkStateListener((state) => {
-                setOnline(state.isConnected !== false && state.isInternetReachable !== false);
-            });
-
-            return () => {
-                isCancelled = true;
-                subscription.remove();
-            };
-        });
-
         if (process.env.EXPO_OS !== "web") {
             focusManager.setEventListener((setFocused) => {
                 const subscription = AppState.addEventListener("change", (state) => {
@@ -94,7 +73,7 @@ export default function AppLayout() {
 
         let previousState = AppState.currentState;
         const subscription = AppState.addEventListener("change", (state) => {
-            if (state === "active" && previousState !== "active") {
+            if (state === "active" && previousState !== "active" && onlineManager.isOnline()) {
                 void verifyMemberSession();
             }
             previousState = state;
@@ -113,7 +92,6 @@ export default function AppLayout() {
         });
 
         return () => {
-            onlineManager.setEventListener(() => () => {});
             if (process.env.EXPO_OS !== "web") {
                 focusManager.setEventListener(() => () => {});
             }

@@ -50,50 +50,54 @@ export function getReservationStatusLabel(status: string | null | undefined, t: 
     }
 }
 
+const LESSON_STATUS_TONES: Record<string, Tone> = {
+    SCHEDULED: warning,
+    IN_PROGRESS: primary,
+    COMPLETED: success,
+    CANCELLED: danger,
+};
+
+const SESSION_STATUS_TONES: Record<string, Tone> = {
+    PENDING: primary,
+    IN_PROGRESS: warning,
+    COMPLETED: success,
+    CANCELLED: danger,
+};
+
+const SESSION_TYPE_TONES: Record<string, Tone> = {
+    DRILL: primary,
+    NON_DRILL: warning,
+};
+
+const HOMEWORK_SUBMISSION_TONES: Record<string, Tone> = {
+    SUBMITTED: primary,
+    REVIEWED: success,
+    RETURNED: warning,
+};
+
+const HOMEWORK_REVIEW_TONES: Record<string, Tone> = {
+    PENDING: warning,
+    CONFIRMED: success,
+};
+
 export function getLessonStatusTone(status?: string | null): Tone {
-    return (
-        (
-            {
-                SCHEDULED: warning,
-                IN_PROGRESS: primary,
-                COMPLETED: success,
-                CANCELLED: danger,
-            } as Record<string, Tone>
-        )[status ?? ""] ?? neutral
-    );
+    return LESSON_STATUS_TONES[status ?? ""] ?? neutral;
 }
 
 export function getSessionStatusTone(status?: string | null): Tone {
-    return (
-        (
-            {
-                PENDING: primary,
-                IN_PROGRESS: warning,
-                COMPLETED: success,
-                CANCELLED: danger,
-            } as Record<string, Tone>
-        )[status ?? ""] ?? neutral
-    );
+    return SESSION_STATUS_TONES[status ?? ""] ?? neutral;
 }
 
 export function getSessionTypeTone(type?: string | null): Tone {
-    return ({ DRILL: primary, NON_DRILL: warning } as Record<string, Tone>)[type ?? ""] ?? neutral;
+    return SESSION_TYPE_TONES[type ?? ""] ?? neutral;
 }
 
 export function getHomeworkSubmissionTone(status?: string | null): Tone {
-    return (
-        (
-            {
-                SUBMITTED: primary,
-                REVIEWED: success,
-                RETURNED: warning,
-            } as Record<string, Tone>
-        )[status ?? ""] ?? neutral
-    );
+    return HOMEWORK_SUBMISSION_TONES[status ?? ""] ?? neutral;
 }
 
 export function getHomeworkReviewTone(status?: string | null): Tone {
-    return ({ PENDING: warning, CONFIRMED: success } as Record<string, Tone>)[status ?? ""] ?? neutral;
+    return HOMEWORK_REVIEW_TONES[status ?? ""] ?? neutral;
 }
 
 export function getEffectiveTicketStatus(status?: string | null, fullyUsed?: boolean): string {

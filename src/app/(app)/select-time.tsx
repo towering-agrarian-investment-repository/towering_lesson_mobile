@@ -8,7 +8,7 @@ import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberBaySlotGroups } from "@/lib/hook/useReservation";
 import type { MemberBaySlotGroupResponse } from "@/types/member-bay";
 import { formatDateShort, formatTimeRange } from "@/utils/time-helper";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
@@ -41,7 +41,8 @@ export default function TimeScreen() {
         }>();
 
     const router = useRouter();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const isFocused = useIsFocused();
+    const { runWithNavigationLock } = useNavigationLock();
     const [dismissedConflictId, setDismissedConflictId] = useState<string>();
     const ticketIdNumber = Number(ticketId);
     const hasTicketId = Number.isSafeInteger(ticketIdNumber) && ticketIdNumber > 0;
@@ -51,6 +52,7 @@ export default function TimeScreen() {
         date,
         date,
         Boolean(date),
+        isFocused,
     );
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
@@ -99,14 +101,9 @@ export default function TimeScreen() {
 
     const renderItem = useCallback(
         ({ item }: { item: TimeSlotItem }) => (
-            <TimeSlotCard
-                group={item.group}
-                availableBayCount={item.availableBayCount}
-                isLocked={isLocked}
-                onSelect={handleSelect}
-            />
+            <TimeSlotCard group={item.group} availableBayCount={item.availableBayCount} onSelect={handleSelect} />
         ),
-        [handleSelect, isLocked],
+        [handleSelect],
     );
 
     if (!hasTicketId) {
@@ -208,21 +205,19 @@ export default function TimeScreen() {
 type TimeSlotCardProps = {
     group: MemberBaySlotGroupResponse;
     availableBayCount: number;
-    isLocked: boolean;
     onSelect: (group: MemberBaySlotGroupResponse) => void;
 };
 
-const TimeSlotCard = memo(function TimeSlotCard({ group, availableBayCount, isLocked, onSelect }: TimeSlotCardProps) {
+const TimeSlotCard = memo(function TimeSlotCard({ group, availableBayCount, onSelect }: TimeSlotCardProps) {
     const { t } = useTranslation();
     const timeRange = formatTimeRange(group.startDateTime, group.endDateTime);
     const isFull = availableBayCount <= 0;
-    const isDisabled = isLocked || isFull;
 
     return (
         <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={`${timeRange}, ${isFull ? t("booking.full") : t("booking.baysAvailable", { count: availableBayCount })}`}
-            accessibilityState={{ disabled: isDisabled }}
+            accessibilityState={{ disabled: isFull }}
             haptic={isFull ? false : "selection"}
             className={
                 isFull
@@ -230,7 +225,7 @@ const TimeSlotCard = memo(function TimeSlotCard({ group, availableBayCount, isLo
                     : "flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-4"
             }
             onPress={() => onSelect(group)}
-            disabled={isDisabled}
+            disabled={isFull}
         >
             <View className="min-w-0 flex-1 gap-1">
                 <AppText variant="h3" color={isFull ? "mutedForeground" : "foreground"}>

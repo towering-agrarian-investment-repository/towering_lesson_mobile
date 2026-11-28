@@ -4,7 +4,7 @@ import { cn, EmptyState, ErrorState, AnimatedPressable, Screen, Skeleton } from 
 import { AppText } from "@/design-system/components/AppText";
 import { useTheme } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
-import { useMinuteClock } from "@/lib/hook/useMinuteClock";
+import { useDayClock, useMinuteClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { useMemberTicketLessonSlots } from "@/lib/hook/useReservation";
@@ -18,7 +18,7 @@ import {
     isLessonSlotFull,
 } from "@/utils/lesson-slot";
 import { formatDateForAPI, formatDateShort, formatTimeRange } from "@/utils/time-helper";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import UserRound from "lucide-react-native/icons/user-round";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -57,8 +57,11 @@ export default function SelectLessonSlotScreen() {
         }>();
 
     const router = useRouter();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
-    const now = useMinuteClock();
+    const isFocused = useIsFocused();
+    const { runWithNavigationLock } = useNavigationLock();
+    const dayClock = useDayClock();
+    const isDateTodayOrPast = Boolean(date) && date <= formatDateForAPI(dayClock);
+    const now = useMinuteClock(isDateTodayOrPast);
     const [dismissedConflictId, setDismissedConflictId] = useState<string>();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
     const visibleConflictMessage = dismissedConflictId === conflictId ? undefined : conflictMessage;
@@ -73,6 +76,7 @@ export default function SelectLessonSlotScreen() {
         year,
         month,
         Boolean(ticketIdNumber),
+        isFocused,
     );
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
@@ -114,11 +118,10 @@ export default function SelectLessonSlotScreen() {
                 now={now}
                 isGroupTicket={isGroupTicket}
                 wasJustBooked={Boolean(visibleConflictMessage && conflictSlotId === String(slot.id))}
-                isLocked={isLocked}
                 onSelect={handleSelect}
             />
         ),
-        [conflictSlotId, handleSelect, isGroupTicket, isLocked, now, visibleConflictMessage],
+        [conflictSlotId, handleSelect, isGroupTicket, now, visibleConflictMessage],
     );
 
     const screenOptions = useMemo(
@@ -223,7 +226,6 @@ type LessonSlotCardProps = {
     now: number;
     isGroupTicket: boolean;
     wasJustBooked: boolean;
-    isLocked: boolean;
     onSelect: (slot: MemberLessonSlotResponse) => void;
 };
 
@@ -232,7 +234,6 @@ const LessonSlotCard = memo(function LessonSlotCard({
     now,
     isGroupTicket,
     wasJustBooked,
-    isLocked,
     onSelect,
 }: LessonSlotCardProps) {
     const { colors } = useTheme();
@@ -297,8 +298,8 @@ const LessonSlotCard = memo(function LessonSlotCard({
         <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={`${formatSlotTime(slot)}, ${statusLabel}`}
-            accessibilityState={{ disabled: disabled || isLocked }}
-            disabled={disabled || isLocked}
+            accessibilityState={{ disabled }}
+            disabled={disabled}
             haptic="selection"
             className={cn(
                 "gap-2.5 border",

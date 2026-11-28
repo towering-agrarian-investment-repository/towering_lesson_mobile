@@ -31,7 +31,7 @@ import type { HomeworkSubmissionFile } from "@/service/member-homework.service";
 import type { MemberHomeworkSubmissionResponse } from "@/types/member-homework";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
-import { File } from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -68,6 +68,20 @@ const SUBMISSION_LIST_CONTENT_STYLE = {
 
 function SubmissionSeparator() {
     return <View className="h-3" />;
+}
+
+function deleteCacheFileQuietly(uri?: string | null) {
+    if (!uri) return;
+    try {
+        const cacheUri = Paths.cache.uri;
+        if (!cacheUri || !uri.startsWith(cacheUri)) return;
+        const file = new File(uri);
+        if (file.exists) {
+            file.delete();
+        }
+    } catch {
+        // Best-effort temporary cache cleanup; never interrupt user flows.
+    }
 }
 
 function showPermissionSettingsAlert(t: (key: string) => string, message: string) {
@@ -173,10 +187,11 @@ export default function HomeworkDetailScreen() {
         const scheduleAutosave = (memo: string) => {
             if (discardingDraft.current) return;
             clearTimeout(scheduledDraftWrite.current?.timer);
+            const draft = createHomeworkDraft(memo, selectedFile);
             scheduledDraftWrite.current = {
                 timer: setTimeout(flushDraftAutosave, DRAFT_AUTOSAVE_DELAY_MS),
                 write: () => {
-                    void queueDraftWrite(createHomeworkDraft(memo, selectedFile));
+                    void queueDraftWrite(draft);
                 },
             };
         };
@@ -207,9 +222,11 @@ export default function HomeworkDetailScreen() {
         flushDraftAutosave();
         discardingDraft.current = true;
         setIsDiscardingDraft(true);
+        const fileUriToDelete = selectedFile?.uri;
 
         try {
             await queueDraftWrite(null);
+            deleteCacheFileQuietly(fileUriToDelete);
             setSelectedFile(null);
             memoForm.reset({ memo: "" });
             repeat();
@@ -264,6 +281,13 @@ export default function HomeworkDetailScreen() {
         setIsSourceSheetVisible(false);
     };
 
+    const replaceSelectedFile = (nextFile: HomeworkSubmissionFile) => {
+        if (selectedFile && selectedFile.uri !== nextFile.uri) {
+            deleteCacheFileQuietly(selectedFile.uri);
+        }
+        setSelectedFile(nextFile);
+    };
+
     const handlePickFile = async () => {
         if (isSubmitting || discardingDraft.current || picking.current) {
             return;
@@ -271,6 +295,7 @@ export default function HomeworkDetailScreen() {
 
         picking.current = true;
         setIsPicking(true);
+        let pickedAssetUri: string | undefined;
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 copyToCacheDirectory: true,
@@ -283,8 +308,10 @@ export default function HomeworkDetailScreen() {
                 return;
             }
 
-            setSelectedFile(createFileFromDocument(result.assets[0], t));
+            pickedAssetUri = result.assets[0].uri;
+            replaceSelectedFile(createFileFromDocument(result.assets[0], t));
         } catch (error) {
+            deleteCacheFileQuietly(pickedAssetUri);
             setIsSourceSheetVisible(false);
             showAppToast({
                 message:
@@ -304,6 +331,7 @@ export default function HomeworkDetailScreen() {
 
         picking.current = true;
         setIsPicking(true);
+        let pickedAssetUri: string | undefined;
         try {
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permission.granted) {
@@ -323,8 +351,10 @@ export default function HomeworkDetailScreen() {
                 return;
             }
 
-            setSelectedFile(createFileFromPickerAsset(result.assets[0], t));
+            pickedAssetUri = result.assets[0].uri;
+            replaceSelectedFile(createFileFromPickerAsset(result.assets[0], t));
         } catch (error) {
+            deleteCacheFileQuietly(pickedAssetUri);
             setIsSourceSheetVisible(false);
             showAppToast({
                 message:
@@ -344,6 +374,7 @@ export default function HomeworkDetailScreen() {
 
         picking.current = true;
         setIsPicking(true);
+        let recordedAssetUri: string | undefined;
         try {
             const permission = await ImagePicker.requestCameraPermissionsAsync();
             if (!permission.granted) {
@@ -363,8 +394,10 @@ export default function HomeworkDetailScreen() {
                 return;
             }
 
-            setSelectedFile(createFileFromPickerAsset(result.assets[0], t));
+            recordedAssetUri = result.assets[0].uri;
+            replaceSelectedFile(createFileFromPickerAsset(result.assets[0], t));
         } catch (error) {
+            deleteCacheFileQuietly(recordedAssetUri);
             setIsSourceSheetVisible(false);
             showAppToast({
                 message:
@@ -379,6 +412,7 @@ export default function HomeworkDetailScreen() {
 
     const handleRemoveFile = () => {
         if (isSubmitting || discardingDraft.current) return;
+        deleteCacheFileQuietly(selectedFile?.uri);
         setSelectedFile(null);
     };
 
@@ -387,6 +421,7 @@ export default function HomeworkDetailScreen() {
             return;
         }
 
+        const submittedFileUri = selectedFile.uri;
         submitting.current = true;
         submitHomework(
             {
@@ -400,6 +435,7 @@ export default function HomeworkDetailScreen() {
                     clearTimeout(scheduledDraftWrite.current?.timer);
                     scheduledDraftWrite.current = null;
                     void queueDraftWrite(null);
+                    deleteCacheFileQuietly(submittedFileUri);
                     setSelectedFile(null);
                     memoForm.reset({ memo: "" });
                 },

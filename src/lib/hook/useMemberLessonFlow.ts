@@ -95,7 +95,6 @@ export function useMemberHomeworkById(homeworkId: number) {
     return useQuery<ApiResponse<MemberHomeworkDetailResponse>>({
         ...getMemberHomeworkByIdQueryOptions(homeworkId),
         enabled: Number.isFinite(homeworkId) && homeworkId > 0,
-        staleTime: 30_000,
     });
 }
 

@@ -41,24 +41,21 @@ export function useBayReservationNoteEditor({
 }: UseBayReservationNoteEditorOptions) {
     const [isEditingNote, setIsEditingNote] = useState(false);
     const noteForm = useForm<BayNoteFormValues>({ defaultValues: { memberNotes: "" } });
-    const watchedNote = useWatch({ control: noteForm.control, name: "memberNotes" });
     const noteSaveLocked = useRef(false);
-    const now = useMinuteClock(enabled);
     const { mutate: updateNotes, isPending: isSavingNote } = useUpdateMemberBayReservationNotes();
 
     const startTimeMs = reservation?.startTime ? Date.parse(reservation.startTime) : Number.NaN;
-    const canEditNote = Boolean(
+    const isPotentiallyEditable = Boolean(
         enabled &&
         reservation &&
         (!requireCanEditFlag || reservation.canEditMemberNotes === true) &&
         reservation.reservationStatus?.toUpperCase() === "RESERVED" &&
-        startTimeMs > now,
+        Number.isFinite(startTimeMs),
     );
+    const now = useMinuteClock(isPotentiallyEditable);
+    const canEditNote = isPotentiallyEditable && startTimeMs > now;
     const isNoteEditorOpen = isEditingNote && canEditNote;
-    const hasNoteChanged = (watchedNote ?? "").trim() !== (reservation?.memberNotes ?? "").trim();
-    const isNoteTooLong = (watchedNote ?? "").length > BAY_NOTE_MAX_LENGTH;
     const isEditTriggerDisabled = !isOnline || disabled || isSavingNote;
-    const isSaveNoteDisabled = isEditTriggerDisabled || !hasNoteChanged || isNoteTooLong;
 
     const openNoteEditor = () => {
         if (!canEditNote || isEditTriggerDisabled || !reservation) return;
@@ -78,12 +75,22 @@ export function useBayReservationNoteEditor({
             setIsEditingNote(false);
             return;
         }
-        if (!reservation || !canEditNote || isSaveNoteDisabled || noteSaveLocked.current) {
+        const trimmed = (memberNotes ?? "").trim();
+        const hasNoteChanged = trimmed !== (reservation?.memberNotes ?? "").trim();
+        const isNoteTooLong = (memberNotes ?? "").length > BAY_NOTE_MAX_LENGTH;
+        if (
+            !reservation ||
+            !canEditNote ||
+            isEditTriggerDisabled ||
+            !hasNoteChanged ||
+            isNoteTooLong ||
+            noteSaveLocked.current
+        ) {
             return;
         }
         noteSaveLocked.current = true;
         updateNotes(
-            { reservationId: reservation.id, data: { memberNotes: memberNotes.trim() || null } },
+            { reservationId: reservation.id, data: { memberNotes: trimmed || null } },
             {
                 onSuccess: () => {
                     Keyboard.dismiss();
@@ -103,11 +110,11 @@ export function useBayReservationNoteEditor({
 
     return {
         control: noteForm.control,
+        initialNote: reservation?.memberNotes ?? "",
         canEditNote,
         isNoteEditorOpen,
         isSavingNote,
         isEditTriggerDisabled,
-        isSaveNoteDisabled,
         openNoteEditor,
         closeNoteEditor,
         submitNote,
@@ -222,17 +229,25 @@ export function BayReservationNoteForm({
 }
 
 export function BayReservationNoteFooter({
+    control,
+    initialNote,
     isSaving,
-    isSaveDisabled,
+    isActionDisabled,
     onSave,
     onCancel,
 }: {
+    control: Control<BayNoteFormValues>;
+    initialNote?: string | null;
     isSaving: boolean;
-    isSaveDisabled: boolean;
+    isActionDisabled: boolean;
     onSave: () => void;
     onCancel: () => void;
 }) {
     const { t } = useTranslation();
+    const watchedNote = useWatch({ control, name: "memberNotes" });
+    const hasNoteChanged = (watchedNote ?? "").trim() !== (initialNote ?? "").trim();
+    const isNoteTooLong = (watchedNote ?? "").length > BAY_NOTE_MAX_LENGTH;
+    const isSaveDisabled = isActionDisabled || !hasNoteChanged || isNoteTooLong;
 
     return (
         <View className="gap-2">

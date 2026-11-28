@@ -21,11 +21,6 @@ function load(filename) {
     }).outputText;
     function localRequire(id) {
         if (id === "react-native") return RN;
-        if (id === "@expo/vector-icons")
-            return {
-                Ionicons: (props) =>
-                    React.createElement("span", { style: { color: props.color, fontSize: props.size } }, "◷"),
-            };
         if (id === "@/design-system/utils/theme")
             return {
                 useTheme: () => ({

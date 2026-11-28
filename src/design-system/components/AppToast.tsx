@@ -1,5 +1,5 @@
 import { AppText } from "@/design-system/components/AppText";
-import { useTheme } from "@/design-system/utils/theme";
+import { useThemeColors } from "@/design-system/utils/theme";
 import { typography } from "@/design-system/utils/typography";
 import CircleCheck from "lucide-react-native/icons/circle-check";
 import CircleX from "lucide-react-native/icons/circle-x";
@@ -72,12 +72,22 @@ const TOAST_ICONS: Record<ToastType, LucideIcon> = {
 };
 
 export function AppToastProvider({ children }: { children: ReactNode }) {
-    const { colors } = useTheme();
+    return (
+        <View className="flex-1">
+            {children}
+            <AppToastOverlay />
+        </View>
+    );
+}
+
+function AppToastOverlay() {
+    const colors = useThemeColors();
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const reducedMotion = useReducedMotion();
     const [toast, setToast] = useState<ActiveToast | null>(null);
     const activeIdRef = useRef(0);
+    const dismissingIdRef = useRef<number | null>(null);
     const activePositionRef = useRef<ToastPosition>("top");
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const opacity = useSharedValue(0);
@@ -95,12 +105,16 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const removeToast = useCallback((id: number) => {
-        if (activeIdRef.current === id) setToast(null);
+        if (activeIdRef.current === id) {
+            dismissingIdRef.current = null;
+            setToast(null);
+        }
     }, []);
 
     const dismissToast = useCallback(
         (id: number) => {
-            if (activeIdRef.current !== id) return;
+            if (activeIdRef.current !== id || dismissingIdRef.current === id) return;
+            dismissingIdRef.current = id;
 
             clearTimer();
             opacity.set(
@@ -131,6 +145,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
         (options: ToastOptions) => {
             const id = activeIdRef.current + 1;
             activeIdRef.current = id;
+            dismissingIdRef.current = null;
             activePositionRef.current = options.position ?? "top";
             clearTimer();
             cancelAnimation(opacity);
@@ -149,8 +164,13 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         registerToastHandler(showToast);
-        return () => registerToastHandler(null);
-    }, [showToast]);
+        return () => {
+            registerToastHandler(null);
+            clearTimer();
+            cancelAnimation(opacity);
+            cancelAnimation(translateY);
+        };
+    }, [clearTimer, opacity, showToast, translateY]);
 
     useEffect(() => {
         if (!toast) return;
@@ -177,73 +197,68 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
         return clearTimer;
     }, [clearTimer, dismissToast, opacity, reducedMotion, toast, translateY]);
 
+    if (!toast) {
+        return null;
+    }
+
     const accentColors: Record<ToastType, string> = {
         success: colors.success,
         error: colors.danger,
         warning: colors.warning,
         info: colors.primary,
     };
-    const accentColor = toast ? accentColors[toast.type] : colors.primary;
-    const Icon = toast ? TOAST_ICONS[toast.type] : Info;
-    const positionStyle: ViewStyle | undefined = toast
-        ? toast.position === "top"
-            ? { top: insets.top + 12 }
-            : { bottom: insets.bottom + 16 }
-        : undefined;
+    const accentColor = accentColors[toast.type];
+    const Icon = TOAST_ICONS[toast.type];
+    const positionStyle: ViewStyle =
+        toast.position === "top" ? { top: insets.top + 12 } : { bottom: insets.bottom + 16 };
 
     return (
-        <View className="flex-1">
-            {children}
-
-            {toast ? (
+        <View
+            pointerEvents="box-none"
+            className="absolute inset-x-0 z-50 items-center"
+            style={{
+                ...positionStyle,
+                paddingLeft: Math.max(insets.left, 16),
+                paddingRight: Math.max(insets.right, 16),
+            }}
+        >
+            <Animated.View
+                accessibilityLiveRegion={toast.type === "error" ? "assertive" : "polite"}
+                accessibilityRole="alert"
+                className="w-full max-w-xl flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+                style={[
+                    animatedStyle,
+                    {
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
+                        borderCurve: "continuous",
+                    },
+                ]}
+            >
                 <View
-                    pointerEvents="box-none"
-                    className="absolute inset-x-0 z-50 items-center"
-                    style={{
-                        ...positionStyle,
-                        paddingLeft: Math.max(insets.left, 16),
-                        paddingRight: Math.max(insets.right, 16),
-                    }}
+                    className="h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${accentColor}1A` }}
                 >
-                    <Animated.View
-                        accessibilityLiveRegion={toast.type === "error" ? "assertive" : "polite"}
-                        accessibilityRole="alert"
-                        className="w-full max-w-xl flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
-                        style={[
-                            animatedStyle,
-                            {
-                                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
-                                borderCurve: "continuous",
-                            },
-                        ]}
-                    >
-                        <View
-                            className="h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                            style={{ backgroundColor: `${accentColor}1A` }}
-                        >
-                            <Icon size={21} color={accentColor} strokeWidth={2.4} />
-                        </View>
-
-                        <AppText
-                            variant="label"
-                            style={{ flex: 1, minWidth: 0 }}
-                            textStyle={{ lineHeight: typography.subtext.lineHeight }}
-                        >
-                            {toast.message}
-                        </AppText>
-
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t("common.dismissNotification")}
-                            hitSlop={12}
-                            onPress={() => dismissToast(toast.id)}
-                            className="h-9 w-9 shrink-0 items-center justify-center rounded-full active:bg-muted"
-                        >
-                            <X size={19} color={colors.mutedForeground} />
-                        </Pressable>
-                    </Animated.View>
+                    <Icon size={21} color={accentColor} strokeWidth={2.4} />
                 </View>
-            ) : null}
+
+                <AppText
+                    variant="label"
+                    style={{ flex: 1, minWidth: 0 }}
+                    textStyle={{ lineHeight: typography.subtext.lineHeight }}
+                >
+                    {toast.message}
+                </AppText>
+
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("common.dismissNotification")}
+                    hitSlop={12}
+                    onPress={() => dismissToast(toast.id)}
+                    className="h-9 w-9 shrink-0 items-center justify-center rounded-full active:bg-muted"
+                >
+                    <X size={19} color={colors.mutedForeground} />
+                </Pressable>
+            </Animated.View>
         </View>
     );
 }

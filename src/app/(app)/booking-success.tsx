@@ -178,8 +178,10 @@ export default function BookingSuccessScreen() {
 
     const footer = noteEditor.isNoteEditorOpen ? (
         <BayReservationNoteFooter
+            control={noteEditor.control}
+            initialNote={noteEditor.initialNote}
             isSaving={noteEditor.isSavingNote}
-            isSaveDisabled={noteEditor.isSaveNoteDisabled}
+            isActionDisabled={noteEditor.isEditTriggerDisabled}
             onSave={noteEditor.submitNote}
             onCancel={noteEditor.closeNoteEditor}
         />

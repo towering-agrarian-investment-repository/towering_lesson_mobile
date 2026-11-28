@@ -2,8 +2,7 @@ import { ApiResponse } from "@/lib/api-response/api-response";
 import { apiClient } from "@/lib/client/api-client";
 import { UpdateMyProfileRequest, MemberSelfResponse } from "@/types/member.type";
 import { hasExpired, PROFILE_IMAGE_MAX_SIZE_BYTES, type ProfileImageContentType } from "@/utils/media";
-import { fetch as expoFetch } from "expo/fetch";
-import { File } from "expo-file-system";
+import { File, UploadType } from "expo-file-system";
 
 export const getMemberProfile = async (signal?: AbortSignal): Promise<ApiResponse<MemberSelfResponse>> => {
     return apiClient("/member/me", {
@@ -77,12 +76,12 @@ export const updateMemberProfileImage = async (
 
     let uploadResponse = await putProfileImage(staged, imageFile, contentType);
 
-    if (!uploadResponse.ok && hasExpired(staged.expiresAt)) {
+    if (!isUploadSuccess(uploadResponse.status) && hasExpired(staged.expiresAt)) {
         staged = await stageUpload();
         uploadResponse = await putProfileImage(staged, imageFile, contentType);
     }
 
-    if (!uploadResponse.ok) {
+    if (!isUploadSuccess(uploadResponse.status)) {
         throw new Error(`Profile image upload failed: ${uploadResponse.status}`);
     }
 
@@ -92,14 +91,19 @@ export const updateMemberProfileImage = async (
     });
 };
 
+function isUploadSuccess(status: number) {
+    return status >= 200 && status < 300;
+}
+
 async function putProfileImage(staged: StagedUpload, imageFile: File, contentType: ProfileImageContentType) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 300_000);
     try {
-        return await expoFetch(staged.uploadUrl, {
-            method: "PUT",
+        return await imageFile.upload(staged.uploadUrl, {
+            httpMethod: "PUT",
+            uploadType: UploadType.BINARY_CONTENT,
             headers: { "Content-Type": contentType },
-            body: imageFile,
+            sessionType: "foreground",
             signal: controller.signal,
         });
     } finally {

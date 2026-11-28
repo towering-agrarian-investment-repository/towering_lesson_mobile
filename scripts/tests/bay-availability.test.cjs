@@ -142,6 +142,7 @@ test("switching bay packages isolates cached availability, hides other packages,
 
 test("package and day prefetch send the selected ticket and refresh seeded availability", async () => {
     const requestedTickets = [];
+    const prefetchedTicketDetails = [];
     const { hooks } = availability(async (endpoint) => {
         const ticketId = Number(new URL(endpoint, "https://example.invalid").searchParams.get("ticketId"));
         requestedTickets.push(ticketId);
@@ -149,6 +150,16 @@ test("package and day prefetch send the selected ticket and refresh seeded avail
     });
     const { prefetchTicketAvailability } = load("src/lib/booking/prefetchTicketAvailability.ts", {
         "@/lib/hook/useReservation": hooks,
+        "@/lib/hook/useTicket": {
+            getMemberTicketByIdQueryOptions: (ticketId) => ({
+                queryKey: ["member", "tickets", "by-id", ticketId],
+                queryFn: async () => {
+                    prefetchedTicketDetails.push(ticketId);
+                    return { data: { id: ticketId } };
+                },
+                staleTime: 60_000,
+            }),
+        },
         "@/utils/time-helper": { formatDateForAPI: (date) => date.toISOString().slice(0, 10) },
         "@/utils/timezone": { toAppTimeZoneDate: (date) => date },
         "date-fns/endOfMonth": require("date-fns/endOfMonth"),
@@ -161,7 +172,8 @@ test("package and day prefetch send the selected ticket and refresh seeded avail
             await flush();
         }
         assert.deepEqual(requestedTickets, [123, 456]);
-        assert.equal(client.getQueryCache().getAll().length, 2);
+        assert.deepEqual(prefetchedTicketDetails, [123, 456]);
+        assert.equal(client.getQueryCache().getAll().length, 4);
 
         const dayOptions = hooks.getMemberBaySlotGroupsQueryOptions(123, "2026-11-22", "2026-11-22");
         client.setQueryData(dayOptions.queryKey, { data: [{ id: "calendar-preview" }] }, { updatedAt: 0 });

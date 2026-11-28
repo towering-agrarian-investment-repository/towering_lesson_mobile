@@ -2,8 +2,27 @@ import { ReservationDetailField } from "@/components/golf/reservation/Reservatio
 import { ActionButton, Divider, Skeleton, triggerSuccessHaptic } from "@/design-system";
 import type { MemberTicketDetailResponse } from "@/types/member-ticket";
 import type { ImperativeRouter } from "expo-router";
+import {
+    CommonActions,
+    type NavigationProp,
+    type NavigationState,
+    type ParamListBase,
+} from "expo-router/react-navigation";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+
+const BOOKING_FLOW_ROUTE_NAMES = new Set([
+    "select-date",
+    "select-time",
+    "select-lesson-slot",
+    "bay-booking-confirm",
+    "lesson-booking-confirm",
+]);
+
+type BookingNavigation = {
+    getState: () => NavigationState | undefined;
+    dispatch: NavigationProp<ParamListBase>["dispatch"];
+};
 
 type BookingConfirmationFooterProps = {
     title: string;
@@ -30,7 +49,11 @@ type BookingSuccessDetails = {
     coachName?: string | null;
 };
 
-export function handleBookingConfirmationSuccess(router: ImperativeRouter, details: BookingSuccessDetails) {
+export function handleBookingConfirmationSuccess(
+    router: ImperativeRouter,
+    details: BookingSuccessDetails,
+    navigation: BookingNavigation,
+) {
     triggerSuccessHaptic();
 
     const params: Record<string, string> = {
@@ -58,6 +81,29 @@ export function handleBookingConfirmationSuccess(router: ImperativeRouter, detai
     addParam("bayId", details.bayId);
     addParam("reservationName", details.reservationName);
     addParam("coachName", details.coachName);
+
+    const state = navigation.getState();
+    if (state) {
+        const originIndex = state.routes.findLastIndex((route) => !BOOKING_FLOW_ROUTE_NAMES.has(route.name));
+        const keptRoutes = state.routes.slice(0, originIndex + 1);
+        if (details.mode === "reschedule" && details.reservationId != null && keptRoutes.length > 1) {
+            const lastRoute = keptRoutes[keptRoutes.length - 1];
+            const lastRouteId = (lastRoute.params as { id?: string | number } | undefined)?.id;
+            if (lastRoute.name === "reservation/[id]" && String(lastRouteId) === String(details.reservationId)) {
+                keptRoutes.pop();
+            }
+        }
+        if (keptRoutes.length > 0) {
+            navigation.dispatch(
+                CommonActions.reset({
+                    ...state,
+                    routes: [...keptRoutes, { name: "booking-success", params }],
+                    index: keptRoutes.length,
+                }),
+            );
+            return;
+        }
+    }
 
     router.replace({
         pathname: "/booking-success",

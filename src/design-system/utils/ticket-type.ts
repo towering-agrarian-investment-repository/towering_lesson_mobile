@@ -9,6 +9,7 @@ export function isBookableTicketType(type: string) {
 }
 
 type TicketTypeToneDefinition = {
+    name: TicketTypeToneName;
     color: keyof ThemeColors;
     badgeClassName: string;
     badgeSolidClassName: string;
@@ -19,6 +20,7 @@ type TicketTypeToneDefinition = {
 
 const ticketTypeToneDefinitions: Record<TicketTypeToneName, TicketTypeToneDefinition> = {
     bayUsage: {
+        name: "bayUsage",
         color: "ticketBay",
         badgeClassName: "bg-ticket-bay/10",
         badgeSolidClassName: "bg-[#007EA7]",
@@ -27,6 +29,7 @@ const ticketTypeToneDefinitions: Record<TicketTypeToneName, TicketTypeToneDefini
         surfaceClassName: "bg-ticket-bay/10",
     },
     privateLesson: {
+        name: "privateLesson",
         color: "ticketPrivate",
         badgeClassName: "bg-ticket-private/10",
         badgeSolidClassName: "bg-ticket-private",
@@ -35,6 +38,7 @@ const ticketTypeToneDefinitions: Record<TicketTypeToneName, TicketTypeToneDefini
         surfaceClassName: "bg-ticket-private/10",
     },
     groupLesson: {
+        name: "groupLesson",
         color: "ticketGroup",
         badgeClassName: "bg-ticket-group/10",
         badgeSolidClassName: "bg-[#C77800]",
@@ -43,6 +47,7 @@ const ticketTypeToneDefinitions: Record<TicketTypeToneName, TicketTypeToneDefini
         surfaceClassName: "bg-ticket-group/10",
     },
     lessonProgram: {
+        name: "lessonProgram",
         color: "ticketProgram",
         badgeClassName: "bg-ticket-program/10",
         badgeSolidClassName: "bg-ticket-program",
@@ -51,6 +56,7 @@ const ticketTypeToneDefinitions: Record<TicketTypeToneName, TicketTypeToneDefini
         surfaceClassName: "bg-ticket-program/10",
     },
     default: {
+        name: "default",
         color: "ticketDefault",
         badgeClassName: "bg-ticket-default/10",
         badgeSolidClassName: "bg-ticket-default",
@@ -99,11 +105,5 @@ export function formatTicketTypeLabel(type: TicketType | string | null | undefin
 }
 
 export function getTicketTypeTone(type?: TicketType | string | null) {
-    const name = getTicketTypeToneName(type);
-    const tone = ticketTypeToneDefinitions[name];
-
-    return {
-        name,
-        ...tone,
-    };
+    return ticketTypeToneDefinitions[getTicketTypeToneName(type)];
 }

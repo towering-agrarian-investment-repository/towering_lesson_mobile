@@ -1,22 +1,31 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useReducedMotion } from "react-native-reanimated";
+import Animated, {
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useReducedMotion,
+    useSharedValue,
+} from "react-native-reanimated";
 import {
-    FlatList,
+    Dimensions,
     Pressable,
     ScrollView,
+    StyleSheet,
     View,
     useWindowDimensions,
+    type FlatList,
     type LayoutChangeEvent,
     type ViewProps,
 } from "react-native";
-import Svg, { Circle, Path, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, G, Path, Text as SvgText } from "react-native-svg";
 import { AppText } from "../AppText";
+import { SCREEN_HORIZONTAL_PADDING, SCREEN_MAX_WIDTH } from "../Screen";
 import { cn } from "../../utils/cn";
 import { colorWithOpacity } from "../../utils/color";
 import { triggerSelectionHaptic } from "../../utils/haptics";
 import { useTheme, type ThemeColors } from "../../utils/theme";
+import { useDayClock } from "../../../lib/hook/useMinuteClock";
 import { getReservationStatusLabel } from "../../../utils/status-tone";
 import { formatDateForAPI } from "../../../utils/time-helper";
 import {
@@ -40,6 +49,9 @@ import {
 export type { ActivityHeatmapStatus, ActivityHeatmapValue } from "./activity-chart-data";
 
 const weekKeyExtractor = (week: ActivityHeatmapWeek) => week.days[0].dateKey;
+const PRESSED_CELL_STYLE = { opacity: 0.7 } as const;
+const GRADIENT_START = { x: 0, y: 0 } as const;
+const GRADIENT_END = { x: 1, y: 0 } as const;
 
 function ActivityStatusLegend({
     className,
@@ -184,6 +196,13 @@ function createHeatmapDateLabelGetter(language: string) {
     };
 }
 
+type HeatmapAccessibilityLabels = {
+    todaySuffix: string;
+    zeroCount: string;
+    statuses: Record<ActivityHeatmapStatus, string>;
+    t: ReturnType<typeof useTranslation>["t"];
+};
+
 export function ActivityHeatmap({
     values,
     endDate,
@@ -203,13 +222,16 @@ export function ActivityHeatmap({
     const { colors } = useTheme();
     const reducedMotion = useReducedMotion();
     const { fontScale: deviceFontScale } = useWindowDimensions();
+    const dayClock = useDayClock();
     const {
         t,
         i18n: { language },
     } = useTranslation();
-    const todayKey = formatDateForAPI(new Date());
+    const todayKey = formatDateForAPI(dayClock);
     const endDateKey = endDate ? toDateKey(endDate) : todayKey;
-    const [containerWidth, setContainerWidth] = useState(0);
+    const [containerWidth, setContainerWidth] = useState(() =>
+        Math.max(0, Math.min(Dimensions.get("window").width, SCREEN_MAX_WIDTH) - SCREEN_HORIZONTAL_PADDING * 2),
+    );
     const listRef = useRef<FlatList<ActivityHeatmapWeek>>(null);
     const valuesByDate = useMemo(() => new Map(values.map((value) => [toDateKey(value.date), value])), [values]);
     const weeks = useMemo(
@@ -240,6 +262,23 @@ export function ActivityHeatmap({
         return WEEKDAY_OFFSETS.map((offset) => formatter.format(new Date(2024, 0, 1 + offset)));
     }, [language, useShortWeekdays]);
     const getDateLabel = useMemo(() => createHeatmapDateLabelGetter(language), [language]);
+    const accessibilityLabels = useMemo<HeatmapAccessibilityLabels>(
+        () => ({
+            todaySuffix: ` (${t("activity.today")})`,
+            zeroCount: t("activity.activityCount", { count: 0 }),
+            statuses: {
+                reserved: getReservationStatusLabel("reserved", t),
+                "checked-in": getReservationStatusLabel("checked-in", t),
+                completed: getReservationStatusLabel("completed", t),
+                cancelled: getReservationStatusLabel("cancelled", t),
+                "no-show": getReservationStatusLabel("no-show", t),
+                mixed: t("activity.mixed"),
+                unknown: t("activity.other"),
+            },
+            t,
+        }),
+        [t],
+    );
     const focusMonthWeekIndex = useMemo(
         () => getFocusMonthWeekIndex(weeks, endDateKey, todayKey),
         [weeks, endDateKey, todayKey],
@@ -257,17 +296,35 @@ export function ActivityHeatmap({
         todayWeekIndex >= 0 ? Math.max(0, todayWeekIndex - Math.floor(visibleWeeks / 2)) : focusMonthWeekIndex;
     const maxScrollOffset = Math.max(0, weeks.length * (cellSize + CELL_GAP) - availableWidth);
     const initialScrollOffset = Math.min(maxScrollOffset, initialWeekIndex * (cellSize + CELL_GAP));
-    const edgeKey = `${rangeKey}:${containerWidth}`;
-    const initialEdges = {
-        key: edgeKey,
-        left: initialScrollOffset > 1,
-        right: maxScrollOffset - initialScrollOffset > 1,
-    };
-    const [scrollEdges, setScrollEdges] = useState(initialEdges);
-    const scrollEdgesRef = useRef(scrollEdges);
-    const visibleEdges = scrollEdges.key === edgeKey ? scrollEdges : initialEdges;
+    const initialLeftEdge = initialScrollOffset > 1 ? 1 : 0;
+    const initialRightEdge = maxScrollOffset - initialScrollOffset > 1 ? 1 : 0;
+    const leftEdgeOpacity = useSharedValue(initialLeftEdge);
+    const rightEdgeOpacity = useSharedValue(initialRightEdge);
+
+    const handleScroll = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            leftEdgeOpacity.set(event.contentOffset.x > 1 ? 1 : 0);
+            rightEdgeOpacity.set(
+                event.contentSize.width - event.layoutMeasurement.width - event.contentOffset.x > 1 ? 1 : 0,
+            );
+        },
+    });
+
+    useEffect(() => {
+        leftEdgeOpacity.set(initialLeftEdge);
+        rightEdgeOpacity.set(initialRightEdge);
+    }, [initialLeftEdge, initialRightEdge, leftEdgeOpacity, rangeKey, rightEdgeOpacity]);
+
+    const leftEdgeAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: leftEdgeOpacity.value,
+    }));
+    const rightEdgeAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: rightEdgeOpacity.value,
+    }));
+
     const handleLayout = (event: LayoutChangeEvent) => {
-        setContainerWidth(event.nativeEvent.layout.width);
+        const nextWidth = event.nativeEvent.layout.width;
+        setContainerWidth((current) => (Math.abs(nextWidth - current) > 0.5 ? nextWidth : current));
         onLayout?.(event);
     };
     const handleSelectDay = useCallback(
@@ -322,6 +379,7 @@ export function ActivityHeatmap({
                 }
                 disabled={disabled}
                 colors={colors}
+                accessibilityLabels={accessibilityLabels}
                 getDateLabel={getDateLabel}
                 onSelectDay={handleSelectDay}
             />
@@ -334,6 +392,7 @@ export function ActivityHeatmap({
             selectedDay,
             disabled,
             colors,
+            accessibilityLabels,
             getDateLabel,
             handleSelectDay,
         ],
@@ -347,6 +406,8 @@ export function ActivityHeatmap({
         }),
         [cellSize],
     );
+
+    const transparentBackground = colorWithOpacity(colors.background, 0);
 
     return (
         <View {...props} className={cn("w-full gap-3", className)} onLayout={handleLayout}>
@@ -370,7 +431,7 @@ export function ActivityHeatmap({
                 </View>
                 {containerWidth > 0 ? (
                     <View style={{ flex: 1 }}>
-                        <FlatList
+                        <Animated.FlatList
                             ref={listRef}
                             key={rangeKey}
                             data={weeks}
@@ -378,7 +439,7 @@ export function ActivityHeatmap({
                             extraData={selectedDay}
                             initialScrollIndex={weeks.length ? initialWeekIndex : undefined}
                             initialNumToRender={Math.min(visibleWeeks, Math.max(1, weeks.length - initialWeekIndex))}
-                            maxToRenderPerBatch={viewportWeeks}
+                            maxToRenderPerBatch={4}
                             windowSize={3}
                             keyExtractor={weekKeyExtractor}
                             getItemLayout={getWeekItemLayout}
@@ -390,54 +451,49 @@ export function ActivityHeatmap({
                             decelerationRate="fast"
                             style={{ flex: 1 }}
                             showsHorizontalScrollIndicator={false}
-                            scrollEventThrottle={100}
-                            onScroll={(event) => {
-                                const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-                                const nextEdges = {
-                                    key: edgeKey,
-                                    left: contentOffset.x > 1,
-                                    right: contentSize.width - layoutMeasurement.width - contentOffset.x > 1,
-                                };
-                                if (
-                                    scrollEdgesRef.current.key !== nextEdges.key ||
-                                    scrollEdgesRef.current.left !== nextEdges.left ||
-                                    scrollEdgesRef.current.right !== nextEdges.right
-                                ) {
-                                    scrollEdgesRef.current = nextEdges;
-                                    setScrollEdges(nextEdges);
-                                }
-                            }}
+                            scrollEventThrottle={16}
+                            onScroll={handleScroll}
                         />
-                        {visibleEdges.left ? (
-                            <LinearGradient
-                                pointerEvents="none"
-                                colors={[colors.background, colorWithOpacity(colors.background, 0)]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={{
+                        <Animated.View
+                            pointerEvents="none"
+                            style={[
+                                {
                                     position: "absolute",
                                     top: 0,
                                     bottom: 0,
                                     left: 0,
                                     width: cellSize,
-                                }}
-                            />
-                        ) : null}
-                        {visibleEdges.right ? (
+                                },
+                                leftEdgeAnimatedStyle,
+                            ]}
+                        >
                             <LinearGradient
-                                pointerEvents="none"
-                                colors={[colorWithOpacity(colors.background, 0), colors.background]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={{
+                                colors={[colors.background, transparentBackground]}
+                                start={GRADIENT_START}
+                                end={GRADIENT_END}
+                                style={StyleSheet.absoluteFill}
+                            />
+                        </Animated.View>
+                        <Animated.View
+                            pointerEvents="none"
+                            style={[
+                                {
                                     position: "absolute",
                                     top: 0,
                                     bottom: 0,
                                     right: 0,
                                     width: cellSize,
-                                }}
+                                },
+                                rightEdgeAnimatedStyle,
+                            ]}
+                        >
+                            <LinearGradient
+                                colors={[transparentBackground, colors.background]}
+                                start={GRADIENT_START}
+                                end={GRADIENT_END}
+                                style={StyleSheet.absoluteFill}
                             />
-                        ) : null}
+                        </Animated.View>
                     </View>
                 ) : null}
             </View>
@@ -471,47 +527,50 @@ export function ActivityHeatmap({
     );
 }
 
-// Draw a status icon inside exception cells alongside their accessible labels.
-function StatusGlyph({ status, size, colors }: { status: ActivityHeatmapStatus; size: number; colors: ThemeColors }) {
-    if (status === "completed" || status === "unknown") {
-        return null;
+function hasSvgExceptionGlyph(
+    status?: ActivityHeatmapStatus,
+): status is "checked-in" | "mixed" | "no-show" | "cancelled" {
+    return status === "checked-in" || status === "mixed" || status === "no-show" || status === "cancelled";
+}
+
+// Render all non-dot exception glyphs for a week column inside a single native SVG overlay.
+function renderStatusGlyphElements(status: "checked-in" | "mixed" | "no-show" | "cancelled", ink: string) {
+    if (status === "checked-in") {
+        return (
+            <Path
+                d="M2.5 6.5l2.3 2.3L9.5 4"
+                fill="none"
+                stroke={ink}
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        );
     }
-    const ink = colors.primaryForeground;
+    if (status === "mixed") {
+        return (
+            <>
+                <Circle cx={6} cy={6} r={3.8} fill="none" stroke={ink} strokeWidth={1.7} />
+                <Path d="M6 2.2a3.8 3.8 0 0 1 0 7.6z" fill={ink} />
+            </>
+        );
+    }
+    if (status === "no-show") {
+        return (
+            <Path
+                d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8"
+                fill="none"
+                stroke={ink}
+                strokeWidth={2.2}
+                strokeLinecap="round"
+            />
+        );
+    }
     return (
-        <Svg width={size} height={size} viewBox="0 0 12 12" accessible={false} pointerEvents="none">
-            {status === "checked-in" ? (
-                <Path
-                    d="M2.5 6.5l2.3 2.3L9.5 4"
-                    fill="none"
-                    stroke={ink}
-                    strokeWidth={2.2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            ) : null}
-            {status === "reserved" ? <Circle cx={6} cy={6} r={2.4} fill={ink} /> : null}
-            {status === "mixed" ? (
-                <>
-                    <Circle cx={6} cy={6} r={3.8} fill="none" stroke={ink} strokeWidth={1.7} />
-                    <Path d="M6 2.2a3.8 3.8 0 0 1 0 7.6z" fill={ink} />
-                </>
-            ) : null}
-            {status === "no-show" ? (
-                <Path
-                    d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8"
-                    fill="none"
-                    stroke={ink}
-                    strokeWidth={2.2}
-                    strokeLinecap="round"
-                />
-            ) : null}
-            {status === "cancelled" ? (
-                <>
-                    <Circle cx={6} cy={6} r={3.6} fill="none" stroke={ink} strokeWidth={1.4} />
-                    <Path d="M3.5 8.5l5-5" fill="none" stroke={ink} strokeWidth={1.4} strokeLinecap="round" />
-                </>
-            ) : null}
-        </Svg>
+        <>
+            <Circle cx={6} cy={6} r={3.6} fill="none" stroke={ink} strokeWidth={1.4} />
+            <Path d="M3.5 8.5l5-5" fill="none" stroke={ink} strokeWidth={1.4} strokeLinecap="round" />
+        </>
     );
 }
 
@@ -524,6 +583,7 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     selectedDay,
     disabled,
     colors,
+    accessibilityLabels,
     getDateLabel,
     onSelectDay,
 }: {
@@ -535,10 +595,16 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
     selectedDay: string | null;
     disabled?: boolean;
     colors: ThemeColors;
+    accessibilityLabels: HeatmapAccessibilityLabels;
     getDateLabel: (date: Date) => string;
     onSelectDay: (dateKey: string, date: Date, count: number) => void;
 }) {
-    const { t } = useTranslation();
+    const glyphSize = Math.round(cellSize * 0.5);
+    const glyphOffset = (cellSize - glyphSize) / 2;
+    const glyphScale = glyphSize / 12;
+    const reservedDotSize = Math.max(3, Math.round(glyphSize * 0.4));
+    const hasOverlayGlyphs = week.days.some((day) => hasSvgExceptionGlyph(day.status));
+
     return (
         <View style={{ width: cellSize + CELL_GAP, paddingRight: CELL_GAP, gap: CELL_GAP }}>
             <View style={{ height: monthLabelHeight, overflow: "visible" }}>
@@ -568,14 +634,21 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
             {week.days.map((day) => {
                 const isToday = day.dateKey === todayKey;
                 const isSelected = day.dateKey === selectedDay;
-                const statusLabel =
-                    day.status === "mixed"
-                        ? t("activity.mixed")
-                        : day.status === "unknown"
-                          ? t("activity.other")
-                          : day.status
-                            ? getReservationStatusLabel(day.status, t)
-                            : null;
+                const statusLabel = day.status ? accessibilityLabels.statuses[day.status] : null;
+                const countLabel =
+                    day.count === 0
+                        ? accessibilityLabels.zeroCount
+                        : accessibilityLabels.t("activity.activityCount", { count: day.count });
+                const cellBaseStyle = {
+                    width: cellSize,
+                    height: cellSize,
+                    alignItems: "center" as const,
+                    justifyContent: "center" as const,
+                    borderRadius: CELL_RADIUS,
+                    backgroundColor: getHeatmapCellColor(day.count, colors, day.status),
+                    borderWidth: isSelected ? 2 : isToday ? 1.5 : 0,
+                    borderColor: isSelected ? colors.foreground : colors.primary,
+                };
                 return (
                     <Pressable
                         key={day.dateKey}
@@ -584,24 +657,24 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
                             selected: isSelected,
                             disabled: Boolean(disabled),
                         }}
-                        accessibilityLabel={`${t("activity.activityCount", { count: day.count })} ${t("activity.onDate", { date: getDateLabel(day.date) })}${statusLabel ? ` · ${statusLabel}` : ""}${isToday ? ` (${t("activity.today")})` : ""}`}
+                        accessibilityLabel={`${countLabel} ${accessibilityLabels.t("activity.onDate", { date: getDateLabel(day.date) })}${statusLabel ? ` · ${statusLabel}` : ""}${isToday ? accessibilityLabels.todaySuffix : ""}`}
                         disabled={disabled}
                         hitSlop={CELL_GAP / 2}
-                        style={({ pressed }) => ({
-                            width: cellSize,
-                            height: cellSize,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderRadius: CELL_RADIUS,
-                            backgroundColor: getHeatmapCellColor(day.count, colors, day.status),
-                            borderWidth: isSelected ? 2 : isToday ? 1.5 : 0,
-                            borderColor: isSelected ? colors.foreground : colors.primary,
-                            opacity: pressed && !disabled ? 0.7 : 1,
-                        })}
+                        style={({ pressed }) =>
+                            pressed && !disabled ? [cellBaseStyle, PRESSED_CELL_STYLE] : cellBaseStyle
+                        }
                         onPress={() => onSelectDay(day.dateKey, day.date, day.count)}
                     >
-                        {day.status ? (
-                            <StatusGlyph status={day.status} size={Math.round(cellSize * 0.5)} colors={colors} />
+                        {day.status === "reserved" ? (
+                            <View
+                                pointerEvents="none"
+                                style={{
+                                    width: reservedDotSize,
+                                    height: reservedDotSize,
+                                    borderRadius: reservedDotSize / 2,
+                                    backgroundColor: colors.primaryForeground,
+                                }}
+                            />
                         ) : null}
                         {isSelected && isToday ? (
                             <View
@@ -620,6 +693,30 @@ const HeatmapWeekColumn = memo(function HeatmapWeekColumn({
                     </Pressable>
                 );
             })}
+            {hasOverlayGlyphs ? (
+                <Svg
+                    pointerEvents="none"
+                    accessible={false}
+                    width={cellSize}
+                    height={cellSize * 7 + CELL_GAP * 6}
+                    style={{
+                        position: "absolute",
+                        top: monthLabelHeight + CELL_GAP,
+                        left: 0,
+                    }}
+                >
+                    {week.days.map((day, dayIndex) =>
+                        hasSvgExceptionGlyph(day.status) ? (
+                            <G
+                                key={day.dateKey}
+                                transform={`translate(${glyphOffset}, ${dayIndex * (cellSize + CELL_GAP) + glyphOffset}) scale(${glyphScale})`}
+                            >
+                                {renderStatusGlyphElements(day.status, colors.primaryForeground)}
+                            </G>
+                        ) : null,
+                    )}
+                </Svg>
+            ) : null}
         </View>
     );
 });

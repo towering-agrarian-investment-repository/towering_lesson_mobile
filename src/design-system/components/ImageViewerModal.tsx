@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import X from "lucide-react-native/icons/x";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
@@ -15,7 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
-import { useTheme } from "../utils/theme";
+import { useThemeColors } from "../utils/theme";
 import { AnimatedPressable } from "./AnimatedPressable";
 import { AppText } from "./AppText";
 
@@ -61,7 +62,7 @@ function ImageViewerContent({
     accessibilityLabel?: string;
     onClose: () => void;
 }) {
-    const { colors } = useTheme();
+    const colors = useThemeColors();
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const reducedMotion = useReducedMotion();
@@ -74,121 +75,156 @@ function ImageViewerContent({
     const savedTranslateX = useSharedValue(0);
     const savedTranslateY = useSharedValue(0);
     const chromeOpacity = useSharedValue(1);
+    const isDismissDragging = useSharedValue(false);
+
+    useEffect(() => {
+        const currentScale = scale.get();
+        if (currentScale <= MIN_SCALE + 0.02) {
+            return;
+        }
+        const maxX = ((currentScale - 1) * width) / 2;
+        const maxY = ((currentScale - 1) * height) / 2;
+        const clampedX = Math.max(-maxX, Math.min(maxX, translateX.get()));
+        const clampedY = Math.max(-maxY, Math.min(maxY, translateY.get()));
+        translateX.set(clampedX);
+        translateY.set(clampedY);
+        savedTranslateX.set(clampedX);
+        savedTranslateY.set(clampedY);
+    }, [height, savedTranslateX, savedTranslateY, scale, translateX, translateY, width]);
 
     const closeTargetLabel = title || accessibilityLabel || t("profile.viewProfilePhoto");
 
-    const pinchGesture = Gesture.Pinch()
-        .onUpdate((event) => {
-            const nextScale = Math.min(MAX_SCALE, Math.max(0.85, savedScale.get() * event.scale));
-            scale.set(nextScale);
-        })
-        .onEnd(() => {
-            const current = scale.get();
-            if (current <= MIN_SCALE + 0.02) {
-                scale.set(reducedMotion ? 1 : withSpring(1, SPRING_CONFIG));
-                savedScale.set(1);
-                translateX.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
-                translateY.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
-                savedTranslateX.set(0);
-                savedTranslateY.set(0);
-            } else {
-                const clamped = Math.min(MAX_SCALE, current);
-                savedScale.set(clamped);
-                const maxX = ((clamped - 1) * width) / 2;
-                const maxY = ((clamped - 1) * height) / 2;
-                const clampedX = Math.max(-maxX, Math.min(maxX, translateX.get()));
-                const clampedY = Math.max(-maxY, Math.min(maxY, translateY.get()));
-                translateX.set(reducedMotion ? clampedX : withSpring(clampedX, SPRING_CONFIG));
-                translateY.set(reducedMotion ? clampedY : withSpring(clampedY, SPRING_CONFIG));
-                savedTranslateX.set(clampedX);
-                savedTranslateY.set(clampedY);
-            }
-        });
-
-    const panGesture = Gesture.Pan()
-        .maxPointers(2)
-        .onUpdate((event) => {
-            const currentScale = scale.get();
-            if (currentScale > 1.02) {
-                const maxX = ((currentScale - 1) * width) / 2;
-                const maxY = ((currentScale - 1) * height) / 2;
-                translateX.set(Math.max(-maxX, Math.min(maxX, savedTranslateX.get() + event.translationX)));
-                translateY.set(Math.max(-maxY, Math.min(maxY, savedTranslateY.get() + event.translationY)));
-            } else {
-                translateY.set(event.translationY);
-                translateX.set(event.translationX * 0.25);
-            }
-        })
-        .onEnd((event) => {
-            const currentScale = scale.get();
-            if (currentScale > 1.02) {
-                savedTranslateX.set(translateX.get());
-                savedTranslateY.set(translateY.get());
-                return;
-            }
-
-            const shouldDismiss =
-                Math.abs(translateY.get()) > DISMISS_DISTANCE || Math.abs(event.velocityY) > DISMISS_VELOCITY;
-
-            if (shouldDismiss) {
-                const direction = translateY.get() >= 0 ? 1 : -1;
-                if (reducedMotion) {
-                    scheduleOnRN(onClose);
+    const composedGesture = useMemo(() => {
+        const pinchGesture = Gesture.Pinch()
+            .onUpdate((event) => {
+                const nextScale = Math.min(MAX_SCALE, Math.max(0.85, savedScale.get() * event.scale));
+                scale.set(nextScale);
+            })
+            .onEnd(() => {
+                const current = scale.get();
+                if (current <= MIN_SCALE + 0.02) {
+                    scale.set(reducedMotion ? 1 : withSpring(1, SPRING_CONFIG));
+                    savedScale.set(1);
+                    translateX.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
+                    translateY.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
+                    savedTranslateX.set(0);
+                    savedTranslateY.set(0);
                 } else {
-                    translateY.set(
-                        withTiming(direction * Math.max(height * 0.45, 320), { duration: 180 }, (finished) => {
-                            if (finished) {
-                                scheduleOnRN(onClose);
-                            }
-                        }),
-                    );
+                    const clamped = Math.min(MAX_SCALE, current);
+                    savedScale.set(clamped);
+                    const maxX = ((clamped - 1) * width) / 2;
+                    const maxY = ((clamped - 1) * height) / 2;
+                    const clampedX = Math.max(-maxX, Math.min(maxX, translateX.get()));
+                    const clampedY = Math.max(-maxY, Math.min(maxY, translateY.get()));
+                    translateX.set(reducedMotion ? clampedX : withSpring(clampedX, SPRING_CONFIG));
+                    translateY.set(reducedMotion ? clampedY : withSpring(clampedY, SPRING_CONFIG));
+                    savedTranslateX.set(clampedX);
+                    savedTranslateY.set(clampedY);
                 }
-            } else {
-                translateX.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
-                translateY.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
-                savedTranslateX.set(0);
-                savedTranslateY.set(0);
-            }
-        });
+            });
 
-    const doubleTapGesture = Gesture.Tap()
-        .numberOfTaps(2)
-        .maxDuration(250)
-        .onEnd((event) => {
-            if (scale.get() > 1.05) {
-                scale.set(reducedMotion ? 1 : withSpring(1, SPRING_CONFIG));
-                savedScale.set(1);
-                translateX.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
-                translateY.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
-                savedTranslateX.set(0);
-                savedTranslateY.set(0);
-            } else {
-                const target = DOUBLE_TAP_SCALE;
-                const maxX = ((target - 1) * width) / 2;
-                const maxY = ((target - 1) * height) / 2;
-                const nextX = Math.max(-maxX, Math.min(maxX, (width / 2 - event.x) * (target - 1)));
-                const nextY = Math.max(-maxY, Math.min(maxY, (height / 2 - event.y) * (target - 1)));
-                scale.set(reducedMotion ? target : withSpring(target, SPRING_CONFIG));
-                savedScale.set(target);
-                translateX.set(reducedMotion ? nextX : withSpring(nextX, SPRING_CONFIG));
-                translateY.set(reducedMotion ? nextY : withSpring(nextY, SPRING_CONFIG));
-                savedTranslateX.set(nextX);
-                savedTranslateY.set(nextY);
-            }
-        });
+        const panGesture = Gesture.Pan()
+            .maxPointers(2)
+            .onUpdate((event) => {
+                const currentScale = scale.get();
+                if (currentScale > 1.02) {
+                    isDismissDragging.set(false);
+                    const maxX = ((currentScale - 1) * width) / 2;
+                    const maxY = ((currentScale - 1) * height) / 2;
+                    translateX.set(Math.max(-maxX, Math.min(maxX, savedTranslateX.get() + event.translationX)));
+                    translateY.set(Math.max(-maxY, Math.min(maxY, savedTranslateY.get() + event.translationY)));
+                } else if (event.numberOfPointers === 1) {
+                    isDismissDragging.set(true);
+                    translateY.set(event.translationY);
+                    translateX.set(event.translationX * 0.25);
+                } else {
+                    isDismissDragging.set(false);
+                }
+            })
+            .onEnd((event) => {
+                const wasDismissDragging = isDismissDragging.get();
+                isDismissDragging.set(false);
 
-    const singleTapGesture = Gesture.Tap()
-        .numberOfTaps(1)
-        .onEnd(() => {
-            const nextOpacity = chromeOpacity.get() > 0.5 ? 0 : 1;
-            chromeOpacity.set(reducedMotion ? nextOpacity : withTiming(nextOpacity, { duration: 160 }));
-        });
+                const currentScale = scale.get();
+                if (currentScale > 1.02) {
+                    savedTranslateX.set(translateX.get());
+                    savedTranslateY.set(translateY.get());
+                    return;
+                }
 
-    const composedGesture = Gesture.Simultaneous(
-        pinchGesture,
-        panGesture,
-        Gesture.Exclusive(doubleTapGesture, singleTapGesture),
-    );
+                const shouldDismiss =
+                    wasDismissDragging &&
+                    (Math.abs(translateY.get()) > DISMISS_DISTANCE || Math.abs(event.velocityY) > DISMISS_VELOCITY);
+
+                if (shouldDismiss) {
+                    const direction = translateY.get() >= 0 ? 1 : -1;
+                    if (reducedMotion) {
+                        scheduleOnRN(onClose);
+                    } else {
+                        translateY.set(
+                            withTiming(direction * Math.max(height * 0.45, 320), { duration: 180 }, (finished) => {
+                                if (finished) {
+                                    scheduleOnRN(onClose);
+                                }
+                            }),
+                        );
+                    }
+                } else {
+                    translateX.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
+                    translateY.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
+                    savedTranslateX.set(0);
+                    savedTranslateY.set(0);
+                }
+            });
+
+        const doubleTapGesture = Gesture.Tap()
+            .numberOfTaps(2)
+            .maxDuration(250)
+            .onEnd((event) => {
+                if (scale.get() > 1.05) {
+                    scale.set(reducedMotion ? 1 : withSpring(1, SPRING_CONFIG));
+                    savedScale.set(1);
+                    translateX.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
+                    translateY.set(reducedMotion ? 0 : withSpring(0, SPRING_CONFIG));
+                    savedTranslateX.set(0);
+                    savedTranslateY.set(0);
+                } else {
+                    const target = DOUBLE_TAP_SCALE;
+                    const maxX = ((target - 1) * width) / 2;
+                    const maxY = ((target - 1) * height) / 2;
+                    const nextX = Math.max(-maxX, Math.min(maxX, (width / 2 - event.x) * (target - 1)));
+                    const nextY = Math.max(-maxY, Math.min(maxY, (height / 2 - event.y) * (target - 1)));
+                    scale.set(reducedMotion ? target : withSpring(target, SPRING_CONFIG));
+                    savedScale.set(target);
+                    translateX.set(reducedMotion ? nextX : withSpring(nextX, SPRING_CONFIG));
+                    translateY.set(reducedMotion ? nextY : withSpring(nextY, SPRING_CONFIG));
+                    savedTranslateX.set(nextX);
+                    savedTranslateY.set(nextY);
+                }
+            });
+
+        const singleTapGesture = Gesture.Tap()
+            .numberOfTaps(1)
+            .onEnd(() => {
+                const nextOpacity = chromeOpacity.get() > 0.5 ? 0 : 1;
+                chromeOpacity.set(reducedMotion ? nextOpacity : withTiming(nextOpacity, { duration: 160 }));
+            });
+
+        return Gesture.Simultaneous(pinchGesture, panGesture, Gesture.Exclusive(doubleTapGesture, singleTapGesture));
+    }, [
+        chromeOpacity,
+        onClose,
+        height,
+        isDismissDragging,
+        reducedMotion,
+        savedScale,
+        savedTranslateX,
+        savedTranslateY,
+        scale,
+        translateX,
+        translateY,
+        width,
+    ]);
 
     const backdropAnimatedStyle = useAnimatedStyle(() => {
         const dragOpacity =

@@ -2,16 +2,21 @@ import { useIsOnline } from "@/lib/hook/useIsOnline";
 import WifiOff from "lucide-react-native/icons/wifi-off";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
-import { useTheme } from "../utils/theme";
+import { useThemeColors } from "../utils/theme";
 import { AppText } from "./AppText";
 
 /** Slim, non-blocking banner shown while React Query considers the app offline. */
 export function OfflineBanner() {
-    const { t } = useTranslation();
-    const { colors } = useTheme();
     const isOnline = useIsOnline();
 
     if (isOnline) return null;
+
+    return <OfflineBannerContent />;
+}
+
+function OfflineBannerContent() {
+    const { t } = useTranslation();
+    const colors = useThemeColors();
 
     return (
         <View

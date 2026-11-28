@@ -62,7 +62,7 @@ export default function GroupDetailScreen() {
     const { groupId } = useLocalSearchParams<GroupParams>();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
     const [activeIndex, setActiveIndex] = useState(0);
     const { data, isLoading, isError, refetch, isRefetching } = useMemberGroupById(Number(groupId));
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
@@ -136,13 +136,13 @@ export default function GroupDetailScreen() {
     );
 
     const renderLessonItem: ListRenderItem<MemberLessonSummaryResponse> = useCallback(
-        ({ item }) => <LessonRow lesson={item} disabled={isLocked} onPress={handleLessonPress} />,
-        [handleLessonPress, isLocked],
+        ({ item }) => <LessonRow lesson={item} onPress={handleLessonPress} />,
+        [handleLessonPress],
     );
 
     const renderHomeworkItem: ListRenderItem<MemberHomeworkSummaryResponse> = useCallback(
-        ({ item }) => <HomeworkRow homework={item} disabled={isLocked} onPress={handleHomeworkPress} />,
-        [handleHomeworkPress, isLocked],
+        ({ item }) => <HomeworkRow homework={item} onPress={handleHomeworkPress} />,
+        [handleHomeworkPress],
     );
 
     const renderTabBar = useCallback(
@@ -155,7 +155,6 @@ export default function GroupDetailScreen() {
             route.key === "lessons" ? (
                 <FlatList
                     data={lessons}
-                    extraData={isLocked}
                     keyExtractor={lessonKeyExtractor}
                     renderItem={renderLessonItem}
                     ItemSeparatorComponent={GroupDetailSeparator}
@@ -167,7 +166,6 @@ export default function GroupDetailScreen() {
             ) : (
                 <FlatList
                     data={groupHomeworks}
-                    extraData={isLocked}
                     keyExtractor={homeworkKeyExtractor}
                     renderItem={renderHomeworkItem}
                     ItemSeparatorComponent={GroupDetailSeparator}
@@ -177,16 +175,7 @@ export default function GroupDetailScreen() {
                     ListEmptyComponent={<CompactEmptyState title={t("groupsFlow.noHomework")} />}
                 />
             ),
-        [
-            groupHomeworks,
-            handlePullRefresh,
-            isLocked,
-            isPullRefreshing,
-            lessons,
-            renderHomeworkItem,
-            renderLessonItem,
-            t,
-        ],
+        [groupHomeworks, handlePullRefresh, isPullRefreshing, lessons, renderHomeworkItem, renderLessonItem, t],
     );
 
     const completedLessons = lessons.filter((lesson) => lesson.lessonStatus === "COMPLETED").length;
@@ -351,11 +340,9 @@ export default function GroupDetailScreen() {
 
 const LessonRow = memo(function LessonRow({
     lesson,
-    disabled,
     onPress,
 }: {
     lesson: MemberLessonSummaryResponse;
-    disabled: boolean;
     onPress: (lessonId: number) => void;
 }) {
     const { t } = useTranslation();
@@ -396,7 +383,6 @@ const LessonRow = memo(function LessonRow({
                 fontWeight: isCompleted ? "400" : "600",
                 color: isCompleted ? colors.mutedForeground : colors.foreground,
             }}
-            disabled={disabled}
             onPress={() => onPress(lesson.lessonId)}
         />
     );
@@ -404,11 +390,9 @@ const LessonRow = memo(function LessonRow({
 
 const HomeworkRow = memo(function HomeworkRow({
     homework,
-    disabled,
     onPress,
 }: {
     homework: MemberHomeworkSummaryResponse;
-    disabled: boolean;
     onPress: (homeworkId: number) => void;
 }) {
     const { t } = useTranslation();
@@ -472,7 +456,6 @@ const HomeworkRow = memo(function HomeworkRow({
             }
             className={isUrgent ? "border-danger/25 bg-danger/5 px-4 py-3.5" : "border-border bg-card px-4 py-3.5"}
             titleStyle={{ fontWeight: "600" }}
-            disabled={disabled}
             onPress={() => onPress(homework.homeworkId)}
         />
     );

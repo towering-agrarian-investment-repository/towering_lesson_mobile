@@ -35,7 +35,7 @@ import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause"
 import { formatDateForAPI, formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -74,6 +74,7 @@ export default function BayBookingConfirmScreen() {
         notes?: string;
     }>();
     const router = useRouter();
+    const navigation = useNavigation();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
     const submitting = useRef(false);
     const queryClient = useQueryClient();
@@ -240,20 +241,24 @@ export default function BayBookingConfirmScreen() {
                 response,
             );
             setBayNotesDraft(slotGroupIdNumber, "");
-            handleBookingConfirmationSuccess(router, {
-                type: "bay",
-                mode: isRescheduleMode ? "reschedule" : "booking",
-                reservationId: response.data.id,
-                ticketName: response.data.ticket?.name ?? ticketName,
-                ticketTotalCount: response.data.ticket?.totalCount,
-                ticketUsedCount: response.data.ticket?.usedCount,
-                ticketRemainingCount: response.data.ticket?.remainingCount,
-                ticketIsUnlimited: response.data.ticket?.isUnlimited,
-                date,
-                startTime: response.data.startTime ?? slotGroup.startDateTime,
-                endTime: response.data.endTime ?? slotGroup.endDateTime,
-                bayName: response.data.bayName,
-            });
+            handleBookingConfirmationSuccess(
+                router,
+                {
+                    type: "bay",
+                    mode: isRescheduleMode ? "reschedule" : "booking",
+                    reservationId: response.data.id,
+                    ticketName: response.data.ticket?.name ?? ticketName,
+                    ticketTotalCount: response.data.ticket?.totalCount,
+                    ticketUsedCount: response.data.ticket?.usedCount,
+                    ticketRemainingCount: response.data.ticket?.remainingCount,
+                    ticketIsUnlimited: response.data.ticket?.isUnlimited,
+                    date,
+                    startTime: response.data.startTime ?? slotGroup.startDateTime,
+                    endTime: response.data.endTime ?? slotGroup.endDateTime,
+                    bayName: response.data.bayName,
+                },
+                navigation,
+            );
         } catch (error) {
             await handleSlotUnavailable(error);
         } finally {

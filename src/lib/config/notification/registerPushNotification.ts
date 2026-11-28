@@ -58,19 +58,25 @@ export const registerForPushNotifications = async (
         return null;
     }
 
+    if (signal.aborted || getPushRegistrationGeneration() !== generation) {
+        return null;
+    }
+
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
     if (!projectId) {
         throw new Error("Expo project ID not found");
     }
 
-    const tokenResponse = await Notifications.getExpoPushTokenAsync({
-        projectId,
-        ...(devicePushToken ? { devicePushToken } : {}),
-    });
+    const [tokenResponse, installationId] = await Promise.all([
+        Notifications.getExpoPushTokenAsync({
+            projectId,
+            ...(devicePushToken ? { devicePushToken } : {}),
+        }),
+        getInstallationId(),
+    ]);
 
     const expoPushToken = tokenResponse.data;
-    const installationId = await getInstallationId();
 
     await confirmPushRegistration({ userId, installationId, token: expoPushToken }, generation, signal);
 

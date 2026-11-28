@@ -46,7 +46,7 @@ export function MemberGroups({ refreshing = false, onRefresh }: { refreshing?: b
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
     const { data, isLoading, isError, refetch, isRefetching } = useMemberGroups();
     const groups = data?.data ?? [];
 
@@ -69,11 +69,9 @@ export function MemberGroups({ refreshing = false, onRefresh }: { refreshing?: b
 
     const renderGroup = useCallback(
         ({ item }: { item: MemberGroupSummaryResponse }) => {
-            return (
-                <GroupCard group={item} disabled={isLocked} onPressIn={handleGroupPressIn} onPress={handleGroupPress} />
-            );
+            return <GroupCard group={item} onPressIn={handleGroupPressIn} onPress={handleGroupPress} />;
         },
-        [handleGroupPress, handleGroupPressIn, isLocked],
+        [handleGroupPress, handleGroupPressIn],
     );
 
     return (
@@ -118,12 +116,10 @@ export function MemberGroups({ refreshing = false, onRefresh }: { refreshing?: b
 
 const GroupCard = memo(function GroupCard({
     group,
-    disabled,
     onPress,
     onPressIn,
 }: {
     group: MemberGroupSummaryResponse;
-    disabled: boolean;
     onPress: (groupId: number) => void;
     onPressIn: (groupId: number) => void;
 }) {
@@ -149,8 +145,7 @@ const GroupCard = memo(function GroupCard({
         <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={t("groups.openGroup", { name: groupName })}
-            disabled={disabled}
-            className="gap-3 rounded-2xl border border-border bg-card p-4 disabled:opacity-60"
+            className="gap-3 rounded-2xl border border-border bg-card p-4"
             onPress={() => onPress(group.groupId)}
             onPressIn={() => onPressIn(group.groupId)}
         >

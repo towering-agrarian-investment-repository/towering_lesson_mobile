@@ -23,8 +23,9 @@ type HomeworkDraftGuardProps = {
 };
 
 export function HomeworkDraftGuard({ control, selectedFile, isSubmitting, onPreventRemove }: HomeworkDraftGuardProps) {
-    const memo = useWatch({ control, name: "memo" });
-    usePreventRemove((Boolean(selectedFile) || Boolean(memo.trim())) && !isSubmitting, ({ repeat }) => {
+    const hasMemo = useWatch({ control, name: "memo", compute: (memo) => Boolean(memo.trim()) });
+
+    usePreventRemove((Boolean(selectedFile) || hasMemo) && !isSubmitting, ({ repeat }) => {
         onPreventRemove(repeat);
     });
     return null;

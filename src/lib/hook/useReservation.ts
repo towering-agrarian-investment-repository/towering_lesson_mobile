@@ -299,11 +299,17 @@ export function useMemberReservationById(id: number, domain?: MemberReservationD
     });
 }
 
-export function useMemberBaySlotGroups(ticketId: number, startDate: string, endDate: string, enabled = true) {
+export function useMemberBaySlotGroups(
+    ticketId: number,
+    startDate: string,
+    endDate: string,
+    enabled = true,
+    refetchOnWindowFocus = true,
+) {
     return useQuery<ApiResponse<MemberBaySlotGroupResponse[]>>({
         ...getMemberBaySlotGroupsQueryOptions(ticketId, startDate, endDate),
         enabled: enabled && Number.isSafeInteger(ticketId) && ticketId > 0 && Boolean(startDate) && Boolean(endDate),
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus,
         // Keep date navigation smooth without displaying another ticket's schedule.
         placeholderData: (previousData, previousQuery) =>
             previousQuery?.queryKey[2] === ticketId ? previousData : undefined,
@@ -401,11 +407,12 @@ export function useMemberTicketLessonSlots(
     year: number,
     month: number,
     enabled = true,
+    refetchOnWindowFocus = true,
 ) {
     return useQuery<ApiResponse<MemberLessonSlotResponse[]>>({
         ...getMemberTicketLessonSlotsQueryOptions(ticketId as number, year, month),
         enabled: enabled && Boolean(ticketId) && Boolean(year) && Boolean(month),
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus,
         placeholderData: (previousData, previousQuery) =>
             previousQuery?.queryKey[2] === ticketId ? previousData : undefined,
     });

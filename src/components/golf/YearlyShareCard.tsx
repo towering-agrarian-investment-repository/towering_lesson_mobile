@@ -10,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { forwardRef, memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Text, View, type TextStyle } from "react-native";
-import Svg, { Defs, Ellipse, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from "react-native-svg";
 import layout from "../../../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json";
 import { ShareCardHeader } from "./ShareCardHeader";
 import {
@@ -37,6 +37,15 @@ type YearlyShareCardProps = {
 
 const dayDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4.png");
 const darkDecoration = require("../../../assets/HappyGolf_ShareCard_V4/assets/decorations_minimal_v4_dark_clear.png");
+
+const YEARLY_GRID_ORIGIN_X = 42;
+const YEARLY_GRID_ORIGIN_Y = 510;
+const YEARLY_GRID_WIDTH = 1009;
+const YEARLY_GRID_HEIGHT = 580;
+
+function roundedRectSubpath(x: number, y: number, w: number, h: number, r: number) {
+    return `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}h-${w - 2 * r}a${r} ${r} 0 0 1 -${r} -${r}v-${h - 2 * r}a${r} ${r} 0 0 1 ${r} -${r}z`;
+}
 
 function createYearlyFormatters(language: string) {
     const weekdayFormatter = new Intl.DateTimeFormat(language, {
@@ -95,16 +104,23 @@ export const YearlyShareCard = memo(
         const ink = dark ? colors.foreground : layout.style.textDark;
         const mutedInk = dark ? colors.mutedForeground : layout.style.textMuted;
         const scale = width / SHARE_CARD_WIDTH;
-        const [artReady, setArtReady] = useState(false);
+        const artSource = dark ? darkDecoration : dayDecoration;
+        const [loadedArtSource, setLoadedArtSource] = useState<number | null>(null);
         const [layoutReady, setLayoutReady] = useState(false);
-        const [avatarReady, setAvatarReady] = useState(false);
-        const [avatarFailed, setAvatarFailed] = useState(false);
-        const ready = artReady && layoutReady && (!memberImage || avatarReady);
+        const [loadedAvatarUri, setLoadedAvatarUri] = useState<string | null>(null);
+        const [failedAvatarUri, setFailedAvatarUri] = useState<string | null>(null);
+        const artReady = loadedArtSource === artSource;
+        const avatarFailed = Boolean(memberImage) && failedAvatarUri === memberImage;
+        const avatarReady = !memberImage || loadedAvatarUri === memberImage || avatarFailed;
+        const ready = artReady && layoutReady && avatarReady;
 
         useEffect(() => {
             onReadyChange(ready);
-            return () => onReadyChange(false);
         }, [ready, onReadyChange]);
+
+        useEffect(() => {
+            return () => onReadyChange(false);
+        }, [onReadyChange]);
 
         const pos = (x: number, y: number, w: number, h: number) => ({
             position: "absolute" as const,
@@ -132,6 +148,48 @@ export const YearlyShareCard = memo(
                 .map((day) => [toDateKey(day.date), day]),
         );
         const name = memberName || t("activity.golfer");
+        const satIdleFill = colorWithOpacity(colors.primary, dark ? 0.2 : 0.12);
+        const sunIdleFill = colorWithOpacity(colors.danger, dark ? 0.2 : 0.12);
+        const monthMeta = Array.from({ length: 12 }, (_, month) => {
+            const x = YEARLY_GRID_ORIGIN_X + (month % 4) * 258;
+            const y = YEARLY_GRID_ORIGIN_Y + Math.floor(month / 4) * 197;
+            const monthLabel = monthFormatter.format(new Date(Date.UTC(year, month, 1)));
+            const offset = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
+            const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+            return { month, x, y, monthLabel, offset, daysInMonth };
+        });
+        const cellPathsByFill = new Map<string, string[]>();
+        for (const { month, offset, daysInMonth } of monthMeta) {
+            const monthOriginX = (month % 4) * 258;
+            const monthOriginY = Math.floor(month / 4) * 197;
+            const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+            for (let index = 0; index < 42; index++) {
+                const day = index - offset + 1;
+                const dateKey = day >= 1 && day <= daysInMonth ? `${monthPrefix}${String(day).padStart(2, "0")}` : null;
+                const activity = dateKey ? byDate.get(dateKey) : undefined;
+                const active = !loadingValues && Boolean(activity && activity.count > 0);
+                const column = index % 7;
+                const fill = active
+                    ? getActivityStatusColor(activity?.status, colors)
+                    : column === 5
+                      ? satIdleFill
+                      : column === 6
+                        ? sunIdleFill
+                        : colors.muted;
+                const rx = monthOriginX + 12 + column * 30;
+                const ry = monthOriginY + 55 + Math.floor(index / 7) * 21;
+                let segments = cellPathsByFill.get(fill);
+                if (!segments) {
+                    segments = [];
+                    cellPathsByFill.set(fill, segments);
+                }
+                segments.push(roundedRectSubpath(rx, ry, 25, 17, 4));
+            }
+        }
+        const batchedCellPaths = Array.from(cellPathsByFill, ([fill, segments]) => ({
+            fill,
+            d: segments.join(""),
+        }));
 
         return (
             <View
@@ -167,10 +225,10 @@ export const YearlyShareCard = memo(
                     />
                 )}
                 <Image
-                    source={dark ? darkDecoration : dayDecoration}
+                    source={artSource}
                     resizeMode="stretch"
                     style={pos(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT)}
-                    onLoad={() => setArtReady(true)}
+                    onLoad={() => setLoadedArtSource(artSource)}
                     onError={onAssetError}
                 />
                 {!dark && (
@@ -208,107 +266,72 @@ export const YearlyShareCard = memo(
                     scheme={posterScheme}
                 />
 
-                {Array.from({ length: 12 }, (_, month) => {
-                    const x = 42 + (month % 4) * 258;
-                    const y = 510 + Math.floor(month / 4) * 197;
-                    const monthLabel = monthFormatter.format(new Date(Date.UTC(year, month, 1)));
-                    const offset = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
-                    const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-                    return (
-                        <View
-                            key={month}
-                            style={{
-                                ...pos(x, y, 235, 186),
-                                borderRadius: 18 * scale,
-                                backgroundColor: colors.surface,
-                            }}
+                {monthMeta.map(({ month, x, y, monthLabel }) => (
+                    <View
+                        key={month}
+                        style={{
+                            ...pos(x, y, 235, 186),
+                            borderRadius: 18 * scale,
+                            backgroundColor: colors.surface,
+                        }}
+                    >
+                        <Text
+                            allowFontScaling={false}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.65}
+                            style={[
+                                {
+                                    position: "absolute",
+                                    left: 12 * scale,
+                                    top: 7 * scale,
+                                    width: 211 * scale,
+                                },
+                                type(22, tallScript ? 31 : 27, "800", ink),
+                                {
+                                    letterSpacing: latin ? 2 * scale : 0,
+                                },
+                            ]}
                         >
+                            {latin ? monthLabel.toLocaleUpperCase(language) : monthLabel}
+                        </Text>
+                        {weekdays.map((weekday, column) => (
                             <Text
+                                key={column}
                                 allowFontScaling={false}
                                 numberOfLines={1}
-                                adjustsFontSizeToFit
-                                minimumFontScale={0.65}
                                 style={[
                                     {
                                         position: "absolute",
-                                        left: 12 * scale,
-                                        top: 7 * scale,
-                                        width: 211 * scale,
+                                        left: (12 + column * 30) * scale,
+                                        top: 35 * scale,
+                                        width: 25 * scale,
                                     },
-                                    type(22, tallScript ? 31 : 27, "800", ink),
-                                    {
-                                        letterSpacing: latin ? 2 * scale : 0,
-                                    },
+                                    type(
+                                        14,
+                                        18,
+                                        "700",
+                                        column === 5 ? colors.primary : column === 6 ? colors.danger : mutedInk,
+                                    ),
+                                    { textAlign: "center" },
                                 ]}
                             >
-                                {latin ? monthLabel.toLocaleUpperCase(language) : monthLabel}
+                                {latin ? weekday.toLocaleUpperCase(language) : weekday}
                             </Text>
-                            {weekdays.map((weekday, column) => (
-                                <Text
-                                    key={column}
-                                    allowFontScaling={false}
-                                    numberOfLines={1}
-                                    style={[
-                                        {
-                                            position: "absolute",
-                                            left: (12 + column * 30) * scale,
-                                            top: 35 * scale,
-                                            width: 25 * scale,
-                                        },
-                                        type(
-                                            14,
-                                            18,
-                                            "700",
-                                            column === 5 ? colors.primary : column === 6 ? colors.danger : mutedInk,
-                                        ),
-                                        { textAlign: "center" },
-                                    ]}
-                                >
-                                    {latin ? weekday.toLocaleUpperCase(language) : weekday}
-                                </Text>
-                            ))}
-                            <Svg
-                                width={235 * scale}
-                                height={186 * scale}
-                                viewBox="0 0 235 186"
-                                style={{
-                                    position: "absolute",
-                                    left: 0,
-                                    top: 0,
-                                }}
-                            >
-                                {Array.from({ length: 42 }, (_, index) => {
-                                    const day = index - offset + 1;
-                                    const dateKey =
-                                        day >= 1 && day <= daysInMonth
-                                            ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                                            : null;
-                                    const activity = dateKey ? byDate.get(dateKey) : undefined;
-                                    const active = !loadingValues && Boolean(activity && activity.count > 0);
-                                    const column = index % 7;
-                                    const fill = active
-                                        ? getActivityStatusColor(activity?.status, colors)
-                                        : column === 5
-                                          ? colorWithOpacity(colors.primary, dark ? 0.2 : 0.12)
-                                          : column === 6
-                                            ? colorWithOpacity(colors.danger, dark ? 0.2 : 0.12)
-                                            : colors.muted;
-                                    return (
-                                        <Rect
-                                            key={index}
-                                            x={12 + column * 30}
-                                            y={55 + Math.floor(index / 7) * 21}
-                                            width={25}
-                                            height={17}
-                                            rx={4}
-                                            fill={fill}
-                                        />
-                                    );
-                                })}
-                            </Svg>
-                        </View>
-                    );
-                })}
+                        ))}
+                    </View>
+                ))}
+                <Svg
+                    pointerEvents="none"
+                    width={YEARLY_GRID_WIDTH * scale}
+                    height={YEARLY_GRID_HEIGHT * scale}
+                    viewBox={`0 0 ${YEARLY_GRID_WIDTH} ${YEARLY_GRID_HEIGHT}`}
+                    style={pos(YEARLY_GRID_ORIGIN_X, YEARLY_GRID_ORIGIN_Y, YEARLY_GRID_WIDTH, YEARLY_GRID_HEIGHT)}
+                >
+                    {batchedCellPaths.map(({ fill, d }) => (
+                        <Path key={fill} d={d} fill={fill} />
+                    ))}
+                </Svg>
 
                 <View
                     style={{
@@ -329,10 +352,9 @@ export const YearlyShareCard = memo(
                             source={{ uri: memberImage }}
                             resizeMode="cover"
                             style={{ width: "100%", height: "100%" }}
-                            onLoad={() => setAvatarReady(true)}
+                            onLoad={() => setLoadedAvatarUri(memberImage)}
                             onError={() => {
-                                setAvatarFailed(true);
-                                setAvatarReady(true);
+                                setFailedAvatarUri(memberImage);
                             }}
                         />
                     ) : (

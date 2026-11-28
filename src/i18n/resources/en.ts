@@ -480,6 +480,7 @@ const en = {
         offlineMessage: "Check your internet connection and try again.",
         requestTimeout: "The request took too long. Check your connection and try again.",
         cancel: "Cancel",
+        loadMore: "Load more",
         goBack: "Go back",
         closeTitle: "Close {{title}}",
         selectOption: "Select an option",

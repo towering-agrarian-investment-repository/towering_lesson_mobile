@@ -32,7 +32,7 @@ import Clock from "lucide-react-native/icons/clock";
 import ExternalLink from "lucide-react-native/icons/external-link";
 import FileText from "lucide-react-native/icons/file-text";
 import UsersRound from "lucide-react-native/icons/users-round";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { RefreshControl, View } from "react-native";
@@ -60,13 +60,21 @@ export function LessonDetailView({
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(onRefetch);
 
     const lesson = detail?.lesson;
     const sessions = detail?.sessions ?? [];
     const homeworks = detail?.homeworks ?? [];
-    const submissions = detail?.currentHomeworkSubmissions ?? [];
+    const currentSubmissionByHomeworkId = useMemo(() => {
+        const map = new Map<number, MemberHomeworkSubmissionResponse>();
+        for (const submission of detail?.currentHomeworkSubmissions ?? []) {
+            if (submission.isCurrent && !map.has(submission.homeworkId)) {
+                map.set(submission.homeworkId, submission);
+            }
+        }
+        return map;
+    }, [detail?.currentHomeworkSubmissions]);
     const mediaItems = detail?.media ?? [];
     const lessonStatusTone = getLessonStatusTone(lesson?.lessonStatus);
     const completedSessionCount = sessions.filter(isSessionCompleted).length;
@@ -198,7 +206,6 @@ export function LessonDetailView({
                                 <SessionRow
                                     session={session}
                                     stepNumber={session.orderIndex ?? index + 1}
-                                    disabled={isLocked}
                                     onPress={() => {
                                         runWithNavigationLock(() => {
                                             router.push(getSessionHref(session.id));
@@ -222,8 +229,7 @@ export function LessonDetailView({
                                 {index > 0 ? <Divider className="ml-[68px] bg-border/70" /> : null}
                                 <HomeworkRow
                                     homework={homework}
-                                    submissions={submissions}
-                                    disabled={isLocked}
+                                    latestSubmission={currentSubmissionByHomeworkId.get(homework.homeworkId)}
                                     onPress={() => {
                                         void queryClient.prefetchQuery(
                                             getMemberHomeworkByIdQueryOptions(homework.homeworkId),
@@ -317,12 +323,10 @@ function isSessionCompleted(session: MemberLessonSessionResponse) {
 function SessionRow({
     session,
     stepNumber,
-    disabled,
     onPress,
 }: {
     session: MemberLessonSessionResponse;
     stepNumber: number;
-    disabled: boolean;
     onPress: () => void;
 }) {
     const colors = useThemeColors();
@@ -342,9 +346,8 @@ function SessionRow({
         <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={getSessionTitle(session)}
-            disabled={disabled}
             haptic="selection"
-            className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface disabled:opacity-60"
+            className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface"
             onPress={onPress}
         >
             <View
@@ -397,20 +400,15 @@ function SessionRow({
 
 function HomeworkRow({
     homework,
-    submissions,
-    disabled,
+    latestSubmission,
     onPress,
 }: {
     homework: MemberHomeworkSummaryResponse;
-    submissions: MemberHomeworkSubmissionResponse[];
-    disabled: boolean;
+    latestSubmission?: MemberHomeworkSubmissionResponse;
     onPress: () => void;
 }) {
     const { t } = useTranslation();
     const colors = useThemeColors();
-    const latestSubmission = submissions.find(
-        (submission) => submission.homeworkId === homework.homeworkId && submission.isCurrent,
-    );
     const submissionStatus = latestSubmission?.status ?? homework.currentSubmissionStatus;
     const reviewStatus = latestSubmission?.review?.status ?? homework.currentReviewStatus;
     const statusLabel = reviewStatus
@@ -434,9 +432,8 @@ function HomeworkRow({
         <AnimatedPressable
             accessibilityRole="button"
             accessibilityLabel={`${getHomeworkTitle(homework)}, ${statusLabel}`}
-            disabled={disabled}
             haptic="selection"
-            className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface disabled:opacity-60"
+            className="min-h-16 flex-row items-center gap-3 rounded-lg px-4 py-3.5 active:bg-surface"
             onPress={onPress}
         >
             <View

@@ -14,7 +14,6 @@ type ShareCardSceneProps = {
     stageHeight: number;
     showCard: boolean;
     cardWidth: number;
-    assetKey: string;
     scheme: "light" | "dark";
     cardProps: ShareCardProps;
     dailyValues: ActivityHeatmapValue[];
@@ -37,7 +36,6 @@ export function ShareCardScene({
     stageHeight,
     showCard,
     cardWidth,
-    assetKey,
     scheme,
     cardProps,
     dailyValues,
@@ -70,7 +68,6 @@ export function ShareCardScene({
                 >
                     {period === "month" ? (
                         <MonthlyGolfShareCard
-                            key={assetKey}
                             ref={cardRef}
                             {...cardProps}
                             scheme={scheme}
@@ -85,7 +82,6 @@ export function ShareCardScene({
                         />
                     ) : (
                         <YearlyShareCard
-                            key={assetKey}
                             ref={cardRef}
                             {...cardProps}
                             scheme={scheme}

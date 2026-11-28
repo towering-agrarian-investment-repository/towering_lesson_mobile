@@ -36,13 +36,22 @@ export function parseCalendarDate(date: string | number | Date) {
     return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 }
 
+const activityDateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
 export function formatActivityDate(dateKey: string, language: string) {
-    return parseCalendarDate(dateKey).toLocaleDateString(language, {
-        weekday: "long",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
+    const parsed = parseCalendarDate(dateKey);
+    const cacheKey = `${language}|${parsed.getTimezoneOffset()}`;
+    let formatter = activityDateFormatterCache.get(cacheKey);
+    if (!formatter) {
+        formatter = new Intl.DateTimeFormat(language, {
+            weekday: "long",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
+        activityDateFormatterCache.set(cacheKey, formatter);
+    }
+    return formatter.format(parsed);
 }
 
 export function buildHeatmapWeeks(

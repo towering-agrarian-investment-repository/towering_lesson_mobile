@@ -72,7 +72,7 @@ function settleNotificationMutation(queryClient: QueryClient) {
     const tracker = getMutationTracker(queryClient);
     tracker.activeCount = Math.max(0, tracker.activeCount - 1);
     if (tracker.activeCount === 0) {
-        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        return queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
 }
 
@@ -174,9 +174,7 @@ export const useMarkAsRead = () => {
             restoreNotifications(queryClient, context);
             responseError(error);
         },
-        onSettled: () => {
-            settleNotificationMutation(queryClient);
-        },
+        onSettled: () => settleNotificationMutation(queryClient),
     });
 };
 
@@ -221,9 +219,7 @@ export const useMarkAllAsRead = () => {
             restoreNotifications(queryClient, context);
             responseError(error);
         },
-        onSettled: () => {
-            settleNotificationMutation(queryClient);
-        },
+        onSettled: () => settleNotificationMutation(queryClient),
     });
 };
 
@@ -274,9 +270,7 @@ export const useDeleteNotification = () => {
             restoreNotifications(queryClient, context);
             responseError(error);
         },
-        onSettled: () => {
-            settleNotificationMutation(queryClient);
-        },
+        onSettled: () => settleNotificationMutation(queryClient),
     });
 };
 
@@ -320,8 +314,6 @@ export const useDeleteAllNotifications = () => {
             restoreNotifications(queryClient, context);
             responseError(error);
         },
-        onSettled: () => {
-            settleNotificationMutation(queryClient);
-        },
+        onSettled: () => settleNotificationMutation(queryClient),
     });
 };

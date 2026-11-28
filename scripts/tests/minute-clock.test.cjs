@@ -147,3 +147,19 @@ test("day clock waits for Phnom Penh midnight and resyncs after backgrounding", 
     assert.equal(clock.timers.size, 0);
     assert.equal(clock.listeners.size, 0);
 });
+
+test("a reservation countdown keeps advancing as it enters its final day", () => {
+    const clock = createClockHarness("2026-11-28T00:00:00Z");
+    const reservationStart = Date.parse("2026-11-29T01:00:00Z");
+    const countdown = clock.mount(clock.useMinuteClock);
+    assert.equal(reservationStart - countdown.state.value, 25 * 3_600_000);
+
+    clock.tick("2026-11-28T02:00:00Z");
+    assert.equal(reservationStart - countdown.state.value, 23 * 3_600_000);
+    assert.equal(clock.timers.size, 1);
+
+    clock.setAppState("background");
+    clock.setAppState("active", "2026-11-29T00:30:00Z");
+    assert.equal(reservationStart - countdown.state.value, 30 * 60_000);
+    countdown.blur();
+});

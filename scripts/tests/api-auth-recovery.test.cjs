@@ -57,7 +57,7 @@ function mockClient(respond, isOnline = () => true) {
     const mints = [];
     const calls = [];
     const tokens = load("src/lib/client/jwt-token.ts", {
-        jose: { decodeJwt: () => ({ exp: Date.now() / 1000 + 600 }) },
+        "jose/jwt/decode": { decodeJwt: () => ({ exp: Date.now() / 1000 + 600 }) },
         "../auth-client": {
             authClient: {
                 token: () => {
@@ -106,6 +106,9 @@ function mockClient(respond, isOnline = () => true) {
         },
         issue(index, token) {
             mints[index].resolve({ data: { token } });
+        },
+        fail(index, error) {
+            mints[index].resolve({ error });
         },
     };
 }
@@ -232,4 +235,15 @@ test("write requests require a Bearer challenge for one replay", async () => {
         ["/bearer-rejection", "Bearer rejected-refresh"],
         ["/after", "Bearer new-token"],
     ]);
+});
+
+test("revoked-session 401 during JWT recovery triggers session verification", async () => {
+    const client = mockClient(() => Promise.resolve(unauthorized()));
+    const pending = assert.rejects(client.apiClient("/protected"), { status: 401 });
+    client.issue(0, "old");
+    await flush();
+    assert.equal(client.mintCount, 2);
+    client.fail(1, { status: 401 });
+    await pending;
+    assert.equal(client.sessionChecks, 1);
 });

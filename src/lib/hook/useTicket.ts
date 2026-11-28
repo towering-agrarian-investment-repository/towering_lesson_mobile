@@ -53,23 +53,27 @@ export function getMemberTicketsQueryOptions({
     };
 }
 
-export function useMemberTickets(filters?: MemberTicketFilters) {
+export function useMemberTickets(filters?: MemberTicketFilters, enabled = true) {
     const options = getMemberTicketsQueryOptions(filters);
     const [, , , limit, types] = options.queryKey;
 
     return useInfiniteQuery<
         ApiResponse<CursorPageResponse<MemberTicketSummaryResponse>>,
         Error,
-        { items: MemberTicketSummaryResponse[] },
+        { items: MemberTicketSummaryResponse[]; pageCount: number },
         ReturnType<typeof getMemberTicketsQueryOptions>["queryKey"],
         string | null
     >({
         ...options,
+        enabled,
         placeholderData: (previousData, previousQuery) =>
             previousQuery?.queryKey[3] === limit && previousQuery.queryKey[4]?.join(",") === types?.join(",")
                 ? previousData
                 : undefined,
-        select: (data) => ({ items: data.pages.flatMap((page) => page.data.items) }),
+        select: (data) => ({
+            items: data.pages.flatMap((page) => page.data.items),
+            pageCount: data.pages.length,
+        }),
     });
 }
 

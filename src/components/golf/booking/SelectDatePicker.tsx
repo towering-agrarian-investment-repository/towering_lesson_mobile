@@ -8,6 +8,8 @@ import {
     EmptyState,
     ErrorState,
     Screen,
+    SCREEN_HORIZONTAL_PADDING,
+    SCREEN_MAX_WIDTH,
     triggerNotificationHaptic,
     triggerSelectionHaptic,
 } from "@/design-system";
@@ -15,6 +17,7 @@ import { useTheme, type ThemeColors } from "@/design-system/utils/theme";
 import { formatTicketTypeLabel, isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { formatCalendarMonthTitle, getCalendarLocale, type CalendarLocaleData } from "@/lib/calendar-locale";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import {
@@ -28,10 +31,10 @@ import { showAppToast } from "@/design-system/components/AppToast";
 import { isLessonSlotFull } from "@/utils/lesson-slot";
 import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { getTicketPausePeriods, isTicketDatePaused, type TicketPausePeriod } from "@/utils/ticket-pause";
-import { formatDateForAPI, formatDateWeekday } from "@/utils/time-helper";
+import { formatDateForAPI, formatDateWeekday, formatMonthYear } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import ChevronLeft from "lucide-react-native/icons/chevron-left";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -110,12 +113,21 @@ function buildMonthWeeks(year: number, month: number): (number | null)[][] {
 }
 
 const monthKeyExtractor = (monthStart: string) => monthStart;
+const EMPTY_DATE_SET = new Set<string>();
+
+type DayCellLabels = {
+    paused: string;
+    available: string;
+    unavailable: string;
+    today: string;
+};
 
 type DayCellProps = {
     dateString: string;
     day: number;
     today: string;
     dateLabel: string;
+    labels: DayCellLabels;
     colors: ThemeColors;
     isAvailabilityKnown: boolean;
     isAvailable: boolean;
@@ -129,6 +141,7 @@ const DayCell = memo(function DayCell({
     day,
     today,
     dateLabel,
+    labels,
     colors,
     isAvailabilityKnown,
     isAvailable,
@@ -136,16 +149,14 @@ const DayCell = memo(function DayCell({
     isSelected,
     onPress,
 }: DayCellProps) {
-    const { t } = useTranslation();
-
     const isPast = dateString < today;
     const isToday = dateString === today;
     const isDisabled = isPast || isPaused || !isAvailabilityKnown;
     const isAvailableFuture = isAvailable && !isPast && !isPaused;
     const statusLabel = isPaused
-        ? `, ${t("booking.datePaused")}`
+        ? `, ${labels.paused}`
         : isAvailabilityKnown || isPast
-          ? `, ${t(isAvailableFuture ? "booking.legendAvailable" : "booking.legendUnavailable")}`
+          ? `, ${isAvailableFuture ? labels.available : labels.unavailable}`
           : "";
 
     const textColor = isPaused
@@ -164,7 +175,7 @@ const DayCell = memo(function DayCell({
     return (
         <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${dateLabel}${statusLabel}${isToday ? ` (${t("booking.legendToday")})` : ""}`}
+            accessibilityLabel={`${dateLabel}${statusLabel}${isToday ? ` (${labels.today})` : ""}`}
             accessibilityState={{ disabled: isDisabled, selected: isSelected }}
             disabled={isDisabled}
             hitSlop={4}
@@ -221,8 +232,7 @@ type CalendarMonthPageProps = {
     minHeight: number;
     locale: CalendarLocaleData;
     today: string;
-    startDate: string;
-    endDate: string;
+    dayCellLabels: DayCellLabels;
     getDateLabel: (dateString: string) => string;
     colors: ThemeColors;
     isAvailabilityKnown: boolean;
@@ -240,8 +250,7 @@ const CalendarMonthPage = memo(function CalendarMonthPage({
     minHeight,
     locale,
     today,
-    startDate,
-    endDate,
+    dayCellLabels,
     getDateLabel,
     colors,
     isAvailabilityKnown,
@@ -377,10 +386,9 @@ const CalendarMonthPage = memo(function CalendarMonthPage({
                                         day={day}
                                         today={today}
                                         dateLabel={getDateLabel(dateString)}
+                                        labels={dayCellLabels}
                                         colors={colors}
-                                        isAvailabilityKnown={
-                                            isAvailabilityKnown && dateString >= startDate && dateString <= endDate
-                                        }
+                                        isAvailabilityKnown={isAvailabilityKnown}
                                         isAvailable={availableDates.has(dateString)}
                                         isPaused={isPaused}
                                         isSelected={!isPaused && selectedDate === dateString}
@@ -415,11 +423,22 @@ function createBookingDateLabelGetter(language: string) {
 export default function DateScreen() {
     const { colors } = useTheme();
     const { i18n, t } = useTranslation();
-    const { fontScale } = useWindowDimensions();
+    const { width: windowWidth, fontScale } = useWindowDimensions();
+    const isFocused = useIsFocused();
+    const dayClock = useDayClock();
     const reducedMotion = useReducedMotion();
     const language = i18n.resolvedLanguage ?? i18n.language;
     const calendarLocale = getCalendarLocale(language);
     const getDateLabel = useMemo(() => createBookingDateLabelGetter(language), [language]);
+    const dayCellLabels = useMemo<DayCellLabels>(
+        () => ({
+            paused: t("booking.datePaused"),
+            available: t("booking.legendAvailable"),
+            unavailable: t("booking.legendUnavailable"),
+            today: t("booking.legendToday"),
+        }),
+        [t],
+    );
 
     const {
         ticketId,
@@ -443,7 +462,7 @@ export default function DateScreen() {
     const queryClient = useQueryClient();
     const { runWithNavigationLock } = useNavigationLock();
 
-    const today = formatDateForAPI(new Date());
+    const today = formatDateForAPI(dayClock);
     const currentMonth = parseMonth(today);
     const currentMonthIndex = getMonthIndex(currentMonth);
 
@@ -453,7 +472,9 @@ export default function DateScreen() {
     const visibleMonth = getMonthIndex(selectedMonth) >= currentMonthIndex ? selectedMonth : currentMonth;
     const visibleMonthIndex = getMonthIndex(visibleMonth);
     const [selectedDate, setSelectedDate] = useState<string | null>(initialDate ?? null);
-    const [calendarWidth, setCalendarWidth] = useState(0);
+    const [calendarWidth, setCalendarWidth] = useState(() =>
+        Math.max(0, Math.min(windowWidth, SCREEN_MAX_WIDTH) - SCREEN_HORIZONTAL_PADDING * 2 - 2),
+    );
     const calendarRef = useRef<FlatList<string>>(null);
     const pageIndex = visibleMonthIndex - currentMonthIndex;
     // Grow the range before the last page while keeping previously rendered offsets stable.
@@ -468,7 +489,7 @@ export default function DateScreen() {
             }),
         [currentMonthIndex, pageCount],
     );
-    const calendarGeometry = useRef({ width: 0, firstMonthIndex: currentMonthIndex });
+    const calendarGeometry = useRef({ width: calendarWidth, firstMonthIndex: currentMonthIndex });
     const realigningCalendar = useRef(false);
 
     const ticketIdNumber = Number(ticketId);
@@ -503,7 +524,7 @@ export default function DateScreen() {
         isPlaceholderData: isPlaceholderBaySlotGroups,
         isRefetching: isRefetchingBaySlotGroups,
         isError: isErrorBaySlotGroups,
-    } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, canLoadAvailability && !isLessonTicket);
+    } = useMemberBaySlotGroups(ticketIdNumber, startDate, endDate, canLoadAvailability && !isLessonTicket, isFocused);
 
     const {
         data: lessonSlotData,
@@ -517,6 +538,7 @@ export default function DateScreen() {
         visibleMonth.year,
         visibleMonth.month,
         canLoadAvailability && isLessonTicket,
+        isFocused,
     );
 
     const data = isLessonTicket ? lessonSlotData : baySlotGroupData;
@@ -536,12 +558,7 @@ export default function DateScreen() {
             lastVisibleMonthStart.current = monthStart;
             triggerSelectionHaptic();
             setSelectedMonth(parseMonth(monthStart));
-            AccessibilityInfo.announceForAccessibility(
-                new Intl.DateTimeFormat(language, {
-                    month: "long",
-                    year: "numeric",
-                }).format(new Date(`${monthStart}T12:00:00`)),
-            );
+            AccessibilityInfo.announceForAccessibility(formatMonthYear(`${monthStart}T12:00:00`, language));
         },
         [language],
     );
@@ -734,33 +751,36 @@ export default function DateScreen() {
     const calendarMinHeight = Math.round(CALENDAR_BASE_MIN_HEIGHT * Math.min(Math.max(fontScale, 1), 1.4));
 
     const renderMonth = useCallback(
-        ({ item, index }: ListRenderItemInfo<string>) => (
-            <CalendarMonthPage
-                monthStart={item}
-                index={index}
-                width={calendarWidth}
-                minHeight={calendarMinHeight}
-                locale={calendarLocale}
-                today={today}
-                startDate={startDate}
-                endDate={endDate}
-                getDateLabel={getDateLabel}
-                colors={colors}
-                isAvailabilityKnown={isAvailabilityKnown}
-                availableDates={availableDates}
-                pausePeriods={pausePeriods}
-                selectedDate={selectedDate}
-                onPressArrow={scrollToMonth}
-                onDayPress={handleDayPress}
-            />
-        ),
+        ({ item, index }: ListRenderItemInfo<string>) => {
+            const monthPrefix = item.slice(0, 8);
+            const isMonthAvailabilityKnown = isAvailabilityKnown && item === startDate;
+            return (
+                <CalendarMonthPage
+                    monthStart={item}
+                    index={index}
+                    width={calendarWidth}
+                    minHeight={calendarMinHeight}
+                    locale={calendarLocale}
+                    today={today}
+                    dayCellLabels={dayCellLabels}
+                    getDateLabel={getDateLabel}
+                    colors={colors}
+                    isAvailabilityKnown={isMonthAvailabilityKnown}
+                    availableDates={isMonthAvailabilityKnown ? availableDates : EMPTY_DATE_SET}
+                    pausePeriods={pausePeriods}
+                    selectedDate={selectedDate?.startsWith(monthPrefix) ? selectedDate : null}
+                    onPressArrow={scrollToMonth}
+                    onDayPress={handleDayPress}
+                />
+            );
+        },
         [
             availableDates,
             calendarLocale,
             calendarMinHeight,
             calendarWidth,
             colors,
-            endDate,
+            dayCellLabels,
             getDateLabel,
             handleDayPress,
             isAvailabilityKnown,
@@ -855,7 +875,12 @@ export default function DateScreen() {
                     style={{ minHeight: calendarMinHeight + 16 }}
                 >
                     {/* Match the paging viewport inside the card's border. */}
-                    <View onLayout={(event) => setCalendarWidth(event.nativeEvent.layout.width)}>
+                    <View
+                        onLayout={(event) => {
+                            const nextWidth = event.nativeEvent.layout.width;
+                            setCalendarWidth((current) => (Math.abs(nextWidth - current) > 0.5 ? nextWidth : current));
+                        }}
+                    >
                         {calendarWidth > 0 ? (
                             <FlatList
                                 ref={calendarRef}

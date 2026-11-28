@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Animated, View } from "react-native";
 import type { NavigationState, SceneRendererProps } from "react-native-tab-view";
 import { cn } from "../utils/cn";
@@ -31,6 +31,32 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
     const pillWidth = hasMeasured ? (trackWidth - (count - 1) * TAB_GAP) / count : 0;
     const step = pillWidth + TAB_GAP;
 
+    const indicatorTranslateX = useMemo(
+        () =>
+            count > 1
+                ? position.interpolate({
+                      inputRange: [0, count - 1],
+                      outputRange: [0, step * (count - 1)],
+                      extrapolate: "clamp",
+                  })
+                : 0,
+        [count, position, step],
+    );
+
+    const activeOpacities = useMemo(
+        () =>
+            count > 1
+                ? Array.from({ length: count }, (_, tabIndex) =>
+                      position.interpolate({
+                          inputRange: [tabIndex - 1, tabIndex, tabIndex + 1],
+                          outputRange: [0, 1, 0],
+                          extrapolate: "clamp",
+                      }),
+                  )
+                : null,
+        [count, position],
+    );
+
     return (
         <View className="rounded-2xl bg-surface p-1">
             <View
@@ -44,33 +70,13 @@ export function SwipeableTabBar<TRoute extends SwipeableTabRoute>({
                         className="absolute inset-y-0 left-0 rounded-xl bg-primary"
                         style={{
                             width: pillWidth,
-                            transform: [
-                                {
-                                    translateX:
-                                        count > 1
-                                            ? position.interpolate({
-                                                  inputRange: [0, count - 1],
-                                                  outputRange: [0, step * (count - 1)],
-                                                  extrapolate: "clamp",
-                                              })
-                                            : 0,
-                                },
-                            ],
+                            transform: [{ translateX: indicatorTranslateX }],
                         }}
                     />
                 ) : null}
                 {routes.map((route, tabIndex) => {
                     const isSelected = activeIndex === tabIndex;
-                    const activeOpacity =
-                        count > 1
-                            ? position.interpolate({
-                                  inputRange: [tabIndex - 1, tabIndex, tabIndex + 1],
-                                  outputRange: [0, 1, 0],
-                                  extrapolate: "clamp",
-                              })
-                            : isSelected
-                              ? 1
-                              : 0;
+                    const activeOpacity = activeOpacities ? activeOpacities[tabIndex] : isSelected ? 1 : 0;
 
                     return (
                         <AnimatedPressable

@@ -479,6 +479,7 @@ const km: TranslationResource<typeof en> = {
         offlineMessage: "សូមពិនិត្យអ៊ីនធឺណិត ហើយព្យាយាមម្តងទៀត។",
         requestTimeout: "សំណើផុតកំណត់ពេល។ សូមពិនិត្យការតភ្ជាប់ ហើយព្យាយាមម្តងទៀត។",
         cancel: "បោះបង់",
+        loadMore: "ផ្ទុកបន្ថែម",
         goBack: "ត្រឡប់ក្រោយ",
         closeTitle: "បិទ {{title}}",
         selectOption: "ជ្រើសរើស",

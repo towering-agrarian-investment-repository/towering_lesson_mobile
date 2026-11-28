@@ -4,6 +4,7 @@ import { isBookableTicketType } from "@/design-system/utils/ticket-type";
 import { typography } from "@/design-system/utils/typography";
 import { prefetchTicketAvailability } from "@/lib/booking/prefetchTicketAvailability";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberTicketByIdQueryOptions,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/hook/useTicket";
 import { showAppToast } from "@/design-system/components/AppToast";
 import { MemberTicketSummaryResponse } from "@/types/member-ticket";
+import { formatDateForAPI } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -26,6 +28,8 @@ function MyTicket() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const dayClock = useDayClock();
+    const todayKey = formatDateForAPI(dayClock);
     const { data, isLoading, isError, isFetching, errorUpdateCount, hasNextPage, refetch } = useMemberTickets({
         types: MY_TICKET_TYPES,
     });
@@ -149,7 +153,13 @@ function MyTicket() {
                     <View className="flex-row flex-wrap gap-3">
                         {tickets.map((ticket) => (
                             <View key={ticket.id} style={{ flexBasis: 280, flexGrow: 1 }}>
-                                <TicketCard item={ticket} disabled={isLocked} onPress={handleTicketPress} fullWidth />
+                                <TicketCard
+                                    item={ticket}
+                                    todayKey={todayKey}
+                                    disabled={isLocked}
+                                    onPress={handleTicketPress}
+                                    fullWidth
+                                />
                             </View>
                         ))}
                     </View>

@@ -479,6 +479,7 @@ const ko: TranslationResource<typeof en> = {
         offlineMessage: "인터넷 연결을 확인한 후 다시 시도해 주세요.",
         requestTimeout: "요청 시간이 초과되었습니다. 연결을 확인한 후 다시 시도해 주세요.",
         cancel: "취소",
+        loadMore: "더 불러오기",
         goBack: "뒤로",
         closeTitle: "{{title}} 닫기",
         selectOption: "옵션 선택",

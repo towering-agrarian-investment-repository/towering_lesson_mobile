@@ -9,8 +9,7 @@ export type NotificationListEntry =
 export const notificationKeyExtractor = (entry: NotificationListEntry) =>
     entry.kind === "header" ? `section-${entry.key}` : String(entry.item.id);
 
-export const getNotificationItemType = (entry: NotificationListEntry) =>
-    entry.kind === "header" ? "header" : entry.item.isRead ? "read" : "unread";
+export const getNotificationItemType = (entry: NotificationListEntry) => (entry.kind === "header" ? "header" : "item");
 
 function getNotificationSectionKey(
     createdAt: string,

@@ -51,17 +51,15 @@ function NoticeScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const navigation = useNavigation();
-    const { isLocked, runWithNavigationLock, unlock } = useNavigationLock();
+    const { runWithNavigationLock, unlock } = useNavigationLock();
     const isFocused = useIsFocused();
     const now = useDayClock();
     const listRef = useRef<FlashListRef<NotificationListEntry>>(null);
     useScrollToTop(listRef);
     const [isNotificationPermissionDenied, setIsNotificationPermissionDenied] = useState(false);
     const [isPermissionBannerDismissed, setIsPermissionBannerDismissed] = useState(false);
-    const [hasVisited, setHasVisited] = useState(false);
     useFocusEffect(
         useCallback(() => {
-            setHasVisited(true);
             let isActive = true;
             void Notifications.getPermissionsAsync()
                 .then((permission) => {
@@ -91,7 +89,7 @@ function NoticeScreen() {
         isFetchingNextPage,
         isFetchNextPageError,
     } = useGetNotifications(undefined, {
-        enabled: isFocused || hasVisited,
+        enabled: isFocused,
         refetchOnWindowFocus: isFocused,
     });
     const { mutateAsync: markAsRead, isPending: isMarkingAsRead } = useMarkAsRead();
@@ -105,11 +103,10 @@ function NoticeScreen() {
         isMarkingAsRead || isMarkingAllAsRead || isDeletingNotification || isDeletingAllNotifications;
     const flashListExtraData = useMemo(
         () => ({
-            isLocked,
             isNotificationActionPending,
             isDeletingNotification,
         }),
-        [isDeletingNotification, isLocked, isNotificationActionPending],
+        [isDeletingNotification, isNotificationActionPending],
     );
 
     const handleSwipeableWillOpen = useCallback((methods: SwipeableMethods) => {
@@ -132,7 +129,7 @@ function NoticeScreen() {
     }, []);
     const handleDeleteNotification = useCallback(
         (id: number) => {
-            if (notificationActionLocked.current || isNotificationActionPending || isLocked) {
+            if (notificationActionLocked.current || isNotificationActionPending) {
                 return;
             }
             triggerImpactHaptic(Haptics.ImpactFeedbackStyle.Medium);
@@ -143,7 +140,7 @@ function NoticeScreen() {
                 },
             });
         },
-        [deleteNotification, isLocked, isNotificationActionPending],
+        [deleteNotification, isNotificationActionPending],
     );
     const closeDeleteAllSheet = () => {
         setIsDeleteAllConfirmationOpen(false);
@@ -318,7 +315,7 @@ function NoticeScreen() {
             ) : (
                 <MemoNotificationRow
                     item={item.item}
-                    disabled={isLocked || isNotificationActionPending}
+                    disabled={isNotificationActionPending}
                     isDeleting={isDeletingNotification}
                     onDelete={handleDeleteNotification}
                     onPress={handleNotificationPress}
@@ -332,7 +329,6 @@ function NoticeScreen() {
             handleSwipeableReset,
             handleSwipeableWillOpen,
             isDeletingNotification,
-            isLocked,
             isNotificationActionPending,
         ],
     );

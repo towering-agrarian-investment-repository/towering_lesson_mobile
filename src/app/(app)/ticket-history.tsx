@@ -11,14 +11,16 @@ import {
     type SwipeableTabRoute,
     triggerSelectionHaptic,
 } from "@/design-system";
+import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getMemberTicketByIdQueryOptions, useMemberTickets } from "@/lib/hook/useTicket";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { getTicketStatusGroup } from "@/utils/status-tone";
+import { formatDateForAPI } from "@/utils/time-helper";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
@@ -30,6 +32,7 @@ type TicketHistoryFilter = (typeof TICKET_HISTORY_TABS)[number];
 
 const ALL_TICKET_STATUSES: readonly string[] = [];
 const ACTIVE_TICKET_STATUSES: readonly string[] = ["ACTIVE", "IN_USE"];
+const MAX_EMPTY_AUTO_FETCH_PAGES = 2;
 const TICKET_HISTORY_GROUP_TITLES = {
     active: "tickets.historyFilters.active",
     past: "tickets.historyFilters.past",
@@ -89,15 +92,16 @@ export default function TicketHistoryScreen() {
         handleTabChange(0);
     }, [handleTabChange]);
 
+    const isFocused = useIsFocused();
     const renderScene = useCallback(
         ({ route }: { route: { key: string } }) => (
             <TicketHistoryTabScene
                 filter={route.key as TicketHistoryFilter}
-                isActive={route.key === TICKET_HISTORY_TABS[activeIndex]}
+                isActive={isFocused && route.key === TICKET_HISTORY_TABS[activeIndex]}
                 onShowAll={handleShowAll}
             />
         ),
-        [activeIndex, handleShowAll],
+        [activeIndex, handleShowAll, isFocused],
     );
 
     const renderTabBar = useCallback(
@@ -132,7 +136,9 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
     const { t } = useTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { isLocked, runWithNavigationLock } = useNavigationLock();
+    const { runWithNavigationLock } = useNavigationLock();
+    const dayClock = useDayClock();
+    const todayKey = formatDateForAPI(dayClock);
 
     const queryStatuses = filter === "active" ? ACTIVE_TICKET_STATUSES : ALL_TICKET_STATUSES;
 
@@ -147,7 +153,7 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         hasNextPage,
         isFetchingNextPage,
         isFetchNextPageError,
-    } = useMemberTickets({ statuses: queryStatuses });
+    } = useMemberTickets({ statuses: queryStatuses }, isActive);
 
     const { refreshing: isPullRefreshing, onRefresh: handlePullRefresh } = usePullToRefresh(() =>
         refetch({ cancelRefetch: false }),
@@ -202,11 +208,20 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
         }
     }, [handleFetchNextPage, isActive, isFetchNextPageError]);
 
+    const loadedPageCount = data?.pageCount ?? 0;
+    const canAutoFetchEmptyPage =
+        isActive &&
+        filter !== "all" &&
+        entries.length === 0 &&
+        hasNextPage &&
+        !isFetchNextPageError &&
+        loadedPageCount < 1 + MAX_EMPTY_AUTO_FETCH_PAGES;
+
     useEffect(() => {
-        if (isActive && filter !== "all" && entries.length === 0 && hasNextPage && !isFetchNextPageError) {
+        if (canAutoFetchEmptyPage && !isFetching) {
             handleFetchNextPage();
         }
-    }, [isActive, filter, entries.length, handleFetchNextPage, hasNextPage, isFetchNextPageError]);
+    }, [canAutoFetchEmptyPage, handleFetchNextPage, isFetching]);
 
     const handleTicketPress = useCallback(
         (item: MemberTicketSummaryResponse) => {
@@ -226,9 +241,9 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
             item.type === "header" ? (
                 <TicketSectionHeader group={item.group} count={item.count} isFirst={item.isFirst} />
             ) : (
-                <TicketHistoryCard item={item.ticket} disabled={isLocked} onPress={handleTicketPress} />
+                <TicketHistoryCard item={item.ticket} todayKey={todayKey} onPress={handleTicketPress} />
             ),
-        [handleTicketPress, isLocked],
+        [handleTicketPress, todayKey],
     );
 
     const emptyCopy =
@@ -280,7 +295,21 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
     }
 
     if (entries.length === 0 && hasNextPage) {
-        return <TicketHistorySkeletonList grouped={filter === "all"} />;
+        if (isFetchingNextPage || canAutoFetchEmptyPage) {
+            return <TicketHistorySkeletonList grouped={filter === "all"} />;
+        }
+
+        return (
+            <StateList refreshing={isPullRefreshing} onRefresh={handlePullRefresh}>
+                <EmptyState
+                    title={emptyCopy.title}
+                    message={emptyCopy.message}
+                    actionLabel={t("common.loadMore")}
+                    actionPending={isFetchingNextPage}
+                    onAction={handleFetchNextPage}
+                />
+            </StateList>
+        );
     }
 
     if (entries.length === 0) {
@@ -300,7 +329,7 @@ const TicketHistoryTabScene = memo(function TicketHistoryTabScene({
     return (
         <FlashList
             data={entries}
-            extraData={isLocked}
+            extraData={todayKey}
             keyExtractor={ticketHistoryKeyExtractor}
             getItemType={getTicketHistoryItemType}
             renderItem={renderTicket}

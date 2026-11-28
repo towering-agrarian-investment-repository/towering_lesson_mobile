@@ -31,7 +31,7 @@ import { usePullToRefresh } from "@/lib/hook/usePullToRefresh";
 import { getEffectiveTicketStatus } from "@/utils/status-tone";
 import { formatDateForDisplay, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
-import { Href, useLocalSearchParams, useRouter } from "expo-router";
+import { Href, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
@@ -49,6 +49,7 @@ export default function ReservationDetailScreen() {
     const [isCancelSheetVisible, setIsCancelSheetVisible] = useState(false);
     const cancelLocked = useRef(false);
     const router = useRouter();
+    const navigation = useNavigation();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
@@ -273,8 +274,10 @@ export default function ReservationDetailScreen() {
                 footer={
                     noteEditor.isNoteEditorOpen ? (
                         <BayReservationNoteFooter
+                            control={noteEditor.control}
+                            initialNote={noteEditor.initialNote}
                             isSaving={noteEditor.isSavingNote}
-                            isSaveDisabled={noteEditor.isSaveNoteDisabled}
+                            isActionDisabled={noteEditor.isEditTriggerDisabled}
                             onSave={noteEditor.submitNote}
                             onCancel={noteEditor.closeNoteEditor}
                         />
@@ -398,6 +401,19 @@ export default function ReservationDetailScreen() {
                                     disabled={isLocked}
                                     onPress={() => {
                                         runWithNavigationLock(() => {
+                                            const routes = navigation.getState()?.routes ?? [];
+                                            const previousRoute =
+                                                routes.length >= 2 ? routes[routes.length - 2] : undefined;
+                                            const previousParams = previousRoute?.params as
+                                                { id?: string | number } | undefined;
+                                            if (
+                                                (previousRoute?.name === "lesson-log/[id]/index" ||
+                                                    previousRoute?.name === "lesson-log/[id]") &&
+                                                String(previousParams?.id) === lessonLogHref.params.id
+                                            ) {
+                                                router.back();
+                                                return;
+                                            }
                                             router.push(lessonLogHref as Href);
                                         });
                                     }}

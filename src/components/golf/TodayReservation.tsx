@@ -1,5 +1,6 @@
 import { CompactEmptyState } from "@/design-system";
 import { useTodayMemberReservations } from "@/lib/hook/useReservation";
+import { useIsFocused } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { ReservationCardSkeleton } from "./ReservationCard";
@@ -8,6 +9,7 @@ import TodayReservationCard from "./TodayReservationCard";
 
 function TodayReservation() {
     const { t } = useTranslation();
+    const isFocused = useIsFocused();
 
     const {
         data,
@@ -52,6 +54,7 @@ function TodayReservation() {
                         <TodayReservationCard
                             key={`${reservation.reservationType}:${reservation.id}`}
                             reservation={reservation}
+                            animate={isFocused}
                         />
                     ))}
                 </View>

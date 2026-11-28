@@ -1,4 +1,5 @@
 import { getMemberBaySlotGroupsQueryOptions, getMemberTicketLessonSlotsQueryOptions } from "@/lib/hook/useReservation";
+import { getMemberTicketByIdQueryOptions } from "@/lib/hook/useTicket";
 import type { MemberTicketSummaryResponse } from "@/types/member-ticket";
 import { formatDateForAPI } from "@/utils/time-helper";
 import { toAppTimeZoneDate } from "@/utils/timezone";
@@ -10,6 +11,10 @@ export function prefetchTicketAvailability(
     queryClient: QueryClient,
     ticket: Pick<MemberTicketSummaryResponse, "id" | "type">,
 ) {
+    if (Number.isSafeInteger(ticket.id) && ticket.id > 0) {
+        void queryClient.prefetchQuery(getMemberTicketByIdQueryOptions(ticket.id));
+    }
+
     const today = toAppTimeZoneDate(new Date()) ?? new Date();
 
     if (ticket.type === "PRIVATE_LESSON" || ticket.type === "GROUP_LESSON") {

@@ -479,6 +479,7 @@ const zh: TranslationResource<typeof en> = {
         offlineMessage: "请检查网络连接后重试。",
         requestTimeout: "请求超时。请检查网络连接后重试。",
         cancel: "取消",
+        loadMore: "加载更多",
         goBack: "返回",
         closeTitle: "关闭 {{title}}",
         selectOption: "请选择",

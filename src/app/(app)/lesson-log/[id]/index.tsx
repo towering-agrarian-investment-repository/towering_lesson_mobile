@@ -18,12 +18,12 @@ import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservatio
 import { formatDateForDisplay } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "expo";
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import CalendarDays from "lucide-react-native/icons/calendar-days";
 import Play from "lucide-react-native/icons/play";
 import Star from "lucide-react-native/icons/star";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, View } from "react-native";
 
@@ -35,8 +35,18 @@ const VIDEO_BACKGROUND_COLOR = "#000";
 
 function LessonVideo({ videoUrl }: { videoUrl: string }) {
     const [playRequested, setPlayRequested] = useState(false);
+    const savedPositionRef = useRef(0);
     const { colors } = useTheme();
     const { t } = useTranslation();
+
+    const handleDeactivate = useCallback((position: number) => {
+        if (Number.isFinite(position) && position > 0) {
+            savedPositionRef.current = position;
+        }
+        setPlayRequested(false);
+    }, []);
+
+    const getInitialPosition = useCallback(() => savedPositionRef.current, []);
 
     if (!playRequested) {
         return (
@@ -53,26 +63,47 @@ function LessonVideo({ videoUrl }: { videoUrl: string }) {
         );
     }
 
-    return <LessonVideoPlayer videoUrl={videoUrl} />;
+    return (
+        <LessonVideoPlayer
+            videoUrl={videoUrl}
+            getInitialPosition={getInitialPosition}
+            onDeactivate={handleDeactivate}
+        />
+    );
 }
 
-function LessonVideoPlayer({ videoUrl }: { videoUrl: string }) {
+function LessonVideoPlayer({
+    videoUrl,
+    getInitialPosition,
+    onDeactivate,
+}: {
+    videoUrl: string;
+    getInitialPosition: () => number;
+    onDeactivate: (position: number) => void;
+}) {
     const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
+        const initialPosition = getInitialPosition();
+        if (initialPosition > 0) {
+            videoPlayer.currentTime = initialPosition;
+        }
         videoPlayer.play();
     });
 
     useFocusEffect(
         useCallback(() => {
             return () => {
+                let currentTime = 0;
                 try {
+                    currentTime = player.currentTime;
                     player.pause();
                 } catch {
                     // Player may already be released on unmount.
                 }
+                onDeactivate(currentTime);
             };
-        }, [player]),
+        }, [onDeactivate, player]),
     );
 
     const { status } = useEvent(player, "statusChange", {
@@ -110,6 +141,7 @@ function LessonLogDetailsScreen() {
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<LessonLogParams>();
     const router = useRouter();
+    const navigation = useNavigation();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
 
@@ -207,7 +239,7 @@ function LessonLogDetailsScreen() {
                 <>
                     <View className="gap-3">
                         <AppText variant="label">{t("lessonLog.videoLabel")}</AppText>
-                        <LessonVideo videoUrl={videoUrl} />
+                        <LessonVideo key={videoUrl} videoUrl={videoUrl} />
                     </View>
 
                     <View className="h-px bg-border" />
@@ -283,34 +315,49 @@ function LessonLogDetailsScreen() {
                     <View className="gap-3">
                         <AppText variant="label">{t("lessonLog.relatedReservationLabel")}</AppText>
 
-                        <Link
-                            href={{
-                                pathname: "/reservation/[id]",
-                                params: {
-                                    id: String(lessonLog.reservation.id),
-                                    type: "lesson",
-                                },
+                        <ListRow
+                            leading={
+                                <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                                    <CalendarDays size={19} color={colors.primary} strokeWidth={2.2} />
+                                </View>
+                            }
+                            title={
+                                lessonLog.reservation.name?.trim() ||
+                                t("reservations.reservationFallbackWithId", { id: lessonLog.reservation.id })
+                            }
+                            subtitle={t("lessonLog.viewReservationDetails")}
+                            disabled={isLocked}
+                            onPressIn={() => {
+                                void queryClient.prefetchQuery(
+                                    getMemberReservationDetailQueryOptions(lessonLog.reservation!.id, "lesson"),
+                                );
                             }}
-                            asChild
-                        >
-                            <ListRow
-                                leading={
-                                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                        <CalendarDays size={19} color={colors.primary} strokeWidth={2.2} />
-                                    </View>
-                                }
-                                title={
-                                    lessonLog.reservation.name?.trim() ||
-                                    t("reservations.reservationFallbackWithId", { id: lessonLog.reservation.id })
-                                }
-                                subtitle={t("lessonLog.viewReservationDetails")}
-                                onPressIn={() => {
-                                    void queryClient.prefetchQuery(
-                                        getMemberReservationDetailQueryOptions(lessonLog.reservation!.id, "lesson"),
-                                    );
-                                }}
-                            />
-                        </Link>
+                            onPress={() => {
+                                const targetId = String(lessonLog.reservation!.id);
+                                runWithNavigationLock(() => {
+                                    const routes = navigation.getState()?.routes ?? [];
+                                    const previousRoute = routes.length >= 2 ? routes[routes.length - 2] : undefined;
+                                    const previousParams = previousRoute?.params as
+                                        { id?: string | number; type?: string } | undefined;
+                                    if (
+                                        previousRoute?.name === "reservation/[id]" &&
+                                        String(previousParams?.id) === targetId &&
+                                        (!previousParams?.type || previousParams.type === "lesson")
+                                    ) {
+                                        router.back();
+                                        return;
+                                    }
+
+                                    router.push({
+                                        pathname: "/reservation/[id]",
+                                        params: {
+                                            id: targetId,
+                                            type: "lesson",
+                                        },
+                                    });
+                                });
+                            }}
+                        />
                     </View>
                 </>
             ) : null}

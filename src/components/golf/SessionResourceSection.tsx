@@ -25,7 +25,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import ExternalLink from "lucide-react-native/icons/external-link";
 import FileText from "lucide-react-native/icons/file-text";
 import Play from "lucide-react-native/icons/play";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { View } from "react-native";
@@ -37,23 +37,38 @@ type SessionResourceSectionProps = {
 
 const VIDEO_BACKGROUND_COLOR = "#000";
 
-function ResourceVideo({ videoUrl }: { videoUrl: string }) {
+function ResourceVideo({
+    videoUrl,
+    getInitialPosition,
+    onDeactivate,
+}: {
+    videoUrl: string;
+    getInitialPosition: () => number;
+    onDeactivate: (position: number) => void;
+}) {
     const { t } = useTranslation();
     const player = useVideoPlayer(videoUrl, (videoPlayer) => {
         videoPlayer.loop = false;
+        const initialPosition = getInitialPosition();
+        if (initialPosition > 0) {
+            videoPlayer.currentTime = initialPosition;
+        }
         videoPlayer.play();
     });
 
     useFocusEffect(
         useCallback(() => {
             return () => {
+                let currentTime = 0;
                 try {
+                    currentTime = player.currentTime;
                     player.pause();
                 } catch {
                     // Player may already be released on unmount.
                 }
+                onDeactivate(currentTime);
             };
-        }, [player]),
+        }, [onDeactivate, player]),
     );
 
     const { status } = useEvent(player, "statusChange", {
@@ -99,10 +114,18 @@ function getResourceKey(resource: MemberSessionResourceResponse) {
 export function SessionResourceSection({ resources }: SessionResourceSectionProps) {
     const { t } = useTranslation();
     const [activeVideoKey, setActiveVideoKey] = useState<string | null>(null);
+    const savedVideoPositionsRef = useRef<Record<string, number>>({});
     const [previewImage, setPreviewImage] = useState<{
         uri: string;
         title: string;
     } | null>(null);
+
+    const handleDeactivateVideo = useCallback((key: string, position: number) => {
+        if (Number.isFinite(position) && position > 0) {
+            savedVideoPositionsRef.current[key] = position;
+        }
+        setActiveVideoKey((current) => (current === key ? null : current));
+    }, []);
 
     if (resources.length === 0) {
         return <CompactEmptyState title={t("sessionResources.noResources")} />;
@@ -118,7 +141,9 @@ export function SessionResourceSection({ resources }: SessionResourceSectionProp
                             key={key}
                             resource={resource}
                             playRequested={activeVideoKey === key}
+                            getInitialVideoPosition={() => savedVideoPositionsRef.current[key] ?? 0}
                             onRequestPlay={() => setActiveVideoKey(key)}
+                            onDeactivateVideo={handleDeactivateVideo}
                             onPreviewImage={(uri, title) => setPreviewImage({ uri, title })}
                         />
                     );
@@ -137,18 +162,27 @@ export function SessionResourceSection({ resources }: SessionResourceSectionProp
 function SessionResourceItem({
     resource,
     playRequested,
+    getInitialVideoPosition,
     onRequestPlay,
+    onDeactivateVideo,
     onPreviewImage,
 }: {
     resource: MemberSessionResourceResponse;
     playRequested: boolean;
+    getInitialVideoPosition: () => number;
     onRequestPlay: () => void;
+    onDeactivateVideo: (key: string, position: number) => void;
     onPreviewImage: (uri: string, title: string) => void;
 }) {
     const { colors } = useTheme();
     const { t } = useTranslation();
     const reducedMotion = useReducedMotion();
     const url = getResourceUrl(resource);
+    const resourceKey = getResourceKey(resource);
+    const handleDeactivateVideo = useCallback(
+        (position: number) => onDeactivateVideo(resourceKey, position),
+        [onDeactivateVideo, resourceKey],
+    );
     const title = resource.originalFileName?.trim() || t("sessionResources.resourceFallback", { id: resource.id });
     const resourceTypeLabel = getResourceTypeLabel(resource, t);
     const fileAccentColor = getFileAccentColor(resource, colors);
@@ -219,7 +253,11 @@ function SessionResourceItem({
         return (
             <View className="overflow-hidden rounded-2xl border border-border bg-card">
                 {playRequested ? (
-                    <ResourceVideo videoUrl={url} />
+                    <ResourceVideo
+                        videoUrl={url}
+                        getInitialPosition={getInitialVideoPosition}
+                        onDeactivate={handleDeactivateVideo}
+                    />
                 ) : (
                     <AnimatedPressable
                         accessibilityRole="button"

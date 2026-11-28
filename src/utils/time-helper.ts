@@ -122,7 +122,7 @@ export const formatTimeRange = (start?: string | Date | null, end?: string | Dat
 
 export const fmtDateTime = (value?: string | Date | null) => (value ? formatDateTimeMedium(value) : NO_VALUE);
 
-export const formatDateForAPI = (date: Date | string): string => {
+export const formatDateForAPI = (date: Date | string | number): string => {
     const parts = getAppTimeZoneDateParts(date);
 
     if (!parts) return "";

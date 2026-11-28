@@ -12,6 +12,7 @@ import { formatTicketTypeLabel } from "@/design-system/utils/ticket-type";
 import { canBookWithTicket } from "@/lib/booking/ticket-eligibility";
 import { responseError } from "@/lib/api-response/api-response";
 import { useIsOnline } from "@/lib/hook/useIsOnline";
+import { useNavigationLock } from "@/lib/hook/useNavigationLock";
 import {
     getMemberTicketLessonSlotsQueryOptions,
     isReservationSlotUnavailable,
@@ -32,7 +33,7 @@ import { getTicketPausePeriods, isTicketDatePaused } from "@/utils/ticket-pause"
 import { formatDateForAPI, formatDateMedium, formatDateShort, formatTimeRange } from "@/utils/time-helper";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -63,6 +64,8 @@ export default function LessonBookingConfirmScreen() {
         notes?: string;
     }>();
     const router = useRouter();
+    const navigation = useNavigation();
+    const { runWithNavigationLock } = useNavigationLock();
     const submitting = useRef(false);
     const queryClient = useQueryClient();
     const isGroupTicket = String(ticketType ?? "").toUpperCase() === "GROUP_LESSON";
@@ -137,18 +140,20 @@ export default function LessonBookingConfirmScreen() {
             queryKey: getMemberTicketLessonSlotsQueryOptions(ticketIdNumber, year, month).queryKey,
             refetchType: "all",
         });
-        router.dismissTo({
-            pathname: "/select-lesson-slot",
-            params: {
-                date,
-                ticketId,
-                ticketName,
-                ticketType,
-                notes: notes ?? undefined,
-                conflictMessage: error.message,
-                conflictSlotId: lessonAvailabilityId,
-                conflictId: error.timestamp,
-            },
+        runWithNavigationLock(() => {
+            router.dismissTo({
+                pathname: "/select-lesson-slot",
+                params: {
+                    date,
+                    ticketId,
+                    ticketName,
+                    ticketType,
+                    notes: notes ?? undefined,
+                    conflictMessage: error.message,
+                    conflictSlotId: lessonAvailabilityId,
+                    conflictId: error.timestamp,
+                },
+            });
         });
         responseError(error);
     };
@@ -183,15 +188,17 @@ export default function LessonBookingConfirmScreen() {
                 type: "warning",
             });
 
-            router.dismissTo({
-                pathname: "/select-lesson-slot",
-                params: {
-                    date,
-                    ticketId,
-                    ticketName,
-                    ticketType,
-                    notes: notes ?? undefined,
-                },
+            runWithNavigationLock(() => {
+                router.dismissTo({
+                    pathname: "/select-lesson-slot",
+                    params: {
+                        date,
+                        ticketId,
+                        ticketName,
+                        ticketType,
+                        notes: notes ?? undefined,
+                    },
+                });
             });
 
             return;
@@ -206,21 +213,25 @@ export default function LessonBookingConfirmScreen() {
             },
             {
                 onSuccess: (response) =>
-                    handleBookingConfirmationSuccess(router, {
-                        type: "lesson",
-                        mode: "booking",
-                        reservationId: response.data.id,
-                        ticketName: response.data.ticket?.name ?? ticketName,
-                        ticketTotalCount: response.data.ticket?.totalCount,
-                        ticketUsedCount: response.data.ticket?.usedCount,
-                        ticketRemainingCount: response.data.ticket?.remainingCount,
-                        ticketIsUnlimited: response.data.ticket?.isUnlimited,
-                        date,
-                        startTime: selectedSlot.startTime ?? startTime,
-                        endTime: selectedSlot.endTime ?? endTime,
-                        reservationName: getLessonSlotDisplayName(selectedSlot, t),
-                        coachName: selectedSlot.coachName ?? coachName,
-                    }),
+                    handleBookingConfirmationSuccess(
+                        router,
+                        {
+                            type: "lesson",
+                            mode: "booking",
+                            reservationId: response.data.id,
+                            ticketName: response.data.ticket?.name ?? ticketName,
+                            ticketTotalCount: response.data.ticket?.totalCount,
+                            ticketUsedCount: response.data.ticket?.usedCount,
+                            ticketRemainingCount: response.data.ticket?.remainingCount,
+                            ticketIsUnlimited: response.data.ticket?.isUnlimited,
+                            date,
+                            startTime: selectedSlot.startTime ?? startTime,
+                            endTime: selectedSlot.endTime ?? endTime,
+                            reservationName: getLessonSlotDisplayName(selectedSlot, t),
+                            coachName: selectedSlot.coachName ?? coachName,
+                        },
+                        navigation,
+                    ),
                 onError: handleSlotUnavailable,
                 onSettled: () => {
                     submitting.current = false;
@@ -312,12 +323,14 @@ export default function LessonBookingConfirmScreen() {
                     title={t("booking.datePaused")}
                     message={t("booking.chooseDateOutsidePause")}
                     actionLabel={t("booking.chooseAnotherDate")}
-                    onAction={() =>
-                        router.dismissTo({
-                            pathname: "/select-date",
-                            params: { date, ticketId, ticketName, ticketType, notes: notes ?? undefined },
-                        })
-                    }
+                    onAction={() => {
+                        runWithNavigationLock(() => {
+                            router.dismissTo({
+                                pathname: "/select-date",
+                                params: { date, ticketId, ticketName, ticketType, notes: notes ?? undefined },
+                            });
+                        });
+                    }}
                 />
             ) : isMissingRequiredData ? (
                 <EmptyState
@@ -337,15 +350,17 @@ export default function LessonBookingConfirmScreen() {
                             : t("bookingConfirmation.chooseAnotherSlot")
                     }
                     onAction={() => {
-                        router.dismissTo({
-                            pathname: "/select-lesson-slot",
-                            params: {
-                                date,
-                                ticketId,
-                                ticketName,
-                                ticketType,
-                                notes: notes ?? undefined,
-                            },
+                        runWithNavigationLock(() => {
+                            router.dismissTo({
+                                pathname: "/select-lesson-slot",
+                                params: {
+                                    date,
+                                    ticketId,
+                                    ticketName,
+                                    ticketType,
+                                    notes: notes ?? undefined,
+                                },
+                            });
                         });
                     }}
                 />

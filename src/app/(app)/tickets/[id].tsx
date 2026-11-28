@@ -30,7 +30,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 import { useDayClock } from "@/lib/hook/useMinuteClock";
 import { getMemberReservationDetailQueryOptions } from "@/lib/hook/useReservation";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl, View } from "react-native";
@@ -61,6 +61,7 @@ function getDaysLeftCount(endDate: string | null, isActive: boolean, referenceTi
 export default function TicketDetailScreen() {
     const { t } = useTranslation();
     const { id } = useLocalSearchParams<{ id: string }>();
+    const isFocused = useIsFocused();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { isLocked, runWithNavigationLock } = useNavigationLock();
@@ -136,10 +137,10 @@ export default function TicketDetailScreen() {
                         isFirst={index === 0}
                     />
                 ) : null}
-                <ReservationCard reservation={item} disabled={isLocked} onPress={handleReservationPress} />
+                <ReservationCard reservation={item} animate={isFocused} onPress={handleReservationPress} />
             </View>
         ),
-        [dateCounts, handleReservationPress, isLocked, reservations],
+        [dateCounts, handleReservationPress, isFocused, reservations],
     );
 
     if (isLoading && !ticket) {
