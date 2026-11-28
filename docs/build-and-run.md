@@ -1,22 +1,41 @@
 # Build and run the mobile app
 
-Run these commands from the project root (`D:\g` on Windows). This project uses pnpm. `eas build`
+Run these commands from the project root. For direct Android builds on Windows,
+use the short checkout described below. This project uses pnpm. `eas build`
 builds on Expo's servers and uses the EAS build quota; `pnpm exec expo run:*`
 compiles and installs on your computer. Both development methods create a
 development client, not an app-store release. Install an EAS build after it
 finishes using its build page or downloaded artifact.
 
+## First setup
+
+Use Node LTS meeting the project's `>=22.13.0` requirement and pnpm `10.26.0`.
+Install with the committed lockfile:
+
+```sh
+pnpm install --frozen-lockfile
+```
+
+Copy `.env.example` to `.env` if it does not already exist. Start the API and auth
+service in their own backend projects; this repository contains only the mobile app.
+Configure their reachable URLs using the backend connection section below.
+
+The app needs an installed development client because it uses native modules.
+After installing one, run `pnpm start --dev-client` for day-to-day JavaScript and UI
+changes. See [README checks](../README.md#checks) and [device QA](qa-checklist.md)
+for verification.
+
 ## Quick command picker
 
-| Goal | Command | Where it runs |
-| --- | --- | --- |
-| Android development APK from EAS | `eas build --platform android --profile development` | Any computer |
-| iOS development build for an iPhone from EAS | `eas build --platform ios --profile development` | Any computer; iOS signing required |
-| iOS development build for a simulator from EAS | `eas build --platform ios --profile development-simulator` | Any computer; installs only on an iOS simulator |
-| Android development app directly | `pnpm exec expo run:android --device` | Computer with Android SDK and connected phone/emulator |
-| iOS development app directly | `pnpm exec expo run:ios --device` | Mac with Xcode and connected iPhone |
-| iOS simulator directly | `pnpm exec expo run:ios` | Mac with Xcode and an iOS simulator |
-| JavaScript or UI changes with an installed development app | `pnpm start --dev-client` | Computer serving Metro to the app |
+| Goal                                                       | Command                                                    | Where it runs                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
+| Android development APK from EAS                           | `eas build --platform android --profile development`       | Any computer                                           |
+| iOS development build for an iPhone from EAS               | `eas build --platform ios --profile development`           | Any computer; iOS signing required                     |
+| iOS development build for a simulator from EAS             | `eas build --platform ios --profile development-simulator` | Any computer; installs only on an iOS simulator        |
+| Android development app directly                           | `pnpm exec expo run:android --device`                      | Computer with Android SDK and connected phone/emulator |
+| iOS development app directly                               | `pnpm exec expo run:ios --device`                          | Mac with Xcode and connected iPhone                    |
+| iOS simulator directly                                     | `pnpm exec expo run:ios`                                   | Mac with Xcode and an iOS simulator                    |
+| JavaScript or UI changes with an installed development app | `pnpm start --dev-client`                                  | Computer serving Metro to the app                      |
 
 `--device` selects a connected device. For an Android emulator, omit it or use
 it to choose an emulator. EAS iOS simulator builds cannot be installed on an
@@ -24,8 +43,7 @@ iPhone. Windows cannot compile an iOS app directly; use EAS or a Mac.
 
 ## EAS cloud builds
 
-Use the `D:\g` checkout on Windows so EAS receives your latest source. Sign in
-once with `eas login` if needed.
+Use the checkout containing your latest source. Sign in once with `eas login` if needed.
 
 Android phone or emulator:
 
@@ -138,13 +156,68 @@ After installing either development app, run `pnpm start --dev-client` for
 JavaScript and UI changes. Rebuild when a native dependency or app config
 changes.
 
-## Backend connection helper
+## Backend connections and environment
 
-EAS development builds use the `localhost` URLs in `eas.json`. Metro uses
-`.env` and `.env.local` from the checkout running it. An Android phone can
-reach local backend ports through `adb reverse`; a physical iPhone needs
-reachable LAN or HTTPS backend URLs. See [Local development](local-development.md)
-for the exact URL and port commands. A Metro tunnel does not expose the backend.
+The `development` EAS profile uses local URLs, `preview` uses staging, and
+`production` uses production. Local defaults in `.env.example` are:
+
+```dotenv
+EXPO_PUBLIC_API_BASE_URL=http://localhost:8082/api/v1
+EXPO_PUBLIC_AUTH_BASE_URL=http://localhost:3002/api/member/auth
+EXPO_PUBLIC_SENTRY_ENVIRONMENT=local
+```
+
+Metro uses `.env` and `.env.local` from the checkout running it; `.env.local`
+overrides `.env`. Preserve existing private values and fully reload the app after
+changing public variables. The version endpoint defaults to the selected API URL
+plus `/app/version`; keep any `EXPO_PUBLIC_APP_VERSION_URL` override on the same
+backend. `EXPO_PUBLIC_SENTRY_DSN` is optional; unset means no crash reporting.
+
+### Android emulator or USB phone
+
+With USB debugging enabled, map the backend ports to your computer:
+
+```sh
+adb reverse tcp:8082 tcp:8082
+adb reverse tcp:3002 tcp:3002
+```
+
+Repeat after reconnecting or restarting the device. With multiple devices, use
+`adb -s <device-serial> reverse ...`. Alternatively, the standard Android emulator
+can use `10.0.2.2` in both URLs instead of localhost without port forwarding.
+
+### iOS simulator or phone over Wi-Fi
+
+An iOS simulator on the backend's Mac can use localhost. For a physical phone,
+set the computer's LAN IP in `.env.local`:
+
+```dotenv
+EXPO_PUBLIC_API_BASE_URL=http://YOUR_LOCAL_IP:8082/api/v1
+EXPO_PUBLIC_AUTH_BASE_URL=http://YOUR_LOCAL_IP:3002/api/member/auth
+EXPO_PUBLIC_SENTRY_ENVIRONMENT=local
+```
+
+Use the same network, let the services listen on a reachable interface such as
+`0.0.0.0`, allow both ports through the firewall, and configure the auth service
+to accept the development app's origin. A Metro tunnel exposes only the bundler.
+Use a separate HTTPS backend tunnel when LAN access is unavailable.
+
+### Staging with a development client
+
+For a standalone staging build:
+
+```sh
+eas build --profile preview --platform all
+```
+
+For Metro, copy the preview environment's public API, auth, optional version URL,
+and Sentry values into `.env.local`, then fully reload. Restore local values or
+remove only those overrides to return to localhost.
+
+EAS profile `env` values apply to builds. EAS Update with `--environment` uses
+dashboard variables, so the local URLs in `eas.json` do not configure updates.
+Keep the selected dashboard environment consistent before publishing. See
+[Production environment](production-environment.md) for release variables.
 
 ## References
 

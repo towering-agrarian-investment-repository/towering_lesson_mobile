@@ -15,7 +15,7 @@ Layout and alignment pitfalls found while working with `@expo/ui`. Read before t
 
 - Percentage Host widths need an already sized RN parent.
 - Inside a centered, intrinsically sized wrapper, use the cell's explicit width or an intrinsic measurement. A percentage child cannot establish its parent's width.
-- Calendar day labels use `minWidth: 40` / `minHeight: 40` (`min-h-10 min-w-10`) with `minHeight: 520` on the calendar container so large Dynamic Type scales do not clip.
+- The booking calendar scales its minimum height from `CALENDAR_BASE_MIN_HEIGHT` and the current font scale in `SelectDatePicker.tsx`. Preserve measured page widths and verify large text without assuming a fixed 520-point container.
 
 ## Buttons and press feedback
 
@@ -26,7 +26,7 @@ Layout and alignment pitfalls found while working with `@expo/ui`. Read before t
 - A Host seed color generates an Android palette. It does not preserve an exact brand fill, so use `native-button-styles.ts`.
 - Universal `Row.alignment` controls vertical alignment.
 - Center button labels and loading indicators horizontally in full-width rows with balanced flexible `Spacer`s on both sides of the content group, alongside centered text alignment.
-- `AnimatedPressable` (`src/design-system/components/AnimatedPressable.tsx`) must remain a single `ReanimatedPressable` view that animates only `transform: [{ scale }]`. Never write `opacity: 1` in `useAnimatedStyle` on the outer pressable (which overrides caller `opacity-*` / `disabled:opacity-*` dimming classes) and never wrap children in an extra inner `Animated.View` (which alters flex and `self-center` layout).
+- `AnimatedPressable` has platform implementations: Android uses core RN `Pressable` with a clipped, theme-tinted highlight; iOS uses a single `ReanimatedPressable` animating only `transform: [{ scale }]`. Keep the visible radius on the pressable. On iOS, never animate outer opacity (which overrides caller dimming classes) or add an inner `Animated.View` (which alters child flex layout).
 
 ## Keyboard-aware screens and bottom sheets
 

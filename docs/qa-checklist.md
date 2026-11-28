@@ -55,3 +55,53 @@ Use an iOS build made with the EAS `sdk-58` image and test in the iPhone Duo sim
 - Cold restart after choosing explicit Light and Dark to confirm persistence; check that System follows later device appearance changes.
 - Check blue and green primary colors in both light and dark modes, including Expo UI controls and the navigation bar.
 - Repeated taps, pending submissions, Android back, keyboard access, large text, offline/slow connections, resizing.
+
+## API contract regression checks
+
+- Ticket History: verify Past has results when All begins with several pages of
+  active tickets; include fully used, refunded, unlimited, and type-filtered tickets.
+  Check equal creation timestamps across cursor boundaries. Home and ticket tabs
+  must request `history=active` and use the returned `effectiveStatus`.
+- Booking: check `canStartBooking`, server lesson-slot flags, pause boundaries in
+  the business timezone, and a slot taken between selection and confirmation.
+  After success, Back must not revisit completed booking steps.
+- Bay moves: verify `canReschedule`, the cutoff, and a valid move on a fully used
+  ticket without consuming another use. Availability requests must carry the original
+  reservation ID and must not reuse another move's cache or offer the current slot.
+- Homework: test no current revision, a reviewed current revision, and an unreviewed
+  current revision with older feedback. Earlier feedback stays in history; lesson
+  and group badges agree. `canSubmit=false` blocks attachment picking and submission.
+- Saved values: profile image updates use the returned image URL; bay notes use
+  the saved response, including `memberNotes: null` after clearing. Check that an
+  older in-flight detail request cannot overwrite the saved value.
+
+## Share-card fixtures and visual checks
+
+Monthly cards use the [V4 layout](../assets/HappyGolf_ShareCard_V4/spec/layout_v4.json)
+and one transparent decoration layer on a 1122 × 1402 source canvas. Text, calendar,
+member details, and the original app logo remain live components. The month begins
+on Monday; six-week months must clear the footer. Monthly hours come from
+`activity.monthly[].totalReservationHours`, with zero for an omitted month.
+
+Run the targeted calendar and locale helper from the project root:
+
+```sh
+node scripts/monthly-share-card-qa.cjs
+node scripts/monthly-share-card-qa.cjs --render
+```
+
+The helper covers 60 months, leap years, six-week fit, October 2026 weekday alignment,
+and five supported locales. `--render` generates web fixtures under
+`.expo/share-card-qa/` for long names, zero counts, and locale review. Web output does
+not verify native text shaping.
+
+Check monthly and yearly cards on Android and iOS in both themes, with Khmer,
+Japanese, Chinese, long names, large text, and a real avatar. Delay or fail artwork
+and avatar loading, retry, change theme, and confirm Share/Save waits for the active
+card's assets and authoritative data. Test permission denial and export recovery.
+The captured PNG must be 1080 × 1350 physical pixels and contain only the card.
+
+Historical Android examples: [preview](mockups/activity-v4-state.png),
+[six-week month](mockups/activity-v4-six-weeks-android.png), and
+[saved PNG](mockups/activity-v4-export-android.png). These images record earlier QA;
+they do not certify the current build. The original app logo remains blue.

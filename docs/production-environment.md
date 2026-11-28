@@ -3,11 +3,11 @@
 This app uses the same EAS project for staging and production. Each build
 profile in `eas.json` explicitly selects its EAS environment and update channel:
 
-| Build profile | EAS environment | Update channel | Backend |
-| --- | --- | --- | --- |
-| development | development | development | Local backend |
-| preview | preview | preview | Staging |
-| production | production | production | Production |
+| Build profile | EAS environment | Update channel | Backend       |
+| ------------- | --------------- | -------------- | ------------- |
+| development   | development     | development    | Local backend |
+| preview       | preview         | preview        | Staging       |
+| production    | production      | production     | Production    |
 
 ## Configure Expo variables
 
@@ -15,18 +15,20 @@ Open the project's **Settings > Environment variables** in the Expo dashboard.
 Keep the existing staging URL entries assigned to `preview`. The development
 build profile sets local API, auth, app-version, and Sentry values in `eas.json`.
 For running the development client with Metro, use local `.env` files as described
-in [Local development](local-development.md).
+in [Build and run](build-and-run.md#backend-connections-and-environment).
 Use **Add Variables** to create entries with the same names, production values,
 and only `production` selected:
 
-| Variable | Production value | Visibility |
-| --- | --- | --- |
-| `EXPO_PUBLIC_API_BASE_URL` | `https://api.happy-lesson.com/api/v1` | Plain text |
-| `EXPO_PUBLIC_AUTH_BASE_URL` | `https://auth.happy-lesson.com/api/member/auth` | Plain text |
-| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | `production` | Plain text |
-| `SENTRY_AUTH_TOKEN` | Shared Sentry upload token authorized for the configured organization and project | Sensitive |
+| Variable                         | Production value                                                                  | Visibility |
+| -------------------------------- | --------------------------------------------------------------------------------- | ---------- |
+| `EXPO_PUBLIC_API_BASE_URL`       | `https://api.happy-lesson.com/api/v1`                                             | Plain text |
+| `EXPO_PUBLIC_AUTH_BASE_URL`      | `https://auth.happy-lesson.com/api/member/auth`                                   | Plain text |
+| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | `production`                                                                      | Plain text |
+| `EXPO_PUBLIC_SENTRY_DSN`         | DSN for the configured Sentry project                                             | Plain text |
+| `SENTRY_AUTH_TOKEN`              | Shared Sentry upload token authorized for the configured organization and project | Sensitive  |
 
-The app reports errors to Sentry. Session replay and Sentry logs are disabled.
+The app reports errors to Sentry only when `EXPO_PUBLIC_SENTRY_DSN` is configured;
+there is no bundled fallback DSN. Session replay and Sentry logs are disabled.
 
 Do not select `production` on the existing staging URL or Sentry environment
 entries: that would reuse their staging values. The Sentry upload token can be

@@ -20,13 +20,13 @@ cp .env.example .env
 
 `.env` must define:
 
-| Variable | Required | Notes |
-| --- | --- | --- |
-| `EXPO_PUBLIC_API_BASE_URL` | yes | Member API root, e.g. `http://localhost:8082/api/v1` |
-| `EXPO_PUBLIC_AUTH_BASE_URL` | yes | Better Auth base URL, e.g. `http://localhost:3002/api/member/auth` |
-| `EXPO_PUBLIC_APP_VERSION_URL` | no | Defaults to `${EXPO_PUBLIC_API_BASE_URL}/app/version` |
-| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | no | Defaults to `local` |
-| `EXPO_PUBLIC_SENTRY_DSN` | no | No fallback: unset disables crash reporting. Set it in the EAS preview/production environments |
+| Variable                         | Required | Notes                                                                                          |
+| -------------------------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_BASE_URL`       | yes      | Member API root, e.g. `http://localhost:8082/api/v1`                                           |
+| `EXPO_PUBLIC_AUTH_BASE_URL`      | yes      | Better Auth base URL, e.g. `http://localhost:3002/api/member/auth`                             |
+| `EXPO_PUBLIC_APP_VERSION_URL`    | no       | Defaults to `${EXPO_PUBLIC_API_BASE_URL}/app/version`                                          |
+| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | no       | Defaults to `local`                                                                            |
+| `EXPO_PUBLIC_SENTRY_DSN`         | no       | No fallback: unset disables crash reporting. Set it in the EAS preview/production environments |
 
 The app uses native modules (`@expo/ui`, notifications, video, secure store), so
 **it needs a development build. Expo Go cannot run it.**
@@ -80,7 +80,7 @@ src/service/        Typed API service functions
 src/types/          API and domain types
 src/i18n/           en, ko, ja, zh, km resources
 scripts/            Node checks and QA helpers
-docs/               Architecture, build, theming, audit, and QA docs
+docs/               Feature reference, builds, release operations, and device QA
 ```
 
 Screens render state; hooks own query keys and caching; services call the API.
@@ -88,12 +88,18 @@ Server data is read straight from React Query, never copied into local state.
 
 ## Documentation
 
-- `AGENTS.md` — architecture, UI, and data rules enforced in review
-- `docs/mobile-app-reference-guide.md` — how each feature is built, plus playbook
-- `docs/build-and-run.md`, `docs/local-development.md` — local setup and builds
-- `docs/app-theme.md`, `docs/native-ui-gotchas.md` — theme tokens and native layout pitfalls
-- `docs/qa-checklist.md` — manual device checklist
-- `docs/mobile-app-versioning.md`, `docs/production-environment.md` — release operations
+Start here, then use the guide for the task:
+
+| Guide                                                    | Purpose                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
+| [Project rules](AGENTS.md)                               | Architecture, UI, and data rules for contributors                 |
+| [App reference](docs/mobile-app-reference-guide.md)      | Feature map, current API behavior, and implementation patterns    |
+| [Build and run](docs/build-and-run.md)                   | Setup, local backend connections, development clients, and builds |
+| [Design system](design-system.md)                        | Visual tokens, components, theme preferences, and troubleshooting |
+| [Native UI gotchas](docs/native-ui-gotchas.md)           | Native control layout, keyboard, and gesture pitfalls             |
+| [QA checklist](docs/qa-checklist.md)                     | Manual device checks and share-card fixtures                      |
+| [Versioning](docs/mobile-app-versioning.md)              | Current app-version headers and required/optional update behavior |
+| [Production environment](docs/production-environment.md) | EAS environment variables and release commands                    |
 
 ## License
 
